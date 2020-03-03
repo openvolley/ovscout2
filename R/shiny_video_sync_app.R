@@ -77,7 +77,7 @@ ov_shiny_video_sync_ui <- function(data) {
 if (getRversion() >= "2.15.1")  utils::globalVariables("SHINY_DATA") ## avoid check complaints
 
 ov_shiny_video_sync_server <- function(input, output, session) {
-    things <- reactiveValues(dvw = SHINY_DATA$dvw, plays_row_to_select = NULL)
+    things <- reactiveValues(dvw = SHINY_DATA$dvw)
     editing <- reactiveValues(active = NULL)
     video_state <- reactiveValues(paused = FALSE)
     handlers <- reactiveValues()
@@ -215,7 +215,7 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             ## advance to the next skill row
             if (ridx < nrow(things$dvw$plays)) {
                 next_skill_row <- find_next_skill_row(ridx)
-                if (length(next_skill_row) > 0) things$plays_row_to_select <- next_skill_row
+                if (length(next_skill_row) > 0) playslist_select_row(next_skill_row)
             }
         }
         NULL
@@ -262,8 +262,10 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             cnames <- names(plays_do_rename(mydat[1, c(plays_cols_to_show, "is_skill"), drop = FALSE]))
             cnames[plays_cols_to_show == "error_icon"] <- ""
             out <- DT::datatable(mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, colnames = cnames,
-                                  extensions = "Scroller", escape = FALSE,
-                                  selection = sel, options = list(scroller = TRUE, lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = TRUE, "scrollY" = paste0(plh, "px"), ordering = FALSE, ##autoWidth = TRUE,
+                                 extensions = "Scroller",
+                                 escape = FALSE, ##filter = "top",
+                                 selection = sel, options = list(scroller = TRUE,
+                                                      lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = TRUE, "scrollY" = paste0(plh, "px"), ordering = FALSE, ##autoWidth = TRUE,
                                                                   columnDefs = list(list(targets = cols_to_hide, visible = FALSE))
                                                                   ##list(targets = 0, width = "20px")) ## does nothing
                                                                   ))
@@ -275,24 +277,30 @@ ov_shiny_video_sync_server <- function(input, output, session) {
         }
     }, server = TRUE)
     playslist_proxy <- DT::dataTableProxy("playslist")
-    observe({
-        if (!is.null(things$plays_row_to_select)) {
-            DT::selectRows(playslist_proxy, things$plays_row_to_select)
+    playslist_select_row <- function(rw) {
+        if (!is.null(rw)) DT::selectRows(playslist_proxy, rw)
+        scroll_playlist()
+    }
+
+    ##only trigger scroll on: do_edit, keyboard move, set video time and move to next. Not just on selecting row
+    ## is happening auto when dvw updated, below
+    scroll_playlist <- function() {
+        if (!is.null(input$playslist_rows_selected)) {
+            scrollto <- max(input$playslist_rows_selected-1-5, 0) ## -1 for zero indexing, -5 to keep the selected row 5 from the top
+            dojs(sprintf("$('#playslist').find('.dataTable').DataTable().scroller.toPosition(%s);", scrollto))
+            ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).node().scrollIntoView();", max(0, things$plays_row_to_select-1)))
+            ##dojs(sprintf("console.dir($('#playslist').find('.dataTable').DataTable().row(%s).node())", max(0, things$plays_row_to_select-1)))
+            ##dojs(sprintf("$('#playslist').find('.dataTables_scroll').animate({ scrollTop: $('#playslist').find('.dataTable').DataTable().row(%s).node().offsetTop }, 2000);", max(0, things$plays_row_to_select-1)))
         }
-    })
+    }
 
     observe({
+##        cat("replacing DT data\n")
         mydat <- things$dvw$plays
         mydat$is_skill <- is_skill(mydat$skill)
         DT::replaceData(playslist_proxy, data = mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, clearSelection = "none")##, resetPaging = FALSE)
         ## and scroll to selected row
         ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).scrollTo();", max(0, things$plays_row_to_select-1)))
-        scrollto <- if (!is.null(things$plays_row_to_select) && !is.na(things$plays_row_to_select)) max(things$plays_row_to_select-1, 0) else 0
-        scrollto <- max(0, scrollto - 5)
-        dojs(sprintf("$('#playslist').find('.dataTable').DataTable().scroller.toPosition(%s);", scrollto))
-        ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).node().scrollIntoView();", max(0, things$plays_row_to_select-1)))
-        ##dojs(sprintf("console.dir($('#playslist').find('.dataTable').DataTable().row(%s).node())", max(0, things$plays_row_to_select-1)))
-        ##dojs(sprintf("$('#playslist').find('.dataTables_scroll').animate({ scrollTop: $('#playslist').find('.dataTable').DataTable().row(%s).node().offsetTop }, 2000);", max(0, things$plays_row_to_select-1)))
     })
 
     find_next_skill_row <- function(current_row_idx = NULL) {
@@ -359,11 +367,11 @@ ov_shiny_video_sync_server <- function(input, output, session) {
                 } else if (mycmd %in% utf8ToInt("i8")) {
                     ## prev skill row
                     psr <- find_prev_skill_row()
-                    if (length(psr) > 0) things$plays_row_to_select <- psr
+                    if (length(psr) > 0) playslist_select_row(psr)
                 } else if (mycmd %in% utf8ToInt("k2")) {
                     ## next skill row
                     nsr <- find_next_skill_row()
-                    if (length(nsr) > 0) things$plays_row_to_select <- nsr
+                    if (length(nsr) > 0) playslist_select_row(nsr)
                 } else if (mycmd %in% utf8ToInt("qQ0")) {
                     do_video("toggle_pause")
                 } else if (mycmd %in% utf8ToInt("gG#")) {
@@ -447,6 +455,7 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             }
         }
         editing$active <- NULL
+        scroll_playlist()
     }
     insert_data_row <- function() {
         ridx <- input$playslist_rows_selected
