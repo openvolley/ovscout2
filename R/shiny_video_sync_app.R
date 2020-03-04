@@ -538,6 +538,7 @@ reparse_dvw <- function(x, dv_read_args = list()) {
     dv_write(x, tf)
     dv_read_args$filename <- tf
     out <- do.call(read_dv, dv_read_args)
+    out$meta$filename <- x$meta$filename ## preserve this
     preprocess_dvw(out)
 }
 
