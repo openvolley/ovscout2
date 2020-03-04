@@ -52,7 +52,7 @@ ov_shiny_video_sync_ui <- function(data) {
                        column(6, offset = 2, tags$h2("Volleyball video sync")),
                        column(4,tags$div(style="float:right;padding:10px;", tags$a(href = "https://untan.gl", tags$img(style = "width:16em;max-width:100%", src = "https://untan.gl/images/su_title-w.png"))))
                        ),
-              fluidRow(column(8, tags$video(id = "main_video", style = "border: 1px solid black; width: 90%;", src = file.path(video_server_base_url, basename(video_src)), controls = "controls", autoplay = "false"),
+              fluidRow(column(7, tags$video(id = "main_video", style = "border: 1px solid black; width: 90%;", src = file.path(video_server_base_url, basename(video_src)), controls = "controls", autoplay = "false"),
                               fluidRow(column(3, actionButton("all_video_from_clock", label = "Open video/clock time operations menu")),
                                        column(3, uiOutput("save_file_ui")),
                                        column(4, offset = 2, uiOutput("current_event"))),
@@ -67,7 +67,7 @@ ov_shiny_video_sync_ui <- function(data) {
                                               uiOutput("vtdp_ui")),
                                        column(6, tags$p(tags$strong("Video controls")), sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")))
                                        )),
-                       column(4, DT::dataTableOutput("playslist", width = "98%"),
+                       column(5, DT::dataTableOutput("playslist", width = "98%"),
                               uiOutput("error_message"))
                        )
               )
@@ -263,7 +263,7 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             cnames[plays_cols_to_show == "error_icon"] <- ""
             out <- DT::datatable(mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, colnames = cnames,
                                  extensions = "Scroller",
-                                 escape = FALSE, ##filter = "top",
+                                 escape = FALSE, filter = "top",
                                  selection = sel, options = list(scroller = TRUE,
                                                       lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = TRUE, "scrollY" = paste0(plh, "px"), ordering = FALSE, ##autoWidth = TRUE,
                                                                   columnDefs = list(list(targets = cols_to_hide, visible = FALSE))
