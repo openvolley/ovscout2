@@ -59,7 +59,9 @@ ov_shiny_video_sync_ui <- function(data) {
                               fluidRow(column(6, tags$p(tags$strong("Keyboard controls")), tags$ul(tags$li("[r or 5] sync selected event video time"),
                                                                                           tags$li("[i or 8] move to previous skill row"),
                                                                                           tags$li("[k or 2] move to next skill row"),
-                                                                                          tags$li("[e or E] edit current code")
+                                                                                          tags$li("[e or E] edit current code"),
+                                                                                          tags$li("[del] delete current code"),
+                                                                                          tags$li("[ins] insert new code below current")
                                                                                           ),
                                               tags$p(tags$strong("Other options")),
                                               tags$span("Decimal places on video time:"),
@@ -410,6 +412,9 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             } else if (ky %eq% "45") {
                 ## insert new row below current
                 insert_data_row()
+            } else if (ky %eq% "46") {
+                ## delete current row
+                delete_data_row()
             }
         }
     })
@@ -433,6 +438,9 @@ ov_shiny_video_sync_server <- function(input, output, session) {
     observeEvent(input$code_do_edit, {
         code_make_change()
     })
+    observeEvent(input$code_do_delete, {
+        code_make_change()
+    })
     code_make_change <- function() {
         removeModal()
         if (is.null(editing$active)) {
@@ -449,6 +457,9 @@ ov_shiny_video_sync_server <- function(input, output, session) {
                     newline <- things$dvw$plays[ridx, ]
                     newline$code <- input$code_entry
                     things$dvw$plays <- bind_rows(things$dvw$plays[seq(1, ridx, by = 1), ], newline, things$dvw$plays[seq(ridx+1, nrow(things$dvw$plays), by = 1), ])
+                } else if (editing$active %eq% "delete") {
+                    if (is.logical(ridx)) ridx <- which(ridx)
+                    things$dvw$plays <- things$dvw$plays[-ridx, ]
                 }
                 ## reparse the dvw
                 things$dvw <- reparse_dvw(things$dvw, dv_read_args = dv_read_args)
@@ -467,6 +478,15 @@ ov_shiny_video_sync_server <- function(input, output, session) {
                                   actionButton("code_do_edit", label = "Insert code (or press Enter)")))
             ## focus to this textbox with cursor at end of input
             dojs("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById(\"code_entry\"); el.selectionStart = el.selectionEnd = el.value.length; el.focus(); });")
+        }
+    }
+    delete_data_row <- function() {
+        ridx <- input$playslist_rows_selected
+        if (!is.null(ridx)) {
+            thiscode <- things$dvw$plays$code[ridx]
+            editing$active <- "delete"
+            showModal(modalDialog(title = "Delete code", size = "l", footer = actionButton("code_edit_cancel", label = "Cancel (or press Esc)"),
+                                  actionButton("code_do_delete", label = "Confirm delete code (or press Enter)")))
         }
     }
 
