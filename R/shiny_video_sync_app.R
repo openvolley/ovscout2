@@ -224,28 +224,35 @@ ov_shiny_video_sync_server <- function(input, output, session) {
         tm <- as.numeric(temp[1])
         if (!is.null(ridx) && !is.na(ridx) && ridx > 0 && ridx <= nrow(things$dvw$plays)) {
             things$dvw$plays$video_time[ridx] <- round(tm, digits = input$video_time_decimal_places)
+            skip <- 1
+            if (things$dvw$plays$skill[ridx] %eq% "Attack" && ridx < nrow(things$dvw$plays) && things$dvw$plays$skill[ridx+1] %eq% "Block") {
+                ## give the block the same time
+                things$dvw$plays$video_time[ridx+1] <- round(tm, digits = input$video_time_decimal_places)
+                skip <- 2
+            }
             ## advance to the next skill row
             if (ridx < nrow(things$dvw$plays)) {
-                next_skill_row <- find_next_skill_row(ridx)
+                next_skill_row <- find_next_skill_row(ridx, step = skip)
                 if (length(next_skill_row) > 0) playslist_select_row(next_skill_row)
             }
         }
     })
 
-    handler_sync_single_video_time <- function(tm) {
-        ##cat("handler_sync_single_video_time: "); cat(tm); cat("\n")
-        ridx <- input$playslist_rows_selected
-        ##cat("rowidx: ", ridx, "\n")
-        if (!is.null(ridx)) {
-            things$dvw$plays$video_time[ridx] <- round(tm, digits = input$video_time_decimal_places)
-            ## advance to the next skill row
-            if (ridx < nrow(things$dvw$plays)) {
-                next_skill_row <- find_next_skill_row(ridx)
-                if (length(next_skill_row) > 0) playslist_select_row(next_skill_row)
-            }
-        }
-        NULL
-    }
+    ## not used
+    ##handler_sync_single_video_time <- function(tm) {
+    ##    ##cat("handler_sync_single_video_time: "); cat(tm); cat("\n")
+    ##    ridx <- input$playslist_rows_selected
+    ##    ##cat("rowidx: ", ridx, "\n")
+    ##    if (!is.null(ridx)) {
+    ##        things$dvw$plays$video_time[ridx] <- round(tm, digits = input$video_time_decimal_places)
+    ##        ## advance to the next skill row
+    ##        if (ridx < nrow(things$dvw$plays)) {
+    ##            next_skill_row <- find_next_skill_row(ridx, step = skip)
+    ##            if (length(next_skill_row) > 0) playslist_select_row(next_skill_row)
+    ##        }
+    ##    }
+    ##    NULL
+    ##}
 
     selected_event <- reactive({
         if (length(input$playslist_rows_selected) == 1) {
@@ -329,16 +336,18 @@ ov_shiny_video_sync_server <- function(input, output, session) {
         ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).scrollTo();", max(0, things$plays_row_to_select-1)))
     })
 
-    find_next_skill_row <- function(current_row_idx = NULL) {
+    find_next_skill_row <- function(current_row_idx = NULL, step = 1) {
         if (is.null(current_row_idx)) current_row_idx <- input$playslist_rows_selected
         next_skill_row <- which(is_skill(things$dvw$plays$skill))
-        head(next_skill_row[next_skill_row > current_row_idx], 1)
+        next_skill_row <- next_skill_row[next_skill_row > current_row_idx]
+        next_skill_row[min(step, length(next_skill_row))]
     }
 
-    find_prev_skill_row <- function(current_row_idx = NULL) {
+    find_prev_skill_row <- function(current_row_idx = NULL, step = 1) {
         if (is.null(current_row_idx)) current_row_idx <- input$playslist_rows_selected
         next_skill_row <- which(is_skill(things$dvw$plays$skill))
-        tail(next_skill_row[next_skill_row < current_row_idx], 1)
+        next_skill_row <- rev(next_skill_row[next_skill_row < current_row_idx])
+        next_skill_row[min(step, length(next_skill_row))]
     }
 
     output$error_message <- renderUI({
