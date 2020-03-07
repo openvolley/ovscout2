@@ -82,7 +82,7 @@ ov_shiny_video_sync_server <- function(input, output, session) {
     things <- reactiveValues(dvw = SHINY_DATA$dvw)
     editing <- reactiveValues(active = NULL)
     video_state <- reactiveValues(paused = FALSE)
-    handlers <- reactiveValues()
+    ##handlers <- reactiveValues() ## a more general way of handling asynchronous js callback events, but not needed (yet)
     dv_read_args <- SHINY_DATA$dv_read_args
     done_first_playlist_render <- FALSE
     debug <- 0L
@@ -99,15 +99,16 @@ ov_shiny_video_sync_server <- function(input, output, session) {
         }
     })
 
-    observeEvent(input$video_time, {
-        ##cat("input$video_time: "); cat(str(input$video_time))
-        temp <- strsplit(input$video_time, split = "&", fixed = TRUE)[[1]]
-        this_handler_id <- temp[2]
-        ##cat("running handler: ", this_handler_id, "\n")
-        handlers[[this_handler_id]](as.numeric(temp[1]))
-        ## then clear it
-        ##handlers[[this_handler_id]] <- NULL
-    })
+    ## handler-based dispatch, not used
+    ##observeEvent(input$video_time, {
+    ##    ##cat("input$video_time: "); cat(str(input$video_time))
+    ##    temp <- strsplit(input$video_time, split = "&", fixed = TRUE)[[1]]
+    ##    this_handler_id <- temp[2]
+    ##    ##cat("running handler: ", this_handler_id, "\n")
+    ##    handlers[[this_handler_id]](as.numeric(temp[1]))
+    ##    ## then clear it
+    ##    ##handlers[[this_handler_id]] <- NULL
+    ##})
 
     observeEvent(input$all_video_from_clock, {
         current_video_time <- selected_event()$video_time
@@ -204,10 +205,33 @@ ov_shiny_video_sync_server <- function(input, output, session) {
 
     ## sync the selected event to the current video time
     sync_single_video_time <- function() {
-        myfid <- UUIDgenerate()
-        handlers[[myfid]] <- handler_sync_single_video_time
-        do_video("get_time_fid", myfid)
+        if (FALSE) {
+            ## handler-based dispatch on callback, not used
+            myfid <- UUIDgenerate()
+            handlers[[myfid]] <- handler_sync_single_video_time
+            do_video("get_time_fid", myfid)
+        } else {
+            ridx <- input$playslist_rows_selected
+            if (!is.null(ridx)) {
+                do_video("set_current_video_time", ridx)
+            }
+        }
     }
+
+    observeEvent(input$set_current_video_time, {
+        temp <- strsplit(input$set_current_video_time, split = "&", fixed = TRUE)[[1]]
+        ridx <- as.integer(temp[2])
+        tm <- as.numeric(temp[1])
+        if (!is.null(ridx) && !is.na(ridx) && ridx > 0 && ridx <= nrow(things$dvw$plays)) {
+            things$dvw$plays$video_time[ridx] <- round(tm, digits = input$video_time_decimal_places)
+            ## advance to the next skill row
+            if (ridx < nrow(things$dvw$plays)) {
+                next_skill_row <- find_next_skill_row(ridx)
+                if (length(next_skill_row) > 0) playslist_select_row(next_skill_row)
+            }
+        }
+    })
+
     handler_sync_single_video_time <- function(tm) {
         ##cat("handler_sync_single_video_time: "); cat(tm); cat("\n")
         ridx <- input$playslist_rows_selected
@@ -511,6 +535,8 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             dojs(paste0("Shiny.onInputChange('video_time', ", getel, ".currentTime + '&", myargs[[1]], "')"))
         } else if (what == "set_time") {
             dojs(paste0(getel, ".currentTime='", myargs[[1]], "';"))
+        } else if (what == "set_current_video_time") {
+            dojs(paste0("Shiny.onInputChange('set_current_video_time', ", getel, ".currentTime + '&", myargs[1], "')"))
         } else if (what == "rew") {
             dojs(paste0(getel, ".currentTime=", getel, ".currentTime - ", myargs[[1]], ";"))
         } else if (what == "ff") {
