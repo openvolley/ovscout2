@@ -27,5 +27,5 @@ Imports:
     uuid
 Suggests:
     testthat
-Remotes: raymondben/datavolley, yihui/servr, openvolley/ovideo
+Remotes: openvolley/datavolley, yihui/servr, openvolley/ovideo
 RoxygenNote: 7.0.2
