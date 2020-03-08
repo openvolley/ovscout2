@@ -448,7 +448,13 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             } else if (ky %eq% "46") {
                 ## delete current row
                 delete_data_row()
-            }
+            } else if (ky %eq% "113") {
+                ## insert new setting actions
+                insert_setting_data_row()
+            }  else if (ky %eq% "115") {
+                ## delete all setting actions
+                delete_setting_data_row()
+            } 
         }
     })
 
@@ -479,6 +485,61 @@ ov_shiny_video_sync_server <- function(input, output, session) {
         if (is.null(editing$active)) {
             ## not triggered from current editing activity, huh?
             warning("code_make_change entered but editing not active")
+        } else if (editing$active %eq% "delete all setting actions"){
+            ridx <- things$dvw$plays %>% mutate(rowN = row_number()) %>% dplyr::filter(skill %eq% "Set") %>% select(rowN) %>% pull()
+            if (!is.null(ridx)) {
+            if (is.logical(ridx)) ridx <- which(ridx)
+            print(ridx)
+            things$dvw$plays <- things$dvw$plays[-ridx, ]
+            things$dvw <- reparse_dvw(things$dvw, dv_read_args = dv_read_args)
+            }
+        } else if(editing$active %eq% "insert setting actions") {
+            ridx_set <- things$dvw$plays %>% mutate(add_set_before = case_when(skill == "Attack" & !(stringr::str_sub(code, 7,8) %in% c("PR", "PP", "P2") & !(lead(skill) %in% "Set")) ~ TRUE, 
+                                                                               TRUE ~ FALSE), rowN = row_number()) %>% dplyr::filter(add_set_before %eq% TRUE) %>% select(rowN) %>% pull()
+            if (!is.null(ridx)) {
+                set_code <- things$dvw$plays %>% dplyr::filter(row_number() %in% ridx_set)  %>% 
+                    mutate(team_oncourt_setter_number = case_when(team %in% home_team ~ case_when(home_setter_position == 1 ~ home_p1,
+                                                                                                  home_setter_position == 2 ~ home_p2,
+                                                                                                  home_setter_position == 3 ~ home_p3,
+                                                                                                  home_setter_position == 4 ~ home_p4,
+                                                                                                  home_setter_position == 5 ~ home_p5,
+                                                                                                  home_setter_position == 6 ~ home_p6,
+                                                                                                  TRUE ~ NA_real_),
+                                                                  team %in% visiting_team ~ case_when(visiting_setter_position == 1 ~ visiting_p1,
+                                                                                                      visiting_setter_position == 2 ~ visiting_p2,
+                                                                                                      visiting_setter_position == 3 ~ visiting_p3,
+                                                                                                      visiting_setter_position == 4 ~ visiting_p4,
+                                                                                                      visiting_setter_position == 5 ~ visiting_p5,
+                                                                                                      visiting_setter_position == 6 ~ visiting_p6,
+                                                                                                      TRUE ~ NA_real_),
+                                                                  TRUE ~ NA_real_)) %>%
+                    mutate(set_code = paste0(str_sub(code,1,1), # Team
+                                             team_oncourt_setter_number, # setter player_number
+                                             "E", # set skill 
+                                             str_sub(code, 5,5), # hitting tempo
+                                             "+")) %>%
+                    mutate(set_code = case_when(str_sub(code,7,8) %in% c("X1") ~ paste0(set_code, "K1"),
+                                                str_sub(code,7,8) %in% c("X2") ~ paste0(set_code, "K2"),
+                                                str_sub(code,7,8) %in% c("X7") ~ paste0(set_code, "K7"),
+                                                #ts_pass_quality %in% c("Poor", "OK") ~ paste0(set_code, "KE"),
+                                                TRUE ~ set_code))  %>%
+                    mutate(set_code = case_when(str_sub(code,7,8) %in% c("X1") ~ paste0(set_code, "C3"),
+                                                str_sub(code,7,8) %in% c("X2") ~ paste0(set_code, "C3"),
+                                                str_sub(code,7,8) %in% c("X7") ~ paste0(set_code, "C3"),
+                                                str_sub(code,7,8) %in% c("X5") ~ paste0(set_code, "~~F4"),
+                                                str_sub(code,7,8) %in% c("V5") ~ paste0(set_code, "~~F4"),
+                                                str_sub(code,7,8) %in% c("X6") ~ paste0(set_code, "~~F2"),
+                                                str_sub(code,7,8) %in% c("V6") ~ paste0(set_code, "~~F2"),
+                                                str_sub(code,7,8) %in% c("X8") ~ paste0(set_code, "~~B9"),
+                                                str_sub(code,7,8) %in% c("V8") ~ paste0(set_code, "~~B9"),
+                                                str_sub(code,7,8) %in% c("XP") ~ paste0(set_code, "~~P8"),
+                                                str_sub(code,7,8) %in% c("VP") ~ paste0(set_code, "~~P8"),
+                                                TRUE ~ set_code)) %>% select(set_code) %>% pull()
+                newline <- things$dvw$plays[ridx_set, ]
+                newline$code <- set_code
+                newline$team_touch_id <- newline$team_touch_id - 0.5
+                things$dvw$plays <- bind_rows(things$dvw$plays, newline) %>% arrange(set_number, point_id, team_touch_id)
+            }
         } else {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
@@ -486,6 +547,11 @@ ov_shiny_video_sync_server <- function(input, output, session) {
                     ## update the code in the current row
                     things$dvw$plays$code[ridx] <- input$code_entry
                 } else if (editing$active %eq% "insert") {
+                    ## insert new line
+                    newline <- things$dvw$plays[ridx, ]
+                    newline$code <- input$code_entry
+                    things$dvw$plays <- bind_rows(things$dvw$plays[seq(1, ridx, by = 1), ], newline, things$dvw$plays[seq(ridx+1, nrow(things$dvw$plays), by = 1), ])
+                } else if (editing$active %eq% "insert setting") {
                     ## insert new line
                     newline <- things$dvw$plays[ridx, ]
                     newline$code <- input$code_entry
@@ -523,6 +589,30 @@ ov_shiny_video_sync_server <- function(input, output, session) {
         }
     }
 
+    insert_setting_data_row <- function() {
+        #ridx <- input$playslist_rows_selected
+        ridx_set <- things$dvw$plays %>% mutate(add_set_before = case_when(skill == "Attack" & !(stringr::str_sub(code, 7,8) %in% c("PR", "PP", "P2") & !(lead(skill) %in% "Set")) ~ TRUE, 
+                                                                       TRUE ~ FALSE),
+                                                rowN = row_number()) %>% 
+            dplyr::filter(add_set_before %eq% TRUE) %>% select(rowN) %>% pull() # idx row number to insert setting action
+        
+        if (!is.null(ridx_set)) {
+            editing$active <- "insert setting actions"
+            showModal(modalDialog(title = "Insert setting codes", size = "l", footer = actionButton("code_edit_cancel", label = "Cancel (or press Esc)"),
+                                  actionButton("code_do_edit", label = "Confirm insert setting codes (or press Enter)")))
+            
+        }
+    }
+    delete_setting_data_row <- function() {
+        ridx <- things$dvw$plays %>% mutate(rowN = row_number()) %>% dplyr::filter(skill %eq% "Set") %>% select(rowN) %>% pull()
+            if (!is.null(ridx)) {
+            thiscode <- things$dvw$plays$code[ridx]
+            editing$active <- "delete all setting actions"
+            showModal(modalDialog(title = "Delete all setting codes", size = "l", footer = actionButton("code_edit_cancel", label = "Cancel (or press Esc)"),
+                                  actionButton("code_do_delete", label = "Confirm delete all setting codes (or press Enter)")))
+        }
+    }
+    
     ## video helper functions
     do_video <- function(what, ..., id = "main_video") {
         getel <- paste0("document.getElementById('", id, "')")
