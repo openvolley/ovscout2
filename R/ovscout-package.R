@@ -11,5 +11,5 @@
 #' @importFrom shiny actionButton column downloadButton downloadHandler fluidPage fluidRow isolate isTruthy modalDialog numericInput observeEvent observe onStop reactive reactiveValues removeModal renderUI showModal sliderInput textInput uiOutput
 #' @importFrom stats na.omit setNames
 #' @importFrom uuid UUIDgenerate
-#' @importFrom utils head tail
+#' @importFrom utils head tail write.csv
 NULL
