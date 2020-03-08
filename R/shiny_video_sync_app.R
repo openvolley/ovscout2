@@ -494,7 +494,7 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             things$dvw <- reparse_dvw(things$dvw, dv_read_args = dv_read_args)
             }
         } else if(editing$active %eq% "insert setting actions") {
-            ridx_set <- things$dvw$plays %>% mutate(add_set_before = case_when(skill == "Attack" & !(stringr::str_sub(code, 7,8) %in% c("PR", "PP", "P2") & !(lead(skill) %in% "Set")) ~ TRUE, 
+            ridx_set <- things$dvw$plays %>% mutate(add_set_before = case_when(skill == "Attack" & !(stringr::str_sub(code, 7,8) %in% c("PR", "PP", "P2") & !(lag(skill) %in% "Set")) ~ TRUE, 
                                                                                TRUE ~ FALSE), rowN = row_number()) %>% dplyr::filter(add_set_before %eq% TRUE) %>% select(rowN) %>% pull()
             if (!is.null(ridx)) {
                 set_code <- things$dvw$plays %>% dplyr::filter(row_number() %in% ridx_set)  %>% 
@@ -535,10 +535,12 @@ ov_shiny_video_sync_server <- function(input, output, session) {
                                                 str_sub(code,7,8) %in% c("XP") ~ paste0(set_code, "~~P8"),
                                                 str_sub(code,7,8) %in% c("VP") ~ paste0(set_code, "~~P8"),
                                                 TRUE ~ set_code)) %>% select(set_code) %>% pull()
+                
+                things$dvw$plays <- things$dvw$plays %>% mutate(tmp_row_number = row_number())
                 newline <- things$dvw$plays[ridx_set, ]
                 newline$code <- set_code
-                newline$team_touch_id <- newline$team_touch_id - 0.5
-                things$dvw$plays <- bind_rows(things$dvw$plays, newline) %>% arrange(set_number, point_id, team_touch_id)
+                newline$tmp_row_number <- newline$tmp_row_number - 0.5
+                things$dvw$plays <- bind_rows(things$dvw$plays, newline) %>% arrange(set_number, point_id, team_touch_id, tmp_row_number) %>% select(-tmp_row_number)
             }
         } else {
             ridx <- input$playslist_rows_selected
