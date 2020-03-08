@@ -13,6 +13,7 @@ Roxygen: list(markdown = TRUE)
 Depends: datavolley (> 0.12.999)
 Imports:
     assertthat,
+    base64enc,
     dplyr,
     ovideo,
     DT,

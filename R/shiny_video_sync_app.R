@@ -56,18 +56,24 @@ ov_shiny_video_sync_ui <- function(data) {
                               fluidRow(column(3, actionButton("all_video_from_clock", label = "Open video/clock time operations menu")),
                                        column(3, uiOutput("save_file_ui")),
                                        column(4, offset = 2, uiOutput("current_event"))),
-                              fluidRow(column(6, tags$p(tags$strong("Keyboard controls")), tags$ul(tags$li("[r or 5] sync selected event video time"),
-                                                                                          tags$li("[i or 8] move to previous skill row"),
-                                                                                          tags$li("[k or 2] move to next skill row"),
-                                                                                          tags$li("[e or E] edit current code"),
-                                                                                          tags$li("[del] delete current code"),
-                                                                                          tags$li("[ins] insert new code below current")
-                                                                                          ),
+                              fluidRow(column(6, tags$p(tags$strong("Keyboard controls")),
+                                              tags$ul(tags$li("[r or 5] sync selected event video time"),
+                                                      tags$li("[i or 8] move to previous skill row"),
+                                                      tags$li("[k or 2] move to next skill row"),
+                                                      tags$li("[e or E] edit current code"),
+                                                      tags$li("[del] delete current code"),
+                                                      tags$li("[ins] insert new code below current")),
                                               tags$p(tags$strong("Other options")),
                                               tags$span("Decimal places on video time:"),
                                               numericInput("video_time_decimal_places", label = NULL, value = 0, min = 0, max = 2, step = 1, width = "6em"),
                                               uiOutput("vtdp_ui")),
-                                       column(6, tags$p(tags$strong("Video controls")), sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")))
+                                       column(6, tags$p(tags$strong("Video controls")),
+                                              sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1),
+                                              tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s"),
+                                                      tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s"),
+                                                      tags$li("[q or 0] pause video"),
+                                                      tags$li("[g or @] go to currently-selected event")))
+                                       ## not documented yet: t = insert tag, T = open tag download dialogue
                                        )),
                        column(5, DT::dataTableOutput("playslist", width = "98%"),
                               uiOutput("error_message"))
@@ -80,8 +86,8 @@ if (getRversion() >= "2.15.1")  utils::globalVariables("SHINY_DATA") ## avoid ch
 
 ov_shiny_video_sync_server <- function(input, output, session) {
     things <- reactiveValues(dvw = SHINY_DATA$dvw)
+    tag_data <- reactiveValues(events = tibble(video_time = numeric(), tag = character()))
     editing <- reactiveValues(active = NULL)
-    video_state <- reactiveValues(paused = FALSE)
     ##handlers <- reactiveValues() ## a more general way of handling asynchronous js callback events, but not needed (yet)
     dv_read_args <- SHINY_DATA$dv_read_args
     done_first_playlist_render <- FALSE
@@ -267,7 +273,7 @@ ov_shiny_video_sync_server <- function(input, output, session) {
     })
 
     observe({
-        if (!is.null(things$dvw) && nrow(things$dvw$plays) > 0 && !"error_message" %in% names(things$dvw$plays)) {
+        if (!is.null(things$dvw) && !"error_message" %in% names(things$dvw$plays)) {
             things$dvw <- preprocess_dvw(things$dvw)
         }
     })
@@ -375,7 +381,7 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             } else if (!is.null(editing$active)) {
                 ## if editing is in progress, don't process the usual navigation etc keys
                 if (mycmd %eq% "13") {
-                    ## if editing or inserting, treat as update
+                    ## if editing/inserting/tagging treat as update
                     code_make_change()
                 } else if (mycmd %eq% "27") {
                     ## not sure if this will be detected by keypress, maybe only keydown (may be browser specific)
@@ -409,14 +415,14 @@ ov_shiny_video_sync_server <- function(input, output, session) {
                     if (length(nsr) > 0) playslist_select_row(nsr)
                 } else if (mycmd %in% utf8ToInt("qQ0")) {
                     do_video("toggle_pause")
-                } else if (mycmd %in% utf8ToInt("gG#")) {
+                } else if (mycmd %in% utf8ToInt("gG@")) {
                     ## video go to currently-selected event
                     ev <- selected_event()
                     if (!is.null(ev)) do_video("set_time", ev$video_time)
-                } else if (mycmd %in% utf8ToInt("nm13jhl;46$^")) {
+                } else if (mycmd %in% utf8ToInt("nm13jhl;46$^!#")) {
                     ## video forward/backward nav
-                    vidcmd <- if (tolower(mykey) %in% c("1", "n", "h", "j", "4", "$")) "rew" else "ff"
-                    dur <- if (tolower(mykey) %in% c("h", "$", ";", "^")) 10 else if (tolower(mykey) %in% c("n", "m", "1", "3")) 0.1 else 2
+                    vidcmd <- if (tolower(mykey) %in% c("!", "1", "n", "h", "j", "4", "$")) "rew" else "ff"
+                    dur <- if (tolower(mykey) %in% c("h", "$", ";", "^")) 10 else if (tolower(mykey) %in% c("n", "m", "1", "3")) 0.1 else if (tolower(mykey) %in% c("!", "#")) 0.02 else 2
                     do_video(vidcmd, dur)
                     ##} else if (mycmd %in% as.character(33:126)) {
                     ##    cat("queued: ", mycmd, "\n")
@@ -426,6 +432,12 @@ ov_shiny_video_sync_server <- function(input, output, session) {
                 } else if (mykey %in% c("r", "R", "5")) {
                     ## set the video time of the current event
                     sync_single_video_time()
+                } else if (mykey %eq% "t") {
+                    ## tag event at current time
+                    add_tagged_event()
+                } else if (mykey %eq% "T") {
+                    ## pop up the tags dialog
+                    tag_manager()
                 }
             }
             if (debug > 1) cat("\n")
@@ -476,9 +488,16 @@ ov_shiny_video_sync_server <- function(input, output, session) {
     })
     code_make_change <- function() {
         removeModal()
+        do_scroll <- TRUE
         if (is.null(editing$active)) {
             ## not triggered from current editing activity, huh?
             warning("code_make_change entered but editing not active")
+        } else if (editing$active %eq% "tagging") {
+            ## add tag
+            if (!is.null(input$tag_text) && nzchar(input$tag_text)) {
+                do_video("tag_current_video_time", base64enc::base64encode(charToRaw(input$tag_text)))
+            }
+            do_scroll <- FALSE
         } else {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
@@ -499,7 +518,7 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             }
         }
         editing$active <- NULL
-        scroll_playlist()
+        if (do_scroll) scroll_playlist()
     }
     insert_data_row <- function() {
         ridx <- input$playslist_rows_selected
@@ -523,19 +542,57 @@ ov_shiny_video_sync_server <- function(input, output, session) {
         }
     }
 
+    add_tagged_event <- function() {
+        editing$active <- "tagging"
+        showModal(modalDialog(
+            title = "Add tag at current video time",
+            size = "l", footer = actionButton("tagging_cancel", label = "Cancel (or press Esc)"),
+            tags$div(textInput("tag_text", "Tag text:"), actionButton("do_add_tag", "Add tag (or press Enter)"))
+        ))
+        ## focus
+        dojs("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById(\"tag_text\"); el.selectionStart = el.selectionEnd = el.value.length; el.focus(); });")
+
+    }
+    observeEvent(input$tagging_cancel, {
+        editing$active <- NULL
+        removeModal()
+    })
+    observeEvent(input$do_add_tag, {
+        code_make_change()
+    })
+    observeEvent(input$tag_current_video_time, {
+        temp <- strsplit(input$tag_current_video_time, split = "&", fixed = TRUE)[[1]]
+        tagtxt <- rawToChar(base64enc::base64decode(temp[2]))
+        tm <- as.numeric(temp[1])
+        tag_data$events <- bind_rows(tag_data$events, tibble(video_time = tm, tag = tagtxt))
+        cat(str(tag_data$events))
+    })
+    tag_manager <- function() {
+        showModal(modalDialog(
+            title = "Tag manager",
+            size = "l", footer = actionButton("tagging_cancel", label = "Cancel (or press Esc)"),
+            ##    ##tags$div(textInput("tag_text", "Tag text:"), actionButton("do_add_tag", "Add tag (or press Enter)"))
+            downloadButton("download_tags")
+        ))
+        #### focus
+        ##dojs("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById(\"tag_text\"); el.selectionStart = el.selectionEnd = el.value.length; el.focus(); });")
+    }
+    output$download_tags <- downloadHandler(
+        filename = function() "tags.csv",
+        content = function(file) {
+            removeModal()
+            write.csv(tag_data$events, file, row.names = FALSE, na = "")
+        }
+    )
     ## video helper functions
     do_video <- function(what, ..., id = "main_video") {
         getel <- paste0("document.getElementById('", id, "')")
         myargs <- list(...)
+        if (debug > 1) cat("do_video ", what, ": ", if (length(myargs) > 0) myargs[[1]], "\n")
         if (what == "pause") {
-            if (video_state$paused) {
-                dojs(paste0(getel, ".play();"))
-                video_state$paused <- FALSE
-            } else {
-                dojs(paste0(getel, ".pause();"))
-                video_state$paused <- TRUE
-            }
-            NULL
+            dojs(paste0(getel, ".pause();"))
+        } else if (what == "play") {
+            dojs(paste0(getel, ".play();"))
         } else if (what == "toggle_pause") {
             dojs(paste0("if (", getel, ".paused == true) { ", getel, ".play(); } else { ", getel, ".pause(); }"))
         } else if (what == "get_time") {
@@ -546,6 +603,8 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             dojs(paste0(getel, ".currentTime='", myargs[[1]], "';"))
         } else if (what == "set_current_video_time") {
             dojs(paste0("Shiny.onInputChange('set_current_video_time', ", getel, ".currentTime + '&", myargs[1], "')"))
+        } else if (what == "tag_current_video_time") {
+            dojs(paste0("Shiny.onInputChange('tag_current_video_time', ", getel, ".currentTime + '&", myargs[1], "')"))
         } else if (what == "rew") {
             dojs(paste0(getel, ".currentTime=", getel, ".currentTime - ", myargs[[1]], ";"))
         } else if (what == "ff") {

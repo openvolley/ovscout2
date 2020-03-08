@@ -16,6 +16,9 @@ ov_shiny_video_sync <- function(dvw, video_file = NULL, launch_browser = TRUE, .
         rgs <- dots
         rgs$filename <- dvw
         dvw <- do.call(datavolley::read_dv, rgs)
+    } else if (is.null(dvw)) {
+        ## dummy, no file. Maybe just tagging a video
+        dvw <- structure(list(plays = tibble(skill = character(), video_time = numeric(), set_number = integer(), home_team_score = integer(), visiting_team_score = integer(), code = character(), time = as.POSIXct(numeric(), origin = "1970-01-01"), file_line_number = integer()), meta = list(), messages = tibble(file_line_number = integer(), message = character())))
     } else {
         if (!inherits(dvw, "datavolley")) stop("dvw should be a datavolley object or the path to a .dvw file")
     }
