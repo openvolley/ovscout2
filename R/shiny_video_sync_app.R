@@ -11,7 +11,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
         tryCatch({
             chk <- sys::exec_internal("lighttpd", "-version")
             have_lighttpd <- TRUE
-        }, error = function(e) warning("could not find the lighttpd executable, install it with e.g. 'apt install lighttpd'. Using \"standalone\" video option"))
+        }, error = function(e) warning("could not find the lighttpd executable, install it with e.g. 'apt install lighttpd'. Using \"servr\" video option"))
     }
     video_serve_method <- if (have_lighttpd) "lighttpd" else "servr"
     if (video_serve_method == "lighttpd") {
