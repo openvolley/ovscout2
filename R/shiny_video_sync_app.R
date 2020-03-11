@@ -61,7 +61,11 @@ ov_shiny_video_sync_ui <- function(data) {
                                                                                           tags$li("[k or 2] move to next skill row"),
                                                                                           tags$li("[e or E] edit current code"),
                                                                                           tags$li("[del] delete current code"),
-                                                                                          tags$li("[ins] insert new code below current")
+                                                                                          tags$li("[ins] insert new code below current"),
+                                                                                          tags$li("[F2] insert setting codes before every attack"),
+                                                                                          tags$li("[F4] delete all setting codes"),
+                                                                                          tags$li("[F6] insert digging codes after every attack"),
+                                                                                          tags$li("[F8] delete all digging codes")
                                                                                           ),
                                               tags$p(tags$strong("Other options")),
                                               tags$span("Decimal places on video time:"),
@@ -454,6 +458,12 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             }  else if (ky %eq% "115") {
                 ## delete all setting actions
                 delete_setting_data_row()
+            }  else if (ky %eq% "117") {
+                ## insert new setting actions
+                insert_dig_data_row()
+            }  else if (ky %eq% "119") {
+                ## delete all setting actions
+                delete_dig_data_row()
             } 
         }
     })
@@ -486,28 +496,28 @@ ov_shiny_video_sync_server <- function(input, output, session) {
             ## not triggered from current editing activity, huh?
             warning("code_make_change entered but editing not active")
         } else if (editing$active %eq% "delete all setting actions"){
-            ridx <- things$dvw$plays %>% mutate(rowN = row_number()) %>% dplyr::filter(skill %eq% "Set") %>% select(rowN) %>% pull()
+            ridx <- things$dvw$plays %>% mutate(rowN = dplyr::row_number()) %>% dplyr::filter(skill %eq% "Set") %>% dplyr::select(rowN) %>% dplyr::pull()
             if (!is.null(ridx)) {
             if (is.logical(ridx)) ridx <- which(ridx)
             things$dvw$plays <- things$dvw$plays[-ridx, ]
             things$dvw <- reparse_dvw(things$dvw, dv_read_args = dv_read_args)
             }
         } else if(editing$active %eq% "insert setting actions") {
-            ridx_set <- things$dvw$plays %>% mutate(add_set_before = case_when(skill %eq% c("Attack") & !(stringr::str_sub(code, 7,8) %in% c("PR", "PP", "P2")) & !(lag(skill) %in% "Set") ~ TRUE, 
-                                                                               TRUE ~ FALSE), rowN = row_number()) %>% dplyr::filter(add_set_before %eq% TRUE) %>% select(rowN) %>% pull()
+            ridx_set <- things$dvw$plays %>% mutate(add_set_before = dplyr::case_when(skill %eq% c("Attack") & !(stringr::str_sub(code, 7,8) %in% c("PR", "PP", "P2")) & !(lag(skill) %in% "Set") ~ TRUE, 
+                                                                               TRUE ~ FALSE), rowN = dplyr::row_number()) %>% dplyr::filter(add_set_before %eq% TRUE) %>% dplyr::select(rowN) %>% dplyr::pull()
             if (!is.null(ridx_set)) {
                 set_code <- things$dvw$plays %>% 
-                    mutate(passQ = case_when(lag(skill) == "Reception" ~ lag(evaluation_code), 
+                    mutate(passQ = dplyr::case_when(lag(skill) == "Reception" ~ lag(evaluation_code), 
                                              TRUE ~ NA_character_)) %>%
-                    dplyr::filter(row_number() %in% ridx_set)  %>% 
-                    mutate(team_oncourt_setter_number = case_when(team %in% home_team ~ case_when(home_setter_position == 1 ~ home_p1,
+                    dplyr::filter(dplyr::row_number() %in% ridx_set)  %>% 
+                    mutate(team_oncourt_setter_number = dplyr::case_when(team %in% home_team ~ dplyr::case_when(home_setter_position == 1 ~ home_p1,
                                                                                                   home_setter_position == 2 ~ home_p2,
                                                                                                   home_setter_position == 3 ~ home_p3,
                                                                                                   home_setter_position == 4 ~ home_p4,
                                                                                                   home_setter_position == 5 ~ home_p5,
                                                                                                   home_setter_position == 6 ~ home_p6,
                                                                                                   TRUE ~ NA_real_),
-                                                                  team %in% visiting_team ~ case_when(visiting_setter_position == 1 ~ visiting_p1,
+                                                                  team %in% visiting_team ~ dplyr::case_when(visiting_setter_position == 1 ~ visiting_p1,
                                                                                                       visiting_setter_position == 2 ~ visiting_p2,
                                                                                                       visiting_setter_position == 3 ~ visiting_p3,
                                                                                                       visiting_setter_position == 4 ~ visiting_p4,
@@ -515,41 +525,41 @@ ov_shiny_video_sync_server <- function(input, output, session) {
                                                                                                       visiting_setter_position == 6 ~ visiting_p6,
                                                                                                       TRUE ~ NA_real_),
                                                                   TRUE ~ NA_real_)) %>%
-                    mutate(set_code = paste0(str_sub(code,1,1), # Team
+                    mutate(set_code = paste0(stringr::str_sub(code,1,1), # Team
                                              team_oncourt_setter_number, # setter player_number
                                              "E", # set skill 
-                                             str_sub(code, 5,5), # hitting tempo
+                                             stringr::str_sub(code, 5,5), # hitting tempo
                                              "+")) %>%
-                    mutate(setter_call = case_when(str_sub(code,7,8) %in% c("X1") ~ "K1",
-                                                   str_sub(code,7,8) %in% c("X2") ~ "K2",
-                                                   str_sub(code,7,8) %in% c("X7") ~ "K7",
-                                                   !(str_sub(code,7,8) %in% c("X1","X2","X7")) & passQ %in% c("!", "-") ~ "KE",
-                                                   !(str_sub(code,7,8) %in% c("X1","X2","X7")) & passQ %in% c("+", "#") ~ "KK",
-                                                   !(str_sub(code,7,8) %in% c("X1","X2","X7")) & is.na(passQ) ~ "KK",
+                    mutate(setter_call = dplyr::case_when(stringr::str_sub(code,7,8) %in% c("X1") ~ "K1",
+                                                   stringr::str_sub(code,7,8) %in% c("X2") ~ "K2",
+                                                   stringr::str_sub(code,7,8) %in% c("X7") ~ "K7",
+                                                   !(stringr::str_sub(code,7,8) %in% c("X1","X2","X7")) & passQ %in% c("!", "-") ~ "KE",
+                                                   !(stringr::str_sub(code,7,8) %in% c("X1","X2","X7")) & passQ %in% c("+", "#") ~ "KK",
+                                                   !(stringr::str_sub(code,7,8) %in% c("X1","X2","X7")) & is.na(passQ) ~ "KK",
                                                    TRUE ~ "~~"),
                         set_code = paste0(set_code, setter_call))  %>%
-                    mutate(set_code = case_when(str_sub(code,7,8) %in% c("X1") ~ paste0(set_code, "C3"),
-                                                str_sub(code,7,8) %in% c("X2") ~ paste0(set_code, "C3"),
-                                                str_sub(code,7,8) %in% c("X7") ~ paste0(set_code, "C3"),
-                                                str_sub(code,7,8) %in% c("X5") ~ paste0(set_code, "F4"),
-                                                str_sub(code,7,8) %in% c("V5") ~ paste0(set_code, "F4"),
-                                                str_sub(code,7,8) %in% c("X6") ~ paste0(set_code, "B2"),
-                                                str_sub(code,7,8) %in% c("V6") ~ paste0(set_code, "B2"),
-                                                str_sub(code,7,8) %in% c("X8") ~ paste0(set_code, "B9"),
-                                                str_sub(code,7,8) %in% c("V8") ~ paste0(set_code, "B9"),
-                                                str_sub(code,7,8) %in% c("XP") ~ paste0(set_code, "P8"),
-                                                str_sub(code,7,8) %in% c("VP") ~ paste0(set_code, "P8"),
-                                                TRUE ~ set_code)) %>% select(set_code) %>% pull()
+                    mutate(set_code = dplyr::case_when(stringr::str_sub(code,7,8) %in% c("X1") ~ paste0(set_code, "C3"),
+                                                stringr::str_sub(code,7,8) %in% c("X2") ~ paste0(set_code, "C3"),
+                                                stringr::str_sub(code,7,8) %in% c("X7") ~ paste0(set_code, "C3"),
+                                                stringr::str_sub(code,7,8) %in% c("X5") ~ paste0(set_code, "F4"),
+                                                stringr::str_sub(code,7,8) %in% c("V5") ~ paste0(set_code, "F4"),
+                                                stringr::str_sub(code,7,8) %in% c("X6") ~ paste0(set_code, "B2"),
+                                                stringr::str_sub(code,7,8) %in% c("V6") ~ paste0(set_code, "B2"),
+                                                stringr::str_sub(code,7,8) %in% c("X8") ~ paste0(set_code, "B9"),
+                                                stringr::str_sub(code,7,8) %in% c("V8") ~ paste0(set_code, "B9"),
+                                                stringr::str_sub(code,7,8) %in% c("XP") ~ paste0(set_code, "P8"),
+                                                stringr::str_sub(code,7,8) %in% c("VP") ~ paste0(set_code, "P8"),
+                                                TRUE ~ set_code)) %>% dplyr::select(set_code) %>% dplyr::pull()
                 
-                things$dvw$plays <- things$dvw$plays %>% mutate(tmp_row_number = row_number())
+                things$dvw$plays <- things$dvw$plays %>% mutate(tmp_row_number = dplyr::row_number())
                 newline <- things$dvw$plays[ridx_set, ]
                 newline$code <- set_code
                 newline$video_time <- newline$video_time - 2
                 newline$tmp_row_number <- newline$tmp_row_number - 0.5
-                things$dvw$plays <- bind_rows(things$dvw$plays, newline) %>% arrange(set_number, point_id, team_touch_id, tmp_row_number) %>% select(-tmp_row_number)
+                things$dvw$plays <- bind_rows(things$dvw$plays, newline) %>% dplyr::arrange(set_number, point_id, team_touch_id, tmp_row_number) %>% dplyr::select(-tmp_row_number)
             }
         } else if (editing$active %eq% "delete all digging actions"){
-            ridx <- things$dvw$plays %>% mutate(rowN = row_number()) %>% dplyr::filter(skill %eq% "Dig") %>% select(rowN) %>% pull()
+            ridx <- things$dvw$plays %>% mutate(rowN = dplyr::row_number()) %>% dplyr::filter(skill %eq% "Dig") %>% dplyr::select(rowN) %>% dplyr::pull()
             if (!is.null(ridx)) {
                 if (is.logical(ridx)) ridx <- which(ridx)
                 print(ridx)
@@ -557,31 +567,31 @@ ov_shiny_video_sync_server <- function(input, output, session) {
                 things$dvw <- reparse_dvw(things$dvw, dv_read_args = dv_read_args)
             }
         } else if(editing$active %eq% "insert digging actions") {
-            ridx_dig <- things$dvw$plays %>% mutate(add_dig_after = case_when(skill == "Attack" & evaluation_code %in% c("+", "-", "!") & !(lead(skill) %in% "Dig") ~ TRUE, 
-                                                                               TRUE ~ FALSE), rowN = row_number()) %>% dplyr::filter(add_set_before %eq% TRUE) %>% select(rowN) %>% pull()
+            ridx_dig <- things$dvw$plays %>% mutate(add_dig_after = dplyr::case_when(skill == "Attack" & evaluation_code %in% c("+", "-", "!") & !(lead(skill) %in% "Dig") ~ TRUE, 
+                                                                               TRUE ~ FALSE), rowN = dplyr::row_number()) %>% dplyr::filter(add_set_before %eq% TRUE) %>% dplyr::select(rowN) %>% dplyr::pull()
             if (!is.null(ridx_dig)) {
-                dig_code <- things$dvw$plays %>% dplyr::filter(row_number() %in% ridx_dig)  %>% 
-                    mutate(dig_team = case_when(evaluation_code %in% "!" & team == home_team ~ "*",
+                dig_code <- things$dvw$plays %>% dplyr::filter(dplyr::row_number() %in% ridx_dig)  %>% 
+                    mutate(dig_team = dplyr::case_when(evaluation_code %in% "!" & team == home_team ~ "*",
                                                 evaluation_code %in% "!" & team == visiting_team ~ "a",
                                                 evaluation_code %in% c("+","-") & team == home_team ~ "a",
                                                 evaluation_code %in% c("+","-") & team == visiting_team ~ "*",
                                                 TRUE ~ NA_character_),
-                           dig_eval = case_when(evaluation_code %in% "+" ~ "-",
+                           dig_eval = dplyr::case_when(evaluation_code %in% "+" ~ "-",
                                                 evaluation_code %in% c("-", "!") ~ "+",
                                                 TRUE ~ NA_character_)) %>%
                     mutate(dig_code = paste0(dig_team, # Team
                                              "00", # setter player_number
                                              "D", # set skill 
-                                             str_sub(code, 5,5), # hitting tempo
+                                             stringr::str_sub(code, 5,5), # hitting tempo
                                              dig_eval))  %>% 
-                    select(dig_code) %>% pull()
+                    dplyr::select(dig_code) %>% dplyr::pull()
                 
-                things$dvw$plays <- things$dvw$plays %>% mutate(tmp_row_number = row_number())
+                things$dvw$plays <- things$dvw$plays %>% mutate(tmp_row_number = dplyr::row_number())
                 newline <- things$dvw$plays[ridx_set, ]
                 newline$code <- set_code
                 newline$video_time <- newline$video_time + 1
                 newline$tmp_row_number <- newline$tmp_row_number - 0.5
-                things$dvw$plays <- bind_rows(things$dvw$plays, newline) %>% arrange(set_number, point_id, team_touch_id, tmp_row_number) %>% select(-tmp_row_number)
+                things$dvw$plays <- bind_rows(things$dvw$plays, newline) %>% dplyr::arrange(set_number, point_id, team_touch_id, tmp_row_number) %>% dplyr::select(-tmp_row_number)
             }
         } else {
             ridx <- input$playslist_rows_selected
@@ -635,10 +645,10 @@ ov_shiny_video_sync_server <- function(input, output, session) {
 
     insert_setting_data_row <- function() {
         #ridx <- input$playslist_rows_selected
-        ridx_set <- things$dvw$plays %>% mutate(add_set_before = case_when(skill == "Attack" & !(stringr::str_sub(code, 7,8) %in% c("PR", "PP", "P2")) & !(lag(skill) %in% "Set") ~ TRUE, 
+        ridx_set <- things$dvw$plays %>% mutate(add_set_before = dplyr::case_when(skill == "Attack" & !(stringr::str_sub(code, 7,8) %in% c("PR", "PP", "P2")) & !(lag(skill) %in% "Set") ~ TRUE, 
                                                                        TRUE ~ FALSE),
-                                                rowN = row_number()) %>% 
-            dplyr::filter(add_set_before %eq% TRUE) %>% select(rowN) %>% pull() # idx row number to insert setting action
+                                                rowN = dplyr::row_number()) %>% 
+            dplyr::filter(.data$add_set_before %eq% TRUE) %>% dplyr::select(.data$rowN) %>% dplyr::pull() # idx row number to insert setting action
         
         if (!is.null(ridx_set)) {
             editing$active <- "insert setting actions"
@@ -648,7 +658,7 @@ ov_shiny_video_sync_server <- function(input, output, session) {
         }
     }
     delete_setting_data_row <- function() {
-        ridx <- things$dvw$plays %>% mutate(rowN = row_number()) %>% dplyr::filter(skill %eq% "Set") %>% select(rowN) %>% pull()
+        ridx <- things$dvw$plays %>% mutate(rowN = dplyr::row_number()) %>% dplyr::filter(skill %eq% "Set") %>% dplyr::select(.data$rowN) %>% dplyr::pull()
             if (!is.null(ridx)) {
             thiscode <- things$dvw$plays$code[ridx]
             editing$active <- "delete all setting actions"
@@ -659,10 +669,10 @@ ov_shiny_video_sync_server <- function(input, output, session) {
     
     insert_dig_data_row <- function() {
 
-        ridx_dig <- things$dvw$plays %>% mutate(add_dig_after = case_when(skill == "Attack" & evaluation_code %in% c("+", "-", "!") & !(lead(skill) %in% "Dig") ~ TRUE, 
+        ridx_dig <- things$dvw$plays %>% mutate(add_dig_after = dplyr::case_when(skill == "Attack" & evaluation_code %in% c("+", "-", "!") & !(lead(skill) %in% "Dig") ~ TRUE, 
                                                                            TRUE ~ FALSE),
-                                                rowN = row_number()) %>% 
-            dplyr::filter(add_dig_after %eq% TRUE) %>% select(rowN) %>% pull() # idx row number to insert digging action
+                                                rowN = dplyr::row_number()) %>% 
+            dplyr::filter(.data$add_dig_after %eq% TRUE) %>% dplyr::select(.data$rowN) %>% dplyr::pull() # idx row number to insert digging action
         
         if (!is.null(ridx_dig)) {
             editing$active <- "insert digging actions"
@@ -672,7 +682,7 @@ ov_shiny_video_sync_server <- function(input, output, session) {
         }
     }
     delete_dig_data_row <- function() {
-        ridx <- things$dvw$plays %>% mutate(rowN = row_number()) %>% dplyr::filter(skill %eq% "Dig") %>% select(rowN) %>% pull()
+        ridx <- things$dvw$plays %>% mutate(rowN = dplyr::row_number()) %>% dplyr::filter(skill %eq% "Dig") %>% dplyr::select(.data$rowN) %>% dplyr::pull()
         if (!is.null(ridx)) {
             thiscode <- things$dvw$plays$code[ridx]
             editing$active <- "delete all digging actions"
