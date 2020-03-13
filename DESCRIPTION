@@ -27,5 +27,5 @@ Imports:
     uuid
 Suggests:
     testthat
-Remotes: openvolley/datavolley, yihui/servr, openvolley/ovideo
-RoxygenNote: 7.0.2
+Remotes: openvolley/datavolley, openvolley/ovideo
+RoxygenNote: 7.1.0
