@@ -290,6 +290,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                     }
                 })
                 mydat$is_skill <- is_skill(mydat$skill)
+                mydat$set_number <- as.factor(mydat$set_number)
                 cols_to_hide <- which(c(plays_cols_to_show, "is_skill") %in% c("is_skill"))-1 ## 0-based because no row names
                 cnames <- names(plays_do_rename(mydat[1, c(plays_cols_to_show, "is_skill"), drop = FALSE]))
                 cnames[plays_cols_to_show == "error_icon"] <- ""
@@ -318,7 +319,9 @@ ov_shiny_video_sync_server <- function(app_data) {
         ## is happening auto when dvw updated, below
         scroll_playlist <- function() {
             if (!is.null(input$playslist_rows_selected)) {
-                scrollto <- max(input$playslist_rows_selected-1-5, 0) ## -1 for zero indexing, -5 to keep the selected row 5 from the top
+                ## scrolling works on the VISIBLE row index, so it depends on any column filters that might have been applied
+                visible_rowidx <- which(input$playslist_rows_all == input$playslist_rows_selected)
+                scrollto <- max(visible_rowidx-1-5, 0) ## -1 for zero indexing, -5 to keep the selected row 5 from the top
                 dojs(sprintf("$('#playslist').find('.dataTable').DataTable().scroller.toPosition(%s);", scrollto))
                 ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).node().scrollIntoView();", max(0, things$plays_row_to_select-1)))
                 ##dojs(sprintf("console.dir($('#playslist').find('.dataTable').DataTable().row(%s).node())", max(0, things$plays_row_to_select-1)))
@@ -330,23 +333,30 @@ ov_shiny_video_sync_server <- function(app_data) {
             ##        cat("replacing DT data\n")
             mydat <- things$dvw$plays
             mydat$is_skill <- is_skill(mydat$skill)
+            mydat$set_number <- as.factor(mydat$set_number)
             DT::replaceData(playslist_proxy, data = mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, clearSelection = "none")##, resetPaging = FALSE)
             ## and scroll to selected row
             ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).scrollTo();", max(0, things$plays_row_to_select-1)))
         })
 
-        find_next_skill_row <- function(current_row_idx = NULL, step = 1) {
+        find_next_skill_row <- function(current_row_idx = NULL, step = 1, respect_filters = TRUE) {
+            ## if respect_filters is TRUE, find the next row that is shown in the table (i.e. passing through any column filters that have been applied)
+            ## if FALSE, just find the next skill row in the data, ignoring table filters
             if (is.null(current_row_idx)) current_row_idx <- input$playslist_rows_selected
-            next_skill_row <- which(is_skill(things$dvw$plays$skill))
-            next_skill_row <- next_skill_row[next_skill_row > current_row_idx]
+            skill_rows <- which(is_skill(things$dvw$plays$skill))
+            if (respect_filters) skill_rows <- intersect(skill_rows, input$playslist_rows_all)
+            next_skill_row <- skill_rows[skill_rows > current_row_idx]
             next_skill_row[min(step, length(next_skill_row))]
         }
 
-        find_prev_skill_row <- function(current_row_idx = NULL, step = 1) {
+        find_prev_skill_row <- function(current_row_idx = NULL, step = 1, respect_filters = TRUE) {
+            ## if respect_filters is TRUE, find the previous row that is shown in the table (i.e. passing through any column filters that have been applied)
+            ## if FALSE, just find the previous skill row in the data, ignoring table filters
             if (is.null(current_row_idx)) current_row_idx <- input$playslist_rows_selected
-            next_skill_row <- which(is_skill(things$dvw$plays$skill))
-            next_skill_row <- rev(next_skill_row[next_skill_row < current_row_idx])
-            next_skill_row[min(step, length(next_skill_row))]
+            skill_rows <- which(is_skill(things$dvw$plays$skill))
+            if (respect_filters) skill_rows <- intersect(skill_rows, input$playslist_rows_all)
+            prev_skill_row <- rev(skill_rows[skill_rows < current_row_idx])
+            prev_skill_row[min(step, length(prev_skill_row))]
         }
 
         output$error_message <- renderUI({
