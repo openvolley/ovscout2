@@ -39,7 +39,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                                               src = c(href = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/"),
                                                               script = "js/bootstrap.min.js", stylesheet = "css/bootstrap.min.css"),
               shinyjs::useShinyjs(),
-              tags$head(tags$style("body{font-size:15px} .well{padding:15px;} .myhidden {display:none;} table {font-size: small;} #headerblock h1,#headerblock h2,#headerblock h3,#headerblock h4 {font-weight: normal; color:#ffffff;} h2, h3, h4 {font-weight: bold;} .shiny-notification { height: 100px; width: 400px; position:fixed; top: calc(50% - 50px); left: calc(50% - 200px); }"),
+              tags$head(tags$style("body{font-size:15px} .well{padding:15px;} .myhidden {display:none;} table {font-size: small;} #headerblock h1,#headerblock h2,#headerblock h3,#headerblock h4 {font-weight: normal; color:#ffffff;} h2, h3, h4 {font-weight: bold;} .shiny-notification { height: 100px; width: 400px; position:fixed; top: calc(50% - 50px); left: calc(50% - 200px); } .code_entry_guide {color:#31708f; background-color:#d9edf7;border-color:#bce8f1;padding:4px;font-size:70%;} .clet {color: red;}"),
                         ##tags$style("table {font-size: 10px; line-height: 1.0;"),
                         ##tags$script("$(document).on('shiny:sessioninitialized', function(){ document.getElementById('main_video').addEventListener('focus', function(){ this.blur(); }, false); });"),
                         tags$script("$(document).on('keypress', function (e) { Shiny.onInputChange('cmd', e.which + '@' + new Date().getTime()); });"),
@@ -78,7 +78,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
 
 ov_shiny_video_sync_server <- function(app_data) {
     function(input, output, session) {
-        things <- reactiveValues(dvw = app_data$dvw)
+        rdata <- reactiveValues(dvw = app_data$dvw)
         editing <- reactiveValues(active = NULL)
         video_state <- reactiveValues(paused = FALSE)
         ##handlers <- reactiveValues() ## a more general way of handling asynchronous js callback events, but not needed (yet)
@@ -112,7 +112,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         observeEvent(input$all_video_from_clock, {
             current_video_time <- selected_event()$video_time
             current_clock_time <- selected_event()$time
-            all_clock_times <- things$dvw$plays$time
+            all_clock_times <- rdata$dvw$plays$time
             current_is_no_good <- is.null(current_video_time) || is.na(current_video_time) || is.null(current_clock_time) || is.na(current_clock_time)
             showModal(modalDialog(
                 title = "Video times from clock times",
@@ -154,10 +154,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                     if (is.null(this_clock_time) || is.na(this_clock_time) || is.null(this_video_time) || is.na(this_video_time)) {
                         stop("selected event is missing video or clock time")
                     }
-                    clock_time_diff <- difftime(things$dvw$plays$time, this_clock_time, units = "secs")
-                    midx <- if (isTruthy(input$infer_all_video_from_current)) rep(TRUE, nrow(things$dvw$plays)) else is.na(things$dvw$plays$video_time)
+                    clock_time_diff <- difftime(rdata$dvw$plays$time, this_clock_time, units = "secs")
+                    midx <- if (isTruthy(input$infer_all_video_from_current)) rep(TRUE, nrow(rdata$dvw$plays)) else is.na(rdata$dvw$plays$video_time)
                     new_video_time <- this_video_time + clock_time_diff[midx]
-                    things$dvw$plays$video_time[midx] <- round(new_video_time, digits = input$video_time_decimal_places)
+                    rdata$dvw$plays$video_time[midx] <- round(new_video_time, digits = input$video_time_decimal_places)
                 })
             }
         })
@@ -170,9 +170,9 @@ ov_shiny_video_sync_server <- function(app_data) {
                     if (is.null(this_time) || is.na(this_time) || is.null(this_video_time) || is.na(this_video_time)) {
                         stop("selected event is missing video or clock time")
                     }
-                    video_time_diff <- things$dvw$plays$video_time - this_video_time
-                    midx <- if (isTruthy(input$infer_all_clock_from_current)) rep(TRUE, nrow(things$dvw$plays)) else is.na(things$dvw$plays$time)
-                    things$dvw$plays$time[midx] <- this_time + video_time_diff[midx]
+                    video_time_diff <- rdata$dvw$plays$video_time - this_video_time
+                    midx <- if (isTruthy(input$infer_all_clock_from_current)) rep(TRUE, nrow(rdata$dvw$plays)) else is.na(rdata$dvw$plays$time)
+                    rdata$dvw$plays$time[midx] <- this_time + video_time_diff[midx]
                 })
             }
         })
@@ -193,12 +193,12 @@ ov_shiny_video_sync_server <- function(app_data) {
             removeModal()
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx) && !is.na(ridx)) {
-                ##cat("x time: "); cat(str(things$dvw$plays$time))
+                ##cat("x time: "); cat(str(rdata$dvw$plays$time))
                 tm <- input$selected_clocktime
                 ##cat("time:"); cat(str(tm))
-                if (inherits(things$dvw$plays$time, "POSIXct")) tm <- as.POSIXct(tm, tz = lubridate::tz(things$dvw$plays$time))
+                if (inherits(rdata$dvw$plays$time, "POSIXct")) tm <- as.POSIXct(tm, tz = lubridate::tz(rdata$dvw$plays$time))
                 ##cat("time cast:"); cat(str(tm))
-                things$dvw$plays$time[ridx] <- tm
+                rdata$dvw$plays$time[ridx] <- tm
             }
         })
 
@@ -221,16 +221,16 @@ ov_shiny_video_sync_server <- function(app_data) {
             temp <- strsplit(input$set_current_video_time, split = "&", fixed = TRUE)[[1]]
             ridx <- as.integer(temp[2])
             tm <- as.numeric(temp[1])
-            if (!is.null(ridx) && !is.na(ridx) && ridx > 0 && ridx <= nrow(things$dvw$plays)) {
-                things$dvw$plays$video_time[ridx] <- round(tm, digits = input$video_time_decimal_places)
+            if (!is.null(ridx) && !is.na(ridx) && ridx > 0 && ridx <= nrow(rdata$dvw$plays)) {
+                rdata$dvw$plays$video_time[ridx] <- round(tm, digits = input$video_time_decimal_places)
                 skip <- 1
-                if (things$dvw$plays$skill[ridx] %eq% "Attack" && ridx < nrow(things$dvw$plays) && things$dvw$plays$skill[ridx+1] %eq% "Block") {
+                if (rdata$dvw$plays$skill[ridx] %eq% "Attack" && ridx < nrow(rdata$dvw$plays) && rdata$dvw$plays$skill[ridx+1] %eq% "Block") {
                     ## give the block the same time
-                    things$dvw$plays$video_time[ridx+1] <- round(tm, digits = input$video_time_decimal_places)
+                    rdata$dvw$plays$video_time[ridx+1] <- round(tm, digits = input$video_time_decimal_places)
                     skip <- 2
                 }
                 ## advance to the next skill row
-                if (ridx < nrow(things$dvw$plays)) {
+                if (ridx < nrow(rdata$dvw$plays)) {
                     next_skill_row <- find_next_skill_row(ridx, step = skip)
                     if (length(next_skill_row) > 0) playslist_select_row(next_skill_row)
                 }
@@ -243,9 +243,9 @@ ov_shiny_video_sync_server <- function(app_data) {
         ##    ridx <- input$playslist_rows_selected
         ##    ##cat("rowidx: ", ridx, "\n")
         ##    if (!is.null(ridx)) {
-        ##        things$dvw$plays$video_time[ridx] <- round(tm, digits = input$video_time_decimal_places)
+        ##        rdata$dvw$plays$video_time[ridx] <- round(tm, digits = input$video_time_decimal_places)
         ##        ## advance to the next skill row
-        ##        if (ridx < nrow(things$dvw$plays)) {
+        ##        if (ridx < nrow(rdata$dvw$plays)) {
         ##            next_skill_row <- find_next_skill_row(ridx, step = skip)
         ##            if (length(next_skill_row) > 0) playslist_select_row(next_skill_row)
         ##        }
@@ -255,7 +255,7 @@ ov_shiny_video_sync_server <- function(app_data) {
 
         selected_event <- reactive({
             if (length(input$playslist_rows_selected) == 1) {
-                things$dvw$plays[input$playslist_rows_selected, ]
+                rdata$dvw$plays[input$playslist_rows_selected, ]
             } else {
                 NULL
             }
@@ -266,15 +266,15 @@ ov_shiny_video_sync_server <- function(app_data) {
         })
 
         observe({
-            if (!is.null(things$dvw) && nrow(things$dvw$plays) > 0 && !"error_message" %in% names(things$dvw$plays)) {
-                things$dvw <- preprocess_dvw(things$dvw)
+            if (!is.null(rdata$dvw) && nrow(rdata$dvw$plays) > 0 && !"error_message" %in% names(rdata$dvw$plays)) {
+                rdata$dvw <- preprocess_dvw(rdata$dvw)
             }
         })
 
         plays_do_rename <- function(z) names_first_to_capital(dplyr::rename(z, plays_col_renames))
         ## the plays display in the RHS table
         output$playslist <- DT::renderDataTable({
-            isolate(mydat <- things$dvw$plays) ## render once, then isolate from further renders - will be done by replaceData below
+            isolate(mydat <- rdata$dvw$plays) ## render once, then isolate from further renders - will be done by replaceData below
             if (!is.null(input$window_height) && !is.na(input$window_height)) {
                 plh <- input$window_height*0.6
             } else {
@@ -323,27 +323,27 @@ ov_shiny_video_sync_server <- function(app_data) {
                 visible_rowidx <- which(input$playslist_rows_all == input$playslist_rows_selected)
                 scrollto <- max(visible_rowidx-1-5, 0) ## -1 for zero indexing, -5 to keep the selected row 5 from the top
                 dojs(sprintf("$('#playslist').find('.dataTable').DataTable().scroller.toPosition(%s);", scrollto))
-                ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).node().scrollIntoView();", max(0, things$plays_row_to_select-1)))
-                ##dojs(sprintf("console.dir($('#playslist').find('.dataTable').DataTable().row(%s).node())", max(0, things$plays_row_to_select-1)))
-                ##dojs(sprintf("$('#playslist').find('.dataTables_scroll').animate({ scrollTop: $('#playslist').find('.dataTable').DataTable().row(%s).node().offsetTop }, 2000);", max(0, things$plays_row_to_select-1)))
+                ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).node().scrollIntoView();", max(0, rdata$plays_row_to_select-1)))
+                ##dojs(sprintf("console.dir($('#playslist').find('.dataTable').DataTable().row(%s).node())", max(0, rdata$plays_row_to_select-1)))
+                ##dojs(sprintf("$('#playslist').find('.dataTables_scroll').animate({ scrollTop: $('#playslist').find('.dataTable').DataTable().row(%s).node().offsetTop }, 2000);", max(0, rdata$plays_row_to_select-1)))
             }
         }
 
         observe({
             ##        cat("replacing DT data\n")
-            mydat <- things$dvw$plays
+            mydat <- rdata$dvw$plays
             mydat$is_skill <- is_skill(mydat$skill)
             mydat$set_number <- as.factor(mydat$set_number)
             DT::replaceData(playslist_proxy, data = mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, clearSelection = "none")##, resetPaging = FALSE)
             ## and scroll to selected row
-            ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).scrollTo();", max(0, things$plays_row_to_select-1)))
+            ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).scrollTo();", max(0, rdata$plays_row_to_select-1)))
         })
 
         find_next_skill_row <- function(current_row_idx = NULL, step = 1, respect_filters = TRUE) {
             ## if respect_filters is TRUE, find the next row that is shown in the table (i.e. passing through any column filters that have been applied)
             ## if FALSE, just find the next skill row in the data, ignoring table filters
             if (is.null(current_row_idx)) current_row_idx <- input$playslist_rows_selected
-            skill_rows <- which(is_skill(things$dvw$plays$skill))
+            skill_rows <- which(is_skill(rdata$dvw$plays$skill))
             if (respect_filters) skill_rows <- intersect(skill_rows, input$playslist_rows_all)
             next_skill_row <- skill_rows[skill_rows > current_row_idx]
             next_skill_row[min(step, length(next_skill_row))]
@@ -353,7 +353,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             ## if respect_filters is TRUE, find the previous row that is shown in the table (i.e. passing through any column filters that have been applied)
             ## if FALSE, just find the previous skill row in the data, ignoring table filters
             if (is.null(current_row_idx)) current_row_idx <- input$playslist_rows_selected
-            skill_rows <- which(is_skill(things$dvw$plays$skill))
+            skill_rows <- which(is_skill(rdata$dvw$plays$skill))
             if (respect_filters) skill_rows <- intersect(skill_rows, input$playslist_rows_all)
             prev_skill_row <- rev(skill_rows[skill_rows < current_row_idx])
             prev_skill_row[min(step, length(prev_skill_row))]
@@ -430,8 +430,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                         ##} else if (mycmd %in% as.character(33:126)) {
                         ##    cat("queued: ", mycmd, "\n")
                         ##    ## add to cmd queue
-                        ##    things$cmd <- paste0(things$cmd, intToUtf8(mycmd))
-                        ##    output$cmdbox <- renderText(things$cmd)
+                        ##    rdata$cmd <- paste0(rdata$cmd, intToUtf8(mycmd))
+                        ##    output$cmdbox <- renderText(rdata$cmd)
                     } else if (mykey %in% c("r", "R", "5")) {
                         ## set the video time of the current event
                         sync_single_video_time()
@@ -442,6 +442,10 @@ ov_shiny_video_sync_server <- function(app_data) {
         })
         observeEvent(input$controlkey, {
             ## keys that might not get detected by keypress but do by keydown?
+            ## if we are editing a code or inserting a new one, update the code_entry_guide
+#            if (!is.null(editing$active) && editing$active %in% c("edit", "insert")) {
+#                dojs("Shiny.onInputChange('code_entry_cursor_pos', document.getElementById('code_entry').selectionStart);")
+#            }
             mycmd <- sub("@.*", "", input$controlkey)
             if (debug > 1) cat("control key: ", mycmd, "\n")
             mycmd <- strsplit(mycmd, "|", fixed = TRUE)[[1]] ## e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which
@@ -464,10 +468,11 @@ ov_shiny_video_sync_server <- function(app_data) {
         edit_current_code <- function() {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
-                thiscode <- things$dvw$plays$code[ridx]
+                thiscode <- rdata$dvw$plays$code[ridx]
                 editing$active <- "edit"
                 showModal(modalDialog(title = "Edit code", size = "l", footer = actionButton("code_edit_cancel", label = "Cancel (or press Esc)"),
                                       textInput("code_entry", label = "Code:", value = thiscode),
+                                      uiOutput("code_entry_guide"),
                                       actionButton("code_do_edit", label = "Update code (or press Enter)")))
                 ## focus to this textbox with cursor at end of input
                 dojs("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById(\"code_entry\"); el.selectionStart = el.selectionEnd = el.value.length; el.focus(); });")
@@ -493,18 +498,18 @@ ov_shiny_video_sync_server <- function(app_data) {
                 if (!is.null(ridx)) {
                     if (editing$active %eq% "edit") {
                         ## update the code in the current row
-                        things$dvw$plays$code[ridx] <- input$code_entry
+                        rdata$dvw$plays$code[ridx] <- input$code_entry
                     } else if (editing$active %eq% "insert") {
                         ## insert new line
-                        newline <- things$dvw$plays[ridx, ]
+                        newline <- rdata$dvw$plays[ridx, ]
                         newline$code <- input$code_entry
-                        things$dvw$plays <- bind_rows(things$dvw$plays[seq(1, ridx, by = 1), ], newline, things$dvw$plays[seq(ridx+1, nrow(things$dvw$plays), by = 1), ])
+                        rdata$dvw$plays <- bind_rows(rdata$dvw$plays[seq(1, ridx, by = 1), ], newline, rdata$dvw$plays[seq(ridx+1, nrow(rdata$dvw$plays), by = 1), ])
                     } else if (editing$active %eq% "delete") {
                         if (is.logical(ridx)) ridx <- which(ridx)
-                        things$dvw$plays <- things$dvw$plays[-ridx, ]
+                        rdata$dvw$plays <- rdata$dvw$plays[-ridx, ]
                     }
                     ## reparse the dvw
-                    things$dvw <- reparse_dvw(things$dvw, dv_read_args = dv_read_args)
+                    rdata$dvw <- reparse_dvw(rdata$dvw, dv_read_args = dv_read_args)
                 }
             }
             editing$active <- NULL
@@ -513,10 +518,11 @@ ov_shiny_video_sync_server <- function(app_data) {
         insert_data_row <- function() {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
-                thiscode <- things$dvw$plays$code[ridx]
+                thiscode <- rdata$dvw$plays$code[ridx]
                 editing$active <- "insert"
                 showModal(modalDialog(title = "Insert new code", size = "l", footer = actionButton("code_edit_cancel", label = "Cancel (or press Esc)"),
                                       textInput("code_entry", label = "Code:", value = ""),
+                                      uiOutput("code_entry_guide"),
                                       actionButton("code_do_edit", label = "Insert code (or press Enter)")))
                 ## focus to this textbox with cursor at end of input
                 dojs("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById(\"code_entry\"); el.selectionStart = el.selectionEnd = el.value.length; el.focus(); });")
@@ -525,7 +531,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         delete_data_row <- function() {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
-                thiscode <- things$dvw$plays$code[ridx]
+                thiscode <- rdata$dvw$plays$code[ridx]
                 editing$active <- "delete"
                 showModal(modalDialog(title = "Delete code", size = "l", footer = actionButton("code_edit_cancel", label = "Cancel (or press Esc)"),
                                       actionButton("code_do_delete", label = "Confirm delete code (or press Enter)")))
@@ -568,7 +574,7 @@ ov_shiny_video_sync_server <- function(app_data) {
 
         ## save file
         output$save_file_ui <- renderUI({
-            if (is.null(things$dvw)) {
+            if (is.null(rdata$dvw)) {
                 NULL
             } else {
                 downloadButton("save_file_button", "Save file")
@@ -576,9 +582,9 @@ ov_shiny_video_sync_server <- function(app_data) {
         })
         output$save_file_button <- downloadHandler(
             filename = reactive(
-                if (!is.null(things$dvw$meta$filename) && !is.na(things$dvw$meta$filename)) basename(things$dvw$meta$filename) else "myfile.dvw"
+                if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename)) basename(rdata$dvw$meta$filename) else "myfile.dvw"
             ),
-            content = function(file) dv_write(things$dvw, file = file)
+            content = function(file) dv_write(rdata$dvw, file = file)
         )
     }
 }
