@@ -84,6 +84,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         ##handlers <- reactiveValues() ## a more general way of handling asynchronous js callback events, but not needed (yet)
         dv_read_args <- app_data$dv_read_args
         done_first_playlist_render <- FALSE
+        running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
         debug <- 0L
         `%eq%` <- function (x, y) x == y & !is.na(x) & !is.na(y)
         plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "home_team_score", "visiting_team_score", "code")
@@ -630,7 +631,23 @@ ov_shiny_video_sync_server <- function(app_data) {
             filename = reactive(
                 if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename)) basename(rdata$dvw$meta$filename) else "myfile.dvw"
             ),
-            content = function(file) dv_write(rdata$dvw, file = file)
+            content = function(file) {
+                tryCatch(dv_write(rdata$dvw, file = file),
+                         error = function(e) {
+                             rds_ok <- FALSE
+                             if (running_locally) {
+                                 ## this only makes sense if running locally, not deployed on a remote server
+                                 tf <- tempfile(fileext = ".rds")
+                                 try({
+                                     saveRDS(rdata$dvw, file = tf)
+                                     rds_ok <- file.exists(tf) && file.size(tf) > 0
+                                 }, silent = TRUE)
+                             }
+                             showModal(modalDialog(title = "Save error",
+                                                   tags$div(class = "alert alert-danger", "Sorry, the save failed. The error message was:", tags$br(), tags$pre(conditionMessage(e)), tags$br(), if (rds_ok) paste0("The edited datavolley object has been saved to ", tf, ". You might be able to recover your edited information from that (contact the package authors for assistance)."))))
+                             NULL
+                         })
+            }
         )
         output$code_entry_guide <- renderUI({
             if (is.null(editing$active) || !editing$active %in% c("insert", "edit")) {
