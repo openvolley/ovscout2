@@ -319,8 +319,16 @@ ov_shiny_video_sync_server <- function(app_data) {
                                      extensions = "Scroller",
                                      escape = FALSE, filter = "top",
                                      selection = sel, options = list(scroller = TRUE,
-                                                                     lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = TRUE, "scrollY" = paste0(plh, "px"), ordering = FALSE, ##autoWidth = TRUE,
-                                                                     columnDefs = list(list(targets = cols_to_hide, visible = FALSE))
+                                                                     lengthChange = FALSE, 
+                                                                     sDom = '<"top">t<"bottom">rlp', 
+                                                                     paging = TRUE, "scrollY" = paste0(plh, "px"), 
+                                                                     ordering = FALSE, ##autoWidth = TRUE,
+                                                                     columnDefs = list(list(targets = cols_to_hide, visible = FALSE)),
+                                                                     rowCallback = DT::JS(
+                                                                         "function(row, data) {",
+                                                                         "var full_text = 'Skills :' + data[6]",
+                                                                         "$('td', row).attr('title', full_text);",
+                                                                         "}")
                                                                      ##list(targets = 0, width = "20px")) ## does nothing
                                                                      ))
                 out <- DT::formatStyle(out, "is_skill", target = "row", backgroundColor = DT::styleEqual(c(FALSE, TRUE), c("#f0f0e0", "lightgreen"))) ## colour skill rows green
@@ -330,6 +338,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 NULL
             }
         }, server = TRUE)
+        
         playslist_proxy <- DT::dataTableProxy("playslist")
         playslist_select_row <- function(rw) {
             if (!is.null(rw)) DT::selectRows(playslist_proxy, rw)
@@ -525,23 +534,24 @@ ov_shiny_video_sync_server <- function(app_data) {
     observeEvent(input$code_do_delete, {
         code_make_change()
     })
+    
     code_make_change <- function() {
         removeModal()
         if (is.null(editing$active)) {
             ## not triggered from current editing activity, huh?
             warning("code_make_change entered but editing not active")
         } else if (editing$active %eq% "delete all setting actions"){
-            ridx <- things$dvw$plays %>% mutate(rowN = dplyr::row_number()) %>% dplyr::filter(skill %eq% "Set") %>% dplyr::select(rowN) %>% dplyr::pull()
+            ridx <- rdata$dvw$plays %>% mutate(rowN = dplyr::row_number()) %>% dplyr::filter(skill %eq% "Set") %>% dplyr::select(rowN) %>% dplyr::pull()
             if (!is.null(ridx)) {
             if (is.logical(ridx)) ridx <- which(ridx)
-            things$dvw$plays <- things$dvw$plays[-ridx, ]
-            things$dvw <- reparse_dvw(things$dvw, dv_read_args = dv_read_args)
+            rdata$dvw$plays <-rdata$dvw$plays[-ridx, ]
+            rdata$dvw <- reparse_dvw(rdata$dvw, dv_read_args = dv_read_args)
             }
         } else if(editing$active %eq% "insert setting actions") {
-            ridx_set <- things$dvw$plays %>% mutate(add_set_before = dplyr::case_when(skill %eq% c("Attack") & !(stringr::str_sub(code, 7,8) %in% c("PR", "PP", "P2")) & !(lag(skill) %in% "Set") ~ TRUE,
+            ridx_set <- rdata$dvw$plays %>% mutate(add_set_before = dplyr::case_when(skill %eq% c("Attack") & !(stringr::str_sub(code, 7,8) %in% c("PR", "PP", "P2")) & !(lag(skill) %in% "Set") ~ TRUE,
                                                                                TRUE ~ FALSE), rowN = dplyr::row_number()) %>% dplyr::filter(add_set_before %eq% TRUE) %>% dplyr::select(rowN) %>% dplyr::pull()
             if (!is.null(ridx_set)) {
-                set_code <- things$dvw$plays %>%
+                set_code <- rdata$dvw$plays %>%
                     mutate(passQ = dplyr::case_when(lag(skill) == "Reception" ~ lag(evaluation_code),
                                              TRUE ~ NA_character_)) %>%
                     dplyr::filter(dplyr::row_number() %in% ridx_set)  %>%
@@ -586,26 +596,25 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                 stringr::str_sub(code,7,8) %in% c("VP") ~ paste0(set_code, "P8"),
                                                 TRUE ~ set_code)) %>% dplyr::select(set_code) %>% dplyr::pull()
 
-                things$dvw$plays <- things$dvw$plays %>% mutate(tmp_row_number = dplyr::row_number())
-                newline <- things$dvw$plays[ridx_set, ]
+                rdata$dvw$plays <- rdata$dvw$plays %>% mutate(tmp_row_number = dplyr::row_number())
+                newline <- rdata$dvw$plays[ridx_set, ]
                 newline$code <- set_code
                 newline$video_time <- newline$video_time - 2
                 newline$tmp_row_number <- newline$tmp_row_number - 0.5
-                things$dvw$plays <- bind_rows(things$dvw$plays, newline) %>% dplyr::arrange(set_number, point_id, team_touch_id, tmp_row_number) %>% dplyr::select(-tmp_row_number)
+                rdata$dvw$plays <- bind_rows(rdata$dvw$plays, newline) %>% dplyr::arrange(set_number, point_id, team_touch_id, tmp_row_number) %>% dplyr::select(-tmp_row_number)
             }
         } else if (editing$active %eq% "delete all digging actions"){
-            ridx <- things$dvw$plays %>% mutate(rowN = dplyr::row_number()) %>% dplyr::filter(skill %eq% "Dig") %>% dplyr::select(rowN) %>% dplyr::pull()
+            ridx <- rdata$dvw$plays %>% mutate(rowN = dplyr::row_number()) %>% dplyr::filter(skill %eq% "Dig") %>% dplyr::select(rowN) %>% dplyr::pull()
             if (!is.null(ridx)) {
                 if (is.logical(ridx)) ridx <- which(ridx)
-                print(ridx)
-                things$dvw$plays <- things$dvw$plays[-ridx, ]
-                things$dvw <- reparse_dvw(things$dvw, dv_read_args = dv_read_args)
+                rdata$dvw$plays <- rdata$dvw$plays[-ridx, ]
+                rdata$dvw <- reparse_dvw(rdata$dvw, dv_read_args = dv_read_args)
             }
         } else if(editing$active %eq% "insert digging actions") {
-            ridx_dig <- things$dvw$plays %>% mutate(add_dig_after = dplyr::case_when(skill == "Attack" & evaluation_code %in% c("+", "-", "!") & !(lead(skill) %in% "Dig") ~ TRUE,
+            ridx_dig <- rdata$dvw$plays %>% mutate(add_dig_after = dplyr::case_when(skill == "Attack" & evaluation_code %in% c("+", "-", "!") & !(lead(skill) %in% "Dig") ~ TRUE,
                                                                                TRUE ~ FALSE), rowN = dplyr::row_number()) %>% dplyr::filter(add_set_before %eq% TRUE) %>% dplyr::select(rowN) %>% dplyr::pull()
             if (!is.null(ridx_dig)) {
-                dig_code <- things$dvw$plays %>% dplyr::filter(dplyr::row_number() %in% ridx_dig)  %>%
+                dig_code <- rdata$dvw$plays %>% dplyr::filter(dplyr::row_number() %in% ridx_dig)  %>%
                     mutate(dig_team = dplyr::case_when(evaluation_code %in% "!" & team == home_team ~ "*",
                                                 evaluation_code %in% "!" & team == visiting_team ~ "a",
                                                 evaluation_code %in% c("+","-") & team == home_team ~ "a",
@@ -621,12 +630,12 @@ ov_shiny_video_sync_server <- function(app_data) {
                                              dig_eval))  %>%
                     dplyr::select(dig_code) %>% dplyr::pull()
 
-                things$dvw$plays <- things$dvw$plays %>% mutate(tmp_row_number = dplyr::row_number())
-                newline <- things$dvw$plays[ridx_set, ]
+                rdata$dvw$plays <- rdata$dvw$plays %>% mutate(tmp_row_number = dplyr::row_number())
+                newline <- rdata$dvw$plays[ridx_set, ]
                 newline$code <- set_code
                 newline$video_time <- newline$video_time + 1
                 newline$tmp_row_number <- newline$tmp_row_number - 0.5
-                things$dvw$plays <- bind_rows(things$dvw$plays, newline) %>% dplyr::arrange(set_number, point_id, team_touch_id, tmp_row_number) %>% dplyr::select(-tmp_row_number)
+                rdata$dvw$plays <- bind_rows(rdata$dvw$plays, newline) %>% dplyr::arrange(set_number, point_id, team_touch_id, tmp_row_number) %>% dplyr::select(-tmp_row_number)
             }
         } else {
             ridx <- input$playslist_rows_selected
@@ -657,22 +666,22 @@ ov_shiny_video_sync_server <- function(app_data) {
                     }
                 if (editing$active %eq% "edit" && !is.null(newcode)) {
                     ## update the code in the current row
-                    things$dvw$plays$code[ridx] <- input$code_entry
+                    rdata$dvw$plays$code[ridx] <- input$code_entry
                 } else if (editing$active %eq% "insert"  && !is.null(newcode)) {
                     ## insert new line
-                    newline <- things$dvw$plays[ridx, ]
+                    newline <- rdata$dvw$plays[ridx, ]
                     newline$code <- input$code_entry
-                    things$dvw$plays <- bind_rows(things$dvw$plays[seq(1, ridx, by = 1), ], newline, things$dvw$plays[seq(ridx+1, nrow(things$dvw$plays), by = 1), ])
+                    rdata$dvw$plays <- bind_rows(rdata$dvw$plays[seq(1, ridx, by = 1), ], newline, rdata$dvw$plays[seq(ridx+1, nrow(rdata$dvw$plays), by = 1), ])
                     nsr <- find_next_skill_row()
                     if (length(nsr) > 0) playslist_select_row(nsr)
                 } else if (editing$active %eq% "insert setting") {
                     ## insert new line
-                    newline <- things$dvw$plays[ridx, ]
+                    newline <- rdata$dvw$plays[ridx, ]
                     newline$code <- input$code_entry
-                    things$dvw$plays <- bind_rows(things$dvw$plays[seq(1, ridx, by = 1), ], newline, things$dvw$plays[seq(ridx+1, nrow(things$dvw$plays), by = 1), ])
+                    rdata$dvw$plays <- bind_rows(rdata$dvw$plays[seq(1, ridx, by = 1), ], newline, rdata$dvw$plays[seq(ridx+1, nrow(rdata$dvw$plays), by = 1), ])
                 } else if (editing$active %eq% "delete") {
                     if (is.logical(ridx)) ridx <- which(ridx)
-                    things$dvw$plays <- things$dvw$plays[-ridx, ]
+                    rdata$dvw$plays <- rdata$dvw$plays[-ridx, ]
                   }
                   rdata$dvw <- reparse_dvw(rdata$dvw, dv_read_args = dv_read_args)
             }
@@ -681,8 +690,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         scroll_playlist()
     }
     
-#        }
-        insert_data_row <- function() {
+    insert_data_row <- function() {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
                 thiscode <- rdata$dvw$plays$code[ridx]
@@ -695,7 +703,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                                       actionButton("code_do_edit", label = "Insert code (or press Enter)")))
             }
         }
-        delete_data_row <- function() {
+    delete_data_row <- function() {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
                 thiscode <- rdata$dvw$plays$code[ridx]
