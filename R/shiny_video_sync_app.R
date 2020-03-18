@@ -53,9 +53,9 @@ ov_shiny_video_sync_ui <- function(app_data) {
                        column(4,tags$div(style="float:right;padding:10px;", tags$a(href = "https://untan.gl", tags$img(style = "width:16em;max-width:100%", src = "https://untan.gl/images/su_title-w.png"))))
                        ),
               fluidRow(column(7, tags$video(id = "main_video", style = "border: 1px solid black; width: 90%;", src = file.path(video_server_base_url, basename(video_src)), controls = "controls", autoplay = "false"),
-                              fluidRow(column(3, actionButton("all_video_from_clock", label = "Open video/clock time operations menu")),
-                                       column(3, uiOutput("save_file_ui")),
-                                       column(4, offset = 2, uiOutput("current_event"))),
+                              fluidRow(column(8, actionButton("all_video_from_clock", label = "Open video/clock time operations menu"),
+                                              actionButton("edit_match_data_button", "Edit match data"), uiOutput("save_file_ui", inline = TRUE)),
+                                       column(4, uiOutput("current_event"))),
                               fluidRow(column(6, tags$p(tags$strong("Keyboard controls")), tags$ul(tags$li("[r or 5] sync selected event video time"),
                                                                                           tags$li("[i or 8] move to previous skill row"),
                                                                                           tags$li("[k or 2] move to next skill row"),
@@ -71,8 +71,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                        )
                               ),
                        column(5, DT::dataTableOutput("playslist", width = "98%"),
-                              uiOutput("error_message"),
-                              fluidRow(actionButton("edit_match_data_button", "Edit match data")))
+                              uiOutput("error_message"))
                        )
               )
     ## find negative time intervals and fix them
