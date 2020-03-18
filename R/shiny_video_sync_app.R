@@ -68,9 +68,11 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                               numericInput("video_time_decimal_places", label = NULL, value = 0, min = 0, max = 2, step = 1, width = "6em"),
                                               uiOutput("vtdp_ui")),
                                        column(6, tags$p(tags$strong("Video controls")), sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")))
-                                       )),
+                                       )
+                              ),
                        column(5, DT::dataTableOutput("playslist", width = "98%"),
-                              uiOutput("error_message"))
+                              uiOutput("error_message"),
+                              fluidRow(actionButton("edit_match_data_button", "Edit match data")))
                        )
               )
     ## find negative time intervals and fix them
@@ -332,8 +334,6 @@ ov_shiny_video_sync_server <- function(app_data) {
             scroll_playlist()
         }
 
-        ##only trigger scroll on: do_edit, keyboard move, set video time and move to next. Not just on selecting row
-        ## is happening auto when dvw updated, below
         scroll_playlist <- function() {
             if (!is.null(input$playslist_rows_selected)) {
                 ## scrolling works on the VISIBLE row index, so it depends on any column filters that might have been applied
@@ -484,12 +484,12 @@ ov_shiny_video_sync_server <- function(app_data) {
             if (!is.null(ridx)) {
                 thiscode <- rdata$dvw$plays$code[ridx]
                 editing$active <- "edit"
-                showModal(modalDialog(title = "Edit code", size = "l", footer = actionButton("code_edit_cancel", label = "Cancel (or press Esc)"),
+                showModal(modalDialog(title = "Edit code", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update code (or press Enter)"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
                                       "Edit code either in the top text box or in the individual boxes (but not both)",
                                       textInput("code_entry", label = "Code:", value = thiscode),
                                       "or",
-                                      build_code_entry_guide("edit", rdata$dvw$plays[ridx, ]),
-                                      actionButton("code_do_edit", label = "Update code (or press Enter)")))
+                                      build_code_entry_guide("edit", rdata$dvw$plays[ridx, ])
+                                      ))
                 if (!is_skill(rdata$dvw$plays$skill[ridx])) {
                     ## if it's a non-skill code then focus into the code_entry textbox with cursor at end of input
                     focus_in_code_entry("code_entry")
@@ -514,14 +514,11 @@ ov_shiny_video_sync_server <- function(app_data) {
             ## helper function to set the cursor focus to a particular entry box
             dojs(paste0("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById('", id, "'); el.selectionStart = el.selectionEnd = el.value.length; el.focus(); });"))
         }
-        observeEvent(input$code_edit_cancel, {
+        observeEvent(input$edit_cancel, {
             editing$active <- NULL
             removeModal()
         })
-        observeEvent(input$code_do_edit, {
-            code_make_change()
-        })
-        observeEvent(input$code_do_delete, {
+        observeEvent(input$edit_commit, {
             code_make_change()
         })
         code_make_change <- function() {
@@ -529,6 +526,8 @@ ov_shiny_video_sync_server <- function(app_data) {
             if (is.null(editing$active)) {
                 ## not triggered from current editing activity, huh?
                 warning("code_make_change entered but editing not active")
+            } else if (editing$active %eq% "match_data") {
+                rdata$dvw$meta$match$date <- input$match_edit_date
             } else {
                 ridx <- input$playslist_rows_selected
                 if (!is.null(ridx)) {
@@ -574,22 +573,22 @@ ov_shiny_video_sync_server <- function(app_data) {
                     }
                     ## reparse the dvw
                     rdata$dvw <- reparse_dvw(rdata$dvw, dv_read_args = dv_read_args)
+                    scroll_playlist()
                 }
             }
             editing$active <- NULL
-            scroll_playlist()
         }
         insert_data_row <- function() {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
                 thiscode <- rdata$dvw$plays$code[ridx]
                 editing$active <- "insert"
-                showModal(modalDialog(title = "Insert new code", size = "l", footer = actionButton("code_edit_cancel", label = "Cancel (or press Esc)"),
+                showModal(modalDialog(title = "Insert new code", size = "l", footer = tags$div(actionButton("edit_commit", label = "Insert code (or press Enter)"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
                                       "Enter new code either in the top text box or in the individual boxes (but not both)",
                                       textInput("code_entry", label = "Code:", value = ""),
                                       "or",
-                                      build_code_entry_guide("insert", rdata$dvw$plays[ridx, ]),
-                                      actionButton("code_do_edit", label = "Insert code (or press Enter)")))
+                                      build_code_entry_guide("insert", rdata$dvw$plays[ridx, ])
+                                      ))
             }
         }
         delete_data_row <- function() {
@@ -597,8 +596,8 @@ ov_shiny_video_sync_server <- function(app_data) {
             if (!is.null(ridx)) {
                 thiscode <- rdata$dvw$plays$code[ridx]
                 editing$active <- "delete"
-                showModal(modalDialog(title = "Delete code", size = "l", footer = actionButton("code_edit_cancel", label = "Cancel (or press Esc)"),
-                                      actionButton("code_do_delete", label = "Confirm delete code (or press Enter)")))
+                showModal(modalDialog(title = "Delete code", size = "l", footer = actionButton("edit_cancel", label = "Cancel (or press Esc)"),
+                                      actionButton("edit_commit", label = "Confirm delete code (or press Enter)")))
             }
         }
 
@@ -738,6 +737,15 @@ ov_shiny_video_sync_server <- function(app_data) {
                 cbitInput(bitstbl$bit[z], value = bitstbl$value[z], width = bitstbl$width[z], helper = if (is.function(bitstbl$helper[[z]])) bitstbl$helper[[z]](this_skill, this_ev) else bitstbl$helper[[z]])
             })))
         }
+
+        observeEvent(input$edit_match_data_button, {
+            editing$active <- "match_data"
+            showModal(modalDialog(title = "Edit match data", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update match data (or press Enter)"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
+                                  tags$div(
+                                           fluidRow(column(2, shiny::dateInput("match_edit_date", label = "Match date:", value = rdata$dvw$meta$match$date)))
+                                       )
+                                  ))
+        })
     }
 }
 
