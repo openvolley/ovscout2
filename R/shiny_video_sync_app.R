@@ -239,7 +239,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             ridx <- as.integer(temp[2])
             tm <- as.numeric(temp[1])
             if (!is.null(ridx) && !is.na(ridx) && ridx > 0 && ridx <= nrow(rdata$dvw$plays)) {
-                rdata$dvw$plays$video_time[ridx] <- round(tm, digits = input$video_time_decimal_places)
+                rdata$dvw$plays$video_time[ridx] <- if (input$video_time_decimal_places < 1) floor(tm) else round(tm, digits = input$video_time_decimal_places)
                 skip <- 1
                 if (rdata$dvw$plays$skill[ridx] %eq% "Attack" && ridx < nrow(rdata$dvw$plays) && rdata$dvw$plays$skill[ridx+1] %eq% "Block") {
                     ## give the block the same time
