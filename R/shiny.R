@@ -32,13 +32,7 @@ ov_shiny_video_sync <- function(dvw, video_file = NULL, launch_browser = TRUE, .
         if (!file.exists(dvw$meta$video$file)) stop("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
     }
     ## finally the shiny app
-    shiny_data <- list(dvw = dvw, dv_read_args = dots)
-    this_app <- shiny::shinyApp(ui = ov_shiny_video_sync_ui(data = shiny_data), server = ov_shiny_video_sync_server)
-    myrunapp <- function(app, data, ...) {
-        ## uurgh
-        .GlobalEnv$SHINY_DATA <- data
-        on.exit(rm("SHINY_DATA", envir = .GlobalEnv))
-        shiny::runApp(app, ...)
-    }
-    myrunapp(this_app, data = shiny_data, display.mode = "normal", launch.browser = launch_browser)
+    app_data <- list(dvw = dvw, dv_read_args = dots)
+    this_app <- list(ui = ov_shiny_video_sync_ui(app_data = app_data), server = ov_shiny_video_sync_server(app_data = app_data))
+    shiny::runApp(this_app, display.mode = "normal", launch.browser = launch_browser)
 }
