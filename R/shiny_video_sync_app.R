@@ -461,7 +461,8 @@ ov_shiny_video_sync_server <- function(app_data) {
             if (debug > 1) cat("\n")
         }
     })
-    observeEvent(input$controlkey, {
+        
+        observeEvent(input$controlkey, {
         ## keys that might not get detected by keypress but do by keydown?
         mycmd <- sub("@.*", "", input$controlkey)
         if (debug > 1) cat("control key: ", mycmd, "\n")
@@ -513,6 +514,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }
     }
+    
     observeEvent(input$code_edit_cancel, {
         editing$active <- NULL
         removeModal()
@@ -678,7 +680,8 @@ ov_shiny_video_sync_server <- function(app_data) {
         editing$active <- NULL
         scroll_playlist()
     }
-        }
+    
+#        }
         insert_data_row <- function() {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
