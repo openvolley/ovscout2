@@ -527,6 +527,15 @@ ov_shiny_video_sync_server <- function(app_data) {
                 warning("code_make_change entered but editing not active")
             } else if (editing$active %eq% "match_data") {
                 rdata$dvw$meta$match$date <- input$match_edit_date
+                rdata$dvw$meta$match$time <- tryCatch(lubridate::hms(input$match_edit_time), error = function(e) lubridate::as.period(NA))
+                rdata$dvw$meta$match$season <- input$match_edit_season
+                rdata$dvw$meta$match$league <- input$match_edit_league
+                rdata$dvw$meta$match$phase <- input$match_edit_phase
+                rdata$dvw$meta$match$home_away <- input$match_edit_home_away
+                rdata$dvw$meta$match$day_number <- input$match_edit_day_number
+                rdata$dvw$meta$match$match_number <- input$match_edit_match_number
+                rdata$dvw$meta$match$regulation <- input$match_edit_regulation
+                rdata$dvw$meta$match$zones_or_cones <- input$match_edit_zones_or_cones
             } else {
                 ridx <- input$playslist_rows_selected
                 if (!is.null(ridx)) {
@@ -739,9 +748,23 @@ ov_shiny_video_sync_server <- function(app_data) {
 
         observeEvent(input$edit_match_data_button, {
             editing$active <- "match_data"
+            match_time <- if (!is.na(rdata$dvw$meta$match$time)) {
+                              as.POSIXct(rdata$dvw$meta$match$time, origin = "1970-01-01")
+                          } else {
+                              NULL
+                          }
             showModal(modalDialog(title = "Edit match data", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update match data (or press Enter)"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
                                   tags$div(
-                                           fluidRow(column(2, shiny::dateInput("match_edit_date", label = "Match date:", value = rdata$dvw$meta$match$date)))
+                                           fluidRow(column(4, shiny::dateInput("match_edit_date", label = "Match date:", value = rdata$dvw$meta$match$date)),
+                                                    column(4, textInput("match_edit_time", label = "Start time:", value = match_time, placeholder = "HH:MM:SS")),
+                                                    column(4, textInput("match_edit_season", label = "Season:", value = rdata$dvw$meta$match$season))),
+                                           fluidRow(column(4, textInput("match_edit_league", label = "League:", value = rdata$dvw$meta$match$league)),
+                                                    column(4, textInput("match_edit_phase", label = "Phase:", value = rdata$dvw$meta$match$phase)),
+                                                    column(4, shiny::selectInput("match_edit_home_away", label = "Home/away:", choices = c("", "Home", "Away"), selected = rdata$dvw$meta$match$home_away))),
+                                           fluidRow(column(4, textInput("match_edit_day_number", "Day number:", value = rdata$dvw$meta$match$day_number)),
+                                                    column(4, textInput("match_edit_match_number", "Match number:", value = rdata$dvw$meta$match$match_number)),
+                                                    ##column(2, shiny::selectInput("match_edit_regulation", "Regulation:", choices = c("indoor sideout", "indoor rally point", "beach rally point"), selected = rdata$dvw$meta$match$regulation)),
+                                                    column(4, shiny::selectInput("match_edit_zones_or_cones", "Zones or cones:", choices = c("C", "Z"), selected = rdata$dvw$meta$match$zones_or_cones), tags$span(style = "font-size:small", "Note: changing cones/zones here will only change the indicator in the file header, it will not convert a file recorded with zones into one recorded with cones, or vice-versa. Don't change this unless you know what you are doing!")))
                                        )
                                   ))
         })
@@ -773,7 +796,8 @@ reparse_dvw <- function(x, dv_read_args = list()) {
 
 preprocess_dvw <- function(x) {
     x$plays <- mutate(x$plays, clock_time = format(.data$time, "%H:%M:%S"))
-    msgs <- dplyr::summarize(group_by_at(x$messages, "file_line_number"), error_message = paste0(.data$message, collapse = "<br />"))
+    msgs <- dplyr::filter(x$messages, !is.na(.data$file_line_number))
+    msgs <- dplyr::summarize(group_by_at(msgs, "file_line_number"), error_message = paste0(.data$message, collapse = "<br />"))
     x$plays <- left_join(x$plays, msgs, by = "file_line_number")
     x$plays$error_icon <- ifelse(is.na(x$plays$error_message), "", HTML(as.character(shiny::icon("exclamation-triangle"))))
     x
