@@ -937,7 +937,7 @@ preprocess_dvw <- function(x) {
 }
 
 
-test_codes <- c("a10BH-", "a10/", "*2AT#45H2","*5X5!", "*5X5+5H2", "a12SM.2#78", "*2X5.15=5H4")
+#test_codes <- c("a10BH-", "a10/", "*2AT#45H2","*5X5!", "*5X5+5H2", "a12SM.2#78", "*2X5.15=5H4")
 
 ov_interpreter <- function(c, attack_table, compound_table, default_scouting_table){
     
