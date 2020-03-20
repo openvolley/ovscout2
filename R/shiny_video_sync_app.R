@@ -714,7 +714,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         }
     insert_setting_data_row <- function() {
         #ridx <- input$playslist_rows_selected
-        ridx_set <- things$dvw$plays %>% mutate(add_set_before = dplyr::case_when(skill == "Attack" & !(stringr::str_sub(code, 7,8) %in% c("PR", "PP", "P2")) & !(lag(skill) %in% "Set") ~ TRUE,
+        ridx_set <- rdata$dvw$plays %>% mutate(add_set_before = dplyr::case_when(skill == "Attack" & !(stringr::str_sub(code, 7,8) %in% c("PR", "PP", "P2")) & !(lag(skill) %in% "Set") ~ TRUE,
                                                                        TRUE ~ FALSE),
                                                 rowN = dplyr::row_number()) %>%
             dplyr::filter(.data$add_set_before %eq% TRUE) %>% dplyr::select(.data$rowN) %>% dplyr::pull() # idx row number to insert setting action
@@ -727,9 +727,9 @@ ov_shiny_video_sync_server <- function(app_data) {
         }
     }
     delete_setting_data_row <- function() {
-        ridx <- things$dvw$plays %>% mutate(rowN = dplyr::row_number()) %>% dplyr::filter(skill %eq% "Set") %>% dplyr::select(.data$rowN) %>% dplyr::pull()
+        ridx <- rdata$dvw$plays %>% mutate(rowN = dplyr::row_number()) %>% dplyr::filter(skill %eq% "Set") %>% dplyr::select(.data$rowN) %>% dplyr::pull()
             if (!is.null(ridx)) {
-            thiscode <- things$dvw$plays$code[ridx]
+            thiscode <- rdata$dvw$plays$code[ridx]
             editing$active <- "delete all setting actions"
             showModal(modalDialog(title = "Delete all setting codes", size = "l", footer = actionButton("code_edit_cancel", label = "Cancel (or press Esc)"),
                                   actionButton("code_do_delete", label = paste0("Confirm delete all (",length(ridx),") setting codes (or press Enter)"))))
@@ -738,7 +738,7 @@ ov_shiny_video_sync_server <- function(app_data) {
 
     insert_dig_data_row <- function() {
 
-        ridx_dig <- things$dvw$plays %>% mutate(add_dig_after = dplyr::case_when(skill == "Attack" & evaluation_code %in% c("+", "-", "!") & !(lead(skill) %in% "Dig") ~ TRUE,
+        ridx_dig <- rdata$dvw$plays %>% mutate(add_dig_after = dplyr::case_when(skill == "Attack" & evaluation_code %in% c("+", "-", "!") & !(lead(skill) %in% "Dig") ~ TRUE,
                                                                            TRUE ~ FALSE),
                                                 rowN = dplyr::row_number()) %>%
             dplyr::filter(.data$add_dig_after %eq% TRUE) %>% dplyr::select(.data$rowN) %>% dplyr::pull() # idx row number to insert digging action
@@ -751,9 +751,9 @@ ov_shiny_video_sync_server <- function(app_data) {
         }
     }
     delete_dig_data_row <- function() {
-        ridx <- things$dvw$plays %>% mutate(rowN = dplyr::row_number()) %>% dplyr::filter(skill %eq% "Dig") %>% dplyr::select(.data$rowN) %>% dplyr::pull()
+        ridx <- rdata$dvw$plays %>% mutate(rowN = dplyr::row_number()) %>% dplyr::filter(skill %eq% "Dig") %>% dplyr::select(.data$rowN) %>% dplyr::pull()
         if (!is.null(ridx)) {
-            thiscode <- things$dvw$plays$code[ridx]
+            thiscode <- rdata$dvw$plays$code[ridx]
             editing$active <- "delete all digging actions"
             showModal(modalDialog(title = "Delete all digging codes", size = "l", footer = actionButton("code_edit_cancel", label = "Cancel (or press Esc)"),
                                   actionButton("code_do_delete", label = "Confirm delete all digging codes (or press Enter)")))
