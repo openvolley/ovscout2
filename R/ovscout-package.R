@@ -8,7 +8,7 @@
 #' @importFrom datavolley read_dv dv_example_file dv_write
 #' @importFrom dplyr .data bind_rows case_when group_by_at left_join mutate tibble
 #' @importFrom htmltools HTML tagList tags
-#' @importFrom shiny actionButton column downloadButton downloadHandler fluidPage fluidRow isolate isTruthy modalDialog numericInput observeEvent observe onStop reactive reactiveValues removeModal renderUI showModal sliderInput textInput uiOutput
+#' @importFrom shiny actionButton column downloadButton downloadHandler fluidPage fluidRow isolate isTruthy modalDialog numericInput observeEvent observe onStop reactive reactiveVal reactiveValues removeModal renderUI showModal sliderInput tabPanel tabsetPanel textInput uiOutput
 #' @importFrom stats na.omit setNames
 #' @importFrom uuid UUIDgenerate
 #' @importFrom utils head tail write.csv

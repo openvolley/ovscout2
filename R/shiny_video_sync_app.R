@@ -54,7 +54,9 @@ ov_shiny_video_sync_ui <- function(app_data) {
                        ),
               fluidRow(column(7, tags$video(id = "main_video", style = "border: 1px solid black; width: 90%;", src = file.path(video_server_base_url, basename(video_src)), controls = "controls", autoplay = "false"),
                               fluidRow(column(8, actionButton("all_video_from_clock", label = "Open video/clock time operations menu"),
-                                              actionButton("edit_match_data_button", "Edit match data"), uiOutput("save_file_ui", inline = TRUE)),
+                                              actionButton("edit_match_data_button", "Edit match data"),
+                                              actionButton("edit_teams_button", "Edit teams"),
+                                              uiOutput("save_file_ui", inline = TRUE)),
                                        column(4, uiOutput("current_event"))),
                               fluidRow(column(6, tags$p(tags$strong("Keyboard controls")), tags$ul(tags$li("[r or 5] sync selected event video time"),
                                                                                           tags$li("[i or 8] move to previous skill row"),
@@ -401,7 +403,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                     ## if editing is in progress, don't process the usual navigation etc keys
                     if (mycmd %eq% "13") {
                         ## if editing or inserting, treat as update
-                        code_make_change()
+                        if (!editing$active %eq% "teams") code_make_change()
+                        ## but not for team editing, because pressing enter in the DT fires this too
                     } else if (mycmd %eq% "27") {
                         ## not sure if this will be detected by keypress, maybe only keydown (may be browser specific)
                         ## esc
@@ -522,9 +525,38 @@ ov_shiny_video_sync_server <- function(app_data) {
         })
         code_make_change <- function() {
             removeModal()
+            do_reparse <- FALSE
             if (is.null(editing$active)) {
                 ## not triggered from current editing activity, huh?
                 warning("code_make_change entered but editing not active")
+            } else if (editing$active %eq% "teams") {
+                ## update from all the input$ht_edit_name/id/coach/assistant inputs
+                htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
+                rdata$dvw$meta$teams$team[htidx] <- input$ht_edit_name
+                rdata$dvw$meta$teams$team_id[htidx] <- input$ht_edit_id
+                rdata$dvw$meta$teams$coach[htidx] <- input$ht_edit_coach
+                rdata$dvw$meta$teams$assistant[htidx] <- input$ht_edit_assistant
+                ## plus htdata_edit() into the corresponding cols of rdata$dvw$meta$players_h
+                rdata$dvw$meta$players_h$player_id <- htdata_edit()$player_id
+                rdata$dvw$meta$players_h$number <- htdata_edit()$number
+                rdata$dvw$meta$players_h$lastname <- htdata_edit()$lastname
+                rdata$dvw$meta$players_h$firstname <- htdata_edit()$firstname
+                rdata$dvw$meta$players_h$role <- htdata_edit()$role
+                rdata$dvw$meta$players_h$special_role <- htdata_edit()$special_role
+                ## and visiting team
+                vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
+                rdata$dvw$meta$teams$team[vtidx] <- input$vt_edit_name
+                rdata$dvw$meta$teams$team_id[vtidx] <- input$vt_edit_id
+                rdata$dvw$meta$teams$coach[vtidx] <- input$vt_edit_coach
+                rdata$dvw$meta$teams$assistant[vtidx] <- input$vt_edit_assistant
+                ## plus vtdata_edit() into the corresponding cols of rdata$dvw$meta$players_h
+                rdata$dvw$meta$players_v$player_id <- vtdata_edit()$player_id
+                rdata$dvw$meta$players_v$number <- vtdata_edit()$number
+                rdata$dvw$meta$players_v$lastname <- vtdata_edit()$lastname
+                rdata$dvw$meta$players_v$firstname <- vtdata_edit()$firstname
+                rdata$dvw$meta$players_v$role <- vtdata_edit()$role
+                rdata$dvw$meta$players_v$special_role <- vtdata_edit()$special_role
+                do_reparse <- TRUE
             } else if (editing$active %eq% "match_data") {
                 rdata$dvw$meta$match$date <- input$match_edit_date
                 rdata$dvw$meta$match$time <- tryCatch(lubridate::hms(input$match_edit_time), error = function(e) lubridate::as.period(NA))
@@ -536,6 +568,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 rdata$dvw$meta$match$match_number <- input$match_edit_match_number
                 rdata$dvw$meta$match$regulation <- input$match_edit_regulation
                 rdata$dvw$meta$match$zones_or_cones <- input$match_edit_zones_or_cones
+                do_reparse <- TRUE
             } else {
                 ridx <- input$playslist_rows_selected
                 if (!is.null(ridx)) {
@@ -579,10 +612,13 @@ ov_shiny_video_sync_server <- function(app_data) {
                         if (is.logical(ridx)) ridx <- which(ridx)
                         rdata$dvw$plays <- rdata$dvw$plays[-ridx, ]
                     }
-                    ## reparse the dvw
-                    rdata$dvw <- reparse_dvw(rdata$dvw, dv_read_args = dv_read_args)
-                    scroll_playlist()
+                    do_reparse <- TRUE
                 }
+            }
+            if (do_reparse) {
+                ## reparse the dvw
+                rdata$dvw <- reparse_dvw(rdata$dvw, dv_read_args = dv_read_args)
+                scroll_playlist()
             }
             editing$active <- NULL
         }
@@ -746,6 +782,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             })))
         }
 
+        ## match data editing
         observeEvent(input$edit_match_data_button, {
             editing$active <- "match_data"
             match_time <- if (!is.na(rdata$dvw$meta$match$time)) {
@@ -767,6 +804,71 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                     column(4, shiny::selectInput("match_edit_zones_or_cones", "Zones or cones:", choices = c("C", "Z"), selected = rdata$dvw$meta$match$zones_or_cones), tags$span(style = "font-size:small", "Note: changing cones/zones here will only change the indicator in the file header, it will not convert a file recorded with zones into one recorded with cones, or vice-versa. Don't change this unless you know what you are doing!")))
                                        )
                                   ))
+        })
+
+        ## team data editing
+        observeEvent(input$edit_teams_button, {
+            editing$active <- "teams"
+            htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
+            vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
+            showModal(modalDialog(title = "Edit teams", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update teams data"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
+                                  tabsetPanel(
+                                      tabPanel("Home team",
+                                               fluidRow(column(4, textInput("ht_edit_name", label = "Team name:", value = rdata$dvw$meta$teams$team[htidx])),
+                                                        column(4, textInput("ht_edit_id", label = "Team ID:", value = rdata$dvw$meta$teams$team_id[htidx])),
+                                                        column(4, textInput("ht_edit_coach", label = "Coach:", value = rdata$dvw$meta$teams$coach[htidx])),
+                                                        column(4, textInput("ht_edit_assistant", label = "Assistant:", value = rdata$dvw$meta$teams$assistant[htidx]))),
+                                               DT::dataTableOutput("ht_edit_team")
+                                               ),
+                                      tabPanel("Visiting team",
+                                               fluidRow(column(4, textInput("vt_edit_name", label = "Team name:", value = rdata$dvw$meta$teams$team[vtidx])),
+                                                        column(4, textInput("vt_edit_id", label = "Team ID:", value = rdata$dvw$meta$teams$team_id[vtidx])),
+                                                        column(4, textInput("vt_edit_coach", label = "Coach:", value = rdata$dvw$meta$teams$coach[vtidx])),
+                                                        column(4, textInput("vt_edit_assistant", label = "Assistant:", value = rdata$dvw$meta$teams$assistant[vtidx]))),
+                                               DT::dataTableOutput("vt_edit_team")
+                                               )
+                                  )
+                                  ))
+        })
+        htdata_edit <- reactiveVal(NULL)
+        output$ht_edit_team <- DT::renderDataTable({
+            mydat <- rdata$dvw$meta$players_h
+            if (!is.null(mydat)) {
+                mydat <- mydat[, c("player_id", "number", "lastname", "firstname", "role", "special_role")]##, "foreign")]
+                htdata_edit(mydat)
+                cnames <- names(names_first_to_capital(mydat))
+                DT::datatable(mydat, rownames = FALSE, colnames = cnames, selection = "none", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
+            } else {
+                NULL
+            }
+        }, server = TRUE)
+        ht_edit_team_proxy <- DT::dataTableProxy("ht_edit_team")
+        observeEvent(input$ht_edit_team_cell_edit, {
+            info <- input$ht_edit_team_cell_edit
+            isolate(temp <- htdata_edit())
+            temp[info$row, info$col+1L] <- DT::coerceValue(info$value, temp[[info$row, info$col+1L]]) ## no row names so +1 on col indices
+            DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+            htdata_edit(temp)
+        })
+        vtdata_edit <- reactiveVal(NULL)
+        output$vt_edit_team <- DT::renderDataTable({
+            mydat <- rdata$dvw$meta$players_v
+            if (!is.null(mydat)) {
+                mydat <- mydat[, c("player_id", "number", "lastname", "firstname", "role", "special_role")]##, "foreign")]
+                vtdata_edit(mydat)
+                cnames <- names(names_first_to_capital(mydat))
+                DT::datatable(mydat, rownames = FALSE, colnames = cnames, selection = "none", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
+            } else {
+                NULL
+            }
+        }, server = TRUE)
+        vt_edit_team_proxy <- DT::dataTableProxy("vt_edit_team")
+        observeEvent(input$vt_edit_team_cell_edit, {
+            info <- input$vt_edit_team_cell_edit
+            isolate(temp <- vtdata_edit())
+            temp[info$row, info$col+1L] <- DT::coerceValue(info$value, temp[[info$row, info$col+1L]]) ## no row names so +1 on col indices
+            DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+            vtdata_edit(temp)
         })
     }
 }
