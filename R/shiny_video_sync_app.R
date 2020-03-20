@@ -937,7 +937,9 @@ preprocess_dvw <- function(x) {
 }
 
 
-#test_codes <- c("a10BH-", "a10/", "*2AT#45H2","*5X5!", "*5X5+5H2", "a12SM.2#78", "*2X5.15=5H4")
+# test_codes <- c("a10BH-", "a10/", "*2AT#45H2","*5X5!", 
+#                 "*5X5+5H2", "a12SM.2#78", "*2X5.15=5H4", "2AT#452", 
+#                 "2AT#45t1", "2X5#.15", "2SQ1.5=4")
 
 ov_interpreter <- function(c, attack_table, compound_table, default_scouting_table){
     
@@ -992,20 +994,20 @@ ov_interpreter <- function(c, attack_table, compound_table, default_scouting_tab
     }
     
     syntax_table <- dplyr::tribble(~code_type, ~name, ~stx_id,  ~range, ~value_list,
-                                   "Main code", "team", "mc_te", 1,c("\\*", "a"),
-                                   "Main code", "player number", "mc_pn", 2:3, as.character(c(00:99)),
-                                   "Main code", "Skill", "mc_sk", 4, c("S", "R", "A", "B", "D", "E", "F"),
-                                   "Main code", "Type", "mc_ty", 5, c("H", "M", "Q", "T", "U", "N","O"),
-                                   "Main code", "Evaluation", "mc_ev", 6, c("\\#", "\\+", "\\!", "\\/", "-", "\\="),
-                                   "Advanced code", "Cmb/Call", "ac_cc", 7:8, c(paste0("K",0:9), attack_table$code),
-                                   "Advanced code", "Target attack", "ac_ta", 9, c("F", "C", "B", "P", "S"),
-                                   "Advanced code", "Start zone", "ac_sz", 10, as.character(c(1:9)),
-                                   "Advanced code", "End zone / Cone", "ac_ez", 11, as.character(c(1:9)),
-                                   "Advanced code", "End subzone", "ac_es", 12, c("A","B","C","D"),
+                                   "Main code", "team", "mc_te", 1,c("\\*", "a"),                                    # 1
+                                   "Main code", "player number", "mc_pn", 2:3, as.character(c(00:99)),               # 2
+                                   "Main code", "Skill", "mc_sk", 4, c("S", "R", "A", "B", "D", "E", "F"),           # 3
+                                   "Main code", "Type", "mc_ty", 5, c("H", "M", "Q", "T", "U", "N","O"),             # 4
+                                   "Main code", "Evaluation", "mc_ev", 6, c("\\#", "\\+", "\\!", "\\/", "-", "\\="), # 5
+                                   "Advanced code", "Cmb/Call", "ac_cc", 7:8, c(paste0("K",0:9),"KM","KP", attack_table$code), # 6
+                                   "Advanced code", "Target attack", "ac_ta", 9, c("F", "C", "B", "P", "S"),         # 7
+                                   "Advanced code", "Start zone", "ac_sz", 10, as.character(c(1:9)),                 # 8
+                                   "Advanced code", "End zone / Cone", "ac_ez", 11, as.character(c(1:9)),            # 9
+                                   "Advanced code", "End subzone", "ac_es", 12, c("A","B","C","D"),                  # 10
                                    "Extended code", "Skill type", "ec_st", 13, c("H","P","T","A","L","R", "W","O", "M", as.character(c(1:5)), "S", "C", "B", "E"),
-                                   "Extended code", "Players", "ec_pl", 14, as.character(c(1:9)),
+                                   "Extended code", "Players", "ec_pl", 14, as.character(c(1:9)),                    # 12
                                    "Extended code", "Special", "ec_sp", 15, c("A", "C", "E", "F", "I", "L", "N", "O", "P", "R", "S", "T", "U", "X", "Z"),
-                                   "Custom code", "Custom", "cc_cu", 16:20, c("Free characters")
+                                   "Custom code", "Custom", "cc_cu", 16:20, c("Free characters")                     # 14
                                    )
     
     check_compound <- stringr::str_detect(c,"\\.")
@@ -1017,15 +1019,29 @@ ov_interpreter <- function(c, attack_table, compound_table, default_scouting_tab
         cmb = FALSE
         for(i in 1:14){
             if(i %in% c(6,7,8) & cmb){next}
-            c_tmp <- str_sub(cc_tmp, 1,length(syntax_table$range[[i]]))
-            tmp <- stringr::str_match(c_tmp, syntax_table$value_list[[i]])
-            tmp <- tail(tmp[!is.na(tmp)],1)
+            
+            if(i>1){
+                cc_tmp = stringr::str_to_upper(cc_tmp)
+            }
+            if(i == 5){
+                # Eval code can be located pretty much anywhere, cause its syntax is so specific, and people, you know...
+                tmp <- stringr::str_match(c, syntax_table$value_list[[i]])
+                tmp <- tail(tmp[!is.na(tmp)],1)
+            }else{
+                c_tmp <- stringr::str_sub(cc_tmp, 1,length(syntax_table$range[[i]]))
+                tmp <- stringr::str_match(c_tmp, syntax_table$value_list[[i]])
+                tmp <- tail(tmp[!is.na(tmp)],1)
+            }
             
             if(length(tmp)>0){
-                cc_tmp <- str_remove(cc_tmp, 
-                                     tail(syntax_table$value_list[[i]][str_detect(tmp, syntax_table$value_list[[i]])],1))
+                cc_tmp <- stringr::str_remove(cc_tmp, 
+                                     tail(syntax_table$value_list[[i]][stringr::str_detect(tmp, syntax_table$value_list[[i]])],1))
                 }
             
+            if(i == 1){
+                if(length(tmp)==0){tmp = "*"}
+            }
+           
             # Special case of CMB
             if(i == 6 & length(tmp)>0){
                if(tmp %in% attack_table$code){
@@ -1033,7 +1049,7 @@ ov_interpreter <- function(c, attack_table, compound_table, default_scouting_tab
                    new_code[4] <- "A"
                    new_code[5] <- attack_table$type[attack_table$code == tmp]
                    new_code[6] <-  na.omit(stringr::str_match(c, syntax_table$value_list[[5]]))
-                   cc_tmp <- str_remove(cc_tmp, syntax_table$value_list[[5]][str_detect(c, syntax_table$value_list[[5]])])
+                   cc_tmp <- stringr::str_remove(cc_tmp, syntax_table$value_list[[5]][stringr::str_detect(c, syntax_table$value_list[[5]])])
                    new_code[9] <- attack_table$set_type[attack_table$code == tmp]
                    new_code[10] <- attack_table$attacker_position[attack_table$code == tmp]
                    }
@@ -1054,12 +1070,12 @@ ov_interpreter <- function(c, attack_table, compound_table, default_scouting_tab
                 }
             } 
             if(tmp == "~"){next}
-            if(str_count(tmp) == length(syntax_table$range[[i]])){
-                ttmp <- unlist(str_split(tmp,""))
+            if(stringr::str_count(tmp) == length(syntax_table$range[[i]])){
+                ttmp <- unlist(stringr::str_split(tmp,""))
                 new_code[syntax_table$range[[i]]] <- ttmp
             }
-            if(str_count(tmp) < length(syntax_table$range[[i]])){
-                tmp <- c("0", unlist(str_split(tmp,"")))
+            if(stringr::str_count(tmp) < length(syntax_table$range[[i]])){
+                tmp <- c("0", unlist(stringr::str_split(tmp,"")))
                 new_code[syntax_table$range[[i]]] <- tmp
             }
         }
@@ -1069,41 +1085,59 @@ ov_interpreter <- function(c, attack_table, compound_table, default_scouting_tab
         new_code_1 = stringr::str_c(rep("~",20))
         new_code_2 = stringr::str_c(rep("~",20))
         
-        csp <- unlist(str_split(c,"\\."))
+        csp <- unlist(stringr::str_split(c,"\\."))
 
         cc_tmp1 <- csp[1]
         cc_tmp2 <- csp[2]
         
         cmb = FALSE
-        for(i in 1:13){
+        for(i in 1:14){
             if(i %in% c(6,7,8) & cmb){next}
-            c_tmp1 <- str_sub(cc_tmp1, 1,length(syntax_table$range[[i]]))
-            tmp1 <- stringr::str_match(c_tmp1, syntax_table$value_list[[i]])
-            tmp1 <- tail(tmp1[!is.na(tmp1)],1)
             
-            c_tmp2 <- str_sub(cc_tmp2, 1,length(syntax_table$range[[i]]))
-            tmp2 <- stringr::str_match(c_tmp2, syntax_table$value_list[[i]])
-            tmp2 <- tail(tmp2[!is.na(tmp2)],1)
+            if(i>1){
+                cc_tmp1 = stringr::str_to_upper(cc_tmp1)
+                cc_tmp2 = stringr::str_to_upper(cc_tmp2)
+            }
+            
+            
+            if(i == 5){
+                # Eval code can be located pretty much anywhere, cause its syntax is so specific
+                tmp1 <- stringr::str_match(csp[1], syntax_table$value_list[[i]])
+                tmp1 <- tail(tmp1[!is.na(tmp1)],1)
+                tmp2 <- stringr::str_match(csp[2], syntax_table$value_list[[i]])
+                tmp2 <- tail(tmp2[!is.na(tmp2)],1)
+            }else{
+                c_tmp1 <- stringr::str_sub(cc_tmp1, 1,length(syntax_table$range[[i]]))
+                tmp1 <- stringr::str_match(c_tmp1, syntax_table$value_list[[i]])
+                tmp1 <- tail(tmp1[!is.na(tmp1)],1)
+                c_tmp2 <- stringr::str_sub(cc_tmp2, 1,length(syntax_table$range[[i]]))
+                tmp2 <- stringr::str_match(c_tmp2, syntax_table$value_list[[i]])
+                tmp2 <- tail(tmp2[!is.na(tmp2)],1)
+            }
+            
             
             if(length(tmp1)>0){
-                cc_tmp1 <- str_remove(cc_tmp1, 
-                                     tail(syntax_table$value_list[[i]][str_detect(tmp1, syntax_table$value_list[[i]])],1))
+                cc_tmp1 <- stringr::str_remove(cc_tmp1, 
+                                     tail(syntax_table$value_list[[i]][stringr::str_detect(tmp1, syntax_table$value_list[[i]])],1))
             }
             if(length(tmp2)>0){
-                cc_tmp2 <- str_remove(cc_tmp2, 
-                                      tail(syntax_table$value_list[[i]][str_detect(tmp2, syntax_table$value_list[[i]])],1))
+                cc_tmp2 <- stringr::str_remove(cc_tmp2, 
+                                      tail(syntax_table$value_list[[i]][stringr::str_detect(tmp2, syntax_table$value_list[[i]])],1))
             }
             if(i == 1){
-                tmp2 <- case_when(tmp1 == "a" ~ "*", TRUE ~ "a")
+                    if(length(tmp1)==0){tmp1 = "*"}
+                tmp2 <- dplyr::case_when(tmp1 == "a" ~ "*", TRUE ~ "a")
             }
+            
             if(i == 3 & length(tmp1) > 0){
                 tmp2 <- unique(compound_table$compound_skill[compound_table$skill == tmp1])
             }
             if(i == 4){
                 tmp2 <- tmp1
             }
-            if(i == 5 & length(tmp2) > 0 & new_code_1[4] != "~"){
-                tmp1 <- compound_table$code[compound_table$compound_code == tmp2 & compound_table$skill == new_code_1[4]] 
+            if(i == 5){ 
+                if(length(tmp2) > 0 & new_code_1[4] != "~" & length(tmp1) == 0){tmp1 <- compound_table$code[compound_table$compound_code == tmp2 & compound_table$skill == new_code_1[4]]}
+                if(length(tmp1) > 0 & new_code_2[4] != "~" & length(tmp2) == 0){tmp2 <- compound_table$code[compound_table$compound_code == tmp1 & compound_table$skill == new_code_2[4]]}
             }
             
             # Special case of CMB
@@ -1112,23 +1146,33 @@ ov_interpreter <- function(c, attack_table, compound_table, default_scouting_tab
                     cmb = TRUE
                     new_code_1[4] <- "A"
                     new_code_2[4] <- "B"
-                    tmp1code <- compound_table$code[compound_table$compound_code == new_code_2[6] & compound_table$skill == new_code_1[4]] 
+                    if(new_code_2[6] != "~") new_code_1[6]  <- compound_table$code[compound_table$compound_code == new_code_2[6] & compound_table$skill == new_code_1[4]] 
+                    if(new_code_1[6] != "~") new_code_2[6]  <- compound_table$compound_code[compound_table$code == new_code_1[6] & compound_table$compound_skill == new_code_2[4]] 
                     new_code_1[5] <- attack_table$type[attack_table$code == tmp1]
                     new_code_2[5] <- attack_table$type[attack_table$code == tmp1]
-                    new_code_1[6] <-  tmp1code
                     #cc_tmp1 <- str_remove(cc_tmp1, syntax_table$value_list[[5]][str_detect(csp[1], syntax_table$value_list[[5]])])
                     new_code_1[9] <- attack_table$set_type[attack_table$code == tmp1]
                     new_code_1[10] <- attack_table$attacker_position[attack_table$code == tmp1]
+                }
+            }
+            # Compound codes have shared sz, ez. So they can be split on both sides, however the general order needs to remain sz, ez.
+            if(i %in% c(8:9)){
+                if(length(tmp1) == 0) tmp1 <- tmp2
+                if(length(tmp2) == 0) tmp2 <- tmp1
+                if(length(tmp1) >0 & length(tmp2) >0 & i == 8){
+                    new_code_1[syntax_table$range[[i+1]]] <- tmp2
+                    new_code_2[syntax_table$range[[i+1]]] <- tmp2
+                    tmp2 <- tmp1
                 }
             }
             if(i %in% c(11)){
                 tmp1 <- tmp2
                 tmp2 <- "~"
             }
-            if(i %in% c(8:10,12)){
-                tmp1 <- tmp2
+            if(i %in% c(10,12)){
+                if(length(tmp1) == 0) tmp1 <- tmp2
+                if(length(tmp2) == 0) tmp2 <- tmp1
             }
-            
             # If no match is found
             if(length(tmp1) == 0 & length(tmp2) == 0){
                 # Check for existing default scouting convention
@@ -1138,34 +1182,31 @@ ov_interpreter <- function(c, attack_table, compound_table, default_scouting_tab
                 } else if(i == 5){
                     tmp2 = default_scouting_table$evaluation_code[default_scouting_table$skill == new_code_2[4]]
                     tmp1 = compound_table$code[compound_table$compound_code == tmp2 & compound_table$skill == new_code_1[4]] 
-                } else{
-                    tmp1 =str_c(rep("~", length(syntax_table$range[[i]])), collapse = "")
-                    tmp2 =str_c(rep("~", length(syntax_table$range[[i]])), collapse = "")
                 }
             } 
             
             if(length(tmp1) == 0 & length(tmp2) > 0){
-                tmp1 = str_c(rep("~", length(syntax_table$range[[i]])), collapse = "")
+                tmp1 = stringr::str_c(rep("~", length(syntax_table$range[[i]])), collapse = "")
             }
             if(length(tmp2) == 0 & length(tmp1) > 0){
-                tmp2 = str_c(rep("~", length(syntax_table$range[[i]])), collapse = "")
+                tmp2 = stringr::str_c(rep("~", length(syntax_table$range[[i]])), collapse = "")
             }
             if(length(tmp2) == 0 & length(tmp1) == 0){next}
             
-            if(str_count(tmp1) == length(syntax_table$range[[i]])){
-                ttmp1 <- unlist(str_split(tmp1,""))
+            if(stringr::str_count(tmp1) == length(syntax_table$range[[i]])){
+                ttmp1 <- unlist(stringr::str_split(tmp1,""))
                 new_code_1[syntax_table$range[[i]]] <- ttmp1
             }
-            if(str_count(tmp1) < length(syntax_table$range[[i]])){
-                ttmp1 <- c("0", unlist(str_split(tmp1,"")))
+            if(stringr::str_count(tmp1) < length(syntax_table$range[[i]])){
+                ttmp1 <- c("0", unlist(stringr::str_split(tmp1,"")))
                 new_code_1[syntax_table$range[[i]]] <- ttmp1
             }
-            if(str_count(tmp2) == length(syntax_table$range[[i]])){
-                ttmp2 <- unlist(str_split(tmp2,""))
+            if(stringr::str_count(tmp2) == length(syntax_table$range[[i]])){
+                ttmp2 <- unlist(stringr::str_split(tmp2,""))
                 new_code_2[syntax_table$range[[i]]] <- ttmp2
             }
-            if(str_count(tmp2) < length(syntax_table$range[[i]])){
-                ttmp2 <- c("0", unlist(str_split(tmp2,"")))
+            if(stringr::str_count(tmp2) < length(syntax_table$range[[i]])){
+                ttmp2 <- c("0", unlist(stringr::str_split(tmp2,"")))
                 new_code_2[syntax_table$range[[i]]] <- ttmp2
             }
         }
