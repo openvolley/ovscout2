@@ -486,8 +486,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                         } else if (mycmd %eq% "27") {
                             ## not sure if this will be detected by keypress, maybe only keydown (may be browser specific)
                             ## esc
-                            editing$active <- NULL
-                            removeModal()
+                            if (!editing$active %eq% "teams") {
+                                editing$active <- NULL
+                                removeModal()
+                            }
                         }
                     } else {
                         ## editing not active
@@ -557,8 +559,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                         ky <- mycmd[5]
                         if (ky %eq% "27") {
                             ## esc
-                            editing$active <- NULL
-                            removeModal()
+                            if (is.null(editing$active) || !editing$active %eq% "teams") {
+                                editing$active <- NULL
+                                removeModal()
+                            }
                         } else if (ky %eq% "45" && is.null(editing$active)) {
                             ## insert new row below current
                             insert_data_row()
@@ -641,6 +645,10 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }
         observeEvent(input$edit_cancel, {
+            if (editing$active %in% "teams") {
+                htdata_edit(NULL)
+                vtdata_edit(NULL)
+            }
             editing$active <- NULL
             removeModal()
         })
@@ -660,26 +668,20 @@ ov_shiny_video_sync_server <- function(app_data) {
                 rdata$dvw$meta$teams$team_id[htidx] <- input$ht_edit_id
                 rdata$dvw$meta$teams$coach[htidx] <- input$ht_edit_coach
                 rdata$dvw$meta$teams$assistant[htidx] <- input$ht_edit_assistant
-                ## plus htdata_edit() into the corresponding cols of rdata$dvw$meta$players_h
-                rdata$dvw$meta$players_h$player_id <- htdata_edit()$player_id
-                rdata$dvw$meta$players_h$number <- htdata_edit()$number
-                rdata$dvw$meta$players_h$lastname <- htdata_edit()$lastname
-                rdata$dvw$meta$players_h$firstname <- htdata_edit()$firstname
-                rdata$dvw$meta$players_h$role <- htdata_edit()$role
-                rdata$dvw$meta$players_h$special_role <- htdata_edit()$special_role
+                if (!is.null(htdata_edit())) {
+                    rdata$dvw$meta$players_h <- htdata_edit()
+                    rdata$dvw$meta$players_h$name <- paste(rdata$dvw$meta$players_h$firstname, rdata$dvw$meta$players_h$lastname)
+                }
                 ## and visiting team
                 vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
                 rdata$dvw$meta$teams$team[vtidx] <- input$vt_edit_name
                 rdata$dvw$meta$teams$team_id[vtidx] <- input$vt_edit_id
                 rdata$dvw$meta$teams$coach[vtidx] <- input$vt_edit_coach
                 rdata$dvw$meta$teams$assistant[vtidx] <- input$vt_edit_assistant
-                ## plus vtdata_edit() into the corresponding cols of rdata$dvw$meta$players_h
-                rdata$dvw$meta$players_v$player_id <- vtdata_edit()$player_id
-                rdata$dvw$meta$players_v$number <- vtdata_edit()$number
-                rdata$dvw$meta$players_v$lastname <- vtdata_edit()$lastname
-                rdata$dvw$meta$players_v$firstname <- vtdata_edit()$firstname
-                rdata$dvw$meta$players_v$role <- vtdata_edit()$role
-                rdata$dvw$meta$players_v$special_role <- vtdata_edit()$special_role
+                if (!is.null(vtdata_edit())) {
+                    rdata$dvw$meta$players_v <- vtdata_edit()
+                    rdata$dvw$meta$players_v$name <- paste(rdata$dvw$meta$players_v$firstname, rdata$dvw$meta$players_v$lastname)
+                }
                 do_reparse <- TRUE
             } else if (editing$active %eq% "match_data") {
                 rdata$dvw$meta$match$date <- input$match_edit_date
@@ -903,33 +905,52 @@ ov_shiny_video_sync_server <- function(app_data) {
             editing$active <- "teams"
             htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
             vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
-            showModal(modalDialog(title = "Edit teams", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update teams data"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
+            showModal(modalDialog(title = "Edit teams", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update teams data"), actionButton("edit_cancel", label = "Cancel")),
                                   tabsetPanel(
                                       tabPanel("Home team",
                                                fluidRow(column(4, textInput("ht_edit_name", label = "Team name:", value = rdata$dvw$meta$teams$team[htidx])),
                                                         column(4, textInput("ht_edit_id", label = "Team ID:", value = rdata$dvw$meta$teams$team_id[htidx])),
                                                         column(4, textInput("ht_edit_coach", label = "Coach:", value = rdata$dvw$meta$teams$coach[htidx])),
                                                         column(4, textInput("ht_edit_assistant", label = "Assistant:", value = rdata$dvw$meta$teams$assistant[htidx]))),
-                                               DT::dataTableOutput("ht_edit_team")
+                                               DT::dataTableOutput("ht_edit_team"),
+                                               wellPanel(
+                                                   fluidRow(column(2, textInput("ht_new_id", label = "ID:", placeholder = "ID")),
+                                                            column(1, textInput("ht_new_number", label = "Number:", placeholder = "Number")),
+                                                            column(3, textInput("ht_new_lastname", label = "Last name:", placeholder = "Last name")),
+                                                            column(3, textInput("ht_new_firstname", label = "First name:", placeholder = "First name")),
+                                                            column(2, selectInput("ht_new_role", label = "Role", choices = c("", "libero", "outside", "opposite", "middle", "setter", "unknown"))),
+                                                            column(1, selectInput("ht_new_special", label = "Special", choices = c("", "L", "C")))),
+                                                   fluidRow(column(3, offset = 9, actionButton("ht_add_player_button", "Add player")))
+                                               ),
+                                               uiOutput("ht_delete_player_ui")
                                                ),
                                       tabPanel("Visiting team",
                                                fluidRow(column(4, textInput("vt_edit_name", label = "Team name:", value = rdata$dvw$meta$teams$team[vtidx])),
                                                         column(4, textInput("vt_edit_id", label = "Team ID:", value = rdata$dvw$meta$teams$team_id[vtidx])),
                                                         column(4, textInput("vt_edit_coach", label = "Coach:", value = rdata$dvw$meta$teams$coach[vtidx])),
                                                         column(4, textInput("vt_edit_assistant", label = "Assistant:", value = rdata$dvw$meta$teams$assistant[vtidx]))),
-                                               DT::dataTableOutput("vt_edit_team")
+                                               DT::dataTableOutput("vt_edit_team"),
+                                               wellPanel(
+                                                   fluidRow(column(2, textInput("vt_new_id", label = "ID:", placeholder = "ID")),
+                                                            column(1, textInput("vt_new_number", label = "Number:", placeholder = "Number")),
+                                                            column(3, textInput("vt_new_lastname", label = "Last name:", placeholder = "Last name")),
+                                                            column(3, textInput("vt_new_firstname", label = "First name:", placeholder = "First name")),
+                                                            column(2, selectInput("vt_new_role", label = "Role", choices = c("", "libero", "outside", "opposite", "middle", "setter", "unknown"))),
+                                                            column(1, selectInput("vt_new_special", label = "Special", choices = c("", "L", "C")))),
+                                                   fluidRow(column(3, offset = 9, actionButton("vt_add_player_button", "Add player")))
+                                               ),
+                                               uiOutput("vt_delete_player_ui")
                                                )
                                   )
                                   ))
         })
         htdata_edit <- reactiveVal(NULL)
         output$ht_edit_team <- DT::renderDataTable({
-            mydat <- rdata$dvw$meta$players_h
-            if (!is.null(mydat)) {
-                mydat <- mydat[, c("player_id", "number", "lastname", "firstname", "role", "special_role")]##, "foreign")]
-                htdata_edit(mydat)
-                cnames <- names(names_first_to_capital(mydat))
-                DT::datatable(mydat, rownames = FALSE, colnames = cnames, selection = "none", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
+            if (is.null(htdata_edit())) htdata_edit(rdata$dvw$meta$players_h)
+            if (!is.null(htdata_edit())) {
+                cols_to_hide <- which(!names(htdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
+                cnames <- names(names_first_to_capital(htdata_edit()))
+                DT::datatable(htdata_edit(), rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
             } else {
                 NULL
             }
@@ -942,14 +963,49 @@ ov_shiny_video_sync_server <- function(app_data) {
             DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
             htdata_edit(temp)
         })
+        output$ht_delete_player_ui <- renderUI({
+            if (!is.null(input$ht_edit_team_rows_selected)) {
+                actionButton("ht_delete_player_button", "Delete selected player")
+            } else {
+                NULL
+            }
+        })
+        observeEvent(input$ht_delete_player_button, {
+            ridx <- input$ht_edit_team_rows_selected
+            if (!is.null(ridx)) {
+                temp <- htdata_edit()
+                temp <- temp[-ridx, ]
+                DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+                htdata_edit(temp)
+            }
+        })
+        observeEvent(input$ht_add_player_button, {
+            chk <- list(input$ht_new_id, input$ht_new_number, input$ht_new_lastname, input$ht_new_firstname)
+            if (!any(vapply(chk, is_nnn, FUN.VALUE = TRUE))) {
+                try({
+                    newrow <- tibble(number = as.numeric(input$ht_new_number), player_id = input$ht_new_id, lastname = input$ht_new_lastname, firstname = input$ht_new_firstname, role = if (nzchar(input$ht_new_role)) input$ht_new_role else NA_character_, special_role = if (nzchar(input$ht_new_special)) input$ht_new_special else NA_character_)
+                    newrow$name <- paste(newrow$firstname, newrow$lastname)
+                    temp <- bind_rows(htdata_edit(), newrow)
+                    temp <- dplyr::arrange(temp, .data$number)
+                    DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+                    htdata_edit(temp)
+                    ## clear inputs
+                    updateTextInput(session, "ht_new_number", value = "")
+                    updateTextInput(session, "ht_new_id", value = "")
+                    updateTextInput(session, "ht_new_lastname", value = "")
+                    updateTextInput(session, "ht_new_firstname", value = "")
+                    updateSelectInput(session, "ht_new_role", selected = "")
+                    updateSelectInput(session, "ht_new_special", selected = "")
+                })
+            }
+        })
         vtdata_edit <- reactiveVal(NULL)
         output$vt_edit_team <- DT::renderDataTable({
-            mydat <- rdata$dvw$meta$players_v
-            if (!is.null(mydat)) {
-                mydat <- mydat[, c("player_id", "number", "lastname", "firstname", "role", "special_role")]##, "foreign")]
-                vtdata_edit(mydat)
-                cnames <- names(names_first_to_capital(mydat))
-                DT::datatable(mydat, rownames = FALSE, colnames = cnames, selection = "none", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
+            if (is.null(vtdata_edit())) vtdata_edit(rdata$dvw$meta$players_v)
+            if (!is.null(vtdata_edit())) {
+                cols_to_hide <- which(!names(vtdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
+                cnames <- names(names_first_to_capital(vtdata_edit()))
+                DT::datatable(vtdata_edit(), rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
             } else {
                 NULL
             }
@@ -961,6 +1017,42 @@ ov_shiny_video_sync_server <- function(app_data) {
             temp[info$row, info$col+1L] <- DT::coerceValue(info$value, temp[[info$row, info$col+1L]]) ## no row names so +1 on col indices
             DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
             vtdata_edit(temp)
+        })
+        output$vt_delete_player_ui <- renderUI({
+            if (!is.null(input$vt_edit_team_rows_selected)) {
+                actionButton("vt_delete_player_button", "Delete selected player")
+            } else {
+                NULL
+            }
+        })
+        observeEvent(input$vt_delete_player_button, {
+            ridx <- input$vt_edit_team_rows_selected
+            if (!is.null(ridx)) {
+                temp <- vtdata_edit()
+                temp <- temp[-ridx, ]
+                DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+                vtdata_edit(temp)
+            }
+        })
+        observeEvent(input$vt_add_player_button, {
+            chk <- list(input$vt_new_id, input$vt_new_number, input$vt_new_lastname, input$vt_new_firstname)
+            if (!any(vapply(chk, is_nnn, FUN.VALUE = TRUE))) {
+                try({
+                    newrow <- tibble(number = as.numeric(input$vt_new_number), player_id = input$vt_new_id, lastname = input$vt_new_lastname, firstname = input$vt_new_firstname, role = if (nzchar(input$vt_new_role)) input$vt_new_role else NA_character_, special_role = if (nzchar(input$vt_new_special)) input$vt_new_special else NA_character_)
+                    newrow$name <- paste(newrow$firstname, newrow$lastname)
+                    temp <- bind_rows(vtdata_edit(), newrow)
+                    temp <- dplyr::arrange(temp, .data$number)
+                    DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+                    vtdata_edit(temp)
+                    ## clear inputs
+                    updateTextInput(session, "vt_new_number", value = "")
+                    updateTextInput(session, "vt_new_id", value = "")
+                    updateTextInput(session, "vt_new_lastname", value = "")
+                    updateTextInput(session, "vt_new_firstname", value = "")
+                    updateSelectInput(session, "vt_new_role", selected = "")
+                    updateSelectInput(session, "vt_new_special", selected = "")
+                })
+            }
         })
     }
 }
