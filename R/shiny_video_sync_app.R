@@ -64,7 +64,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                                                                           tags$li("[k or 2] move to next skill row"),
                                                                                           tags$li("[e or E] edit current code"),
                                                                                           tags$li("[del] delete current code"),
-                                                                                          tags$li("[ins] insert new code below current")
+                                                                                          tags$li("[ins] insert new code above current")
                                                                                           ),
                                               tags$p(tags$strong("Other options")),
                                               tags$span("Decimal places on video time:"),
@@ -616,8 +616,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                         }
                     } else if (this_skill %in% c("Attack")) {
                         focus_in_code_entry("code_entry_end_zone")
+                    } else if (this_skill %in% c("Dig")) {
+                        focus_in_code_entry("code_entry_eval")
                     } else {
-                        ## TODO other skills
+                        focus_in_code_entry("code_entry_skill")
                     }
                 }
             }
@@ -729,10 +731,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                         ## insert new line
                         newline <- rdata$dvw$plays[ridx, ]
                         newline$code <- newcode
-                        rdata$dvw$plays <- bind_rows(rdata$dvw$plays[seq(1, ridx, by = 1), ], newline, rdata$dvw$plays[seq(ridx+1, nrow(rdata$dvw$plays), by = 1), ])
+                        rdata$dvw$plays <- bind_rows(if (ridx > 1) rdata$dvw$plays[seq(1, ridx-1L, by = 1), ], newline, rdata$dvw$plays[seq(ridx, nrow(rdata$dvw$plays), by = 1), ])
                         ## set the newly-inserted line as the active row
-                        nsr <- find_next_skill_row()
-                        if (length(nsr) > 0) playslist_select_row(nsr)
+                        ##nsr <- find_next_skill_row()
+                        ##if (length(nsr) > 0) playslist_select_row(nsr)
                     } else if (editing$active %eq% "delete") {
                         if (is.logical(ridx)) ridx <- which(ridx)
                         rdata$dvw$plays <- rdata$dvw$plays[-ridx, ]
@@ -750,7 +752,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         insert_data_row <- function() {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
-                thiscode <- rdata$dvw$plays$code[ridx]
+                if (ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
                 editing$active <- "insert"
                 showModal(modalDialog(title = "Insert new code", size = "l", footer = tags$div(actionButton("edit_commit", label = "Insert code (or press Enter)"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
                                       "Enter new code either in the top text box or in the individual boxes (but not both)",
@@ -758,6 +760,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                                       "or",
                                       build_code_entry_guide("insert", rdata$dvw$plays[ridx, ])
                                       ))
+                focus_in_code_entry("code_entry")
             }
         }
         delete_data_row <- function() {
