@@ -111,6 +111,59 @@ ov_shiny_video_sync_server <- function(app_data) {
                                         "special", 1,
                                         "custom", 5)
 
+        ## some local markup to make the helper entries easier here
+        ## | = <br />
+        ## {thing} = <strong>thing</strong>
+        ## [thing] = <span class=\"clet\">thing</span>
+        ## (thing) = <em>thing</em>
+        ## --- = <br /><hr />
+        gsubf <- function(...) gsub(..., fixed = TRUE)
+        mu2html <- function(z) gsubf("[", "<span class=\"clet\">", gsubf("]", "</span>", gsubf("{", "<strong>", gsubf("}", "</strong>", gsubf("|", "<br />", gsubf("(", "<em>", gsubf(")", "</em>", gsubf("---", "<br /><hr />", z))))))))
+        paste0_noNA <- function(...) do.call(paste0, Filter(Negate(is.na), list(...)))
+        special_helper <- function(skill, evaln) {
+            mu2html(paste0_noNA("{Special}---",
+                                case_when(skill %eq% "A" & evaln %eq% "#" ~ "(Attk kill)|Blk out [S]ide|Blk out l[O]ng|Blk on [F]loor|[X] Direct|on floor",
+                                          skill %eq% "A" & evaln %eq% "=" ~ "(Attk err)|Out [S]ide|Out l[O]ng|In [N]et|[I] net contct|[A]ntenna|[Z] ref call",
+                                          skill %eq% "A" ~ "(Attk)|blk [C]ontrol|[N] let",
+                                          skill %eq% "B" & evaln %in% c("=", "/") ~ "(Blk err)|Out [S]ide|Out l[O]ng|Ball on [F]lr|[X] between|hands|[N] net touch|[A]ntenna|[P] no jump|[T] pos error|[Z] ref call",
+                                          skill %eq% "R" ~ "(Rcv)|[U]nplayable|[X] body err|[P]os err|No [E]ffort|[Z] ref call",
+                                          skill %eq% "S" & evaln %eq% "#" ~ "(Srv ace)|[N] let",
+                                          skill %eq% "S" & evaln %eq% "=" ~ "(Srv err)|Out l[O]ng|Out [L]eft|Out [R]ight|In [N]et|[Z] ref call",
+                                          skill %eq% "S" ~ "(Srv)|[N] let",
+                                          skill %eq% "E" & evaln %eq% "=" ~ "(Set err)|[U]nhittable|[I] net tch|[Z] ref call",
+                                          skill %eq% "Dig" & evaln %eq% "=" ~ "(Dig err)|[U]nplayable|[X] body err|[P]os err|[Z] Ref call|Ball on [F]lr|Ball [O]ut|No [E]ffort",
+                                          skill %eq% "Freeball" & evaln %eq% "=" ~ "(Fr err)|[U]nplayable|[X] body err|[P]os err|[Z] Ref call")))
+        }
+        skill_type_helper <- function(skill, evaln) {
+            mu2html(paste0_noNA("{Skill|type}---",
+                                case_when(skill %eq% "A" ~ "(Attk)|[H]ard|[P] soft|[T]ip",
+                                          skill %eq% "R" ~ "(Rec)|[L]eft|[R]ight|lo[W]|[O]vrhnd|[M]idline",
+                                          skill %eq% "E" ~ "(Set)|[1] hand|[2] hands|[3] bump|[4] othr|[5] uhand",
+                                          skill %eq% "D" ~ "(Dig)|[S] on spk|[C] spk|cover|[B] aftr|block|[E] emerg")))
+        }
+        num_players_helper <- function(skill, evaln) {
+            mu2html(paste0_noNA("{Num|plyrs}---",
+                                case_when(skill %in% c("A", "B") ~ "(Attk|Blk)|[0]..[3]|[4] hole|block",
+                                          skill %eq% "R" ~ "(Rcv)|[1] 2p,L|[2] 2p,R|[3] 3p,L|[4] 3p,M|[5] 3p,R|[6] 4p,L|[7] 4p,LC|[8] 4p,RC|[9] 4p,R")))
+        }
+        code_bits_tbl$helper <- c(mu2html("{Team}---[*]&nbsp;H|[a]&nbsp;V"), ## team
+                            mu2html("{Plyr|num}"), ## number
+                            mu2html("{Skill}---[S]rv|[R]ec|[A]ttk|[B]lk|[D]ig|s[E]t|[F]reeb"), ## skill
+                            mu2html("{Tempo}---[H]igh|[M]ed|[Q]uick|[T]ense|s[U]per|[N] fast|[O]ther"), ## type
+                            mu2html("{Eval}---[#|+|!|-|/|=]"), ## eval
+                            mu2html("{Combo}---(Atk code)|[X.]|[C.]|etc||(Set call)|[K.]"), ## combo
+                            mu2html("{Target}---[F]ront|[C]ntr|[B]ack|[P]ipe|[S]etr"), ## target
+                            mu2html("{Start|zone}---(Attk)|[1..9]||(Srv)|[57691]"), ##start_zone
+                            mu2html("{End zone}---[1..9]||{End cone}|(Attk)|[1..8]"), ##end_zone
+                            mu2html("{End|subzn}---[ABCD]"), ##end_subzone
+                            skill_type_helper, ##skill_type
+                            num_players_helper, ##players
+                            special_helper, ##special
+                            mu2html("{Custom}---")) ##custom
+        ## note that if any other helpers are turned into functions, they need extra code added below to handle them (see ADD HANDLERS HERE)
+        code_bits_tbl$start <- cumsum(dplyr::lag(code_bits_tbl$width, default = 0))+1L
+        code_bits_tbl$end <- code_bits_tbl$start+code_bits_tbl$width-1L
+
         output$vtdp_ui <- renderUI({
             if (input$video_time_decimal_places > 0) {
                 tags$div(class = "alert alert-danger", "Note: files with non-integer video times may not be openable in DataVolley")
@@ -554,7 +607,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }
         focus_in_code_entry <- function(id, highlight_all = TRUE) {
-            ## helper function to set the cursor focus to a particular entry box
+            ## function to set the cursor focus to a particular entry box
             if (!highlight_all) {
                 dojs(paste0("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById('", id, "'); el.selectionStart = el.selectionEnd = el.value.length; el.focus(); });"))
             } else {
@@ -562,7 +615,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }
         focus_to_element <- function(id, highlight_all = TRUE) {
-            ## helper function to set the cursor focus to a particular entry box
+            ## function to set the cursor focus to a particular entry box
             if (!highlight_all) {
                 dojs(paste0("var el = document.getElementById('", id, "'); el.selectionStart = el.selectionEnd = el.value.length; el.focus();"))
             } else {
@@ -701,7 +754,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }
 
-        ## video helper functions
+        ## video functions
         do_video <- function(what, ..., id = "main_video") {
             getel <- paste0("document.getElementById('", id, "')")
             myargs <- list(...)
@@ -767,57 +820,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         )
         build_code_entry_guide <- function(mode, thisrow) {
             mode <- match.arg(mode, c("edit", "insert"))
-            ## some local markup to make the helper entries easier here
-            ## | = <br />
-            ## {thing} = <strong>thing</strong>
-            ## [thing] = <span class=\"clet\">thing</span>
-            ## (thing) = <em>thing</em>
-            ## --- = <br /><hr />
-            gsubf <- function(...) gsub(..., fixed = TRUE)
-            mu2html <- function(z) gsubf("[", "<span class=\"clet\">", gsubf("]", "</span>", gsubf("{", "<strong>", gsubf("}", "</strong>", gsubf("|", "<br />", gsubf("(", "<em>", gsubf(")", "</em>", gsubf("---", "<br /><hr />", z))))))))
-            special_helper <- function(skill, evaln) {
-                mu2html(paste0("{Special}---",
-                               case_when(skill %eq% "A" & evaln %eq% "#" ~ "(Attk kill)|Blk out [S]ide|Blk out l[O]ng|Blk on [F]loor|[X] Direct|on floor",
-                                         skill %eq% "A" & evaln %eq% "=" ~ "(Attk err)|Out [S]ide|Out l[O]ng|In [N]et|[I] net contct|[A]ntenna|[Z] ref call",
-                                         skill %eq% "A" ~ "(Attk)|blk [C]ontrol|[N] let",
-                                         skill %eq% "B" & evaln %in% c("=", "/") ~ "(Blk err)|Out [S]ide|Out l[O]ng|Ball on [F]lr|[X] between|hands|[N] net touch|[A]ntenna|[P] no jump|[T] pos error|[Z] ref call",
-                                         skill %eq% "R" ~ "(Rcv)|[U]nplayable|[X] body err|[P]os err|No [E]ffort|[Z] ref call",
-                                         skill %eq% "S" & evaln %eq% "#" ~ "(Srv ace)|[N] let",
-                                         skill %eq% "S" & evaln %eq% "=" ~ "(Srv err)|Out l[O]ng|Out [L]eft|Out [R]ight|In [N]et|[Z] ref call",
-                                         skill %eq% "S" ~ "(Srv)|[N] let",
-                                         skill %eq% "E" & evaln %eq% "=" ~ "(Set err)|[U]nhittable|[I] net tch|[Z] ref call",
-                                         skill %eq% "Dig" & evaln %eq% "=" ~ "(Dig err)|[U]nplayable|[X] body err|[P]os err|[Z] Ref call|Ball on [F]lr|Ball [O]ut|No [E]ffort",
-                                         skill %eq% "Freeball" & evaln %eq% "=" ~ "(Fr err)|[U]nplayable|[X] body err|[P]os err|[Z] Ref call")))
-            }
-            skill_type_helper <- function(skill, evaln) {
-                mu2html(paste0("{Skill|type}---",
-                               case_when(skill %eq% "A" ~ "(Attk)|[H]ard|[P] soft|[T]ip",
-                                         skill %eq% "R" ~ "(Rec)|[L]eft|[R]ight|lo[W]|[O]vrhnd|[M]idline",
-                                         skill %eq% "E" ~ "(Set)|[1] hand|[2] hands|[3] bump|[4] othr|[5] uhand",
-                                         skill %eq% "D" ~ "(Dig)|[S] on spk|[C] spk|cover|[B] aftr|block|[E] emerg")))
-            }
-            num_players_helper <- function(skill, evaln) {
-                mu2html(paste0("{Num|plyrs}---",
-                               case_when(skill %in% c("A", "B") ~ "(Attk|Blk)|[0]..[3]|[4] hole|block",
-                                         skill %eq% "R" ~ "(Rcv)|[1] 2p,L|[2] 2p,R|[3] 3p,L|[4] 3p,M|[5] 3p,R|[6] 4p,L|[7] 4p,LC|[8] 4p,RC|[9] 4p,R")))
-            }
             bitstbl <- code_bits_tbl
-            bitstbl$helper <- c(mu2html("{Team}---[*]&nbsp;H|[a]&nbsp;V"), ## team
-                                mu2html("{Plyr|num}"), ## number
-                                mu2html("{Skill}---[S]rv|[R]ec|[A]ttk|[B]lk|[D]ig|s[E]t|[F]reeb"), ## skill
-                                mu2html("{Tempo}---[H]igh|[M]ed|[Q]uick|[T]ense|s[U]per|[N] fast|[O]ther"), ## type
-                                mu2html("{Eval}---[#|+|!|-|/|=]"), ## eval
-                                mu2html("{Combo}---(Atk code)|[X.]|[C.]|etc||(Set call)|[K.]"), ## combo
-                                mu2html("{Target}---[F]ront|[C]ntr|[B]ack|[P]ipe|[S]etr"), ## target
-                                mu2html("{Start|zone}---(Attk)|[1..9]||(Srv)|[57691]"), ##start_zone
-                                mu2html("{End zone}---[1..9]||{End cone}|(Attk)|[1..8]"), ##end_zone
-                                mu2html("{End|subzn}---[ABCD]"), ##end_subzone
-                                skill_type_helper, ##skill_type
-                                num_players_helper, ##players
-                                special_helper, ##special
-                                mu2html("{Custom}---")) ##custom
-            bitstbl$start <- cumsum(dplyr::lag(bitstbl$width, default = 0))+1L
-            bitstbl$end <- bitstbl$start+bitstbl$width-1L
             if (mode %eq% "edit" && is_skill(thisrow$skill)) {
                 ## only with skill, not timeout/sub/etc
                 thiscode <- thisrow$code
@@ -829,14 +832,25 @@ ov_shiny_video_sync_server <- function(app_data) {
             cbitInput <- function (bitname, value = "", width = 2, helper = "") {
                 tags$div(style = paste0("display:inline-block; vertical-align:top;"), tags$input(id = paste0("code_entry_", bitname), type = "text", value = value, size = width, maxlength = width, class = "input-small"),
                          ##HTML(paste0("<input id=\"code_entry_", bitname, "\" type=\"text\" value=\"", value, "\" size=\"", width, "\" maxlength=\"", width, "\" class=\"input-small\"", if (bitname == "end_zone") " autofocus=\"autofocus\"", " />")),
-                         tags$div(class = "code_entry_guide", HTML(helper)))
+                         tags$div(class = "code_entry_guide", helper))
             }
             tags$div(style = "padding: 8px;", do.call(shiny::fixedRow, lapply(seq_len(nrow(bitstbl)), function(z) {
                 this_skill <- bitstbl$value[bitstbl$bit %eq% "skill"]
                 this_ev <- bitstbl$value[bitstbl$bit %eq% "eval"]
-                cbitInput(bitstbl$bit[z], value = bitstbl$value[z], width = bitstbl$width[z], helper = if (is.function(bitstbl$helper[[z]])) bitstbl$helper[[z]](this_skill, this_ev) else bitstbl$helper[[z]])
+                cbitInput(bitstbl$bit[z], value = bitstbl$value[z], width = bitstbl$width[z], helper = if (is.function(bitstbl$helper[[z]])) uiOutput(paste0("code_entry_helper_", bitstbl$bit[z], "_ui")) else HTML(bitstbl$helper[[z]]))
             })))
         }
+        ## the helpers that are defined as functions in code_bits_tbl are dynamic, they depend on skill/evaluation
+        ## ADD HANDLERS HERE
+        output$code_entry_helper_skill_type_ui <- renderUI({
+            if (!is.null(input$code_entry_skill) && !is.null(input$code_entry_eval)) HTML(skill_type_helper(input$code_entry_skill, input$code_entry_eval)) else NULL
+        })
+        output$code_entry_helper_num_players_ui <- renderUI({
+            if (!is.null(input$code_entry_skill) && !is.null(input$code_entry_eval)) HTML(num_players_helper(input$code_entry_skill, input$code_entry_eval)) else NULL
+        })
+        output$code_entry_helper_special_ui <- renderUI({
+            if (!is.null(input$code_entry_skill) && !is.null(input$code_entry_eval)) HTML(special_helper(input$code_entry_skill, input$code_entry_eval)) else NULL
+        })
 
         ## match data editing
         observeEvent(input$edit_match_data_button, {
