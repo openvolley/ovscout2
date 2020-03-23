@@ -39,7 +39,8 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                                               src = c(href = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/"),
                                                               script = "js/bootstrap.min.js", stylesheet = "css/bootstrap.min.css"),
               shinyjs::useShinyjs(),
-              tags$head(tags$style("body{font-size:15px} .well{padding:15px;} .myhidden {display:none;} table {font-size: small;} #headerblock h1,#headerblock h2,#headerblock h3,#headerblock h4 {font-weight: normal; color:#ffffff;} h2, h3, h4 {font-weight: bold;} .shiny-notification { height: 100px; width: 400px; position:fixed; top: calc(50% - 50px); left: calc(50% - 200px); } .code_entry_guide {color:#31708f; background-color:#d9edf7;border-color:#bce8f1;padding:4px;font-size:70%;} .clet {color: red;}"),
+              tags$head(tags$style("body{font-size:15px} .well{padding:15px;} .myhidden {display:none;} table {font-size: small;} #headerblock h1,#headerblock h2,#headerblock h3,#headerblock h4 {font-weight: normal; color:#ffffff;} h2, h3, h4 {font-weight: bold;} .shiny-notification { height: 100px; width: 400px; position:fixed; top: calc(50% - 50px); left: calc(50% - 200px); } .code_entry_guide {color:#31708f; background-color:#d9edf7;border-color:#bce8f1;padding:4px;font-size:70%;} .clet {color: red;} .iconbut { font-size: 150%; }"),
+                        tags$style("#hroster {padding-left: 0px; padding-right: 0px; background-color: #bfefff; padding: 12px;} #vroster {padding-left: 0px; padding-right: 0px; background-color: #bcee68; padding: 12px;}"),
                         ##tags$style("table {font-size: 10px; line-height: 1.0;"),
                         ##tags$script("$(document).on('shiny:sessioninitialized', function(){ document.getElementById('main_video').addEventListener('focus', function(){ this.blur(); }, false); });"),
                         ##key press handling
@@ -47,10 +48,10 @@ ov_shiny_video_sync_ui <- function(app_data) {
                         tags$script("$(document).on('keydown', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.onInputChange('controlkey', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
                         tags$script("$(document).on('shiny:sessioninitialized',function(){ Shiny.onInputChange('window_height', $(window).innerHeight()); Shiny.onInputChange('window_width', $(window).innerWidth()); });"),
                         tags$script("var rsztmr; $(window).resize(function() { clearTimeout(rsztmr); rsztmr = setTimeout(doneResizing, 500); }); function doneResizing(){ Shiny.onInputChange('window_height', $(window).innerHeight()); Shiny.onInputChange('window_width', $(window).innerWidth()); }"),
-                        tags$title("Volleyball video sync")
+                        tags$title("Volleyball scout and video sync")
                         ),
               fluidRow(id = "headerblock", style = "border-radius:4px;padding:10px;margin-bottom:10px;min-height:160px;color:white;background: #ffffff url(\"https://untan.gl/images/bgrev.jpg\") 0 0/100% auto no-repeat;", ## background image in header block
-                       column(6, offset = 2, tags$h2("Volleyball video sync")),
+                       column(6, offset = 2, tags$h2("Volleyball scout and video sync")),
                        column(4,tags$div(style="float:right;padding:10px;", tags$a(href = "https://untan.gl", tags$img(style = "width:16em;max-width:100%", src = "https://untan.gl/images/su_title-w.png"))))
                        ),
               fluidRow(column(7, tags$video(id = "main_video", style = "border: 1px solid black; width: 90%;", src = file.path(video_server_base_url, basename(video_src)), controls = "controls", autoplay = "false"),
@@ -59,18 +60,24 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                               actionButton("edit_teams_button", "Edit teams"),
                                               uiOutput("save_file_ui", inline = TRUE)),
                                        column(4, uiOutput("current_event"))),
-                              fluidRow(column(6, tags$p(tags$strong("Keyboard controls")), tags$ul(tags$li("[r or 5] sync selected event video time"),
-                                                                                          tags$li("[i or 8] move to previous skill row"),
-                                                                                          tags$li("[k or 2] move to next skill row"),
-                                                                                          tags$li("[e or E] edit current code"),
-                                                                                          tags$li("[del] delete current code"),
-                                                                                          tags$li("[ins] insert new code above current")
-                                                                                          ),
+                              tags$div(style = "height: 14px;"),
+                              fluidRow(column(6,
+                                              tags$p(tags$strong("Video controls")), sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")),
+                                              tags$p(tags$strong("Keyboard controls")), tags$ul(tags$li("[r or 5] sync selected event video time"),
+                                                                                                tags$li("[i or 8] move to previous skill row"),
+                                                                                                tags$li("[k or 2] move to next skill row"),
+                                                                                                tags$li("[e or E] edit current code"),
+                                                                                                tags$li("[del] delete current code"),
+                                                                                                tags$li("[ins] insert new code above current")
+                                                                                                ),
                                               tags$p(tags$strong("Other options")),
                                               tags$span("Decimal places on video time:"),
                                               numericInput("video_time_decimal_places", label = NULL, value = 0, min = 0, max = 2, step = 1, width = "6em"),
                                               uiOutput("vtdp_ui")),
-                                       column(6, tags$p(tags$strong("Video controls")), sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")))
+                                       column(6, wellPanel(
+                                                     fluidRow(column(3, id = "hroster", uiOutput("htrot_ui")),
+                                                              column(6, plotOutput("court_inset"), actionButton("court_inset_swap", label = "\u21f5", class = "iconbut")),
+                                                              column(3, id = "vroster", uiOutput("vtrot_ui")))))
                                        )
                               ),
                        column(5, DT::dataTableOutput("playslist", width = "98%"),
@@ -82,6 +89,11 @@ ov_shiny_video_sync_ui <- function(app_data) {
 
 ov_shiny_video_sync_server <- function(app_data) {
     function(input, output, session) {
+        styling <- list(h_court_colour = "#bfefff", ## lightblue1
+                        h_court_highlight = "darkblue",
+                        v_court_colour = "#bcee68", ## darkolivegreen2
+                        v_court_highlight = "darkgreen")
+
         rdata <- reactiveValues(dvw = app_data$dvw)
         editing <- reactiveValues(active = NULL)
         video_state <- reactiveValues(paused = FALSE)
@@ -1053,6 +1065,65 @@ ov_shiny_video_sync_server <- function(app_data) {
                     updateSelectInput(session, "vt_new_special", selected = "")
                 })
             }
+        })
+
+        ## court inset showing rotation and team lists
+        disambig_names <- function(last, first) {
+            firstinit <- substr(first, 1, 1)
+            didx <- which(last %in% last[duplicated(last)])
+            last[didx] <- paste(firstinit[didx], last[didx])
+            last
+        }
+        output$htrot_ui <- renderUI({
+            trot <- dplyr::arrange(rdata$dvw$meta$players_h, .data$number)
+            trot$lastname <- disambig_names(trot$lastname, trot$firstname)
+            do.call(tags$div, c(list(tags$strong("Home team"), tags$br()), lapply(seq_len(nrow(trot)), function(z) tagList(tags$span(paste0(trot$number[z], " ", trot$lastname[z])), tags$br()))))
+        })
+        output$vtrot_ui <- renderUI({
+            trot <- dplyr::arrange(rdata$dvw$meta$players_v, .data$number)
+            trot$lastname <- disambig_names(trot$lastname, trot$firstname)
+            do.call(tags$div, c(list(tags$strong("Visiting team"), tags$br()), lapply(seq_len(nrow(trot)), function(z) tagList(tags$span(paste0(trot$number[z], " ", trot$lastname[z])), tags$br()))))
+        })
+        court_inset_home_team_end <- reactiveVal("lower")
+        output$court_inset <- renderPlot({
+            p <- ggplot(data = data.frame(x = c(-0.25, 4.25, 4.25, -0.25), y = c(-0.25, -0.25, 7.25, 7.25)), mapping = aes_string("x", "y")) +
+                geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour) +
+                geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour) +
+                ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
+            ridx <- input$playslist_rows_selected
+            if (!is.null(ridx)) {
+                this_pn <- rdata$dvw$plays$player_number[ridx] ## player in the selected row
+                htrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("home_player_id", 1:6)]), team_id = rdata$dvw$plays$home_team_id[ridx])
+                htrot <- dplyr::left_join(htrot, rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "player_id")
+                vtrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("visiting_player_id", 1:6)]), team_id = rdata$dvw$plays$visiting_team_id[ridx])
+                vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "player_id")
+                plxy <- cbind(dv_xy(1:6, end = "lower"), htrot)
+                plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("home_p", 1:6)]) ## the on-court player numbers in the play-by-play data
+                ## player names and circles
+                ## home team
+                p <- p + geom_polygon(data = court_circle(cz = 1:6, end = "lower"), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight)
+                ## highlighted player
+                if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$home_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
+                    p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "lower"), fill = "yellow", colour = "black")
+                }
+                p <- p + geom_text(data = plxy, aes_string("x", "y", label = "court_num"), size = 6, fontface = "bold", vjust = 0) +
+                    geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+                ## visiting team
+                plxy <- cbind(dv_xy(1:6, end = "upper"), vtrot)
+                plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("visiting_p", 1:6)]) ## the on-court player numbers in the play-by-play data
+                p <- p + geom_polygon(data = court_circle(cz = 1:6, end = "upper"), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight)
+                if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$visiting_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
+                    p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "upper"), fill = "yellow", colour = "black")
+                }
+                p <- p + geom_text(data = plxy, aes_string("x", "y", label = "court_num"), size = 6, fontface = "bold", vjust = 0) +
+                    geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+            }
+            if (court_inset_home_team_end() != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
+            p
+        })
+        observeEvent(input$court_inset_swap, {
+            court_inset_home_team_end(other_end(court_inset_home_team_end()))
+            dojs("document.getElementById('court_inset_swap').blur();") ## un-focus from button
         })
     }
 }
