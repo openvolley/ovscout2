@@ -11,6 +11,7 @@
 #' @importFrom htmltools HTML tagList tags
 #' @importFrom shiny actionButton column downloadButton downloadHandler fluidPage fluidRow isolate isTruthy modalDialog numericInput observeEvent observe onStop plotOutput reactive reactiveVal reactiveValues removeModal renderPlot renderUI selectInput showModal sliderInput tabPanel tabsetPanel textInput uiOutput updateSelectInput updateTextInput wellPanel
 #' @importFrom stats na.omit setNames
+#' @importFrom stringr str_c str_count str_detect str_match str_remove str_split str_sub str_to_upper
 #' @importFrom uuid UUIDgenerate
 #' @importFrom utils head tail write.csv
 NULL
