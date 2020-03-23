@@ -12,12 +12,14 @@ ov_shiny_video_sync <- function(dvw, video_file = NULL, launch_browser = TRUE, .
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     dots <- list(...)
     if (is.string(dvw)) {
+        dvw_filename <- dvw
         if (!"skill_evaluation_decode" %in% names(dots)) dots$skill_evaluation_decode <- "guess"
         rgs <- dots
         rgs$filename <- dvw
         dvw <- do.call(datavolley::read_dv, rgs)
     } else {
         if (!inherits(dvw, "datavolley")) stop("dvw should be a datavolley object or the path to a .dvw file")
+        dvw_filename <- dvw$meta$filename
     }
     ## deal with video_file parm
     if (is.null(dvw$meta$video)) dvw$meta$video <- tibble(camera = character(), file = character())
@@ -32,7 +34,7 @@ ov_shiny_video_sync <- function(dvw, video_file = NULL, launch_browser = TRUE, .
         if (!file.exists(dvw$meta$video$file)) stop("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
     }
     ## finally the shiny app
-    app_data <- list(dvw = dvw, dv_read_args = dots)
+    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dots)
     this_app <- list(ui = ov_shiny_video_sync_ui(app_data = app_data), server = ov_shiny_video_sync_server(app_data = app_data))
     shiny::runApp(this_app, display.mode = "normal", launch.browser = launch_browser)
 }
