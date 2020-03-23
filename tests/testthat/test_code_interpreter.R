@@ -15,6 +15,7 @@ test_that("code interpretation works correctly", {
     check_code(ov_code_interpret("*5X5!"), "*05AT!X5F4")
     check_code(ov_code_interpret("5X5!"), "*05AT!X5F4")
     check_code(ov_code_interpret("5X5"), "*05AT+X5F4") ## default evaluation
+    expect_failure(expect_equal(trim(ov_code_interpret("5X55")), "*05AT+X5F45")) ## just the player number, attack combo and end cone/zone. Can't handle this yet
     check_code(ov_code_interpret("*5X5+5H2"), "*05AT+X5F45~H2")
     check_code(ov_code_interpret("*5X55H2"), "*05AT+X5F4")
     check_code(ov_code_interpret("a12SM.2#78"), c("a12SM-~~~78", "*02RM#~~~78"))
