@@ -942,7 +942,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             if (length(ridx_dig) > 0) {
                 editing$active <- "insert digging actions"
                 showModal(modalDialog(title = "Insert digging codes", size = "l", footer = actionButton("edit_cancel", label = "Cancel (or press Esc)"),
-                                      actionButton("edit_commit", label = "Confirm insert digging codes (or press Enter)")))
+                                      actionButton("edit_commit", label = paste0("Confirm insert ", length(ridx_dig), " digging codes (or press Enter)"))))
             }
         }
         delete_dig_data_row <- function() {
@@ -951,7 +951,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 thiscode <- rdata$dvw$plays$code[ridx]
                 editing$active <- "delete all digging actions"
                 showModal(modalDialog(title = "Delete all digging codes", size = "l", footer = actionButton("edit_cancel", label = "Cancel (or press Esc)"),
-                                      actionButton("edit_commit", label = "Confirm delete all (", length(ridx), ") digging codes (or press Enter)")))
+                                      actionButton("edit_commit", label = paste0("Confirm delete all (", length(ridx), ") digging codes (or press Enter)"))))
             }
         }
 
