@@ -1071,7 +1071,6 @@ ov_shiny_video_sync_server <- function(app_data) {
                 })
             }
         })
-
         ## court inset showing rotation and team lists
         disambig_names <- function(last, first) {
             firstinit <- substr(first, 1, 1)
@@ -1079,15 +1078,22 @@ ov_shiny_video_sync_server <- function(app_data) {
             last[didx] <- paste(firstinit[didx], last[didx])
             last
         }
+        names2roster <- function(pm) {
+            pm <- dplyr::arrange(pm, .data$number)
+            pm$lastname <- disambig_names(pm$lastname, pm$firstname)
+            lc <- paste(ifelse(grepl("L", pm$special_role), "L", ""), ifelse(grepl("C", pm$special_role), "C", ""), sep = ",")
+            lc <- sub("^,", "", sub(",$", "", lc))
+            lc[nzchar(lc)] <- paste0(" (", lc[nzchar(lc)], ")")
+            pm$lastname <- paste0(pm$lastname, lc)
+            stringr::str_trim(paste0(pm$number, " ", pm$lastname))
+        }
         output$htrot_ui <- renderUI({
-            trot <- dplyr::arrange(rdata$dvw$meta$players_h, .data$number)
-            trot$lastname <- disambig_names(trot$lastname, trot$firstname)
-            do.call(tags$div, c(list(tags$strong("Home team"), tags$br()), lapply(seq_len(nrow(trot)), function(z) tagList(tags$span(paste0(trot$number[z], " ", trot$lastname[z])), tags$br()))))
+            re <- names2roster(rdata$dvw$meta$players_h)
+            do.call(tags$div, c(list(tags$strong("Home team"), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
         })
         output$vtrot_ui <- renderUI({
-            trot <- dplyr::arrange(rdata$dvw$meta$players_v, .data$number)
-            trot$lastname <- disambig_names(trot$lastname, trot$firstname)
-            do.call(tags$div, c(list(tags$strong("Visiting team"), tags$br()), lapply(seq_len(nrow(trot)), function(z) tagList(tags$span(paste0(trot$number[z], " ", trot$lastname[z])), tags$br()))))
+            re <- names2roster(rdata$dvw$meta$players_v)
+            do.call(tags$div, c(list(tags$strong("Home team"), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
         })
         court_inset_home_team_end <- reactiveVal("lower")
         output$court_inset <- renderPlot({
