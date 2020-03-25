@@ -450,16 +450,16 @@ ov_shiny_video_sync_server <- function(app_data) {
                         } else if (ky %eq% "46" && is.null(editing$active)) {
                             ## delete current row
                             delete_data_row()
-                        } else if (ky %eq% "113") {
+                        } else if (ky %eq% "113" && isTRUE(app_data$config$insert_sets)) {
                             ## insert new setting actions
                             insert_setting_data_row()
-                        }  else if (ky %eq% "115") {
+                        }  else if (ky %eq% "115" && isTRUE(app_data$config$insert_sets)) {
                             ## delete all setting actions
                             delete_setting_data_row()
-                        }  else if (ky %eq% "117") {
+                        }  else if (ky %eq% "117" && isTRUE(app_data$config$insert_digs)) {
                             ## insert new digging actions
                             insert_dig_data_row()
-                        }  else if (ky %eq% "119") {
+                        }  else if (ky %eq% "119" && isTRUE(app_data$config$insert_digs)) {
                             ## delete all digging actions
                             delete_dig_data_row()
                         } else if (ky %eq% "37") {
@@ -538,7 +538,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }
         observeEvent(input$edit_cancel, {
-            if (editing$active %in% "teams") {
+            if (!is.null(editing$active) && editing$active %in% "teams") {
                 htdata_edit(NULL)
                 vtdata_edit(NULL)
             }
@@ -710,11 +710,14 @@ ov_shiny_video_sync_server <- function(app_data) {
                 editing$active <- "insert setting actions"
                 showModal(modalDialog(title = "Insert setting codes", size = "l", footer = actionButton("edit_cancel", label = "Cancel (or press Esc)"),
                                       actionButton("edit_commit", label = paste0("Confirm insert ", length(ridx_set), " setting codes (or press Enter)"))))
+            } else {
+                showModal(modalDialog(title = "Insert setting codes", size = "l", footer = actionButton("edit_cancel", label = "Cancel (or press Esc)"),
+                                      "No setting codes to insert."))
             }
         }
 
         delete_setting_data_row <- function() {
-            ridx <- dplyr::filter(mutate(rdata$dvw$plays, rowN = row_number()), .data$skill %eq% "Set")$rowN
+            ridx <- dplyr::filter(mutate(rdata$dvw$plays, rowN = row_number()), .data$skill %eq% "Set" & !.data$evaluation %eq% "Error")$rowN
             if (length(ridx) > 0) {
                 thiscode <- rdata$dvw$plays$code[ridx]
                 editing$active <- "delete all setting actions"
@@ -727,8 +730,11 @@ ov_shiny_video_sync_server <- function(app_data) {
             ridx_dig <- dv_insert_digs_check(rdata$dvw)
             if (length(ridx_dig) > 0) {
                 editing$active <- "insert digging actions"
-                showModal(modalDialog(title = "Insert digging codes", size = "l", footer = actionButton("edit_cancel", label = "Cancel (or press Esc)"),
-                                      actionButton("edit_commit", label = paste0("Confirm insert ", length(ridx_dig), " digging codes (or press Enter)"))))
+                showModal(modalDialog(title = "Insert dig codes", size = "l", footer = actionButton("edit_cancel", label = "Cancel (or press Esc)"),
+                                      actionButton("edit_commit", label = paste0("Confirm insert ", length(ridx_dig), " dig codes (or press Enter)"))))
+            } else {
+                showModal(modalDialog(title = "Insert dig codes", size = "l", footer = actionButton("edit_cancel", label = "Cancel (or press Esc)"),
+                                      "No dig codes to insert."))
             }
         }
         delete_dig_data_row <- function() {

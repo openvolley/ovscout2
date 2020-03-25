@@ -74,10 +74,10 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                                                                                 tags$li("[e or E] edit current code"),
                                                                                                 tags$li("[del] delete current code"),
                                                                                                 tags$li("[ins] insert new code above current"),
-                                                                                                tags$li("[F2] insert setting codes before every attack"),
-                                                                                                tags$li("[F4] delete all setting codes (except errors)"),
-                                                                                                tags$li("[F6] insert digging codes after every attack"),
-                                                                                                tags$li("[F8] delete all digging codes")
+                                                                                                if (isTRUE(app_data$config$insert_sets)) tags$li("[F2] insert setting codes before every attack"),
+                                                                                                if (isTRUE(app_data$config$insert_sets)) tags$li("[F4] delete all setting codes (except errors)"),
+                                                                                                if (isTRUE(app_data$config$insert_digs)) tags$li("[F6] insert digging codes after every attack"),
+                                                                                                if (isTRUE(app_data$config$insert_digs)) tags$li("[F8] delete all digging codes")
                                                                                                 ),
                                               tags$p(tags$strong("Other options")),
                                               tags$span("Decimal places on video time:"),
