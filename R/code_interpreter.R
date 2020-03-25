@@ -13,7 +13,8 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
         compound_table <- dplyr::tribble(~skill, ~compound_skill, ~code, ~compound_code,~default_compound_skills,
                                          "S", "R", "/", "/", TRUE,
                                          "S", "R", "-", "#", TRUE,
-                                         "S", "R", "!", "+", TRUE,
+                                         "S", "R", "-", "+", TRUE,
+                                         "S", "R", "!", "!", TRUE,
                                          "S", "R", "+", "-", TRUE,
                                          "S", "R", "#", "=", TRUE,
                                          "A", "B", "/", "#", TRUE,
@@ -143,7 +144,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     att_eval <- na.omit(str_match(c, syntax_table$value_list[[5]]))
                     new_code[6] <- if (length(att_eval) == 1) att_eval else default_scouting_table$evaluation_code[default_scouting_table$skill == "A"] ## default
                     if(sum(str_detect(c, syntax_table$value_list[[5]])) > 0) cc_tmp <- str_remove(cc_tmp, syntax_table$value_list[[5]][str_detect(c, syntax_table$value_list[[5]])])
-                    new_code[9] <- attack_table$set_type[attack_table$code == tmp]
+                    new_code[9] <- "~"## should not have target in attack codes, only set codes (?) ## attack_table$set_type[attack_table$code == tmp]
                     new_code[10] <- attack_table$attacker_position[attack_table$code == tmp]
                 }
                 if (tmp %in% paste0("K", 0:9)) new_code[4] <- "E"
@@ -312,7 +313,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     new_code_1[5] <- attack_table$type[attack_table$code == tmp1]
                     new_code_2[5] <- attack_table$type[attack_table$code == tmp1]
                                         #cc_tmp1 <- str_remove(cc_tmp1, syntax_table$value_list[[5]][str_detect(csp[1], syntax_table$value_list[[5]])])
-                    new_code_1[9] <- attack_table$set_type[attack_table$code == tmp1]
+                    new_code_1[9] <- "~"## should not have target in attack codes, only set codes (?) ## attack_table$set_type[attack_table$code == tmp1]
                     new_code_1[10] <- attack_table$attacker_position[attack_table$code == tmp1]
                 }
             }
