@@ -13,7 +13,7 @@ ov_shiny_video_sync(dvw, video_file = NULL, launch_browser = TRUE, ...)
 
 \item{launch_browser}{logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny]{runApp}}'s \code{launch.browser} parameter)}
 
-\item{...}{: extra parameters passed to \code{\link[datavolley]{read_dv}} (if \code{dvw} is a provided as a string)}
+\item{...}{: extra parameters passed to \code{\link[datavolley]{read_dv}} (if \code{dvw} is a provided as a string) and/or to the shiny server and UI functions}
 }
 \description{
 Launch a Shiny app for video synchronisation and scout editing
