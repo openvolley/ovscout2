@@ -6,7 +6,7 @@
 #' @docType package
 #' @importFrom assertthat assert_that has_name is.flag is.string
 #' @importFrom datavolley read_dv dv_example_file dv_xy dv_write ggcourt
-#' @importFrom dplyr .data bind_rows case_when group_by_at left_join mutate row_number tibble
+#' @importFrom dplyr .data bind_rows case_when group_by_at lag lead left_join mutate row_number tibble
 #' @importFrom ggplot2 aes_string geom_polygon geom_text ggplot scale_x_reverse scale_y_reverse
 #' @importFrom htmltools HTML tagList tags
 #' @importFrom shiny actionButton callModule column downloadButton downloadHandler fluidPage fluidRow isolate isTruthy modalDialog NS numericInput observeEvent observe onStop plotOutput reactive reactiveVal reactiveValues removeModal renderPlot renderUI selectInput showModal sliderInput tabPanel tabsetPanel textInput uiOutput updateSelectInput updateTextInput wellPanel

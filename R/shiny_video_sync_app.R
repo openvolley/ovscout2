@@ -73,7 +73,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                                                                                 tags$li("[del] delete current code"),
                                                                                                 tags$li("[ins] insert new code above current"),
                                                                                                 tags$li("[F2] insert setting codes before every attack"),
-                                                                                                tags$li("[F4] delete all setting codes"),
+                                                                                                tags$li("[F4] delete all setting codes (except errors)"),
                                                                                                 tags$li("[F6] insert digging codes after every attack"),
                                                                                                 tags$li("[F8] delete all digging codes")
                                                                                                 ),
@@ -191,7 +191,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                                   special_helper, ##special
                                   mu2html("{Custom}---")) ##custom
         ## note that if any other helpers are turned into functions, they need extra code added below to handle them (see ADD HANDLERS HERE)
-        code_bits_tbl$start <- cumsum(dplyr::lag(code_bits_tbl$width, default = 0))+1L
+        code_bits_tbl$start <- cumsum(lag(code_bits_tbl$width, default = 0))+1L
         code_bits_tbl$end <- code_bits_tbl$start+code_bits_tbl$width-1L
 
         output$vtdp_ui <- renderUI({
@@ -683,66 +683,16 @@ ov_shiny_video_sync_server <- function(app_data) {
                 rdata$dvw$meta$match$zones_or_cones <- input$match_edit_zones_or_cones
                 do_reparse <- TRUE
             } else if (editing$active %eq% "delete all setting actions") {
-                ridx <- dplyr::filter(mutate(rdata$dvw$plays, rowN = row_number()), .data$skill %eq% "Set")$rowN
+                ridx <- dplyr::filter(mutate(rdata$dvw$plays, rowN = row_number()), .data$skill %eq% "Set" & !.data$evaluation %eq% "Error")$rowN
                 if (length(ridx) > 0) {
                     if (is.logical(ridx)) ridx <- which(ridx)
                     rdata$dvw$plays <-rdata$dvw$plays[-ridx, ]
                     do_reparse <- TRUE
                 }
             } else if (editing$active %eq% "insert setting actions") {
-                ridx_set <- mutate(rdata$dvw$plays, rowN = row_number(),
-                                   add_set_before = case_when(.data$skill %eq% "Attack" & !(str_sub(.data$code, 7, 8) %in% no_set_attacks) & !(lag(.data$skill) %eq% "Set") ~ TRUE,
-                                                              TRUE ~ FALSE))
-                ridx_set <- ridx_set$rowN[which(ridx_set$add_set_before)]
+                ridx_set <- dv_insert_sets_check(rdata$dvw, no_set_attacks = no_set_attacks)
                 if (length(ridx_set) > 0) {
-                    set_code <- mutate(rdata$dvw$plays, passQ = case_when(lag(.data$skill) %in% c("Reception", "Dig") ~ lag(.data$evaluation)))
-                    set_code <- mutate(dplyr::filter(set_code, row_number() %in% ridx_set),
-                                       team_oncourt_setter_number = case_when(.data$team %eq% .data$home_team ~ case_when(.data$home_setter_position == 1 ~ .data$home_p1,
-                                                                                                                          .data$home_setter_position == 2 ~ .data$home_p2,
-                                                                                                                          .data$home_setter_position == 3 ~ .data$home_p3,
-                                                                                                                          .data$home_setter_position == 4 ~ .data$home_p4,
-                                                                                                                          .data$home_setter_position == 5 ~ .data$home_p5,
-                                                                                                                          .data$home_setter_position == 6 ~ .data$home_p6),
-                                                                              .data$team %eq% .data$visiting_team ~ dplyr::case_when(.data$visiting_setter_position == 1 ~ .data$visiting_p1,
-                                                                                                                                     .data$visiting_setter_position == 2 ~ .data$visiting_p2,
-                                                                                                                                     .data$visiting_setter_position == 3 ~ .data$visiting_p3,
-                                                                                                                                     .data$visiting_setter_position == 4 ~ .data$visiting_p4,
-                                                                                                                                     .data$visiting_setter_position == 5 ~ .data$visiting_p5,
-                                                                                                                                     .data$visiting_setter_position == 6 ~ .data$visiting_p6)),
-                                       set_code = paste0(str_sub(.data$code, 1, 1), ## Team
-                                                         .data$team_oncourt_setter_number, ## setter player_number
-                                                         "E", # set skill
-                                                         str_sub(.data$code, 5, 5), # hitting tempo
-                                                         default_set_evaluation),
-                                       TEMP_attack_code = str_sub(.data$code, 7, 8),
-                                       setter_call = case_when(.data$TEMP_attack_code %eq% "X1" ~ "K1",
-                                                               .data$TEMP_attack_code %eq% "X2" ~ "K2",
-                                                               .data$TEMP_attack_code %eq% "X7" ~ "K7",
-                                                               grepl("^(OK|Negative)", .data$passQ) ~ "KE",
-                                                               grepl("^(Perfect|Positive)", .data$passQ) ~ "KK",
-                                                               is.na(.data$passQ) ~ "KK",
-                                                               TRUE ~ "~~"),
-                                       set_code = paste0(.data$set_code, .data$setter_call))
-                    ## TODO, these could be taken from the dvw$meta$attacks table, and then they would keep up with user configuration
-                    set_code <- mutate(set_code, set_code = dplyr::case_when(.data$TEMP_attack_code %eq% "X1" ~ paste0(.data$set_code, "C3"),
-                                                                             .data$TEMP_attack_code %eq% "X2" ~ paste0(.data$set_code, "C3"),
-                                                                             .data$TEMP_attack_code %eq% "X7" ~ paste0(.data$set_code, "C3"),
-                                                                             .data$TEMP_attack_code %eq% "X5" ~ paste0(.data$set_code, "F4"),
-                                                                             .data$TEMP_attack_code %eq% "V5" ~ paste0(.data$set_code, "F4"),
-                                                                             .data$TEMP_attack_code %eq% "X6" ~ paste0(.data$set_code, "B2"),
-                                                                             .data$TEMP_attack_code %eq% "V6" ~ paste0(.data$set_code, "B2"),
-                                                                             .data$TEMP_attack_code %eq% "X8" ~ paste0(.data$set_code, "B9"),
-                                                                             .data$TEMP_attack_code %eq% "V8" ~ paste0(.data$set_code, "B9"),
-                                                                             .data$TEMP_attack_code %eq% "XP" ~ paste0(.data$set_code, "P8"),
-                                                                             .data$TEMP_attack_code %eq% "VP" ~ paste0(.data$set_code, "P8"),
-                                                                             TRUE ~ .data$set_code))$set_code
-                    rdata$dvw$plays <- mutate(rdata$dvw$plays, tmp_row_number = row_number())
-                    newline <- rdata$dvw$plays[ridx_set, ]
-                    newline$code <- set_code
-                    newline$video_time <- newline$video_time - 2
-                    newline$tmp_row_number <- newline$tmp_row_number - 0.5
-                    rdata$dvw$plays <- dplyr::arrange(bind_rows(rdata$dvw$plays, newline), .data$tmp_row_number)##.data$set_number, .data$point_id, .data$team_touch_id, .data$tmp_row_number)
-                    rdata$dvw$plays <- dplyr::select(rdata$dvw$plays, -"tmp_row_number")
+                    rdata$dvw <- dv_insert_sets(rdata$dvw, no_set_attacks = no_set_attacks, default_set_evaluation = default_set_evaluation, ridx = ridx_set)
                     do_reparse <- TRUE
                 }
             } else if (editing$active %eq% "delete all digging actions") {
@@ -754,33 +704,9 @@ ov_shiny_video_sync_server <- function(app_data) {
                 }
             } else if (editing$active %eq% "insert digging actions") {
                 ## find attacks that remained in play, and which were not followed by a dig, nor followed by a block then a dig
-                ridx_dig <- mutate(rdata$dvw$plays, rowN = row_number(),
-                                   attack_in_play = .data$skill %eq% "Attack" & grepl("^(Positive|Poor|Blocked for reattack|Spike in play)", .data$evaluation, ignore.case = TRUE),
-                                   add_dig_after = case_when(.data$attack_in_play & !lead(.data$skill) %in% c("Dig", "Block") ~ TRUE, ## attack in play, not followed by dig or block
-                                                             lag(.data$attack_in_play) & .data$skill %eq% "Block" & !.data$evaluation %in% c("Error", "Invasion", "Winning block") & !lead(.data$skill) %eq% "Dig" ~ TRUE, ## block touch after attack in play, not followed by dig
-                                                             TRUE ~ FALSE))
-                ridx_dig <- ridx_dig$rowN[which(ridx_dig$add_dig_after)]
+                ridx_dig <- dv_insert_digs_check(rdata$dvw)
                 if (length(ridx_dig) > 0) {
-                    dig_code <- mutate(dplyr::filter(rdata$dvw$plays, row_number() %in% ridx_dig),
-                                       dig_team = case_when(.data$evaluation %eq% "Blocked for reattack" & .data$team == .data$home_team ~ "*",
-                                                            .data$evaluation %eq% "Blocked for reattack" & .data$team == .data$visiting_team ~ "a",
-                                                            grepl("^(Positive|Poor|Spike in play)", .data$evaluation) & .data$team == .data$home_team ~ "a",
-                                                            grepl("^(Positive|Poor|Spike in play)", .data$evaluation) & .data$team == .data$visiting_team ~ "*"),
-                                       dig_eval_code = case_when(.data$skill %eq% "Attack" & grepl("^Positive", .data$evaluation) ~ "-", ## negative dig on positive attack
-                                                                 TRUE ~ "+"), ## positive dig otherwise
-                                       dig_code = paste0(.data$dig_team, ## Team
-                                                         "00", ## dig player_number
-                                                         "D", ## dig skill
-                                                         str_sub(.data$code, 5, 5), # hitting tempo
-                                                         .data$dig_eval_code))
-                    dig_code <- dig_code$dig_code
-                    rdata$dvw$plays <- mutate(rdata$dvw$plays, tmp_row_number = row_number())
-                    newline <- rdata$dvw$plays[ridx_dig, ]
-                    newline$code <- dig_code
-                    newline$video_time <- newline$video_time + 1
-                    newline$tmp_row_number <- newline$tmp_row_number + 0.5
-                    rdata$dvw$plays <- dplyr::arrange(bind_rows(rdata$dvw$plays, newline), .data$tmp_row_number) ##.data$set_number, .data$point_id, .data$team_touch_id, .data$tmp_row_number)
-                    rdata$dvw$plays <- dplyr::select(rdata$dvw$plays, -"tmp_row_number")
+                    rdata$dvw <- dv_insert_digs(rdata$dvw, ridx = ridx_dig)
                     do_reparse <- TRUE
                 }
             } else {
@@ -864,10 +790,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         }
 
         insert_setting_data_row <- function() {
-            ridx_set <- mutate(rdata$dvw$plays, rowN = row_number(),
-                               add_set_before = case_when(.data$skill %eq% "Attack" & !(str_sub(.data$code, 7, 8) %in% no_set_attacks) & !(lag(.data$skill) %eq% "Set") ~ TRUE,
-                                                          TRUE ~ FALSE))
-            ridx_set <- ridx_set$rowN[which(ridx_set$add_set_before)]
+            ridx_set <- dv_insert_sets_check(rdata$dvw, no_set_attacks = no_set_attacks)
             if (length(ridx_set) > 0) {
                 editing$active <- "insert setting actions"
                 showModal(modalDialog(title = "Insert setting codes", size = "l", footer = actionButton("edit_cancel", label = "Cancel (or press Esc)"),
@@ -880,18 +803,13 @@ ov_shiny_video_sync_server <- function(app_data) {
             if (length(ridx) > 0) {
                 thiscode <- rdata$dvw$plays$code[ridx]
                 editing$active <- "delete all setting actions"
-                showModal(modalDialog(title = "Delete all setting codes", size = "l", footer = actionButton("edit_cancel", label = "Cancel (or press Esc)"),
-                                      actionButton("edit_commit", label = paste0("Confirm delete all (", length(ridx), ") setting codes (or press Enter)"))))
+                showModal(modalDialog(title = "Delete all non-error setting codes", size = "l", footer = actionButton("edit_cancel", label = "Cancel (or press Esc)"),
+                                      actionButton("edit_commit", label = paste0("Confirm delete (", length(ridx), ") setting codes (or press Enter)"))))
             }
         }
 
         insert_dig_data_row <- function() {
-            ridx_dig <- mutate(rdata$dvw$plays, rowN = row_number(),
-                               attack_in_play = .data$skill %eq% "Attack" & grepl("^(Positive|Poor|Blocked for reattack|Spike in play)", .data$evaluation, ignore.case = TRUE),
-                               add_dig_after = case_when(.data$attack_in_play & !lead(.data$skill) %in% c("Dig", "Block") ~ TRUE, ## attack in play, not followed by dig or block
-                                                         lag(.data$attack_in_play) & .data$skill %eq% "Block" & !.data$evaluation %in% c("Error", "Invasion", "Winning block") & !lead(.data$skill) %eq% "Dig" ~ TRUE, ## block touch after attack in play, not followed by dig
-                                                         TRUE ~ FALSE))
-            ridx_dig <- ridx_dig$rowN[which(ridx_dig$add_dig_after)]
+            ridx_dig <- dv_insert_digs_check(rdata$dvw)
             if (length(ridx_dig) > 0) {
                 editing$active <- "insert digging actions"
                 showModal(modalDialog(title = "Insert digging codes", size = "l", footer = actionButton("edit_cancel", label = "Cancel (or press Esc)"),
@@ -1190,36 +1108,4 @@ ov_shiny_video_sync_server <- function(app_data) {
         ## court inset showing rotation and team lists
         callModule(mod_courtrot, id = "courtrot", rdata = rdata, rowidx = reactive(input$playslist_rows_selected), styling = styling)
     }
-}
-
-dojs <- function(jscmd) {
-    ##cat("js: ", jscmd, "\n")
-    shinyjs::runjs(jscmd)
-}
-
-names_first_to_capital <- function(x, fun) {
-    setNames(x, var2fc(if (missing(fun)) names(x) else vapply(names(x), fun, FUN.VALUE = "", USE.NAMES = FALSE)))
-}
-
-var2fc <- function(x) {
-    vapply(x, function(z) gsub("_", " ", paste0(toupper(substr(z, 1, 1)), substr(z, 2, nchar(z)))), FUN.VALUE = "", USE.NAMES = FALSE)
-}
-
-reparse_dvw <- function(x, dv_read_args = list()) {
-    tf <- tempfile()
-    on.exit(unlink(tf))
-    dv_write(x, tf)
-    dv_read_args$filename <- tf
-    out <- do.call(read_dv, dv_read_args)
-    out$meta$filename <- x$meta$filename ## preserve this
-    preprocess_dvw(out)
-}
-
-preprocess_dvw <- function(x) {
-    x$plays <- mutate(x$plays, clock_time = format(.data$time, "%H:%M:%S"))
-    msgs <- dplyr::filter(x$messages, !is.na(.data$file_line_number))
-    msgs <- dplyr::summarize(group_by_at(msgs, "file_line_number"), error_message = paste0(.data$message, collapse = "<br />"))
-    x$plays <- left_join(x$plays, msgs, by = "file_line_number")
-    x$plays$error_icon <- ifelse(is.na(x$plays$error_message), "", HTML(as.character(shiny::icon("exclamation-triangle"))))
-    x
 }

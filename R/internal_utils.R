@@ -13,3 +13,16 @@ court_circle <- function(cxy, r = 0.45, cz = NULL, end = "lower", nseg = 31) {
 }
 
 other_end <- function(end) setdiff(c("upper", "lower"), tolower(end))[1]
+
+dojs <- function(jscmd) {
+    ##cat("js: ", jscmd, "\n")
+    shinyjs::runjs(jscmd)
+}
+
+names_first_to_capital <- function(x, fun) {
+    setNames(x, var2fc(if (missing(fun)) names(x) else vapply(names(x), fun, FUN.VALUE = "", USE.NAMES = FALSE)))
+}
+
+var2fc <- function(x) {
+    vapply(x, function(z) gsub("_", " ", paste0(toupper(substr(z, 1, 1)), substr(z, 2, nchar(z)))), FUN.VALUE = "", USE.NAMES = FALSE)
+}
