@@ -46,8 +46,6 @@ ov_shiny_video_sync_ui <- function(app_data) {
               shinyjs::useShinyjs(),
               tags$head(tags$style("body{font-size:15px} .well{padding:15px;} .myhidden {display:none;} table {font-size: small;} #headerblock h1,#headerblock h2,#headerblock h3,#headerblock h4 {font-weight: normal; color:#ffffff;} h2, h3, h4 {font-weight: bold;} .shiny-notification { height: 100px; width: 400px; position:fixed; top: calc(50% - 50px); left: calc(50% - 200px); } .code_entry_guide {color:#31708f; background-color:#d9edf7;border-color:#bce8f1;padding:4px;font-size:70%;} .clet {color: red;} .iconbut { font-size: 150%; }"),
                         tags$style("#hroster {padding-left: 0px; padding-right: 0px; background-color: #bfefff; padding: 12px;} #vroster {padding-left: 0px; padding-right: 0px; background-color: #bcee68; padding: 12px;}"),
-                        ##tags$style("table {font-size: 10px; line-height: 1.0;"),
-                        ##tags$script("$(document).on('shiny:sessioninitialized', function() { document.getElementById('main_video').addEventListener('focus', function() { this.blur(); }, false); });"),
                         ##key press handling
                         tags$script("$(document).on('keypress', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.onInputChange('cmd', e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
                         tags$script("$(document).on('keydown', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.onInputChange('controlkey', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
@@ -90,7 +88,6 @@ ov_shiny_video_sync_ui <- function(app_data) {
                               uiOutput("error_message"))
                        )
               )
-    ## find negative time intervals and fix them
 }
 
 ov_shiny_video_sync_server <- function(app_data) {
@@ -103,7 +100,6 @@ ov_shiny_video_sync_server <- function(app_data) {
         rdata <- reactiveValues(dvw = app_data$dvw)
         editing <- reactiveValues(active = NULL)
         video_state <- reactiveValues(paused = FALSE)
-        ##handlers <- reactiveValues() ## a more general way of handling asynchronous js callback events, but not needed (yet)
         dv_read_args <- app_data$dv_read_args
         done_first_playlist_render <- FALSE
         running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
@@ -206,17 +202,6 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         })
 
-        ## handler-based dispatch, not used
-        ##observeEvent(input$video_time, {
-        ##    ##cat("input$video_time: "); cat(str(input$video_time))
-        ##    temp <- strsplit(input$video_time, split = "&", fixed = TRUE)[[1]]
-        ##    this_handler_id <- temp[2]
-        ##    ##cat("running handler: ", this_handler_id, "\n")
-        ##    handlers[[this_handler_id]](as.numeric(temp[1]))
-        ##    ## then clear it
-        ##    ##handlers[[this_handler_id]] <- NULL
-        ##})
-
         observeEvent(input$all_video_from_clock, {
             current_video_time <- selected_event()$video_time
             current_clock_time <- selected_event()$time
@@ -312,16 +297,9 @@ ov_shiny_video_sync_server <- function(app_data) {
 
         ## sync the selected event to the current video time
         sync_single_video_time <- function() {
-            if (FALSE) {
-                ## handler-based dispatch on callback, not used
-                myfid <- UUIDgenerate()
-                handlers[[myfid]] <- handler_sync_single_video_time
-                do_video("get_time_fid", myfid)
-            } else {
-                ridx <- input$playslist_rows_selected
-                if (!is.null(ridx)) {
-                    do_video("set_current_video_time", ridx)
-                }
+            ridx <- input$playslist_rows_selected
+            if (!is.null(ridx)) {
+                do_video("set_current_video_time", ridx)
             }
         }
 
@@ -344,22 +322,6 @@ ov_shiny_video_sync_server <- function(app_data) {
                 }
             }
         })
-
-        ## not used
-        ##handler_sync_single_video_time <- function(tm) {
-        ##    ##cat("handler_sync_single_video_time: "); cat(tm); cat("\n")
-        ##    ridx <- input$playslist_rows_selected
-        ##    ##cat("rowidx: ", ridx, "\n")
-        ##    if (!is.null(ridx)) {
-        ##        rdata$dvw$plays$video_time[ridx] <- round(tm, digits = input$video_time_decimal_places)
-        ##        ## advance to the next skill row
-        ##        if (ridx < nrow(rdata$dvw$plays)) {
-        ##            next_skill_row <- find_next_skill_row(ridx, step = skip)
-        ##            if (length(next_skill_row) > 0) playslist_select_row(next_skill_row)
-        ##        }
-        ##    }
-        ##    NULL
-        ##}
 
         selected_event <- reactive({
             if (length(input$playslist_rows_selected) == 1) {
@@ -540,11 +502,6 @@ ov_shiny_video_sync_server <- function(app_data) {
                             vidcmd <- if (tolower(mykey) %in% c("1", "n", "h", "j", "4", "$")) "rew" else "ff"
                             dur <- if (tolower(mykey) %in% c("h", "$", ";", "^")) 10 else if (tolower(mykey) %in% c("n", "m", "1", "3")) 0.1 else 2
                             do_video(vidcmd, dur)
-                            ##} else if (mycmd %in% as.character(33:126)) {
-                            ##    cat("queued: ", mycmd, "\n")
-                            ##    ## add to cmd queue
-                            ##    rdata$cmd <- paste0(rdata$cmd, intToUtf8(mycmd))
-                            ##    output$cmdbox <- renderText(rdata$cmd)
                         } else if (mykey %in% c("r", "R", "5")) {
                             ## set the video time of the current event
                             sync_single_video_time()
