@@ -398,13 +398,10 @@ ov_shiny_video_sync_server <- function(app_data) {
         }
 
         observe({
-            ##        cat("replacing DT data\n")
             mydat <- rdata$dvw$plays
             mydat$is_skill <- is_skill(mydat$skill)
             mydat$set_number <- as.factor(mydat$set_number)
             DT::replaceData(playslist_proxy, data = mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, clearSelection = "none")##, resetPaging = FALSE)
-            ## and scroll to selected row
-            ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).scrollTo();", max(0, rdata$plays_row_to_select-1)))
         })
 
         find_next_skill_row <- function(current_row_idx = NULL, step = 1, respect_filters = TRUE) {
@@ -729,6 +726,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                         changed2 <- (!newcode2 %eq% current_code) && nzchar(newcode2)
                         if (!changed1 && changed2) {
                             newcode <- newcode2
+                            ## if we entered via the text box, then run this through the code parser
+                            newcode <- ov_code_interpret(newcode)
                         } else if (!changed2 && changed1) {
                             newcode <- newcode1
                         } else if (!changed1 && !changed2) {
@@ -741,11 +740,18 @@ ov_shiny_video_sync_server <- function(app_data) {
                         }
                     }
                     if (editing$active %eq% "edit" && !is.null(newcode)) {
-                        ## update the code in the current row
-                        rdata$dvw$plays$code[ridx] <- newcode
+                        if (length(newcode) == 1) {
+                            ## update the code in the current row
+                            rdata$dvw$plays$code[ridx] <- newcode
+                        } else if (length(newcode) == 2) {
+                            ## hmm, have we entered a compound code?
+                            ## can't handle that yet, is it even sensible to support?
+                            warning("compound codes can't be used when editing an existing code")
+                        }
                     } else if (editing$active %eq% "insert" && !is.null(newcode)) {
                         ## insert new line
-                        newline <- rdata$dvw$plays[ridx, ]
+                        if (is.logical(ridx)) ridx <- which(ridx)
+                        newline <- rdata$dvw$plays[rep(ridx, length(newcode)), ]
                         newline$code <- newcode
                         rdata$dvw$plays <- bind_rows(if (ridx > 1) rdata$dvw$plays[seq(1, ridx-1L, by = 1), ], newline, rdata$dvw$plays[seq(ridx, nrow(rdata$dvw$plays), by = 1), ])
                         ## set the newly-inserted line as the active row
