@@ -44,6 +44,7 @@ dv_insert_sets <- function(dvw, no_set_attacks, default_set_evaluation = "+", ri
                                                                                                                          .data$visiting_setter_position == 4 ~ .data$visiting_p4,
                                                                                                                          .data$visiting_setter_position == 5 ~ .data$visiting_p5,
                                                                                                                          .data$visiting_setter_position == 6 ~ .data$visiting_p6)),
+                           team_oncourt_setter_number = sprintf("%02d", team_oncourt_setter_number),
                            set_code = paste0(str_sub(.data$code, 1, 1), ## Team
                                              .data$team_oncourt_setter_number, ## setter player_number
                                              "E", # set skill
