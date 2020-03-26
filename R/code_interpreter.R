@@ -54,10 +54,10 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
     }
 
     syntax_table <- dplyr::tribble(~code_type, ~name, ~stx_id,  ~range, ~value_list,
-                                   "Main code", "team", "mc_te", 1, c("\\*", "a"),                                    # 1
-                                   "Main code", "player number", "mc_pn", 2:3, as.character(c(00:99)),               # 2
+                                   "Main code", "team", "mc_te", 1, c("\\*", "a"),                                   # 1
+                                   "Main code", "player number", "mc_pn", 2:3, formatC(0:99, width = 2, flag = "0"), # 2
                                    "Main code", "Skill", "mc_sk", 4, c("S", "R", "A", "B", "D", "E", "F"),           # 3
-                                   "Main code", "Type", "mc_ty", 5, c("H", "M", "Q", "T", "U", "N", "O"),             # 4
+                                   "Main code", "Type", "mc_ty", 5, c("H", "M", "Q", "T", "U", "N", "O"),            # 4
                                    "Main code", "Evaluation", "mc_ev", 6, c("\\#", "\\+", "\\!", "\\/", "-", "\\="), # 5
                                    "Advanced code", "Cmb/Call", "ac_cc", 7:8, c(paste0("K",0:9), "KM", "KP", attack_table$code), # 6
                                    "Advanced code", "Target attack", "ac_ta", 9, c("F", "C", "B", "P", "S"),         # 7
@@ -89,13 +89,17 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
         for (i in 1:14) {
             if (i %in% c(6, 7, 8) && cmb) next
             if (i > 1) cc_tmp <- str_to_upper(cc_tmp)
+            if (i == 2) {
+                ## if the code has been entered with single-digit player numbers that aren't zero-padded, need to zero pad
+                if (grepl("^[[:digit:]][^[:digit:]]", cc_tmp)) cc_tmp <- str_c("0", cc_tmp)
+            }
             if (i == 5) {
                 ## Eval code can be located pretty much anywhere, cause its syntax is so specific, and people, you know...
                 value_list = syntax_table$value_list[[i]]
                 tmp <- str_match(c, value_list)
                 tmp <- tail(tmp[!is.na(tmp)], 1)
             } else if (i == 11) {
-                value_list = dplyr::case_when(new_code[4] == "A" ~syntax_table$value_list[[i]][1],
+                value_list <- dplyr::case_when(new_code[4] == "A" ~syntax_table$value_list[[i]][1],
                                               new_code[4] == "B" ~syntax_table$value_list[[i]][2],
                                               new_code[4] == "R" ~syntax_table$value_list[[i]][3],
                                               new_code[4] == "S" ~syntax_table$value_list[[i]][4],
@@ -111,7 +115,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                 c_tmp <- str_sub(cc_tmp, 1, length(syntax_table$range[[i]]))
                 tmp <- str_match(c_tmp, value_list)
                 tmp <- tail(tmp[!is.na(tmp)], 1)
-            }  else if (i == 13) {
+            } else if (i == 13) {
                 value_list = dplyr::case_when(new_code[4] == "A" ~syntax_table$value_list[[i]][1],
                                               new_code[4] == "B" ~syntax_table$value_list[[i]][2],
                                               new_code[4] == "R" ~syntax_table$value_list[[i]][3],
@@ -128,9 +132,10 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                 tmp <- str_match(c_tmp, syntax_table$value_list[[i]])
                 tmp <- tail(tmp[!is.na(tmp)], 1)
             }
-
             if (length(tmp) > 0) {
                 cc_tmp <- str_remove(cc_tmp, tail(value_list[str_detect(tmp, value_list)], 1))
+            } else if (grepl("^~", cc_tmp)) {
+                cc_tmp <- substr(cc_tmp, 2, nchar(cc_tmp)) ## strip leading ~
             }
 
             if (i == 1 && length(tmp) == 0) tmp <- "*"
@@ -166,7 +171,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     tmp <- "~"
                 }
             }
-            
+
             if (tmp == "~") next
             if (str_count(tmp) == length(syntax_table$range[[i]])) {
                 ttmp <- unlist(str_split(tmp, ""))
@@ -197,7 +202,11 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                 cc_tmp1 <- str_to_upper(cc_tmp1)
                 cc_tmp2 <- str_to_upper(cc_tmp2)
             }
-
+            if (i == 2) {
+                ## if the code has been entered with single-digit player numbers that aren't zero-padded, need to zero pad
+                if (grepl("^[[:digit:]][^[:digit:]]", cc_tmp1)) cc_tmp1 <- str_c("0", cc_tmp1)
+                if (grepl("^[[:digit:]][^[:digit:]]", cc_tmp2)) cc_tmp2 <- str_c("0", cc_tmp2)
+            }
             if (i == 5) {
                 value_list1 = syntax_table$value_list[[i]]
                 value_list2 = syntax_table$value_list[[i]]
