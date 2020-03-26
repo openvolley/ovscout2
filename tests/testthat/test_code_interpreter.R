@@ -26,4 +26,7 @@ test_that("code interpretation works correctly", {
     check_code(ov_code_interpret("2X5#.15D"), c("*02AT#X5~4", "a15DT=")) ## but we can specify e.g. dig error.
     check_code(ov_code_interpret("2SQ1.5=4"), c("*02SQ#~~~14", "a05RQ=~~~14"))
     check_code(ov_code_interpret("2X5#5S"), "*02AT#X5~45~H~S") ## Include special syntax
+    check_code(ov_code_interpret("a6ETKP"), "a06ET+KP") ## Setting?
+    check_code(ov_code_interpret("2EHKPF4"), "*02EH+KPF4") ## Setting?
+    check_code(ov_code_interpret("2HK1"), "*02EH+K1") ## Setting?
 })
