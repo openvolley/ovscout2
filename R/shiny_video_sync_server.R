@@ -636,7 +636,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                         if (!changed1 && changed2) {
                             newcode <- newcode2
                             ## if we entered via the text box, then run this through the code parser
-                            newcode <- ov_code_interpret(newcode)
+                            newcode <- sub("~+$", "", ov_code_interpret(newcode))
                         } else if (!changed2 && changed1) {
                             newcode <- newcode1
                         } else if (!changed1 && !changed2) {
