@@ -59,11 +59,14 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                                    "Main code", "Skill", "mc_sk", 4, c("S", "R", "A", "B", "D", "E", "F"),           # 3
                                    "Main code", "Type", "mc_ty", 5, c("H", "M", "Q", "T", "U", "N", "O"),            # 4
                                    "Main code", "Evaluation", "mc_ev", 6, c("\\#", "\\+", "\\!", "\\/", "-", "\\="), # 5
-                                   "Advanced code", "Cmb/Call", "ac_cc", 7:8, c(paste0("K",0:9), "KM", "KP", attack_table$code), # 6
+                                   ##"Advanced code", "Cmb/Call", "ac_cc", 7:8, c(paste0("K",0:9), "KM", "KP", attack_table$code), # 6
+                                   ## use all possible valid setter calls and attack combos
+                                   "Advanced code", "Cmb/Call", "ac_cc", 7:8, c(paste0("K", c(0:9, toupper(letters))),
+                                                                                unlist(lapply(c("C", "I", "J", "L", "P", "V", "W", "X", "Y", "Z"), paste0, c(0:9)))), # 6
                                    "Advanced code", "Target attack", "ac_ta", 9, c("F", "C", "B", "P", "S"),         # 7
                                    "Advanced code", "Start zone", "ac_sz", 10, as.character(c(1:9)),                 # 8
                                    "Advanced code", "End zone / Cone", "ac_ez", 11, as.character(c(1:9)),            # 9
-                                   "Advanced code", "End subzone", "ac_es", 12, c("A", "B", "C", "D"),                  # 10
+                                   "Advanced code", "End subzone", "ac_es", 12, c("A", "B", "C", "D"),               # 10
                                    "Extended code", "Skill type", "ec_st", 13, list(c("H", "P", "T"),  # Attack
                                                                                     c("A","T"), # Block
                                                                                     c("L", "R", "W", "O", "M"), # Reception
