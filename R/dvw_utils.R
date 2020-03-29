@@ -1,8 +1,11 @@
 reparse_dvw <- function(x, dv_read_args = list()) {
     tf <- tempfile()
     on.exit(unlink(tf))
-    dv_write(x, tf)
+    ## dvw contents are UTF-8-converted during dv_read
+    ## make sure it's written as that
+    dv_write(x, tf, text_encoding = "UTF-8")
     dv_read_args$filename <- tf
+    dv_read_args$encoding <- "UTF-8" ## and now we don't need to guess encoding when re-reading
     out <- do.call(read_dv, dv_read_args)
     out$meta$filename <- x$meta$filename ## preserve this
     preprocess_dvw(out)
