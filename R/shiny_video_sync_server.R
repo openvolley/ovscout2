@@ -730,11 +730,13 @@ ov_shiny_video_sync_server <- function(app_data) {
                     } else if (editing$active %eq% "substitution"){
                         if(input$ht_inplayer != "" && input$ht_outplayer != ""){
                             teamSelect = datavolley::home_team(rdata$dvw)
-                            rdata$dvw <- dv_create_substitution(rdata$dvw, ridx, team = teamSelect, in_player = input$ht_inplayer, out_player = input$ht_outplayer)
+                            rdata$dvw <- dv_create_substitution(rdata$dvw, ridx, team = teamSelect, in_player = input$ht_inplayer, out_player = input$ht_outplayer, 
+                                                                new_setter = input$ht_new_setter)
                         }
                         if(input$vt_inplayer != "" && input$vt_outplayer != ""){
                             teamSelect = datavolley::visiting_team(rdata$dvw)
-                            rdata$dvw <- dv_create_substitution(rdata$dvw, ridx, team = teamSelect, in_player = input$vt_inplayer, out_player = input$vt_outplayer)
+                            rdata$dvw <- dv_create_substitution(rdata$dvw, ridx, team = teamSelect, in_player = input$vt_inplayer, out_player = input$vt_outplayer,
+                                                                new_setter = input$vt_new_setter)
                         }
                     }
                     do_reparse <- TRUE
@@ -790,7 +792,11 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                                   textInput("ht_outplayer", label = "OUT", placeholder = "OUT")),
                                                            column(1,
                                                                   tags$style("#ht_inplayer {border: 2px solid #168a52;}"),
-                                                                  textInput("ht_inplayer", label = "IN", placeholder = "IN"))),
+                                                                  textInput("ht_inplayer", label = "IN", placeholder = "IN")),
+                                                           column(2,
+                                                                  tags$style("#ht_new_setter {border: 2px solid #f5ed0c;}"),
+                                                                  textInput("ht_new_setter", label = "New Setter", placeholder = "NS"))
+                                                           ),
                                                        style = "background: #bfefff"
                                                    )
                                           ),
@@ -803,7 +809,11 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                                        textInput("vt_outplayer", label = "OUT", placeholder = "OUT")),
                                                                 column(1, 
                                                                        tags$style("#vt_inplayer {border: 2px solid #168a52;}"),
-                                                                       textInput("vt_inplayer", label = "IN", placeholder = "IN"))),
+                                                                       textInput("vt_inplayer", label = "IN", placeholder = "IN")),
+                                                                column(2,
+                                                                       tags$style("#vt_new_setter {border: 2px solid #f5ed0c;}"),
+                                                                       textInput("vt_new_setter", label = "New Setter", placeholder = "NS"))
+                                                                ),
                                                        style = "background: #bcee68"
                                                    )
                                           )
