@@ -622,26 +622,28 @@ ov_shiny_video_sync_server <- function(app_data) {
                    input$ht_P6 != "" && input$ht_libero != "" && input$ht_setter != ""){
                     team = datavolley::home_team(rdata$dvw)
                     setnumber = input$ht_set_number
+                    new_setter = input$ht_setter
                     new_rotation = c(input$ht_P1,input$ht_P2,input$ht_P3,input$ht_P4,input$ht_P5,input$ht_P6)
                     # Change meta data in terms of starting rotation
                     rdata$dvw$meta$players_h[,paste0("starting_position_set", setnumber)] <- match(rdata$dvw$meta$players_h$number, new_rotation)
                     # Change libero to "*" in meta
                     rdata$dvw$meta$players_h[rdata$dvw$meta$players_h$number %eq% input$ht_libero,paste0("starting_position_set", setnumber)] <- "*"
                     # Change in play rotation 
-                    rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation)
+                    rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation, new_setter)
                 }
                 if(input$vt_set_number != "" && input$vt_P1  != ""  && input$vt_P2 != "" &&
                    input$vt_P3 != "" &&  input$vt_P4 != "" && input$vt_P5 != "" && 
                    input$vt_P6 != "" && input$vt_libero != "" && input$vt_setter != ""){
                     team = datavolley::visiting_team(rdata$dvw)
                     setnumber = input$vt_set_number
+                    new_setter = input$vt_setter
                     new_rotation = c(input$vt_P1,input$vt_P2,input$vt_P3,input$vt_P4,input$vt_P5,input$vt_P6)
                     # Change meta data in terms of starting rotation
                     rdata$dvw$meta$players_v[,paste0("starting_position_set", setnumber)] <- match(rdata$dvw$meta$players_v$number, new_rotation)
                     # Change libero to "*" in meta
                     rdata$dvw$meta$players_v[rdata$dvw$meta$players_v$number %eq% input$vt_libero,paste0("starting_position_set", setnumber)] <- "*"
                     # Change in play rotation 
-                    rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation)
+                    rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation, new_setter)
                 }
                 do_reparse <- TRUE
             } else if (editing$active %eq% "delete all setting actions") {
@@ -768,6 +770,9 @@ ov_shiny_video_sync_server <- function(app_data) {
                                       actionButton("edit_commit", label = "Confirm delete code (or press Enter)")))
             }
         }
+        
+        # Create a substitution
+        
         insert_sub <- function() {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
@@ -776,23 +781,39 @@ ov_shiny_video_sync_server <- function(app_data) {
                 showModal(modalDialog(title = "Substitution", size = "l", footer = tags$div(actionButton("edit_commit", label = "Validate substitution"), actionButton("edit_cancel", label = "Cancel")),
                                       tabsetPanel(
                                           tabPanel("Home team",
-                                                   DT::dataTableOutput("ht_edit_team"),
+                                                   tags$style("#ht_display_team {border: 2px solid #bfefff;}"),
+                                                   DT::dataTableOutput("ht_display_team"),
                                                    wellPanel(
-                                                       fluidRow(column(1, textInput("ht_outplayer", label = "OUT", placeholder = "OUT")),
-                                                                column(1, textInput("ht_inplayer", label = "IN", placeholder = "IN")))
+                                                       fluidRow(
+                                                           column(1,
+                                                                  tags$style("#ht_outplayer {border: 2px solid #dd4b39;}"),
+                                                                  textInput("ht_outplayer", label = "OUT", placeholder = "OUT")),
+                                                           column(1,
+                                                                  tags$style("#ht_inplayer {border: 2px solid #168a52;}"),
+                                                                  textInput("ht_inplayer", label = "IN", placeholder = "IN"))),
+                                                       style = "background: #bfefff"
                                                    )
                                           ),
                                           tabPanel("Visiting team",
-                                                   DT::dataTableOutput("vt_edit_team"),
+                                                   tags$style("#vt_display_team {border: 2px solid #bcee68;}"),
+                                                   DT::dataTableOutput("vt_display_team"),
                                                    wellPanel(
-                                                       fluidRow(column(1, textInput("vt_outplayer", label = "OUT", placeholder = "OUT")),
-                                                                column(1, textInput("vt_inplayer", label = "IN", placeholder = "IN")))
+                                                       fluidRow(column(1, 
+                                                                       tags$style("#vt_outplayer {border: 2px solid #dd4b39;}"),
+                                                                       textInput("vt_outplayer", label = "OUT", placeholder = "OUT")),
+                                                                column(1, 
+                                                                       tags$style("#vt_inplayer {border: 2px solid #168a52;}"),
+                                                                       textInput("vt_inplayer", label = "IN", placeholder = "IN"))),
+                                                       style = "background: #bcee68"
                                                    )
                                           )
                                       )
                 ))
             }
         }
+        
+        # Insert setting
+        
         insert_setting_data_row <- function() {
             ridx_set <- dv_insert_sets_check(rdata$dvw, no_set_attacks = no_set_attacks)
             if (length(ridx_set) > 0) {
@@ -1017,6 +1038,18 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }, server = TRUE)
         ht_edit_team_proxy <- DT::dataTableProxy("ht_edit_team")
+        htdata_display <- reactiveVal(NULL)
+        output$ht_display_team <- DT::renderDataTable({
+            if (is.null(htdata_display())) htdata_display(rdata$dvw$meta$players_h)
+            if (!is.null(htdata_display())) {
+                cols_to_hide <- which(!names(htdata_display()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
+                cnames <- names(names_first_to_capital(htdata_display()))
+                DT::datatable(htdata_display(), rownames = FALSE, colnames = cnames, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
+            } else {
+                NULL
+            }
+        }, server = TRUE)
+        ht_display_team_proxy <- DT::dataTableProxy("ht_display_team")
         observeEvent(input$ht_edit_team_cell_edit, {
             info <- input$ht_edit_team_cell_edit
             isolate(temp <- htdata_edit())
@@ -1072,6 +1105,18 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }, server = TRUE)
         vt_edit_team_proxy <- DT::dataTableProxy("vt_edit_team")
+        vtdata_display <- reactiveVal(NULL)
+        output$vt_display_team <- DT::renderDataTable({
+            if (is.null(vtdata_display())) vtdata_display(rdata$dvw$meta$players_v)
+            if (!is.null(vtdata_display())) {
+                cols_to_hide <- which(!names(vtdata_display()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
+                cnames <- names(names_first_to_capital(vtdata_display()))
+                DT::datatable(vtdata_display(), rownames = FALSE, colnames = cnames, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
+            } else {
+                NULL
+            }
+        }, server = TRUE)
+        vt_display_team_proxy <- DT::dataTableProxy("vt_display_team")
         observeEvent(input$vt_edit_team_cell_edit, {
             info <- input$vt_edit_team_cell_edit
             isolate(temp <- vtdata_edit())
@@ -1125,7 +1170,8 @@ ov_shiny_video_sync_server <- function(app_data) {
             showModal(modalDialog(title = "Edit starting line up", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update teams lineups"), actionButton("edit_cancel", label = "Cancel")),
                                   tabsetPanel(
                                       tabPanel("Home team",
-                                               DT::dataTableOutput("ht_edit_team"),
+                                               tags$style("#ht_display_team {border: 2px solid #bfefff;}"),
+                                               DT::dataTableOutput("ht_display_team"),
                                                wellPanel(
                                                    fluidRow(
                                                        column(1, textInput("ht_set_number", label = "Set", placeholder = "Set number")),
@@ -1138,12 +1184,14 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                    fluidRow(
                                                        column(1, textInput("ht_setter", label = "Setter", placeholder = "Setter")),
                                                        column(1, textInput("ht_libero", label = "Libero", placeholder = "Libero"))
-                                                       )
+                                                       ),
+                                                   style = "background: #bfefff"
                                                ),
                                                uiOutput("ht_delete_player_ui")
                                       ),
                                       tabPanel("Visiting team",
-                                               DT::dataTableOutput("vt_edit_team"),
+                                               tags$style("#vt_display_team {border: 2px solid #bcee68;}"),
+                                               DT::dataTableOutput("vt_display_team"),
                                                wellPanel(
                                                    fluidRow(
                                                        column(1, textInput("vt_set_number", label = "Set", placeholder = "Set number")),
@@ -1156,7 +1204,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                    fluidRow(
                                                        column(1, textInput("vt_setter", label = "Setter", placeholder = "Setter")),
                                                        column(1, textInput("vt_libero", label = "Libero", placeholder = "Libero"))
-                                                   )
+                                                   ),
+                                                   style = "background: #bcee68"
                                                ),
                                                uiOutput("vt_delete_player_ui")
                                       )

@@ -87,3 +87,9 @@ rotations <- function(x, team, start_point_id, set_number, new_rotation = NULL){
     }
     return(list(current_rotation = x_tmp_wide, new_rotation = x_tmp_wide_new))
 }
+
+
+
+
+
+
