@@ -34,6 +34,19 @@ ov_shiny_video_sync_server <- function(app_data) {
                                         "special", 1,
                                         "custom", 5)
 
+        
+        lineup_bits_tbl <- dplyr::tribble(~bit, ~width,
+                                        "P1", 2,
+                                        "P2", 2,
+                                        "P3", 2,
+                                        "P4", 2,
+                                        "P5", 2,
+                                        "P6", 2)
+        
+        sub_bits_tbl <- dplyr::tribble(~bit, ~width,
+                                       "OUT", 2,
+                                       "IN", 2)
+        
         ## some local markup to make the helper entries easier here
         ## | = <br />
         ## {thing} = <strong>thing</strong>
@@ -385,6 +398,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                         } else if (mycmd %eq% "45") {
                             ## insert new row below current
                             insert_data_row()
+                        } else if(mycmd %eq% "83") {
+                            insert_sub_row()
                         } else if (mycmd %eq% "8") {
                             ## backspace
                         } else if (mycmd %eq% "46") {
@@ -450,6 +465,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                         } else if (ky %eq% "46" && is.null(editing$active)) {
                             ## delete current row
                             delete_data_row()
+                        } else if (ky %eq% "83" && is.null(editing$active)) {
+                            insert_sub()
                         } else if (ky %eq% "113" && isTRUE(app_data$config$insert_sets)) {
                             ## insert new setting actions
                             insert_setting_data_row()
@@ -529,6 +546,14 @@ ov_shiny_video_sync_server <- function(app_data) {
                 dojs(paste0("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById('", id, "'); el.selectionStart = 0; el.selectionEnd = el.value.length; el.focus(); });"))
             }
         }
+        focus_in_sub_entry <- function(id, highlight_all = TRUE) {
+            ## function to set the cursor focus to a particular entry box
+            if (!highlight_all) {
+                dojs(paste0("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById('", id, "'); el.selectionStart = el.selectionEnd = el.value.length; el.focus(); });"))
+            } else {
+                dojs(paste0("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById('", id, "'); el.selectionStart = 0; el.selectionEnd = el.value.length; el.focus(); });"))
+            }
+        }
         focus_to_element <- function(id, highlight_all = TRUE) {
             ## function to set the cursor focus to a particular entry box
             if (!highlight_all) {
@@ -587,6 +612,37 @@ ov_shiny_video_sync_server <- function(app_data) {
                 rdata$dvw$meta$match$match_number <- input$match_edit_match_number
                 rdata$dvw$meta$match$regulation <- input$match_edit_regulation
                 rdata$dvw$meta$match$zones_or_cones <- input$match_edit_zones_or_cones
+                do_reparse <- TRUE
+            } else if (editing$active %eq% "change starting lineup") {
+                
+                ## TODO: Change the setter inplay position if the setter has changed
+                
+                if(input$ht_set_number != "" && input$ht_P1  != ""  && input$ht_P2 != "" &&
+                   input$ht_P3 != "" &&  input$ht_P4 != "" && input$ht_P5 != "" && 
+                   input$ht_P6 != "" && input$ht_libero != "" && input$ht_setter != ""){
+                    team = home_team(rdata$dvw)
+                    setnumber = input$ht_set_number
+                    new_rotation = c(input$ht_P1,input$ht_P2,input$ht_P3,input$ht_P4,input$ht_P5,input$ht_P6)
+                    # Change meta data in terms of starting rotation
+                    rdata$dvw$meta$players_h[,paste0("starting_position_set", setnumber)] <- match(rdata$dvw$meta$players_h$number, new_rotation)
+                    # Change libero to "*" in meta
+                    rdata$dvw$meta$players_h[rdata$dvw$meta$players_h$number %eq% input$ht_libero,paste0("starting_position_set", setnumber)] <- "*"
+                    # Change in play rotation 
+                    rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation)
+                }
+                if(input$vt_set_number != "" && input$vt_P1  != ""  && input$vt_P2 != "" &&
+                   input$vt_P3 != "" &&  input$vt_P4 != "" && input$vt_P5 != "" && 
+                   input$vt_P6 != "" && input$vt_libero != "" && input$vt_setter != ""){
+                    team = visiting_team(rdata$dvw)
+                    setnumber = input$vt_set_number
+                    new_rotation = c(input$vt_P1,input$vt_P2,input$vt_P3,input$vt_P4,input$vt_P5,input$vt_P6)
+                    # Change meta data in terms of starting rotation
+                    rdata$dvw$meta$players_v[,paste0("starting_position_set", setnumber)] <- match(rdata$dvw$meta$players_v$number, new_rotation)
+                    # Change libero to "*" in meta
+                    rdata$dvw$meta$players_v[rdata$dvw$meta$players_v$number %eq% input$vt_libero,paste0("starting_position_set", setnumber)] <- "*"
+                    # Change in play rotation 
+                    rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation)
+                }
                 do_reparse <- TRUE
             } else if (editing$active %eq% "delete all setting actions") {
                 ridx <- dplyr::filter(mutate(rdata$dvw$plays, rowN = row_number()), .data$skill %eq% "Set" & !.data$evaluation %eq% "Error")$rowN
@@ -669,6 +725,15 @@ ov_shiny_video_sync_server <- function(app_data) {
                     } else if (editing$active %eq% "delete") {
                         if (is.logical(ridx)) ridx <- which(ridx)
                         rdata$dvw$plays <- rdata$dvw$plays[-ridx, ]
+                    } else if (editing$active %eq% "substitution"){
+                        if(input$ht_inplayer != "" && input$ht_outplayer != ""){
+                            teamSelect = home_team(rdata$dvw)
+                            rdata$dvw <- dv_create_substitution(rdata$dvw, ridx, team = teamSelect, in_player = input$ht_inplayer, out_player = input$ht_outplayer)
+                        }
+                        if(input$vt_inplayer != "" && input$vt_outplayer != ""){
+                            teamSelect = visiting_team(rdata$dvw)
+                            rdata$dvw <- dv_create_substitution(rdata$dvw, ridx, team = teamSelect, in_player = input$vt_inplayer, out_player = input$vt_outplayer)
+                        }
                     }
                     do_reparse <- TRUE
                 }
@@ -703,7 +768,31 @@ ov_shiny_video_sync_server <- function(app_data) {
                                       actionButton("edit_commit", label = "Confirm delete code (or press Enter)")))
             }
         }
-
+        insert_sub <- function() {
+            ridx <- input$playslist_rows_selected
+            if (!is.null(ridx)) {
+                if (ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
+                editing$active <- "substitution"
+                showModal(modalDialog(title = "Substitution", size = "l", footer = tags$div(actionButton("edit_commit", label = "Validate substitution"), actionButton("edit_cancel", label = "Cancel")),
+                                      tabsetPanel(
+                                          tabPanel("Home team",
+                                                   DT::dataTableOutput("ht_edit_team"),
+                                                   wellPanel(
+                                                       fluidRow(column(1, textInput("ht_outplayer", label = "OUT", placeholder = "OUT")),
+                                                                column(1, textInput("ht_inplayer", label = "IN", placeholder = "IN")))
+                                                   )
+                                          ),
+                                          tabPanel("Visiting team",
+                                                   DT::dataTableOutput("vt_edit_team"),
+                                                   wellPanel(
+                                                       fluidRow(column(1, textInput("vt_outplayer", label = "OUT", placeholder = "OUT")),
+                                                                column(1, textInput("vt_inplayer", label = "IN", placeholder = "IN")))
+                                                   )
+                                          )
+                                      )
+                ))
+            }
+        }
         insert_setting_data_row <- function() {
             ridx_set <- dv_insert_sets_check(rdata$dvw, no_set_attacks = no_set_attacks)
             if (length(ridx_set) > 0) {
@@ -725,7 +814,6 @@ ov_shiny_video_sync_server <- function(app_data) {
                                       actionButton("edit_commit", label = paste0("Confirm delete (", length(ridx), ") setting codes (or press Enter)"))))
             }
         }
-
         insert_dig_data_row <- function() {
             ridx_dig <- dv_insert_digs_check(rdata$dvw)
             if (length(ridx_dig) > 0) {
@@ -833,6 +921,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 cbitInput(bitstbl$bit[z], value = bitstbl$value[z], width = bitstbl$width[z], helper = if (is.function(bitstbl$helper[[z]])) uiOutput(paste0("code_entry_helper_", bitstbl$bit[z], "_ui")) else HTML(bitstbl$helper[[z]]))
             })))
         }
+        
         ## the helpers that are defined as functions in code_bits_tbl are dynamic, they depend on skill/evaluation
         ## ADD HANDLERS HERE
         output$code_entry_helper_skill_type_ui <- renderUI({
@@ -1026,6 +1115,55 @@ ov_shiny_video_sync_server <- function(app_data) {
                 })
             }
         })
+        
+        
+        ## starting line up editing
+        observeEvent(input$edit_lineup_button, {
+            editing$active <- "change starting lineup"
+            htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
+            vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
+            showModal(modalDialog(title = "Edit starting line up", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update teams lineups"), actionButton("edit_cancel", label = "Cancel")),
+                                  tabsetPanel(
+                                      tabPanel("Home team",
+                                               DT::dataTableOutput("ht_edit_team"),
+                                               wellPanel(
+                                                   fluidRow(
+                                                       column(1, textInput("ht_set_number", label = "Set", placeholder = "Set number")),
+                                                       column(1, textInput("ht_P1", label = "P1", placeholder = "P1")),
+                                                       column(1, textInput("ht_P2", label = "P2", placeholder = "P2")),
+                                                       column(1, textInput("ht_P3", label = "P3", placeholder = "P3")),
+                                                       column(1, textInput("ht_P4", label = "P4", placeholder = "P4")),
+                                                       column(1, textInput("ht_P5", label = "P5", placeholder = "P5")),
+                                                       column(1, textInput("ht_P6", label = "P6", placeholder = "P6"))),
+                                                   fluidRow(
+                                                       column(1, textInput("ht_setter", label = "Setter", placeholder = "Setter")),
+                                                       column(1, textInput("ht_libero", label = "Libero", placeholder = "Libero"))
+                                                       )
+                                               ),
+                                               uiOutput("ht_delete_player_ui")
+                                      ),
+                                      tabPanel("Visiting team",
+                                               DT::dataTableOutput("vt_edit_team"),
+                                               wellPanel(
+                                                   fluidRow(
+                                                       column(1, textInput("vt_set_number", label = "Set", placeholder = "Set number")),
+                                                       column(1, textInput("vt_P1", label = "P1", placeholder = "P1")),
+                                                       column(1, textInput("vt_P2", label = "P2", placeholder = "P2")),
+                                                       column(1, textInput("vt_P3", label = "P3", placeholder = "P3")),
+                                                       column(1, textInput("vt_P4", label = "P4", placeholder = "P4")),
+                                                       column(1, textInput("vt_P5", label = "P5", placeholder = "P5")),
+                                                       column(1, textInput("vt_P6", label = "P6", placeholder = "P6"))),
+                                                   fluidRow(
+                                                       column(1, textInput("vt_setter", label = "Setter", placeholder = "Setter")),
+                                                       column(1, textInput("vt_libero", label = "Libero", placeholder = "Libero"))
+                                                   )
+                                               ),
+                                               uiOutput("vt_delete_player_ui")
+                                      )
+                                  )
+            ))
+        })
+        
         ## court inset showing rotation and team lists
         callModule(mod_courtrot, id = "courtrot", rdata = rdata, rowidx = reactive(input$playslist_rows_selected), styling = styling)
     }
