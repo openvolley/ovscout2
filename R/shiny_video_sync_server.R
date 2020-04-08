@@ -399,7 +399,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                             ## insert new row below current
                             insert_data_row()
                         } else if(mycmd %eq% "83") {
-                            insert_sub_row()
+                            insert_sub()
                         } else if (mycmd %eq% "8") {
                             ## backspace
                         } else if (mycmd %eq% "46") {
@@ -620,7 +620,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 if(input$ht_set_number != "" && input$ht_P1  != ""  && input$ht_P2 != "" &&
                    input$ht_P3 != "" &&  input$ht_P4 != "" && input$ht_P5 != "" && 
                    input$ht_P6 != "" && input$ht_libero != "" && input$ht_setter != ""){
-                    team = home_team(rdata$dvw)
+                    team = datavolley::home_team(rdata$dvw)
                     setnumber = input$ht_set_number
                     new_rotation = c(input$ht_P1,input$ht_P2,input$ht_P3,input$ht_P4,input$ht_P5,input$ht_P6)
                     # Change meta data in terms of starting rotation
@@ -633,7 +633,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 if(input$vt_set_number != "" && input$vt_P1  != ""  && input$vt_P2 != "" &&
                    input$vt_P3 != "" &&  input$vt_P4 != "" && input$vt_P5 != "" && 
                    input$vt_P6 != "" && input$vt_libero != "" && input$vt_setter != ""){
-                    team = visiting_team(rdata$dvw)
+                    team = datavolley::visiting_team(rdata$dvw)
                     setnumber = input$vt_set_number
                     new_rotation = c(input$vt_P1,input$vt_P2,input$vt_P3,input$vt_P4,input$vt_P5,input$vt_P6)
                     # Change meta data in terms of starting rotation
@@ -727,11 +727,11 @@ ov_shiny_video_sync_server <- function(app_data) {
                         rdata$dvw$plays <- rdata$dvw$plays[-ridx, ]
                     } else if (editing$active %eq% "substitution"){
                         if(input$ht_inplayer != "" && input$ht_outplayer != ""){
-                            teamSelect = home_team(rdata$dvw)
+                            teamSelect = datavolley::home_team(rdata$dvw)
                             rdata$dvw <- dv_create_substitution(rdata$dvw, ridx, team = teamSelect, in_player = input$ht_inplayer, out_player = input$ht_outplayer)
                         }
                         if(input$vt_inplayer != "" && input$vt_outplayer != ""){
-                            teamSelect = visiting_team(rdata$dvw)
+                            teamSelect = datavolley::visiting_team(rdata$dvw)
                             rdata$dvw <- dv_create_substitution(rdata$dvw, ridx, team = teamSelect, in_player = input$vt_inplayer, out_player = input$vt_outplayer)
                         }
                     }

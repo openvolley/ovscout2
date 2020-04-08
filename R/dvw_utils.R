@@ -148,7 +148,7 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
                              set_number = current_set_number, new_rotation = new_rotation)
     
     toreplace <- dvw$plays[dvw$plays$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)]
-    new_xx <- dplyr::left_join(dplyr::select(toreplace, point_id), changedRows$new_rotation, by = "point_id")
+    new_xx <- dplyr::left_join(dplyr::select(toreplace, 'point_id'), changedRows$new_rotation, by = "point_id")
     
     # THe first row of toreplace, which is the rotation line, is kept
     
@@ -158,8 +158,8 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
     
     ## Add one row for substitution
     
-    if (!grepl("^[[:digit:]]^[[:digit:]]", in_player)) in_player <- stringr::str_c("0", in_player)
-    if (!grepl("^[[:digit:]]^[[:digit:]]", out_player)) out_player <- stringr::str_c("0", out_player)
+    if (!grepl("^[[:digit:]][[:digit:]]", in_player)) in_player <- stringr::str_c("0", in_player)
+    if (!grepl("^[[:digit:]][[:digit:]]", out_player)) out_player <- stringr::str_c("0", out_player)
     
     new_row = dvw$plays[dvw$plays$point_id %eq% current_point_id,][1,]
     new_row[new_row$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)] <- new_xx[2,]
@@ -169,7 +169,7 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
     
     new_row$file_line_number = new_row$file_line_number + 1
     
-    dvw$plays =  dplyr::arrange(dplyr::bind_rows(dvw$plays, new_row), file_line_number)
+    dvw$plays =  dplyr::arrange(dplyr::bind_rows(dvw$plays, new_row), 'file_line_number')
     
     return(dvw)
 }
@@ -178,7 +178,7 @@ dv_change_startinglineup <- function(dvw, team, setnumber, new_rotation = NULL){
     selectTeam = team
     changedRows <- rotations(dvw, team = selectTeam, set_number = setnumber, new_rotation = new_rotation)
     toreplace <- dvw$plays[dvw$plays$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)]
-    new_xx <- dplyr::left_join(dplyr::select(toreplace, point_id), changedRows$new_rotation, by = "point_id")
+    new_xx <- dplyr::left_join(dplyr::select(toreplace, 'point_id'), changedRows$new_rotation, by = "point_id")
     dvw$plays[dvw$plays$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)] <- new_xx
     return(dvw)
 }

@@ -11,9 +11,11 @@ rotations(x, team, start_point_id, set_number, new_rotation = NULL)
 
 \item{team}{string: team name}
 
-\item{new_rotation}{vector: vector of player number, positionned from 1 to 6.}
+\item{start_point_id}{vector: vector of pointids for which to return the rotation}
 
-\item{point_ids}{vector: vector of pointids for which to return the rotation}
+\item{set_number}{value: Set number}
+
+\item{new_rotation}{vector: vector of player number, positionned from 1 to 6.}
 }
 \value{
 list of 2 data.frames. Current data.frame, without changes, and updated data.frame, with new player rotation.
@@ -25,12 +27,6 @@ Get team rotations point by point
 \dontrun{
   x <- read_dv(dv_example_file(), insert_technical_timeouts=FALSE)
   new_x <- rotations(x, start_point_id = 25, new_rotation = c(9,6,15,4,12,7))
-  
-  toreplace <- x$plays[x$plays$point_id \%in\% new_x$new_rotation$point_id, colnames(new_x$new_rotation)]
-  new_xx <- dplyr::left_join(dplyr::select(toreplace, point_id), new_x$new_rotation)
-  
-  x$plays[x$plays$point_id \%in\% new_x$new_rotation$point_id, colnames(new_x$new_rotation)] <- new_xx
-  
 }
 }
 \seealso{

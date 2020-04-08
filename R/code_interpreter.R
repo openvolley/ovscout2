@@ -94,7 +94,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
             if (i > 1) cc_tmp <- str_to_upper(cc_tmp)
             if (i == 2) {
                 ## if the code has been entered with single-digit player numbers that aren't zero-padded, need to zero pad
-                if (!grepl("^[[:digit:]]^[[:digit:]]", cc_tmp)) cc_tmp <- str_c("0", cc_tmp)
+                if (grepl("^[[:digit:]][^[:digit:]]", cc_tmp)) cc_tmp <- str_c("0", cc_tmp)
             }
             if (i == 5) {
                 ## Eval code can be located pretty much anywhere, cause its syntax is so specific, and people, you know...
@@ -207,8 +207,8 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
             }
             if (i == 2) {
                 ## if the code has been entered with single-digit player numbers that aren't zero-padded, need to zero pad
-                if (!grepl("^[[:digit:]]^[[:digit:]]", cc_tmp1)) cc_tmp1 <- str_c("0", cc_tmp1)
-                if (!grepl("^[[:digit:]]^[[:digit:]]", cc_tmp2)) cc_tmp2 <- str_c("0", cc_tmp2)
+                if (grepl("^[[:digit:]][^[:digit:]]", cc_tmp1)) cc_tmp1 <- str_c("0", cc_tmp1)
+                if (grepl("^[[:digit:]][^[:digit:]]", cc_tmp2)) cc_tmp2 <- str_c("0", cc_tmp2)
             }
             if (i == 5) {
                 value_list1 = syntax_table$value_list[[i]]
