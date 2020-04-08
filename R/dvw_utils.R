@@ -169,7 +169,7 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
     
     new_row$file_line_number = new_row$file_line_number + 1
     
-    dvw$plays =  dplyr::arrange(dplyr::bind_rows(dvw$plays, new_row), file_line_number)
+    dvw$plays =  dplyr::arrange(dplyr::bind_rows(dvw$plays, new_row), .data$file_line_number)
     
     # If the substitution leads to a change of setter:
     if(new_setter != ""){
@@ -213,7 +213,7 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
         
         new_row$file_line_number = new_row$file_line_number + 1
         
-        dvw$plays =  dplyr::arrange(dplyr::bind_rows(dvw$plays, new_row), file_line_number)
+        dvw$plays =  dplyr::arrange(dplyr::bind_rows(dvw$plays, new_row), .data$file_line_number)
         
     }
     

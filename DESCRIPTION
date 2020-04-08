@@ -20,12 +20,15 @@ Imports:
     htmltools,
     lubridate,
     ovideo (>= 0.0.5),
+    rlang,
     servr (>= 0.15.1),
     shiny,
     shinyjs,
     shinyTime,
     stringr,
     sys,
+    tidyr,
+    tidyselect,
     uuid
 Suggests:
     testthat
