@@ -122,6 +122,16 @@ dv_insert_digs <- function(dvw, ridx = NULL) {
     dvw
 }
 
+
+# Test:
+# dvw <- datavolley::read_dv("/home/ick003/Documents/Donnees/VolleyBall/GameDatasets/Southern League 2020 Womens (Datavolley)/& State U18 Women-Zuno Women.dvw")
+# ridx <- 11
+# team = datavolley::home_team(dvw)
+# in_player = 7
+# out_player = 16
+# new_setter = 7
+# dv_create_substitution(dvw, team, ridx, in_player, out_player, new_setter)
+
 dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NULL, out_player = NULL, new_setter = NULL){
     current_point_id <- dvw$plays$point_id[ridx]
     current_set_number <- dvw$plays$set_number[ridx]
@@ -152,7 +162,7 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
     
     # THe first row of toreplace, which is the rotation line, is kept
     
-    new_xx[1,] <- toreplace[1,]
+    #new_xx[1,]<- toreplace[1,]
     
     dvw$plays[dvw$plays$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)] <- new_xx
     
@@ -197,10 +207,10 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
         new_code_v = stringr::str_replace(dvw$plays$code[row2change][idxvz], "[[:digit:]]", as.character(dvw$plays$visiting_setter_position[row2change][idxvz]))
 
         idxhz = grepl("\\*z[[:digit:]]", dvw$plays$code[row2change])
-        new_code_h = stringr::str_replace(dvw$plays$code[row2change][idxhz], "[[:digit:]]", as.character(dvw$plays$visiting_setter_position[row2change][idxhz]))
+        new_code_h = stringr::str_replace(dvw$plays$code[row2change][idxhz], "[[:digit:]]", as.character(dvw$plays$home_setter_position[row2change][idxhz]))
 
-        dvw$plays$code[row2change][idxvz] <- new_code_v
-        dvw$plays$code[row2change][idxhz] <- new_code_h
+        if(teamSelect %eq% datavolley::visiting_team(dvw)){ dvw$plays$code[row2change][idxvz] <- new_code_v }
+        if(teamSelect %eq% datavolley::home_team(dvw)){ dvw$plays$code[row2change][idxhz] <- new_code_h }
         
         # Setter declaration
         

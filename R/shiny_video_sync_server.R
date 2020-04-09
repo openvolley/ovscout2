@@ -775,7 +775,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         
         # Create a substitution
         
-        insert_sub <- function() {
+        insert_sub_old <- function() {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
                 if (ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
@@ -822,6 +822,86 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }
         
+        insert_sub <- function() {
+            ridx <- input$playslist_rows_selected
+            if (!is.null(ridx)) {
+                if (ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
+                editing$active <- "substitution"
+                showModal(modalDialog(title = "Substitution", size = "l", footer = tags$div(actionButton("edit_commit", label = "Validate substitution"), actionButton("edit_cancel", label = "Cancel")),
+                                      wellPanel(
+                                          fluidRow(class = "ht_roster_court_vt_roster",
+                                              column(3,id = "hroster", uiOutput("htroster")),
+                                              column(6,plotOutput("court_inset", height = "200px")),
+                                              column(3, id = "vroster", uiOutput("vtroster"))),
+                                          fluidRow(class = "ht_sub_vt_sub",
+                                              column(1,id = "hroster",
+                                                     tags$style("#ht_outplayer {border: 2px solid #dd4b39;}"),
+                                                     textInput("ht_outplayer", label = "OUT", placeholder = "OUT")),
+                                              column(1,id = "hroster",
+                                                     tags$style("#ht_inplayer {border: 2px solid #168a52;}"),
+                                                     textInput("ht_inplayer", label = "IN", placeholder = "IN")),
+                                              column(2,id = "hroster",
+                                                     tags$style("#ht_new_setter {border: 2px solid #f5ed0c;}"),
+                                                     textInput("ht_new_setter", label = "New Setter", placeholder = "NS")),
+                                              column(4),
+                                              column(2,id = "vroster",
+                                                     tags$style("#vt_new_setter {border: 2px solid #f5ed0c;}"),
+                                                     textInput("vt_new_setter", label = "New Setter", placeholder = "NS")),
+                                              column(1, id = "vroster",
+                                                     tags$style("#vt_inplayer {border: 2px solid #168a52;}"),
+                                                     textInput("vt_inplayer", label = "IN", placeholder = "IN")),
+                                              column(1, id = "vroster",
+                                                     tags$style("#vt_outplayer {border: 2px solid #dd4b39;}"),
+                                                     textInput("vt_outplayer", label = "OUT", placeholder = "OUT")))
+                                      )
+                )
+                )
+            }
+        }
+        
+        output$htroster <- renderUI({
+            re <- names2roster(rdata$dvw$meta$players_h)
+            do.call(tags$div, c(list(tags$strong("Home team"), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+        })
+        output$vtroster <- renderUI({
+            re <- names2roster(rdata$dvw$meta$players_v)
+            do.call(tags$div, c(list(tags$strong("Visiting team"), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+        })
+        output$court_inset <- renderPlot({
+            p <- ggplot(data = data.frame(x = c(-0.25, 4.25, 4.25, -0.25), y = c(-0.25, -0.25, 7.25, 7.25)), mapping = aes_string("x", "y")) +
+                geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour) +
+                geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour) +
+                ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
+            ridx <- input$playslist_rows_selected
+            if (!is.null(ridx)) {
+                this_pn <- rdata$dvw$plays$player_number[ridx] ## player in the selected row
+                htrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("home_player_id", 1:6)]), team_id = rdata$dvw$plays$home_team_id[ridx])
+                htrot <- dplyr::left_join(htrot, rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "player_id")
+                vtrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("visiting_player_id", 1:6)]), team_id = rdata$dvw$plays$visiting_team_id[ridx])
+                vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "player_id")
+                plxy <- cbind(dv_xy(1:6, end = "lower"), htrot)
+                plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("home_p", 1:6)]) ## the on-court player numbers in the play-by-play data
+                ## player names and circles
+                ## home team
+                p <- p + geom_polygon(data = court_circle(cz = 1:6, end = "lower"), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight)
+                ## highlighted player
+                if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$home_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
+                    p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "lower"), fill = "yellow", colour = "black")
+                }
+                p <- p + geom_text(data = plxy, aes_string("x", "y", label = "court_num"), size = 6, fontface = "bold", vjust = 0) +
+                    geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+                ## visiting team
+                plxy <- cbind(dv_xy(1:6, end = "upper"), vtrot)
+                plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("visiting_p", 1:6)]) ## the on-court player numbers in the play-by-play data
+                p <- p + geom_polygon(data = court_circle(cz = 1:6, end = "upper"), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight)
+                if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$visiting_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
+                    p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "upper"), fill = "yellow", colour = "black")
+                }
+                p <- p + geom_text(data = plxy, aes_string("x", "y", label = "court_num"), size = 6, fontface = "bold", vjust = 0) +
+                    geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)  + coord_flip()
+            }
+            p
+        })
         # Insert setting
         
         insert_setting_data_row <- function() {

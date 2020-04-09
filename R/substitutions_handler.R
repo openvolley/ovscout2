@@ -33,7 +33,9 @@ rotations <- function(x, team, start_point_id, set_number, new_rotation = NULL){
     # Point id may not uniquely identify rotation, because substitutions will affect a point id as well. So we need to create our own unique ids. 
     # Say, when the skill is equal to serve, or Timeout
     
-    if(teamSelect == datavolley::home_team(x)) x_tmp = dplyr::distinct(dplyr::filter(dplyr::select(x$plays, 'point_id','skill', tidyselect::starts_with("home_player_id")), .data$point_id %in% point_ids, .data$skill %in% c("Serve", "Timeout")))
+    x$plays$skill[grepl("z[[:digit:]]",x$plays$code)] <- "Rotation"
+    
+    if(teamSelect == datavolley::home_team(x)) x_tmp = dplyr::distinct(dplyr::select(dplyr::filter(dplyr::select(x$plays, 'point_id','skill',tidyselect::starts_with("home_player_id")), .data$point_id %in% point_ids, .data$skill %in% c("Serve", "Timeout", "Rotation")), 'point_id', tidyselect::starts_with("home_player_id")))
     
     if(teamSelect == datavolley::visiting_team(x)) x_tmp = dplyr::distinct(dplyr::filter(dplyr::select(x$plays, 'point_id', 'skill', tidyselect::starts_with("visiting_player_id")), .data$point_id %in% point_ids, .data$skill %in% c("Serve", "Timeout")))
     
@@ -50,7 +52,7 @@ rotations <- function(x, team, start_point_id, set_number, new_rotation = NULL){
         x_tmp_wide <- tidyr::pivot_wider(x_tmp_long,id_cols = "point_id", names_from = "position", values_from = c("home_player_id","home_p"), names_sep = "")
     }
     if(teamSelect == datavolley::visiting_team(x)){
-        x_tmp_long <- dplyr::left_join(x_tmp_long, dplyr::rename(dplyr::select(player_table, rlang::.data$number, rlang::.data$player_id), "visiting_p" = "number", "visiting_player_id" = "player_id"), by = "visiting_player_id")
+        x_tmp_long <- dplyr::left_join(x_tmp_long, dplyr::rename(dplyr::select(player_table, 'number', 'player_id'), "visiting_p" = "number", "visiting_player_id" = "player_id"), by = "visiting_player_id")
         x_tmp_wide <- tidyr::pivot_wider(x_tmp_long,id_cols = "point_id", names_from = "position", values_from = c("visiting_player_id","visiting_p"), names_sep = "")
     }
     x_tmp_wide_new = NULL
@@ -80,9 +82,9 @@ rotations <- function(x, team, start_point_id, set_number, new_rotation = NULL){
             }
             x_tmp_long$new_p <- stringr::str_replace_all(x_tmp_long$visiting_p, starting_rotation, replaceRot)
             x_tmp_long$new_p <- as.numeric(x_tmp_long$new_p)
-            x_tmp_long_new <- dplyr::rename(dplyr::select(dplyr::left_join(x_tmp_long, dplyr::select('player_table','number', 'player_id'), by = c("new_p" = "number")),
-                                                          'point_id', 'position', 'new_p', 'player_id'), "home_p" = "new_p", "visiting_player_id" = "player_id")
-            x_tmp_wide_new <- tidyr::pivot_wider(x_tmp_long_new,id_cols = "point_id", names_from = "position", values_from = c("visiting_player_id","home_p"), names_sep = "")
+            x_tmp_long_new <- dplyr::rename(dplyr::select(dplyr::left_join(x_tmp_long, dplyr::select(player_table,'number', 'player_id'), by = c("new_p" = "number")),
+                                                          'point_id', 'position', 'new_p', 'player_id'), "visiting_p" = "new_p", "visiting_player_id" = "player_id")
+            x_tmp_wide_new <- tidyr::pivot_wider(x_tmp_long_new,id_cols = "point_id", names_from = "position", values_from = c("visiting_player_id","visiting_p"), names_sep = "")
         }
     }
     return(list(current_rotation = x_tmp_wide, new_rotation = x_tmp_wide_new))
