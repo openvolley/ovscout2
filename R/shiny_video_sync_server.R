@@ -450,16 +450,16 @@ ov_shiny_video_sync_server <- function(app_data) {
                         } else if (ky %eq% "46" && is.null(editing$active)) {
                             ## delete current row
                             delete_data_row()
-                        } else if (ky %eq% "113" && isTRUE(app_data$config$insert_sets)) {
+                        } else if (ky %eq% "113") {
                             ## insert new setting actions
                             insert_setting_data_row()
-                        }  else if (ky %eq% "115" && isTRUE(app_data$config$insert_sets)) {
+                        }  else if (ky %eq% "115") {
                             ## delete all setting actions
                             delete_setting_data_row()
-                        }  else if (ky %eq% "117" && isTRUE(app_data$config$insert_digs)) {
+                        }  else if (ky %eq% "117") {
                             ## insert new digging actions
                             insert_dig_data_row()
-                        }  else if (ky %eq% "119" && isTRUE(app_data$config$insert_digs)) {
+                        }  else if (ky %eq% "119") {
                             ## delete all digging actions
                             delete_dig_data_row()
                         } else if (ky %eq% "37") {
