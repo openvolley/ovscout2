@@ -111,6 +111,22 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         })
 
+        observeEvent(input$show_shortcuts, {
+            showModal(modalDialog(title = "Keyboard shortcuts", easyClose = TRUE, size = "l",
+                                  tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")),
+                                  tags$p(tags$strong("Keyboard controls")), tags$ul(tags$li("[r or 5] sync selected event video time"),
+                                                                                    tags$li("[i or 8] move to previous skill row"),
+                                                                                    tags$li("[k or 2] move to next skill row"),
+                                                                                    tags$li("[e or E] edit current code"),
+                                                                                    tags$li("[del] delete current code"),
+                                                                                    tags$li("[ins] insert new code above current"),
+                                                                                    tags$li("[F2] insert setting codes before every attack"),
+                                                                                    tags$li("[F4] delete all setting codes (except errors)"),
+                                                                                    tags$li("[F6] insert digging codes after every attack"),
+                                                                                    tags$li("[F8] delete all digging codes")
+                                                                                    )))
+        })
+
         observeEvent(input$all_video_from_clock, {
             current_video_time <- selected_event()$video_time
             current_clock_time <- selected_event()$time
