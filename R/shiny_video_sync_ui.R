@@ -27,7 +27,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
         onStop(function() try({ lighttpd_cleanup() }, silent = TRUE))
     } else {
         ## start servr instance serving from the video source directory
-        servr::httd(dir = dirname(video_src), port = video_server_port, browser = FALSE)
+        blah <- servr::httd(dir = dirname(video_src), port = video_server_port, browser = FALSE, daemon = TRUE)
         onStop(function() {
             message("cleaning up servr")
             servr::daemon_stop()
