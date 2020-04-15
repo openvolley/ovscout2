@@ -10,12 +10,10 @@ ov_shiny_video_sync_ui <- function(app_data) {
 
     have_lighttpd <- FALSE
     video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001
-    if (.Platform$OS.type == "unix") {
-        tryCatch({
-            chk <- sys::exec_internal("lighttpd", "-version")
-            have_lighttpd <- TRUE
-        }, error = function(e) warning("could not find the lighttpd executable, install it with e.g. 'apt install lighttpd'. Using \"servr\" video option"))
-    }
+    tryCatch({
+        chk <- sys::exec_internal("lighttpd", "-version")
+        have_lighttpd <- TRUE
+    }, error = function(e) warning("could not find the lighttpd executable, install it with e.g. 'apt install lighttpd' on Ubuntu/Debian or from http://lighttpd.dtech.hu/ on Windows. Using \"servr\" video option"))
     video_serve_method <- if (have_lighttpd) "lighttpd" else "servr"
     if (video_serve_method == "lighttpd") {
         ## build config file to pass to lighttpd
@@ -29,7 +27,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
         onStop(function() try({ lighttpd_cleanup() }, silent = TRUE))
     } else {
         ## start servr instance serving from the video source directory
-        servr::httd(dir = dirname(video_src), port = video_server_port)
+        servr::httd(dir = dirname(video_src), port = video_server_port, browser = FALSE)
         onStop(function() {
             message("cleaning up servr")
             servr::daemon_stop()
