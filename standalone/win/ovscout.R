@@ -62,7 +62,7 @@ have_lighttpd <- tryCatch({
     chk <- sys::exec_internal("lighttpd", "-version")
     TRUE
 }, error = function(e) FALSE)
-lhpath <- fs::path_real(fs::path(mypath, "lighttpd"))
+lhpath <- fs::path_real(fs::path(Rlibpath, "lighttpd"))
 if (!have_lighttpd && dir.exists(lhpath)) {
     Sys.setenv(path = paste0(lhpath, ";", Sys.getenv("path")))
 }
