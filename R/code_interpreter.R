@@ -83,7 +83,9 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                                    "Custom code", "Custom", "cc_cu", 16:20, c(LETTERS, as.character(c(1:9)))                     # 14
                                    )
     blank_code <- str_c(rep("~", 20))
-    if (!str_detect(c, "\\.")) {
+    if(str_detect(c, "~")){
+        paste0(c, paste0(rep("~", 20 - nchar(c)), collapse=""), collapse = "")
+    } else if (!str_detect(c, "\\.")) {
         ## no compound code
         new_code <- blank_code
         ## Reading from left to right

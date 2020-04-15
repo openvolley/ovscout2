@@ -159,6 +159,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             ))
         })
 
+        
         ## video/clock time sync functions
         observe({
             if (isTruthy(input$infer_all_video_from_current) || isTruthy(input$infer_missing_video_from_current)) {
@@ -172,7 +173,9 @@ ov_shiny_video_sync_server <- function(app_data) {
                     clock_time_diff <- difftime(rdata$dvw$plays$time, this_clock_time, units = "secs")
                     midx <- if (isTruthy(input$infer_all_video_from_current)) rep(TRUE, nrow(rdata$dvw$plays)) else is.na(rdata$dvw$plays$video_time)
                     new_video_time <- this_video_time + clock_time_diff[midx]
-                    rdata$dvw$plays$video_time[midx] <- round(new_video_time, digits = input$video_time_decimal_places)
+                    # Only update video time of events happening after current event
+                    cidx <- which(clock_time_diff[midx] >= 0)
+                    rdata$dvw$plays$video_time[midx][cidx] <- round(new_video_time[cidx], digits = input$video_time_decimal_places)
                 })
             }
         })
@@ -187,7 +190,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                     }
                     video_time_diff <- rdata$dvw$plays$video_time - this_video_time
                     midx <- if (isTruthy(input$infer_all_clock_from_current)) rep(TRUE, nrow(rdata$dvw$plays)) else is.na(rdata$dvw$plays$time)
-                    rdata$dvw$plays$time[midx] <- this_time + video_time_diff[midx]
+                    new_clock_time <- this_time + video_time_diff[midx]
+                    # Only update clock time of events happening after current event
+                    cidx <- which(video_time_diff[midx] >= 0)
+                    rdata$dvw$plays$time[midx][cidx] <- new_clock_time[cidx]
                 })
             }
         })
@@ -211,9 +217,12 @@ ov_shiny_video_sync_server <- function(app_data) {
                 ##cat("x time: "); cat(str(rdata$dvw$plays$time))
                 tm <- input$selected_clocktime
                 ##cat("time:"); cat(str(tm))
-                if (inherits(rdata$dvw$plays$time, "POSIXct")) tm <- as.POSIXct(tm, tz = lubridate::tz(rdata$dvw$plays$time))
+                ##cat("Original time:"); cat(str(rdata$dvw$plays$time[ridx]))
+                tm = as.POSIXct(paste(format(rdata$dvw$plays$time[ridx], "%Y-%m-%d"), format(tm, "%H:%M:%S")))
+                if (inherits(rdata$dvw$plays$time[ridx], "POSIXct")) tm <- as.POSIXct(tm, tz = lubridate::tz(rdata$dvw$plays$time[ridx]))
                 ##cat("time cast:"); cat(str(tm))
                 rdata$dvw$plays$time[ridx] <- tm
+                ##cat("rdata time:"); cat(str(rdata$dvw$plays$time[ridx]))
             }
         })
 
@@ -614,8 +623,6 @@ ov_shiny_video_sync_server <- function(app_data) {
                 rdata$dvw$meta$match$zones_or_cones <- input$match_edit_zones_or_cones
                 do_reparse <- TRUE
             } else if (editing$active %eq% "change starting lineup") {
-                
-                ## TODO: Change the setter inplay position if the setter has changed
                 
                 if(input$ht_set_number != "" && input$ht_P1  != ""  && input$ht_P2 != "" &&
                    input$ht_P3 != "" &&  input$ht_P4 != "" && input$ht_P5 != "" && 
@@ -1305,5 +1312,94 @@ ov_shiny_video_sync_server <- function(app_data) {
         
         ## court inset showing rotation and team lists
         callModule(mod_courtrot, id = "courtrot", rdata = rdata, rowidx = reactive(input$playslist_rows_selected), styling = styling)
+        
+        # General help
+        observeEvent(input$general_help,
+                     introjs(session, options = list("nextLabel"="Next",
+                                                     "prevLabel"="Previous",
+                                                     "skipLabel"="Skip")
+                     )
+        )
+        
+        # Scouting Help
+        
+        observeEvent(input$ovscout_helper, {
+            
+            showModal(modalDialog(
+                title = "Controls helper",
+                easyClose = TRUE, size = "l",
+                    tags$div(tags$h4("Video controls:"),
+                             fluidRow(
+                                 column(2, actionButton("do_nothing", label = "m"), "or", actionButton("do_nothing", label = "3")),
+                                 column(8, tags$strong("Forward 0.1s"), "")
+                                      ),
+                             fluidRow(
+                                 column(2, actionButton("do_nothing", label = "l"), "or", actionButton("do_nothing", label = "6")),
+                                 column(8, tags$strong("Forward 2s"), "")
+                             ),
+                             fluidRow(
+                                 column(2, actionButton("do_nothing", label = ";"), "or", actionButton("do_nothing", label = "^")),
+                                 column(8, tags$strong("Forward 10s"), "")
+                             ),
+                             fluidRow(
+                                 column(2, actionButton("do_nothing", label = "n"), "or",actionButton("do_nothing", label = "1")),
+                                 column(8, tags$strong("Backward 0.1s"), "")
+                             ),
+                             fluidRow(
+                                 column(2, actionButton("do_nothing", label = "j"), "or", actionButton("do_nothing", label = "4")),
+                                 column(8, tags$strong("Backward 2s"), "")
+                             ),
+                             fluidRow(
+                                 column(2, actionButton("do_nothing", label = "h"), "or", actionButton("do_nothing", label = "$")),
+                                 column(8, tags$strong("Backward 10s"), "")
+                             ),
+                             fluidRow(
+                                 column(2, actionButton("do_nothing", label = "q"), "or", actionButton("do_nothing", label = "0")),
+                                 column(8, tags$strong("Pause video"), "")
+                             ),
+                             fluidRow(
+                                 column(2, actionButton("do_nothing", label = "g"), "or", actionButton("do_nothing", label = "#")),
+                                 column(8, tags$strong("Go to currently selected event."), "")
+                             ),
+                             tags$hr()
+                    ),
+                tags$div(tags$h4("Scouting controls:"),
+                         fluidRow(
+                             column(2, actionButton("do_nothing", label = "r"), "or",actionButton("do_nothing", label = "5")),
+                             column(8, tags$strong("Sync selected event video time"), "")
+                         ),
+                         fluidRow(
+                             column(2, actionButton("do_nothing", label = "i"), "or", actionButton("do_nothing", label = "8")),
+                             column(8, tags$strong("move to previous skill row"), "")
+                         ),
+                         fluidRow(
+                             column(2, actionButton("do_nothing", label = "k"), "or", actionButton("do_nothing", label = "2")),
+                             column(8, tags$strong("move to next skill row"), "")
+                         ),
+                         fluidRow(
+                             column(2, actionButton("do_nothing", label = "e"), "or", actionButton("do_nothing", label = "E")),
+                             column(8, tags$strong("edit current code"), "")
+                         ),
+                         fluidRow(
+                             column(2, actionButton("do_nothing", label = "del")),
+                             column(8, tags$strong("Delete current code"), "")
+                         ),
+                         fluidRow(
+                             column(2, actionButton("do_nothing", label = "ins")),
+                             column(8, tags$strong("Insert new code above current"), "")
+                         ),
+                         fluidRow(
+                             column(2, actionButton("do_nothing", label = "F2")),
+                             column(8, tags$strong("Insert setting code before every attack"), "")
+                         ),
+                         fluidRow(
+                             column(2, actionButton("do_nothing", label = "F4")),
+                             column(8, tags$strong("Delete all setting codes (except errors)."), "")
+                         ),
+                         tags$hr()
+                )
+            ))
+        })
+        
     }
 }
