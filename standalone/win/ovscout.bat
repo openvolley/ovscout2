@@ -1,5 +1,7 @@
 @echo off
-set RS_PATH=%~dp0R-Portable\App\R-Portable\bin\Rscript.exe
+
+IF EXIST "%PROGRAMFILES(X86)%" (set RS_PATH=%~dp0R-Portable\App\R-Portable\bin\Rscript.exe) ELSE (set RS_PATH=%~dp0R-Portable\App\R-Portable\bin\i386\Rscript.exe)
+
 if exist %RS_PATH% (
    goto allgood
 )
