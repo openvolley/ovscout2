@@ -27,30 +27,61 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                                          "A", "D", "#", "=", FALSE)
     }
     if (missing(attack_table) || is.null(attack_table)) {
-        attack_table <- dplyr::tribble(~code, ~attacker_position, ~side, ~type, ~description, ~set_type,
-                                       "X1", 3, "C", "Q", "Quick", "C",
-                                       "X2", 2, "C", "Q", "Quick set behind", "C",
-                                       "X3", 3, "C", "M", "Meter ball", "F",
-                                       "X5", 4, "L", "T", "Shoot in 4", "F",
-                                       "X6", 2, "R", "T", "Shoot in 2", "F",
-                                       "X7", 4, "L", "Q", "Double push", "C",
-                                       "X8", 9, "R", "T", "Shoot in 1", "B",
-                                       "XP", 8, "C", "T", "Pipe", "P",
-
-                                       "CB", 2, "L", "N", "Slide next to setter", "C",
-                                       "CD", 2, "L", "N", "Slide away from setter", "C",
-                                       "CF", 2, "L", "N", "Slide close to setter", "C",
-
-                                       "V3", 3, "C", "H", "High ball in 3", "F",
-                                       "V5", 4, "L", "H", "High ball in 4", "F",
-                                       "V6", 2, "R", "H", "High ball in 2", "F",
-                                       "V8", 9, "R", "H", "High ball in 1", "B",
-                                       "VP", 8, "C", "H", "Release pipe", "P",
-
-                                       "PP", 3, "L", "O", "Setter tip", "S",
-                                       "PR", 3, "C", "O", "Attack on opponent freeball", "-",
-                                       "P2", 3, "C", "O", "Second hit to opponent court", "-"
-                                       )
+        attack_table = dplyr::tribble(~code, ~attacker_position, ~ side, ~type, ~description,~set_type, 
+                         "CB",2,"L","N","Slide next to setter","C",
+                         "CD",2,"L","N","Slide away from setter","C",
+                         "CF",2,"L","N","Slide close to setter","C",
+                         "C0",7,"C","U","Medium Backrow D","F",
+                         "C5",4,"R","U","11","F",
+                         "C6",2,"L","U","Medium Red","B",
+                         "C8",9,"C","U","Medium Backrow A","B",
+                         "II",4,"R","M","Attack 4 AW","F",
+                         "JJ",2,"L","M","Back AW","B",
+                         "PP",3,"L","O","Setter Dump","S",
+                         "PR",3,"C","O","Overpass hit","-",
+                         "P2",3,"C","O","Attack on 2nd contact","-",
+                         "VB",8,"C","H","High Ball B Pipe","P",
+                         "VI",2,"L","H","High banc AW","B",
+                         "VJ",4,"R","H","High 4 AW","F",
+                         "VO",9,"C","H","High Pipe 6-1 - oppo","B",
+                         "VP",8,"C","H","Release Pipe","P",
+                         "VR",8,"C","H","High Ball C Pipe","P",
+                         "VV",7,"R","H","Emerg 4 high","F",
+                         "V0",7,"C","H","High Ball Backrow D","F",
+                         "V3",3,"C","O","High Ball Pos 3","-",
+                         "V4",2,"L","H","High back short","B",
+                         "V5",4,"R","H","High Ball Pos 4","F",
+                         "V6",2,"L","H","High Ball Pos 2","B",
+                         "V8",9,"C","H","High Ball Backrow A","B",
+                         "XB",8,"C","M","B Pipe","P",
+                         "XC",3,"R","Q","E Quick","C",
+                         "XD",3,"R","Q","Floating B Quick","C",
+                         "XF",2,"L","N","Slide by Opposite","B",
+                         "XG",3,"R","Q","Soup ball","C",
+                         "XL",2,"C","Q","A Quick in Pos 2","C",
+                         "XM",3,"C","Q","B Quick in Pos 3","C",
+                         "XO",2,"L","Q","C Quick by Opposite","B",
+                         "XP",8,"C","M","Pipe","P",
+                         "XQ",2,"L","M","Mezza Dietro C.D.","B",
+                         "XR",8,"C","M","C Pipe","P",
+                         "XS",2,"L","Q","D Quick","C",
+                         "XT",3,"R","M","3 by Pos 4 Attacker","F",
+                         "XZ",4,"R","Q","Short B Quick","C",
+                         "X0",7,"C","T","Backrow D","F",
+                         "X1",3,"R","Q","A Quick","C",
+                         "X2",2,"L","Q","C Quick","C",
+                         "X3",3,"L","M","3 by Pos 2 Attacker","B",
+                         "X4",2,"L","M","4 (Inside 2)","B",
+                         "X5",4,"R","T","Black","F",
+                         "X6",2,"L","T","D","B",
+                         "X7",4,"R","Q","B Quick","C",
+                         "X8",9,"C","T","Backrow A","B",
+                         "X9",4,"R","M","2 (Inside 4)","F",
+                         "ZP",8,"C","M","Medium Pipe","P",
+                         "Z5",4,"R","M","11","F",
+                         "Z6",2,"L","M","Medium red","B",
+                         "Z8",9,"C","M","Medium Backrow A","B"
+        )
     }
 
     syntax_table <- dplyr::tribble(~code_type, ~name, ~stx_id,  ~range, ~value_list,
@@ -62,6 +93,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                                    ##"Advanced code", "Cmb/Call", "ac_cc", 7:8, c(paste0("K",0:9), "KM", "KP", attack_table$code), # 6
                                    ## use all possible valid setter calls and attack combos
                                    "Advanced code", "Cmb/Call", "ac_cc", 7:8, c(paste0("K", c(0:9, toupper(letters))),
+                                                                                attack_table$code,
                                                                                 unlist(lapply(c("C", "I", "J", "L", "P", "V", "W", "X", "Y", "Z"), paste0, c(0:9)))), # 6
                                    "Advanced code", "Target attack", "ac_ta", 9, c("F", "C", "B", "P", "S"),         # 7
                                    "Advanced code", "Start zone", "ac_sz", 10, as.character(c(1:9)),                 # 8
