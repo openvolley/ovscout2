@@ -48,6 +48,7 @@ for (thisdir in c(libdir, other_libdir)) {
 
 ## some resources
 resdir <- file.path(libdir, "ovscout_www")
+if (!dir.exists(resdir)) dir.create(resdir)
 for (thisres in c("https://untan.gl/images/su_title-w.png", "https://untan.gl/images/bgrev.jpg")) {
     this <- file.path(resdir, basename(thisres))
     if (!file.exists(this)) download.file(thisres, destfile = this)
