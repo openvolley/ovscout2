@@ -25,41 +25,53 @@ setwd("standalone/win")
 ## 1. Copy R-Portable
 chk <- if (i386) file.exists("R-Portable/App/R-Portable/bin/i386/Rscript.exe") else file.exists("R-Portable/App/R-Portable/bin/Rscript.exe")
 if (!chk) {
-    stop("Download R-Portable from https://sourceforge.net/projects/rportable/files/latest/download and extract into the ovscout/standalone/win/R-Portable directory of this repo. There should be ovscout/standalone/win/App folder")
+    stop("Download R-Portable from https://sourceforge.net/projects/rportable/files/latest/download and extract into the ovscout/standalone/win/R-Portable directory of this repo. There should be an ovscout/standalone/win/R-Portable/App folder")
 }
 
-## 2. download lighttpd for windows and extract so that the lighttpd folder is under ovscout/standalone/win/lib
-##  or ovscout/standalone/win/libi386 for 32-bit
+## 2. download lighttpd for windows and extract, for both 32- and 64-bit architectures
 libdir <- if (i386) "libi386" else "lib"
+other_libdir <- if (i386) "lib" else "libi386"
 if (!dir.exists(libdir)) dir.create(libdir)
-if (!file.exists(file.path(libdir, "lighttpd/lighttpd.exe"))) {
-    lhfile <- tempfile(fileext = ".zip")
-    lhurl <- if (i386) "http://lighttpd.dtech.hu/lighttpd-1.4.49-1-win32-ssl.zip" else "http://lighttpd.dtech.hu/lighttpd-1.4.49-1-win64-ssl.zip"
-    download.file(lhurl, destfile = lhfile)
-    unzip(lhfile, exdir = libdir)
-    try(unlink(lhfile), silent = TRUE)
+if (!dir.exists(other_libdir)) dir.create(other_libdir)
+for (thisdir in c(libdir, other_libdir)) {
+    if (!file.exists(file.path(thisdir, "lighttpd/lighttpd.exe"))) {
+        lhfile <- tempfile(fileext = ".zip")
+        lhurl <- if (grepl("i386", thisdir)) "http://lighttpd.dtech.hu/lighttpd-1.4.49-1-win32-ssl.zip" else "http://lighttpd.dtech.hu/lighttpd-1.4.49-1-win64-ssl.zip"
+        download.file(lhurl, destfile = lhfile)
+        unzip(lhfile, exdir = thisdir)
+        try(unlink(lhfile), silent = TRUE)
+    }
+    if (!file.exists(file.path(thisdir, "lighttpd/lighttpd.exe"))) {
+        stop("problem downloading/extracting lighttpd into", thisdir)
+    }
 }
-if (!file.exists(file.path(libdir, "lighttpd/lighttpd.exe"))) {
-    stop("problem downloading/extracting lighttpd")
+
+## some resources
+resdir <- file.path(libdir, "ovscout_www")
+for (thisres in c("https://untan.gl/images/su_title-w.png", "https://untan.gl/images/bgrev.jpg")) {
+    this <- file.path(resdir, basename(thisres))
+    if (!file.exists(this)) download.file(thisres, destfile = this)
 }
 
 ## install packages to our lib dir
 old_libpaths <- .libPaths()
 .libPaths(c(libdir, "R-Portable/App/R-Portable/library")) ## probably fragile
 ## this takes ages if installing from scratch
+install.packages(c("remotes", "fs", "base64enc"), lib = libdir)
 remotes::install_github("openvolley/ovscout", lib = libdir)
 
 ## zip everything up
 zipfile <- tempfile(fileext = ".zip")
 cat("zipping, this will take a while ...\n")
-res <- utils::zip(zipfile, files = c("ovscout.bat", "ovscout.R", "R-Portable", if (i386) "libi386" else "lib"))
+## include everything in the target architecture lib/libi386 folder, but only the lighttpd folder from the non-target-architecture folder
+res <- utils::zip(zipfile, files = c("ovscout.bat", "ovscout.R", "R-Portable", if (i386) "libi386" else "lib", if (i386) "lib/lighttpd" else "libi386/lighttpd"))
 if (res == 0L) {
     cat("OK.\n")
 } else {
     stop("zip failed with error code ", res)
 }
 
-file.copy(zipfile, paste0("releases/ovscout", if (i386) "-i386", ".zip"))
+file.copy(zipfile, paste0("releases/ovscout", if (i386) "-i386" else "-x64", ".zip"))
 
 setwd(pwd)
 .libPaths(old_libpaths)
@@ -72,6 +84,6 @@ library(piggyback)
 rel_info <- pb_list("openvolley/ovscout") ## existing releases
 if (is.null(rel_info) || !any(this_release %in% rel_info$tag)) {
     pb_new_release("openvolley/ovscout", this_release)
-    ## hmm, this didn't work for me, did manually
+    ## that might not work until issue resolved in piggyback pkg
 }
-pb_upload(zipfile, repo = "openvolley/ovscout", name = paste0("ovscout", if (i386) "-i386", ".zip"))
+pb_upload(zipfile, repo = "openvolley/ovscout", name = paste0("ovscout", if (i386) "-i386" else "-x64", ".zip"))
