@@ -20,6 +20,10 @@ if ("Version" %in% colnames(pkgInfo)) {
 if (is.null(this_release)) stop("could not determine the version of ovscout")
 this_release <- paste0("v", this_release)
 
+## 0. copy the bat and startup files into standalone/win
+file.copy("inst/extdata/standalone/win/ovscout.bat", "standalone/win", overwrite = TRUE)
+file.copy("inst/extdata/standalone/win/ovscout.R", "standalone/win", overwrite = TRUE)
+
 setwd("standalone/win")
 
 ## 1. Copy R-Portable
