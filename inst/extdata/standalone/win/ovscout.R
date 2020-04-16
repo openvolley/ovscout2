@@ -50,7 +50,7 @@ for (pkg in names(depsl)) {
 github_deps <- c("openvolley/ovscout")
 for (pkg in github_deps) {
     tryCatch({
-        remotes::install_github(pkg, quiet = TRUE)
+        remotes::install_github(pkg)
     }, error = function(e) {
         if (!requireNamespace(basename(pkg), quietly = TRUE)) {
             stop("Could not install the ", dpkg, " package. The error message was: ", conditionMessage(e))
@@ -70,6 +70,29 @@ for (pkg in github_deps) {
 ##}
 options(repos = optsave) ## restore
 
+## also try and update this file (ovscout.R) and ovscout.bat from the potentially-reinstalled ovscout pkg
+if (FALSE) {
+    ## skip this for the time being pending more testing
+    dR0 <- dR1 <- NULL
+    tryCatch({
+        dR0 <- digest::digest("ovscout.R", file = TRUE)
+        dR1 <- digest::digest(system.file("extdata/standalone/win/ovscout.R", package = "ovscout"), file = TRUE)
+    }, error = function(e) {
+        warning("could not update ovscout.R")
+    })
+    db0 <- db1 <- NULL
+    tryCatch({
+        db0 <- digest::digest("ovscout.bat", file = TRUE)
+        db1 <- digest::digest(system.file("extdata/standalone/win/ovscout.bat", package = "ovscout"), file = TRUE)
+    }, error = function(e) {
+        warning("could not update ovscout.bat")
+    })
+    if ((!is.null(dR0) && !is.null(dR1) && dR0 != dR1) || (!is.null(db0) && !is.null(db1) && db0 != db1)) {
+        file.copy(system.file("extdata/standalone/win/ovscout.R", package = "ovscout"), "ovscout.R", overwrite = TRUE)
+        file.copy(system.file("extdata/standalone/win/ovscout.bat", package = "ovscout"), "ovscout.bat", overwrite = TRUE)
+        stop("ovscout updated. Please re-launch it!")
+    }
+}
 ## add lighttpd folder to path
 ## should have locally-bundled binary
 lhpaths <- unique(c(fs::path_real(fs::path(Rlibpath, "lighttpd")), fs::path(Rlibpath, "lighttpd")))
