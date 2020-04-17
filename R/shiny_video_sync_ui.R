@@ -10,12 +10,10 @@ ov_shiny_video_sync_ui <- function(app_data) {
 
     have_lighttpd <- FALSE
     video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001
-    if (.Platform$OS.type == "unix") {
-        tryCatch({
-            chk <- sys::exec_internal("lighttpd", "-version")
-            have_lighttpd <- TRUE
-        }, error = function(e) warning("could not find the lighttpd executable, install it with e.g. 'apt install lighttpd'. Using \"servr\" video option"))
-    }
+    tryCatch({
+        chk <- sys::exec_internal("lighttpd", "-version")
+        have_lighttpd <- TRUE
+    }, error = function(e) warning("could not find the lighttpd executable, install it with e.g. 'apt install lighttpd' on Ubuntu/Debian or from http://lighttpd.dtech.hu/ on Windows. Using \"servr\" video option"))
     video_serve_method <- if (have_lighttpd) "lighttpd" else "servr"
     if (video_serve_method == "lighttpd") {
         ## build config file to pass to lighttpd
@@ -29,7 +27,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
         onStop(function() try({ lighttpd_cleanup() }, silent = TRUE))
     } else {
         ## start servr instance serving from the video source directory
-        servr::httd(dir = dirname(video_src), port = video_server_port)
+        blah <- servr::httd(dir = dirname(video_src), port = video_server_port, browser = FALSE, daemon = TRUE)
         onStop(function() {
             message("cleaning up servr")
             servr::daemon_stop()
@@ -72,20 +70,8 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                               actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212")),
                                        column(4, uiOutput("current_event"))),
                               tags$div(style = "height: 14px;"),
-                              fluidRow(column(6,
-                                              tags$p(tags$strong("Video controls")), sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1),
-                                              #tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")),
-                                              #tags$p(tags$strong("Keyboard controls")), tags$ul(tags$li("[r or 5] sync selected event video time"),
-                                              #                                                  tags$li("[i or 8] move to previous skill row"),
-                                              #                                                  tags$li("[k or 2] move to next skill row"),
-                                              #                                                  tags$li("[e or E] edit current code"),
-                                              #                                                  tags$li("[del] delete current code"),
-                                              #                                                  tags$li("[ins] insert new code above current"),
-                                              #                                                  if (isTRUE(app_data$config$insert_sets)) tags$li("[F2] insert setting codes before every attack"),
-                                              #                                                  if (isTRUE(app_data$config$insert_sets)) tags$li("[F4] delete all setting codes (except errors)"),
-                                              #                                                  if (isTRUE(app_data$config$insert_digs)) tags$li("[F6] insert digging codes after every attack"),
-                                              #                                                  if (isTRUE(app_data$config$insert_digs)) tags$li("[F8] delete all digging codes")
-                                              #                                                  ),
+                              fluidRow(column(6, actionButton("show_shortcuts", tags$span(icon("keyboard"), "Show keyboard shortcuts")),
+                                              sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1),
                                               tags$p(tags$strong("Other options")),
                                               tags$span("Decimal places on video time:"),
                                               numericInput("video_time_decimal_places", label = NULL, value = 0, min = 0, max = 2, step = 1, width = "6em"),
