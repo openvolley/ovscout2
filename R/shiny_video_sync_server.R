@@ -634,7 +634,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                     # Change meta data in terms of starting rotation
                     rdata$dvw$meta$players_h[,paste0("starting_position_set", setnumber)] <- match(rdata$dvw$meta$players_h$number, new_rotation)
                     # Change libero to "*" in meta
-                    rdata$dvw$meta$players_h[rdata$dvw$meta$players_h$number %eq% input$ht_libero,paste0("starting_position_set", setnumber)] <- "*"
+                    #rdata$dvw$meta$players_h[rdata$dvw$meta$players_h$number %eq% input$ht_libero,paste0("starting_position_set", setnumber)] <- "*"
                     # Change in play rotation 
                     rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation, new_setter)
                 }
@@ -648,7 +648,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                     # Change meta data in terms of starting rotation
                     rdata$dvw$meta$players_v[,paste0("starting_position_set", setnumber)] <- match(rdata$dvw$meta$players_v$number, new_rotation)
                     # Change libero to "*" in meta
-                    rdata$dvw$meta$players_v[rdata$dvw$meta$players_v$number %eq% input$vt_libero,paste0("starting_position_set", setnumber)] <- "*"
+                    #rdata$dvw$meta$players_v[rdata$dvw$meta$players_v$number %eq% input$vt_libero,paste0("starting_position_set", setnumber)] <- "*"
                     # Change in play rotation 
                     rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation, new_setter)
                 }

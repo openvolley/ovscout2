@@ -230,6 +230,14 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
     return(dvw)
 }
 
+
+# dvw <- datavolley::read_dv("/home/ick003/Documents/Donnees/VolleyBall/GameDatasets/Southern League 2020 Womens (Datavolley)/&qua04 state u18-boss women.dvw")
+# team = datavolley::home_team(dvw)
+# setnumber = 1
+# new_rotation = c(13,7,16,1,3,4)
+# new_setter = 7
+# dvwnew <- dv_change_startinglineup(dvw, team, setnumber, new_rotation = new_rotation, new_setter)
+# reparse_dvw(dvwnew)
 dv_change_startinglineup <- function(dvw, team, setnumber, new_rotation = NULL, new_setter = NULL){
     selectTeam = team
     changedRows <- rotations(dvw, team = selectTeam, set_number = setnumber, new_rotation = new_rotation)
@@ -262,7 +270,7 @@ dv_change_startinglineup <- function(dvw, team, setnumber, new_rotation = NULL, 
     new_code_v = stringr::str_replace(dvw$plays$code[row2change][idxvz], "[[:digit:]]", as.character(dvw$plays$visiting_setter_position[row2change][idxvz]))
     
     idxhz = grepl("\\*z[[:digit:]]", dvw$plays$code[row2change])
-    new_code_h = stringr::str_replace(dvw$plays$code[row2change][idxhz], "[[:digit:]]", as.character(dvw$plays$visiting_setter_position[row2change][idxhz]))
+    new_code_h = stringr::str_replace(dvw$plays$code[row2change][idxhz], "[[:digit:]]", as.character(dvw$plays$home_setter_position[row2change][idxhz]))
     
     dvw$plays$code[row2change][idxvz] <- new_code_v
     dvw$plays$code[row2change][idxhz] <- new_code_h
@@ -284,3 +292,4 @@ dv_change_startinglineup <- function(dvw, team, setnumber, new_rotation = NULL, 
     
     return(dvw)
 }
+
