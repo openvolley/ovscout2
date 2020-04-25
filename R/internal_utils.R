@@ -16,7 +16,7 @@ other_end <- function(end) setdiff(c("upper", "lower"), tolower(end))[1]
 
 dojs <- function(jscmd) {
     ##cat("js: ", jscmd, "\n")
-    shinyjs::runjs(jscmd)
+    shiny::getDefaultReactiveDomain()$sendCustomMessage("evaljs", jscmd)
 }
 
 names_first_to_capital <- function(x, fun) {
