@@ -75,3 +75,4 @@ mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
         dojs("document.getElementById('court_inset_swap').blur();") ## un-focus from button
     })
 }
+
