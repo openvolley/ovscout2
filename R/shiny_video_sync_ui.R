@@ -66,17 +66,18 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                               actionButton("edit_teams_button", "Edit teams", icon = icon("users")),
                                               actionButton("edit_lineup_button", "Edit lineups", icon = icon("undo")), data.step = 3, data.intro = "Click on these action buttons if you want to edit the starting lineups, edit the rosters, or edit the match metadata."),
                                               uiOutput("save_file_ui", inline = TRUE),
-                                              actionButton("ovscout_helper", label = "Scouting help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
                                               actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212")),
                                        column(4, uiOutput("current_event"))),
                               tags$div(style = "height: 14px;"),
-                              fluidRow(column(6, actionButton("show_shortcuts", tags$span(icon("keyboard"), "Show keyboard shortcuts")),
+                              fluidRow(column(5, actionButton("show_shortcuts", tags$span(icon("keyboard"), "Show keyboard shortcuts"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
                                               sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1),
                                               tags$p(tags$strong("Other options")),
                                               tags$span("Decimal places on video time:"),
                                               numericInput("video_time_decimal_places", label = NULL, value = 0, min = 0, max = 2, step = 1, width = "6em"),
-                                              uiOutput("vtdp_ui")),
-                                       column(6, 
+                                              uiOutput("vtdp_ui"), 
+                                              #checkboxInput("ballcoords", "Display ball coordinates", FALSE),
+                                              actionButton("validate_ball_coords", "Accept ball coordinates")),
+                                       column(7, 
                                               introBox(wellPanel(mod_courtrot_ui(id = "courtrot")), data.step = 2, data.intro = "Team rosters and oncourt rotation.")
                                               ) ## court rotation plot and team rosters
                                        )

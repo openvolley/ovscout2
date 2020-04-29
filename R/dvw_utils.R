@@ -230,6 +230,13 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
     return(dvw)
 }
 
+# Test:
+# dvw <- datavolley::read_dv("/home/ick003/Documents/Donnees/VolleyBall/GameDatasets/AOVC 2019 Womens (Datavolley)/&qua02 tasmanian-queensland p.dvw")
+# setnumber <- 4
+# team = datavolley::visiting_team(dvw)
+# new_rotation = c(28,25,29,32,24,33)
+# new_setter = 28
+# dv_change_startinglineup(dvw, team, setnumber, new_rotation, new_setter)
 dv_change_startinglineup <- function(dvw, team, setnumber, new_rotation = NULL, new_setter = NULL){
     selectTeam = team
     changedRows <- rotations(dvw, team = selectTeam, set_number = setnumber, new_rotation = new_rotation)

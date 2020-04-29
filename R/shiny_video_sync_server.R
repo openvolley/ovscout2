@@ -124,6 +124,35 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         })
 
+        
+        observeEvent(input$validate_ball_coords, {
+            ridx <- input$playslist_rows_selected
+            do_reparse = FALSE
+            coordsdata = rdataNew()
+            if (!is.null(ridx) && !is.na(ridx)) {
+                if(!is.null(coordsdata$xend)){
+                    rdata$dvw$plays$end_coordinate_x[ridx] = coordsdata$xend
+                    rdata$dvw$plays$end_coordinate_y[ridx] = coordsdata$yend
+                    if(is.na(coordsdata$xend)){rdata$dvw$plays$end_coordinate[ridx] <- NA
+                    }else{rdata$dvw$plays$end_coordinate[ridx] = datavolley::dv_xy2index(coordsdata$xend,coordsdata$yend)}
+                    do_reparse = TRUE
+                }
+                if(!is.null(coordsdata$x)){
+                    rdata$dvw$plays$start_coordinate_x[ridx] = coordsdata$x
+                    rdata$dvw$plays$start_coordinate_y[ridx] = coordsdata$y
+                    if(is.na(coordsdata$x)){rdata$dvw$plays$start_coordinate[ridx] <- NA
+                    }else{rdata$dvw$plays$start_coordinate[ridx] = datavolley::dv_xy2index(coordsdata$x,coordsdata$y)}
+                    do_reparse = TRUE
+                }
+           }
+            if (do_reparse) {
+                ## reparse the dvw
+                rdata$dvw <- reparse_dvw(rdata$dvw, dv_read_args = dv_read_args)
+                scroll_playlist()
+            }
+            
+        })
+        
         observeEvent(input$show_shortcuts, {
             showModal(modalDialog(title = "Keyboard shortcuts", easyClose = TRUE, size = "l",
                                   tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")),
@@ -539,13 +568,12 @@ ov_shiny_video_sync_server <- function(app_data) {
                                       footer = tags$div(actionButton("edit_commit", label = "Update code (or press Enter)"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
                                       withTags({
                                           fluidRow(
-                                          column(9, "Edit code either in the top text box or in the individual boxes (but not both)",
-                                          textInput("code_entry", label = "Code:", value = thiscode),
-                                          "or",
-                                          build_code_entry_guide("edit", rdata$dvw$plays[ridx, ])),
-                                          column(3, enter_coordinate_skill("edit", rdata$dvw$plays[ridx, ])))
+                                              column(12, "Edit code either in the top text box or in the individual boxes (but not both)",
+                                                     textInput("code_entry", label = "Code:", value = thiscode),
+                                                     "or",
+                                                     build_code_entry_guide("edit", rdata$dvw$plays[ridx, ])))
                                       })
-                                      ))
+                ))           
                 if (!is_skill(rdata$dvw$plays$skill[ridx])) {
                     ## if it's a non-skill code then focus into the code_entry textbox with cursor at end of input
                     focus_in_code_entry("code_entry")
@@ -653,7 +681,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                     new_setter = input$ht_setter
                     new_rotation = c(input$ht_P1,input$ht_P2,input$ht_P3,input$ht_P4,input$ht_P5,input$ht_P6)
                     # Change meta data in terms of starting rotation
-                    rdata$dvw$meta$players_h[,paste0("starting_position_set", setnumber)] <- match(rdata$dvw$meta$players_h$number, new_rotation)
+                    rdata$dvw$meta$players_h[,paste0("starting_position_set", setnumber)] <- as.character(match(rdata$dvw$meta$players_h$number, new_rotation))
                     # Change libero to "*" in meta
                     rdata$dvw$meta$players_h[rdata$dvw$meta$players_h$number %eq% input$ht_libero,paste0("starting_position_set", setnumber)] <- "*"
                     # Change in play rotation 
@@ -667,7 +695,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                     new_setter = input$vt_setter
                     new_rotation = c(input$vt_P1,input$vt_P2,input$vt_P3,input$vt_P4,input$vt_P5,input$vt_P6)
                     # Change meta data in terms of starting rotation
-                    rdata$dvw$meta$players_v[,paste0("starting_position_set", setnumber)] <- match(rdata$dvw$meta$players_v$number, new_rotation)
+                    rdata$dvw$meta$players_v[,paste0("starting_position_set", setnumber)] <- as.character(match(rdata$dvw$meta$players_v$number, new_rotation))
                     # Change libero to "*" in meta
                     rdata$dvw$meta$players_v[rdata$dvw$meta$players_v$number %eq% input$vt_libero,paste0("starting_position_set", setnumber)] <- "*"
                     # Change in play rotation 
@@ -720,7 +748,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                         changed1 <- (!newcode1 %eq% current_code) && nzchar(newcode1)
                         changed2 <- (!newcode2 %eq% current_code) && nzchar(newcode2)
                         #changedCoord <- !is.null(input$plot_click$x) | !is.null(input$plot_dblclick$x)
-                        changedCoord <- !is.na(plot_data$x) | !is.na(plot_data$xend)
+                        # changedCoord <- !is.na(plot_data$x) | !is.na(plot_data$xend)
                         if (!changed1 && changed2) {
                             newcode <- newcode2
                             ## if we entered via the text box, then run this through the code parser
@@ -745,17 +773,17 @@ ov_shiny_video_sync_server <- function(app_data) {
                             ## can't handle that yet, is it even sensible to support?
                             warning("compound codes can't be used when editing an existing code")
                         }
-                    } else if (editing$active %eq% "edit" && changedCoord) {
-                        if(!is.na(plot_data$xend)){
-                            rdata$dvw$plays$end_coordinate_x[ridx] = plot_data$xend
-                            rdata$dvw$plays$end_coordinate_y[ridx] = plot_data$yend
-                            rdata$dvw$plays$end_coordinate[ridx] = datavolley::dv_xy2index(plot_data$xend,plot_data$yend)
-                        }
-                        if(!is.na(plot_data$x)){
-                            rdata$dvw$plays$start_coordinate_x[ridx] = plot_data$x
-                            rdata$dvw$plays$start_coordinate_y[ridx] = plot_data$y
-                            rdata$dvw$plays$start_coordinate[ridx] = datavolley::dv_xy2index(plot_data$x,plot_data$y)
-                        }
+                    # } else if (editing$active %eq% "edit" && changedCoord) {
+                    #     if(!is.na(plot_data$xend)){
+                    #         rdata$dvw$plays$end_coordinate_x[ridx] = plot_data$xend
+                    #         rdata$dvw$plays$end_coordinate_y[ridx] = plot_data$yend
+                    #         rdata$dvw$plays$end_coordinate[ridx] = datavolley::dv_xy2index(plot_data$xend,plot_data$yend)
+                    #     }
+                    #     if(!is.na(plot_data$x)){
+                    #         rdata$dvw$plays$start_coordinate_x[ridx] = plot_data$x
+                    #         rdata$dvw$plays$start_coordinate_y[ridx] = plot_data$y
+                    #         rdata$dvw$plays$start_coordinate[ridx] = datavolley::dv_xy2index(plot_data$x,plot_data$y)
+                    #     }
                     } else if (editing$active %eq% "insert" && !is.null(newcode)) {
                         ## insert new line
                         if (is.logical(ridx)) ridx <- which(ridx)
@@ -1075,108 +1103,95 @@ ov_shiny_video_sync_server <- function(app_data) {
         }
         
         ## Function to enter ball coordinates
-        enter_coordinate_skill <- function(mode, thisrow) {
-            mode <- match.arg(mode, c("edit", "insert"))
-            tags$div(plotOutput("empty_court_inset", 
-                                click = "plot_click",
-                                dblclick = "plot_dblclick"),
-                    h4("Coordinates:"),
-                     verbatimTextOutput("coord_click")
-                     )
-        }
+        # enter_coordinate_skill <- function(mode, thisrow) {
+        #     mode <- match.arg(mode, c("edit", "insert"))
+        #     tags$div(plotOutput("empty_court_inset", 
+        #                         click = "plot_click",
+        #                         dblclick = "plot_dblclick"),
+        #             h4("Coordinates:"),
+        #              verbatimTextOutput("coord_click")
+        #              )
+        # }
         
-        output$coord_click <- renderText({
-            xy_str <- function(e) {
-                if(is.null(e)) return("NULL\n")
-                paste0("x=", round(e$x, 1), " y=", round(e$y, 1), "\n")
-            }
-            
-            # paste0(
-            #     "Start (sgl-click): ", xy_str(input$plot_click),
-            #     "End (dbl-click): ", xy_str(input$plot_dblclick)
-            # )
-            paste0(
-                "Start (sgl-click): x=", plot_data$x,"y=",plot_data$y,"\n",
-                "End (dbl-click): x=", plot_data$xend,"y=",plot_data$yend
-            )
-        })
+        # output$coord_click <- renderText({
+        #     xy_str <- function(e) {
+        #         if(is.null(e)) return("NULL\n")
+        #         paste0("x=", round(e$x, 1), " y=", round(e$y, 1), "\n")
+        #     }
+        #     paste0(
+        #         "Start (sgl-click): x=", plot_data$x,"y=",plot_data$y,"\n",
+        #         "End (dbl-click): x=", plot_data$xend,"y=",plot_data$yend
+        #     )
+        # })
         
-        output$empty_court_inset <- renderPlot({
-            p <- ggplot(data = data.frame(x = c(-0.25, 4.25, 4.25, -0.25), y = c(-0.25, -0.25, 7.25, 7.25)), mapping = aes_string("x", "y")) +
-                geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour) +
-                geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour) +
-                ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
-            ridx <- input$playslist_rows_selected
-            if (!is.null(ridx)) {
-                this_pn <- rdata$dvw$plays$player_number[ridx] ## player in the selected row
-                htrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("home_player_id", 1:6)]), team_id = rdata$dvw$plays$home_team_id[ridx])
-                htrot <- dplyr::left_join(htrot, rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "player_id")
-                vtrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("visiting_player_id", 1:6)]), team_id = rdata$dvw$plays$visiting_team_id[ridx])
-                vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "player_id")
-                plxy <- cbind(dv_xy(1:6, end = "lower"), htrot)
-                plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("home_p", 1:6)]) ## the on-court player numbers in the play-by-play data
-                ## player names and circles
-                ## home team
-                p <- p + geom_polygon(data = court_circle(cz = 1:6, end = "lower", r = 0.2), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight)
-                ## highlighted player
-                if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$home_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
-                    p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "lower"), fill = "yellow", colour = "black")
-                }
-                p <- p + geom_text(data = plxy, aes_string("x", "y", label = "court_num"), size = 3, fontface = "bold", vjust = 0)
-                ## visiting team
-                plxy <- cbind(dv_xy(1:6, end = "upper"), vtrot)
-                plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("visiting_p", 1:6)]) ## the on-court player numbers in the play-by-play data
-                p <- p + geom_polygon(data = court_circle(cz = 1:6, end = "upper", r = 0.2), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight)
-                if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$visiting_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
-                    p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "upper", r = 0.3), fill = "yellow", colour = "black")
-                }
-                if(!is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & is.na(rdata$dvw$plays$end_coordinate_x[ridx])){
-                    p = p + geom_point(data = rdata$dvw$plays[ridx,], 
-                                       aes_string("start_coordinate_x", "start_coordinate_y"), shape = 3, col = "green")
-                }
-                if(is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & !is.na(rdata$dvw$plays$end_coordinate_x[ridx])){
-                    p = p + geom_point(data = rdata$dvw$plays[ridx,], 
-                                       aes_string("end_coordinate_x", "end_coordinate_y"), shape = 3, col = "red")
-                }
-                if(!is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & !is.na(rdata$dvw$plays$end_coordinate_x[ridx])){
-                    p = p + geom_point(data = rdata$dvw$plays[ridx,], aes_string("start_coordinate_x", "start_coordinate_y"), 
-                                       shape = 3, col = "green", size = 5) + 
-                        geom_point(data = rdata$dvw$plays[ridx,], aes_string("end_coordinate_x", "end_coordinate_y"), shape = 3, col = "red", size = 5) + 
-                        geom_segment(data = rdata$dvw$plays[ridx,], 
-                                     aes_string(x = "start_coordinate_x", y = "start_coordinate_y", xend = "end_coordinate_x", yend = "end_coordinate_y"),
-                                     arrow = arrow(length = unit(0.05, "npc")))
-                }
-                # if (!is.null(input$plot_click$x) && !is.null(input$plot_dblclick$x)) {
-                #     p = p +
-                #         geom_point(aes(input$plot_click$x, input$plot_click$y), shape = 3) +
-                #         geom_point(aes(input$plot_dblclick$x, input$plot_dblclick$y), shape = 3)+
-                #         geom_segment(aes(x = input$plot_click$x, y = input$plot_click$y, xend = input$plot_dblclick$x, yend = input$plot_dblclick$y),
-                #                      arrow = arrow(length = unit(0.05, "npc")))
-                # }
-                if (plot_data$trigger > 0) {
-                    p = p +
-                        geom_point(aes(plot_data$x, plot_data$y), shape = 3) +
-                        geom_point(aes(plot_data$xend, plot_data$yend), shape = 3)+
-                        geom_segment(aes(x = plot_data$x, y = plot_data$y, xend = plot_data$xend, yend = plot_data$yend),
-                                     arrow = arrow(length = unit(0.05, "npc")), linetype = "dashed")
-                }
-                p <- p + geom_text(data = plxy, aes_string("x", "y", label = "court_num"), size = 3, fontface = "bold", vjust = 0) 
-            }
-            p
-        })
+        # output$empty_court_inset <- renderPlot({
+        #     p <- ggplot(data = data.frame(x = c(-0.25, 4.25, 4.25, -0.25), y = c(-0.25, -0.25, 7.25, 7.25)), mapping = aes_string("x", "y")) +
+        #         geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour) +
+        #         geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour) +
+        #         ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
+        #     ridx <- input$playslist_rows_selected
+        #     if (!is.null(ridx)) {
+        #         this_pn <- rdata$dvw$plays$player_number[ridx] ## player in the selected row
+        #         htrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("home_player_id", 1:6)]), team_id = rdata$dvw$plays$home_team_id[ridx])
+        #         htrot <- dplyr::left_join(htrot, rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "player_id")
+        #         vtrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("visiting_player_id", 1:6)]), team_id = rdata$dvw$plays$visiting_team_id[ridx])
+        #         vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "player_id")
+        #         plxy <- cbind(dv_xy(1:6, end = "lower"), htrot)
+        #         plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("home_p", 1:6)]) ## the on-court player numbers in the play-by-play data
+        #         ## player names and circles
+        #         ## home team
+        #         p <- p + geom_polygon(data = court_circle(cz = 1:6, end = "lower", r = 0.2), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight)
+        #         ## highlighted player
+        #         if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$home_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
+        #             p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "lower"), fill = "yellow", colour = "black")
+        #         }
+        #         p <- p + geom_text(data = plxy, aes_string("x", "y", label = "court_num"), size = 3, fontface = "bold", vjust = 0)
+        #         ## visiting team
+        #         plxy <- cbind(dv_xy(1:6, end = "upper"), vtrot)
+        #         plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("visiting_p", 1:6)]) ## the on-court player numbers in the play-by-play data
+        #         p <- p + geom_polygon(data = court_circle(cz = 1:6, end = "upper", r = 0.2), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight)
+        #         if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$visiting_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
+        #             p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "upper", r = 0.3), fill = "yellow", colour = "black")
+        #         }
+        #         if(!is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & is.na(rdata$dvw$plays$end_coordinate_x[ridx])){
+        #             p = p + geom_point(data = rdata$dvw$plays[ridx,], 
+        #                                aes_string("start_coordinate_x", "start_coordinate_y"), shape = 3, col = "green")
+        #         }
+        #         if(is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & !is.na(rdata$dvw$plays$end_coordinate_x[ridx])){
+        #             p = p + geom_point(data = rdata$dvw$plays[ridx,], 
+        #                                aes_string("end_coordinate_x", "end_coordinate_y"), shape = 3, col = "red")
+        #         }
+        #         if(!is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & !is.na(rdata$dvw$plays$end_coordinate_x[ridx])){
+        #             p = p + geom_point(data = rdata$dvw$plays[ridx,], aes_string("start_coordinate_x", "start_coordinate_y"), 
+        #                                shape = 3, col = "green", size = 5) + 
+        #                 geom_point(data = rdata$dvw$plays[ridx,], aes_string("end_coordinate_x", "end_coordinate_y"), shape = 3, col = "red", size = 5) + 
+        #                 geom_segment(data = rdata$dvw$plays[ridx,], 
+        #                              aes_string(x = "start_coordinate_x", y = "start_coordinate_y", xend = "end_coordinate_x", yend = "end_coordinate_y"),
+        #                              arrow = arrow(length = unit(0.05, "npc")))
+        #         }
+        #         if (plot_data$trigger > 0) {
+        #             p = p +
+        #                 geom_point(aes(plot_data$x, plot_data$y), shape = 3) +
+        #                 geom_point(aes(plot_data$xend, plot_data$yend), shape = 3)+
+        #                 geom_segment(aes(x = plot_data$x, y = plot_data$y, xend = plot_data$xend, yend = plot_data$yend),
+        #                              arrow = arrow(length = unit(0.05, "npc")), linetype = "dashed")
+        #         }
+        #         p <- p + geom_text(data = plxy, aes_string("x", "y", label = "court_num"), size = 3, fontface = "bold", vjust = 0) 
+        #     }
+        #     p
+        # })
         
-        
-        plot_data <- reactiveValues(trigger = 0, x = NA, y = NA, xend = NA, yend = NA)
+        # plot_data <- reactiveValues(trigger = 0, x = NA, y = NA, xend = NA, yend = NA)
 
-        observe({
-            req(input$plot_click)
-            req(input$plot_dblclick)
-            isolate(plot_data$trigger <- plot_data$trigger + 1)
-            plot_data$x <- input$plot_click$x
-            plot_data$y <- input$plot_click$y
-            plot_data$xend <- input$plot_dblclick$x
-            plot_data$yend <- input$plot_dblclick$y
-        })
+        # observe({
+        #     req(input$plot_click)
+        #     req(input$plot_dblclick)
+        #     isolate(plot_data$trigger <- plot_data$trigger + 1)
+        #     plot_data$x <- input$plot_click$x
+        #     plot_data$y <- input$plot_click$y
+        #     plot_data$xend <- input$plot_dblclick$x
+        #     plot_data$yend <- input$plot_dblclick$y
+        # })
         
         ## the helpers that are defined as functions in code_bits_tbl are dynamic, they depend on skill/evaluation
         ## ADD HANDLERS HERE
@@ -1449,7 +1464,13 @@ ov_shiny_video_sync_server <- function(app_data) {
         })
         
         ## court inset showing rotation and team lists
-        callModule(mod_courtrot, id = "courtrot", rdata = rdata, rowidx = reactive(input$playslist_rows_selected), styling = styling)
+        #callModule(mod_courtrot, id = "courtrot", rdata = rdata, rowidx = reactive(input$playslist_rows_selected), styling = styling)
+        newCoordsdata <- callModule(mod_courtrot, id = "courtrot", rdata = rdata, rowidx = reactive(input$playslist_rows_selected), styling = styling)
+        
+        rdataNew <- reactive({
+            ncd <- newCoordsdata
+            ncd
+        })
         
         # General help
         observeEvent(input$general_help,
