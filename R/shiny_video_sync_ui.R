@@ -50,6 +50,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
                         tags$script("$(document).on('keydown', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.onInputChange('controlkey', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
                         tags$script("$(document).on('shiny:sessioninitialized',function() { Shiny.onInputChange('window_height', $(window).innerHeight()); Shiny.onInputChange('window_width', $(window).innerWidth()); });"),
                         tags$script("var rsztmr; $(window).resize(function() { clearTimeout(rsztmr); rsztmr = setTimeout(doneResizing, 500); }); function doneResizing() { Shiny.onInputChange('window_height', $(window).innerHeight()); Shiny.onInputChange('window_width', $(window).innerWidth()); }"),
+                        ##tags$script(src = "https://cdnjs.cloudflare.com/ajax/libs/jquery-scrollTo/2.1.2/jquery.scrollTo.min.js"), ## not used, maybe not needed
                         tags$title("Volleyball scout and video sync")
                         ),
               if (!is.null(app_data$ui_header)) {
@@ -80,7 +81,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                               ) ## court rotation plot and team rosters
                                        )
                               ),
-                       column(5, 
+                       column(5,
                               introBox(DT::dataTableOutput("playslist", width = "98%"), data.step = 1, data.intro = "List of events. Existing events can be edited or deleted. New events can be added. They will appear here."),
                               uiOutput("error_message"))
                        )

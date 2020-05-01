@@ -313,15 +313,23 @@ ov_shiny_video_sync_server <- function(app_data) {
         playslist_proxy <- DT::dataTableProxy("playslist")
         playslist_select_row <- function(rw) {
             if (!is.null(rw)) DT::selectRows(playslist_proxy, rw)
-            scroll_playlist()
+            scroll_playlist(rw)
         }
 
-        scroll_playlist <- function() {
-            if (!is.null(input$playslist_rows_selected)) {
+        scroll_playlist <- function(rw = NULL) {
+            selr <- if (!is.null(rw)) rw else input$playslist_rows_selected
+            if (!is.null(selr)) {
                 ## scrolling works on the VISIBLE row index, so it depends on any column filters that might have been applied
-                visible_rowidx <- which(input$playslist_rows_all == input$playslist_rows_selected)
+                visible_rowidx <- which(input$playslist_rows_all == selr)
                 scrollto <- max(visible_rowidx-1-5, 0) ## -1 for zero indexing, -5 to keep the selected row 5 from the top
-                dojs(sprintf("$('#playslist').find('.dataTable').DataTable().scroller.toPosition(%s);", scrollto))
+                ##dojs(paste0("$('#playslist').find('.dataTable').DataTable().scroller.toPosition(", scrollto, ");")) ## with anim, laggy
+                dojs(paste0("$('#playslist').find('.dataTable').DataTable().scroller.toPosition(", scrollto, ", false);")) ## no anim, faster (not sure if it always scrolls the right row into view?)
+
+                ## using the jquery scrollTo extension, enable in UI
+                ##stid <- paste0("$('#DataTables_Table_1 > tbody tr:nth-child(", scrollto+1, ")')")
+                ##dojs(paste0("$('.dataTables_scrollBody').scrollTo(", stid, ");"))
+
+                ## other attempts
                 ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).node().scrollIntoView();", max(0, rdata$plays_row_to_select-1)))
                 ##dojs(sprintf("console.dir($('#playslist').find('.dataTable').DataTable().row(%s).node())", max(0, rdata$plays_row_to_select-1)))
                 ##dojs(sprintf("$('#playslist').find('.dataTables_scroll').animate({ scrollTop: $('#playslist').find('.dataTable').DataTable().row(%s).node().offsetTop }, 2000);", max(0, rdata$plays_row_to_select-1)))
