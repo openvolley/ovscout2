@@ -71,12 +71,13 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                               actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212")),
                                        column(4, uiOutput("current_event"))),
                               tags$div(style = "height: 14px;"),
-                              fluidRow(column(6, sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1),
+                              fluidRow(column(5, sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1),
                                               tags$p(tags$strong("Other options")),
                                               tags$span("Decimal places on video time:"),
                                               numericInput("video_time_decimal_places", label = NULL, value = 0, min = 0, max = 2, step = 1, width = "6em"),
-                                              uiOutput("vtdp_ui")),
-                                       column(6,
+                                              uiOutput("vtdp_ui"),
+                                              actionButton("validate_ball_coords", "Accept ball coordinates")),
+                                       column(7,
                                               introBox(wellPanel(mod_courtrot_ui(id = "courtrot")), data.step = 2, data.intro = "Team rosters and oncourt rotation.")
                                               ) ## court rotation plot and team rosters
                                        )
