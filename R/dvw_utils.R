@@ -52,7 +52,8 @@ dv_insert_sets <- function(dvw, no_set_attacks, default_set_evaluation = "+", ri
                                              .data$team_oncourt_setter_number, ## setter player_number
                                              "E", # set skill
                                              str_sub(.data$code, 5, 5), # hitting tempo
-                                             default_set_evaluation),
+                                             case_when(.data$num_blocker %eq% c(0,1) ~ "#",
+                                                       TRUE ~ default_set_evaluation)), #(FIVB recommendations)
                            TEMP_attack_code = str_sub(.data$code, 7, 8),
                            setter_call = case_when(.data$TEMP_attack_code %eq% "X1" ~ "K1",
                                                    .data$TEMP_attack_code %eq% "X2" ~ "K2",
@@ -88,7 +89,7 @@ dv_insert_sets <- function(dvw, no_set_attacks, default_set_evaluation = "+", ri
 
 dv_insert_digs_check <- function(dvw) {
     ridx_dig <- mutate(dvw$plays, rowN = row_number(),
-                       attack_in_play = .data$skill %eq% "Attack" & grepl("^(Positive|Poor|Blocked for reattack|Spike in play)", .data$evaluation, ignore.case = TRUE),
+                       attack_in_play = .data$skill %eq% "Attack" & grepl("^(Winning|Positive|Poor|Blocked for reattack|Spike in play)", .data$evaluation, ignore.case = TRUE),
                        add_dig_after = case_when(.data$attack_in_play & !lead(.data$skill) %in% c("Dig", "Block") ~ TRUE, ## attack in play, not followed by dig or block
                                                  lag(.data$attack_in_play) & .data$skill %eq% "Block" & !.data$evaluation %in% c("Error", "Invasion", "Winning block") & !lead(.data$skill) %eq% "Dig" ~ TRUE, ## block touch after attack in play, not followed by dig
                                                  TRUE ~ FALSE))
@@ -99,14 +100,16 @@ dv_insert_digs <- function(dvw, ridx = NULL) {
     if (is.null(ridx)) ridx <- dv_insert_digs_check(dvw)
     if (length(ridx) > 0) {
         dig_code <- mutate(dplyr::filter(dvw$plays, row_number() %in% ridx),
-                           dig_team = case_when(.data$evaluation %eq% "Blocked for reattack" & .data$team == .data$home_team ~ "*",
-                                                .data$evaluation %eq% "Blocked for reattack" & .data$team == .data$visiting_team ~ "a",
-                                                grepl("^(Positive|Poor|Spike in play)", .data$evaluation) & .data$team == .data$home_team ~ "a",
-                                                grepl("^(Positive|Poor|Spike in play)", .data$evaluation) & .data$team == .data$visiting_team ~ "*"),
-                           dig_eval_code = case_when(.data$skill %eq% "Attack" & grepl("^Positive", .data$evaluation) ~ "-", ## negative dig on positive attack
-                                                     TRUE ~ "+"), ## positive dig otherwise
+                           dig_team = case_when(.data$evaluation %eq% "Blocked for reattack" & .data$team == .data$home_team ~ "*", # Coding for cover
+                                                .data$evaluation %eq% "Blocked for reattack" & .data$team == .data$visiting_team ~ "a", # Coding for cover
+                                                grepl("^(Winning|Positive|Poor|Spike in play)", .data$evaluation) & .data$team == .data$home_team ~ "a", # Coding for dig
+                                                grepl("^(Winning|Positive|Poor|Spike in play)", .data$evaluation) & .data$team == .data$visiting_team ~ "*"), # Coding for dig
+                           dig_eval_code = case_when(
+                               .data$skill %eq% "Attack" & grepl("^Winning", .data$evaluation) ~ "=", ## error dig on a winning attack
+                               .data$skill %eq% "Attack" & grepl("^Positive", .data$evaluation) ~ "-", ## negative dig on positive attack
+                                                     TRUE ~ "#"), ## Excellent dig otherwise (FIVB recommendations)
                            dig_code = paste0(.data$dig_team, ## Team
-                                             "00", ## dig player_number
+                                             "99", ## dig player_number
                                              "D", ## dig skill
                                              str_sub(.data$code, 5, 5), # hitting tempo
                                              .data$dig_eval_code))
@@ -230,14 +233,13 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
     return(dvw)
 }
 
-
-# dvw <- datavolley::read_dv("/home/ick003/Documents/Donnees/VolleyBall/GameDatasets/Southern League 2020 Womens (Datavolley)/&qua04 state u18-boss women.dvw")
-# team = datavolley::home_team(dvw)
-# setnumber = 1
-# new_rotation = c(13,7,16,1,3,4)
-# new_setter = 7
-# dvwnew <- dv_change_startinglineup(dvw, team, setnumber, new_rotation = new_rotation, new_setter)
-# reparse_dvw(dvwnew)
+# Test:
+# dvw <- datavolley::read_dv("/home/ick003/Documents/Donnees/VolleyBall/GameDatasets/AOVC 2019 Womens (Datavolley)/&qua02 tasmanian-queensland p.dvw")
+# setnumber <- 4
+# team = datavolley::visiting_team(dvw)
+# new_rotation = c(28,25,29,32,24,33)
+# new_setter = 28
+# dv_change_startinglineup(dvw, team, setnumber, new_rotation, new_setter)
 dv_change_startinglineup <- function(dvw, team, setnumber, new_rotation = NULL, new_setter = NULL){
     selectTeam = team
     changedRows <- rotations(dvw, team = selectTeam, set_number = setnumber, new_rotation = new_rotation)
