@@ -52,7 +52,7 @@ dv_insert_sets <- function(dvw, no_set_attacks, default_set_evaluation = "+", ri
                                              .data$team_oncourt_setter_number, ## setter player_number
                                              "E", # set skill
                                              str_sub(.data$code, 5, 5), # hitting tempo
-                                             case_when(.data$num_blocker %eq% c(0,1) ~ "#",
+                                             case_when(.data$num_players_numeric %in% c(0, 1) ~ "#",
                                                        TRUE ~ default_set_evaluation)), #(FIVB recommendations)
                            TEMP_attack_code = str_sub(.data$code, 7, 8),
                            setter_call = case_when(.data$TEMP_attack_code %eq% "X1" ~ "K1",
