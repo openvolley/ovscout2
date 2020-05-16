@@ -1,6 +1,7 @@
 ## not exported
 ov_shiny_video_sync_server <- function(app_data) {
     function(input, output, session) {
+        auto_playlist_updates <- TRUE ## temporary while testing - if TRUE allow the playslist table to update automatically (i.e. normal reactive behaviour, which gives slightly simpler code). If FALSE then control these updates manually, which might help avoid unnecessary redraws
         styling <- list(h_court_colour = "#bfefff", ## lightblue1
                         h_court_highlight = "darkblue",
                         v_court_colour = "#bcee68", ## darkolivegreen2
@@ -126,47 +127,38 @@ ov_shiny_video_sync_server <- function(app_data) {
 
 
         observeEvent(input$validate_ball_coords, {
-            ridx <- input$playslist_rows_selected
+            ridx <- playslist_current_row()
             do_reparse = FALSE
             coordsdata = rdataNew()
             if (!is.null(ridx) && !is.na(ridx)) {
-                if(!is.null(coordsdata$xend)){
+                if (!is.null(coordsdata$xend)) {
                     rdata$dvw$plays$end_coordinate_x[ridx] = coordsdata$xend
                     rdata$dvw$plays$end_coordinate_y[ridx] = coordsdata$yend
-                    if(is.na(coordsdata$xend)){rdata$dvw$plays$end_coordinate[ridx] <- NA
-                    }else{rdata$dvw$plays$end_coordinate[ridx] = datavolley::dv_xy2index(coordsdata$xend,coordsdata$yend)}
+                    if (is.na(coordsdata$xend)) {
+                        rdata$dvw$plays$end_coordinate[ridx] <- NA
+                    } else {
+                        rdata$dvw$plays$end_coordinate[ridx] = datavolley::dv_xy2index(coordsdata$xend,coordsdata$yend)
+                    }
                     do_reparse = TRUE
                 }
-                if(!is.null(coordsdata$x)){
+                if (!is.null(coordsdata$x)) {
                     rdata$dvw$plays$start_coordinate_x[ridx] = coordsdata$x
                     rdata$dvw$plays$start_coordinate_y[ridx] = coordsdata$y
-                    if(is.na(coordsdata$x)){rdata$dvw$plays$start_coordinate[ridx] <- NA
-                    }else{rdata$dvw$plays$start_coordinate[ridx] = datavolley::dv_xy2index(coordsdata$x,coordsdata$y)}
+                    if (is.na(coordsdata$x)) {
+                        rdata$dvw$plays$start_coordinate[ridx] <- NA
+                    } else {
+                        rdata$dvw$plays$start_coordinate[ridx] = datavolley::dv_xy2index(coordsdata$x,coordsdata$y)
+                    }
                     do_reparse = TRUE
                 }
            }
             if (do_reparse) {
                 ## reparse the dvw
-                rdata$dvw <- reparse_dvw(rdata$dvw, dv_read_args = dv_read_args)
-                scroll_playlist()
+                ##rdata$dvw <- reparse_dvw(rdata$dvw, dv_read_args = dv_read_args)
+                ## not sure that reparsing is needed here, but just replace the table data
+                playslist_needs_scroll(TRUE)
+                if (!auto_playlist_updates) replace_playlist_data()
             }
-            
-        })
-        
-        observeEvent(input$show_shortcuts, {
-            showModal(modalDialog(title = "Keyboard shortcuts", easyClose = TRUE, size = "l",
-                                  tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")),
-                                  tags$p(tags$strong("Keyboard controls")), tags$ul(tags$li("[r or 5] sync selected event video time"),
-                                                                                    tags$li("[i or 8] move to previous skill row"),
-                                                                                    tags$li("[k or 2] move to next skill row"),
-                                                                                    tags$li("[e or E] edit current code"),
-                                                                                    tags$li("[del] delete current code"),
-                                                                                    tags$li("[ins] insert new code above current"),
-                                                                                    tags$li("[F2] insert setting codes before every attack"),
-                                                                                    tags$li("[F4] delete all setting codes (except errors)"),
-                                                                                    tags$li("[F6] insert digging codes after every attack"),
-                                                                                    tags$li("[F8] delete all digging codes")
-                                                                                    )))
         })
 
         observeEvent(input$all_video_from_clock, {
@@ -218,9 +210,11 @@ ov_shiny_video_sync_server <- function(app_data) {
                     clock_time_diff <- difftime(rdata$dvw$plays$time, this_clock_time, units = "secs")
                     midx <- if (isTruthy(input$infer_all_video_from_current)) rep(TRUE, nrow(rdata$dvw$plays)) else is.na(rdata$dvw$plays$video_time)
                     new_video_time <- this_video_time + clock_time_diff[midx]
-                    # Only update video time of events happening after current event
+                    ## Only update video time of events happening after current event
                     cidx <- which(clock_time_diff[midx] >= 0)
                     rdata$dvw$plays$video_time[midx][cidx] <- round(new_video_time[cidx], digits = input$video_time_decimal_places)
+                    playslist_needs_scroll(TRUE)
+                    if (!auto_playlist_updates) replace_playlist_data()
                 })
             }
         })
@@ -239,6 +233,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                     # Only update clock time of events happening after current event
                     cidx <- which(video_time_diff[midx] >= 0)
                     rdata$dvw$plays$time[midx][cidx] <- new_clock_time[cidx]
+                    playslist_needs_scroll(TRUE)
+                    if (!auto_playlist_updates) replace_playlist_data()
                 })
             }
         })
@@ -257,7 +253,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         })
         observeEvent(input$do_set_clocktime, {
             removeModal()
-            ridx <- input$playslist_rows_selected
+            ridx <- playslist_current_row()
             if (!is.null(ridx) && !is.na(ridx)) {
                 ##cat("x time: "); cat(str(rdata$dvw$plays$time))
                 tm <- input$selected_clocktime
@@ -268,12 +264,14 @@ ov_shiny_video_sync_server <- function(app_data) {
                 ##cat("time cast:"); cat(str(tm))
                 rdata$dvw$plays$time[ridx] <- tm
                 ##cat("rdata time:"); cat(str(rdata$dvw$plays$time[ridx]))
+                playslist_needs_scroll(TRUE)
+                if (!auto_playlist_updates) replace_playlist_data()
             }
         })
 
         ## sync the selected event to the current video time
         sync_single_video_time <- function() {
-            ridx <- input$playslist_rows_selected
+            ridx <- playslist_current_row()
             if (!is.null(ridx)) {
                 do_video("set_current_video_time", ridx)
             }
@@ -294,14 +292,20 @@ ov_shiny_video_sync_server <- function(app_data) {
                 ## advance to the next skill row
                 if (ridx < nrow(rdata$dvw$plays)) {
                     next_skill_row <- find_next_skill_row(ridx, step = skip)
-                    if (length(next_skill_row) > 0) playslist_select_row(next_skill_row)
+                    if (length(next_skill_row) > 0) {
+                        ## update the current row
+                        playslist_current_row(next_skill_row)
+                    }
                 }
+                ## update the table data, and it will automatically trigger the scroll to the current row once it has finished drawing
+                playslist_needs_scroll(TRUE)
+                if (!auto_playlist_updates) replace_playlist_data()
             }
         })
 
         selected_event <- reactive({
-            if (length(input$playslist_rows_selected) == 1) {
-                rdata$dvw$plays[input$playslist_rows_selected, ]
+            if (!is.null(playslist_current_row())) {
+                rdata$dvw$plays[playslist_current_row(), ]
             } else {
                 NULL
             }
@@ -345,7 +349,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                                      escape = FALSE, filter = "top",
                                      selection = sel, options = list(scroller = TRUE,
                                                                      lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = TRUE, "scrollY" = paste0(plh, "px"), ordering = FALSE, ##autoWidth = TRUE,
-                                                                     columnDefs = list(list(targets = cols_to_hide, visible = FALSE))
+                                                                     columnDefs = list(list(targets = cols_to_hide, visible = FALSE)),
+                                                                     drawCallback = DT::JS("function(settings) { Shiny.setInputValue('playlist_redrawn', new Date().getTime()); }")
                                                                      ##list(targets = 0, width = "20px")) ## does nothing
                                                                      ))
                 out <- DT::formatStyle(out, "is_skill", target = "row", backgroundColor = DT::styleEqual(c(FALSE, TRUE), c("#f0f0e0", "lightgreen"))) ## colour skill rows green
@@ -356,19 +361,35 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }, server = TRUE)
         playslist_proxy <- DT::dataTableProxy("playslist")
-        playslist_select_row <- function(rw) {
-            if (!is.null(rw)) DT::selectRows(playslist_proxy, rw)
-            scroll_playlist(rw)
-        }
+        playslist_needs_scroll <- reactiveVal(FALSE)
+        observeEvent(input$playlist_redrawn, {
+            ## when the table has finished being drawn, scroll it if necessary
+            if (playslist_needs_scroll()) {
+                playslist_needs_scroll(FALSE)
+                scroll_playlist(playslist_current_row())
+            }
+            ## and mark current row as selected in the table, but don't re-scroll to it
+            playslist_select_row(playslist_current_row(), scroll = FALSE)
+        })
 
-        scroll_playlist <- function(rw = NULL) {
-            selr <- if (!is.null(rw)) rw else input$playslist_rows_selected
-            if (!is.null(selr)) {
+        ## keep track of selected playslist row as a reactiveVal
+        ##   when updating e.g. video time, set this reactiveVal, then wait for DT to redraw THEN scroll
+        playslist_current_row <- reactiveVal(NULL)
+        ## the playslist_select_row function just changes the visible selection in the table, and optionally scrolls to it, but does not change playslist_current_row() value
+        playslist_select_row <- function(rw, scroll = TRUE) {
+            DT::selectRows(playslist_proxy, rw)
+            if (isTRUE(scroll)) scroll_playlist(rw)
+        }
+        ## when the user changes the selected row, update playslist_current_row
+        observeEvent(input$playslist_rows_selected, playslist_current_row(input$playslist_rows_selected))
+
+        scroll_playlist <- function(rw) {
+            if (!is.null(rw)) {
                 ## scrolling works on the VISIBLE row index, so it depends on any column filters that might have been applied
-                visible_rowidx <- which(input$playslist_rows_all == selr)
+                visible_rowidx <- which(input$playslist_rows_all == rw)
                 scrollto <- max(visible_rowidx-1-5, 0) ## -1 for zero indexing, -5 to keep the selected row 5 from the top
                 ##dojs(paste0("$('#playslist').find('.dataTable').DataTable().scroller.toPosition(", scrollto, ");")) ## with anim, laggy
-                dojs(paste0("$('#playslist').find('.dataTable').DataTable().scroller.toPosition(", scrollto, ", false);")) ## no anim, faster (not sure if it always scrolls the right row into view?)
+                dojs(paste0("$('#playslist').find('.dataTable').DataTable().scroller.toPosition(", scrollto, ", false);")) ## no anim, faster
 
                 ## using the jquery scrollTo extension, enable in UI
                 ##stid <- paste0("$('#DataTables_Table_1 > tbody tr:nth-child(", scrollto+1, ")')")
@@ -381,17 +402,27 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }
 
+        ## if auto_playlist_updates is TRUE
         observe({
+            if (auto_playlist_updates) {
+                mydat <- rdata$dvw$plays
+                mydat$is_skill <- is_skill(mydat$skill)
+                mydat$set_number <- as.factor(mydat$set_number)
+                DT::replaceData(playslist_proxy, data = mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, clearSelection = "none")##, resetPaging = FALSE)
+            }
+        })
+        ## replace_playlist_data is used if auto_playlist_updates is FALSE
+        replace_playlist_data <- function() {
             mydat <- rdata$dvw$plays
             mydat$is_skill <- is_skill(mydat$skill)
             mydat$set_number <- as.factor(mydat$set_number)
-            DT::replaceData(playslist_proxy, data = mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, clearSelection = "none")##, resetPaging = FALSE)
-        })
+            DT::replaceData(playslist_proxy, data = mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, clearSelection = "none")
+        }
 
         find_next_skill_row <- function(current_row_idx = NULL, step = 1, respect_filters = TRUE) {
             ## if respect_filters is TRUE, find the next row that is shown in the table (i.e. passing through any column filters that have been applied)
             ## if FALSE, just find the next skill row in the data, ignoring table filters
-            if (is.null(current_row_idx)) current_row_idx <- input$playslist_rows_selected
+            if (is.null(current_row_idx)) current_row_idx <- playslist_current_row()
             skill_rows <- which(is_skill(rdata$dvw$plays$skill))
             if (respect_filters) skill_rows <- intersect(skill_rows, input$playslist_rows_all)
             next_skill_row <- skill_rows[skill_rows > current_row_idx]
@@ -401,7 +432,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         find_prev_skill_row <- function(current_row_idx = NULL, step = 1, respect_filters = TRUE) {
             ## if respect_filters is TRUE, find the previous row that is shown in the table (i.e. passing through any column filters that have been applied)
             ## if FALSE, just find the previous skill row in the data, ignoring table filters
-            if (is.null(current_row_idx)) current_row_idx <- input$playslist_rows_selected
+            if (is.null(current_row_idx)) current_row_idx <- playslist_current_row()
             skill_rows <- which(is_skill(rdata$dvw$plays$skill))
             if (respect_filters) skill_rows <- intersect(skill_rows, input$playslist_rows_all)
             prev_skill_row <- rev(skill_rows[skill_rows < current_row_idx])
@@ -568,7 +599,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         })
 
         edit_current_code <- function() {
-            ridx <- input$playslist_rows_selected
+            ridx <- playslist_current_row()
             if (!is.null(ridx)) {
                 thiscode <- rdata$dvw$plays$code[ridx]
                 editing$active <- "edit"
@@ -714,7 +745,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 ridx <- dplyr::filter(mutate(rdata$dvw$plays, rowN = row_number()), .data$skill %eq% "Set" & !.data$evaluation %eq% "Error")$rowN
                 if (length(ridx) > 0) {
                     if (is.logical(ridx)) ridx <- which(ridx)
-                    rdata$dvw$plays <-rdata$dvw$plays[-ridx, ]
+                    rdata$dvw$plays <- rdata$dvw$plays[-ridx, ]
                     do_reparse <- TRUE
                 }
             } else if (editing$active %eq% "insert setting actions") {
@@ -738,7 +769,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                     do_reparse <- TRUE
                 }
             } else {
-                ridx <- input$playslist_rows_selected
+                ridx <- playslist_current_row()
                 if (!is.null(ridx)) {
                     if (editing$active %in% c("edit", "insert")) {
                         current_code <- rdata$dvw$plays$code[ridx]
@@ -822,12 +853,13 @@ ov_shiny_video_sync_server <- function(app_data) {
             if (do_reparse) {
                 ## reparse the dvw
                 rdata$dvw <- reparse_dvw(rdata$dvw, dv_read_args = dv_read_args)
-                scroll_playlist()
+                playslist_needs_scroll(TRUE)
+                if (!auto_playlist_updates) replace_playlist_data()
             }
             editing$active <- NULL
         }
         insert_data_row <- function() {
-            ridx <- input$playslist_rows_selected
+            ridx <- playslist_current_row()
             if (!is.null(ridx)) {
                 if (ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
                 editing$active <- "insert"
@@ -841,7 +873,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }
         delete_data_row <- function() {
-            ridx <- input$playslist_rows_selected
+            ridx <- playslist_current_row()
             if (!is.null(ridx)) {
                 thiscode <- rdata$dvw$plays$code[ridx]
                 editing$active <- "delete"
@@ -853,7 +885,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         # Create a substitution
         
         insert_sub_old <- function() {
-            ridx <- input$playslist_rows_selected
+            ridx <- playslist_current_row()
             if (!is.null(ridx)) {
                 if (ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
                 editing$active <- "substitution"
@@ -900,7 +932,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         }
         
         insert_sub <- function() {
-            ridx <- input$playslist_rows_selected
+            ridx <- playslist_current_row()
             if (!is.null(ridx)) {
                 if (ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
                 editing$active <- "substitution"
@@ -949,7 +981,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour) +
                 geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour) +
                 ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
-            ridx <- input$playslist_rows_selected
+            ridx <- playslist_current_row()
             if (!is.null(ridx)) {
                 this_pn <- rdata$dvw$plays$player_number[ridx] ## player in the selected row
                 htrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("home_player_id", 1:6)]), team_id = rdata$dvw$plays$home_team_id[ridx])
@@ -1137,7 +1169,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         #         geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour) +
         #         geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour) +
         #         ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
-        #     ridx <- input$playslist_rows_selected
+        #     ridx <- playslist_current_row()
         #     if (!is.null(ridx)) {
         #         this_pn <- rdata$dvw$plays$player_number[ridx] ## player in the selected row
         #         htrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("home_player_id", 1:6)]), team_id = rdata$dvw$plays$home_team_id[ridx])
@@ -1470,28 +1502,15 @@ ov_shiny_video_sync_server <- function(app_data) {
                                   )
             ))
         })
-        
+
         ## court inset showing rotation and team lists
-        #callModule(mod_courtrot, id = "courtrot", rdata = rdata, rowidx = reactive(input$playslist_rows_selected), styling = styling)
-        newCoordsdata <- callModule(mod_courtrot, id = "courtrot", rdata = rdata, rowidx = reactive(input$playslist_rows_selected), styling = styling)
-        
-        rdataNew <- reactive({
-            ncd <- newCoordsdata
-            ncd
-        })
-        
-        # General help
-        observeEvent(input$general_help,
-                     introjs(session, options = list("nextLabel"="Next",
-                                                     "prevLabel"="Previous",
-                                                     "skipLabel"="Skip")
-                     )
-        )
-        
-        # Scouting Help
-        
+        newCoordsdata <- callModule(mod_courtrot, id = "courtrot", rdata = rdata, rowidx = reactive(playslist_current_row()), styling = styling)
+        rdataNew <- reactive(newCoordsdata)
+
+        ## General help
+        observeEvent(input$general_help, introjs(session, options = list("nextLabel"="Next", "prevLabel"="Previous", "skipLabel"="Skip")))
+        ## Scouting Help
         observeEvent(input$ovscout_helper, {
-            
             showModal(modalDialog(
                 title = "Controls helper",
                 easyClose = TRUE, size = "l",
@@ -1537,15 +1556,15 @@ ov_shiny_video_sync_server <- function(app_data) {
                          ),
                          fluidRow(
                              column(2, actionButton("do_nothing", label = "i"), "or", actionButton("do_nothing", label = "8")),
-                             column(8, tags$strong("move to previous skill row"), "")
+                             column(8, tags$strong("Move to previous skill row"), "")
                          ),
                          fluidRow(
                              column(2, actionButton("do_nothing", label = "k"), "or", actionButton("do_nothing", label = "2")),
-                             column(8, tags$strong("move to next skill row"), "")
+                             column(8, tags$strong("Move to next skill row"), "")
                          ),
                          fluidRow(
                              column(2, actionButton("do_nothing", label = "e"), "or", actionButton("do_nothing", label = "E")),
-                             column(8, tags$strong("edit current code"), "")
+                             column(8, tags$strong("Edit current code"), "")
                          ),
                          fluidRow(
                              column(2, actionButton("do_nothing", label = "del")),
