@@ -13,8 +13,10 @@ ov_shiny_video_sync_server <- function(app_data) {
         done_first_playlist_render <- FALSE
         running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
         debug <- 0L
-        plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "home_team_score", "visiting_team_score", "code")
-        plays_col_renames <- c(Set = "set_number", "Home score" = "home_team_score", "Visiting score" = "visiting_team_score")
+        #plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "home_team_score", "visiting_team_score", "code")
+        plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "code")
+        #plays_col_renames <- c(Set = "set_number", "Home score" = "home_team_score", "Visiting score" = "visiting_team_score")
+        plays_col_renames <- c(Set = "set_number")
         is_skill <- function(z) !is.na(z) & (!z %in% c("Timeout", "Technical timeout", "Substitution"))
         no_set_attacks <- c("PR", "PP", "P2") ## attacks that don't need a set inserted before them
         default_set_evaluation <- "+" ## for inserted sets
@@ -337,6 +339,12 @@ ov_shiny_video_sync_server <- function(app_data) {
                 })
                 mydat$is_skill <- is_skill(mydat$skill)
                 mydat$set_number <- as.factor(mydat$set_number)
+                mydat$phase_type <- case_when(mydat$phase %eq% "Serve" ~ "S",
+                                              mydat$phase %eq% "Reception" ~ "R",
+                                              mydat$phase %eq% "Transition" ~ "T")
+                mydat$Score <- paste(mydat$home_team_score, mydat$visiting_team_score, sep = "-")
+                plays_cols_to_show <- c(plays_cols_to_show, "phase_type", "Score")
+                
                 cols_to_hide <- which(c(plays_cols_to_show, "is_skill") %in% c("is_skill"))-1 ## 0-based because no row names
                 cnames <- names(plays_do_rename(mydat[1, c(plays_cols_to_show, "is_skill"), drop = FALSE]))
                 cnames[plays_cols_to_show == "error_icon"] <- ""
@@ -344,7 +352,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                                      extensions = "Scroller",
                                      escape = FALSE, filter = "top",
                                      selection = sel, options = list(scroller = TRUE,
-                                                                     lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = TRUE, "scrollY" = paste0(plh, "px"), ordering = FALSE, ##autoWidth = TRUE,
+                                                                     lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = TRUE, "scrollY" = paste0(plh, "px"), ordering = FALSE, ##autoWidth = TRUE,scrollX = FALSE,
                                                                      columnDefs = list(list(targets = cols_to_hide, visible = FALSE))
                                                                      ##list(targets = 0, width = "20px")) ## does nothing
                                                                      ))
@@ -377,6 +385,12 @@ ov_shiny_video_sync_server <- function(app_data) {
             mydat <- rdata$dvw$plays
             mydat$is_skill <- is_skill(mydat$skill)
             mydat$set_number <- as.factor(mydat$set_number)
+            mydat$phase_type <- case_when(mydat$phase %eq% "Serve" ~ "S",
+                                          mydat$phase %eq% "Reception" ~ "R",
+                                          mydat$phase %eq% "Transition" ~ "T")
+            mydat$Score <- paste(mydat$home_team_score, mydat$visiting_team_score, sep = "-")
+            plays_cols_to_show <- c(plays_cols_to_show, "phase_type", "Score")
+            
             DT::replaceData(playslist_proxy, data = mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, clearSelection = "none")##, resetPaging = FALSE)
         })
 
