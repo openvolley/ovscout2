@@ -14,9 +14,9 @@ ov_shiny_video_sync_server <- function(app_data) {
         running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
         debug <- 0L
         #plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "home_team_score", "visiting_team_score", "code")
-        plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "code")
+        plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "code", "home_setter_position", "visiting_setter_position")
         #plays_col_renames <- c(Set = "set_number", "Home score" = "home_team_score", "Visiting score" = "visiting_team_score")
-        plays_col_renames <- c(Set = "set_number")
+        plays_col_renames <- c(Set = "set_number", hs = "home_setter_position", as = "visiting_setter_position")
         is_skill <- function(z) !is.na(z) & (!z %in% c("Timeout", "Technical timeout", "Substitution"))
         no_set_attacks <- c("PR", "PP", "P2") ## attacks that don't need a set inserted before them
         default_set_evaluation <- "+" ## for inserted sets
@@ -164,10 +164,12 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                                                     tags$li("[e or E] edit current code"),
                                                                                     tags$li("[del] delete current code"),
                                                                                     tags$li("[ins] insert new code above current"),
+                                                                                    tags$li("[F1] Home team rotate +1"),
                                                                                     tags$li("[F2] insert setting codes before every attack"),
                                                                                     tags$li("[F4] delete all setting codes (except errors)"),
                                                                                     tags$li("[F6] insert digging codes after every attack"),
-                                                                                    tags$li("[F8] delete all digging codes")
+                                                                                    tags$li("[F8] delete all digging codes"), 
+                                                                                    tags$li("[F10] Visiting team rotate +1"),
                                                                                     )))
         })
 
@@ -538,7 +540,11 @@ ov_shiny_video_sync_server <- function(app_data) {
                         } else if (ky %eq% "113") {
                             ## insert new setting actions
                             insert_setting_data_row()
-                        }  else if (ky %eq% "115") {
+                        }  else if(ky %eq% "112") {
+                            home_force_rotate()
+                        } else if(ky %eq% "121") {
+                            visiting_force_rotate()
+                        } else if (ky %eq% "115") {
                             ## delete all setting actions
                             delete_setting_data_row()
                         }  else if (ky %eq% "117") {
@@ -821,6 +827,14 @@ ov_shiny_video_sync_server <- function(app_data) {
                             rdata$dvw <- dv_create_substitution(rdata$dvw, ridx, team = teamSelect, in_player = input$vt_inplayer, out_player = input$vt_outplayer,
                                                                 new_setter = input$vt_new_setter)
                         }
+                    } else if (editing$active %eq% "home_force_rotation"){
+                        if (is.logical(ridx)) ridx <- which(ridx)
+                        teamSelect = datavolley::home_team(rdata$dvw)
+                        rdata$dvw <- dv_force_rotation(rdata$dvw, team = teamSelect, ridx, direction = 1)
+                    } else if (editing$active %eq% "visiting_force_rotation"){
+                        if (is.logical(ridx)) ridx <- which(ridx)
+                        teamSelect = datavolley::visiting_team(rdata$dvw)
+                        rdata$dvw <- dv_force_rotation(rdata$dvw, team = teamSelect, ridx, direction = 1)
                     }
                     do_reparse <- TRUE
                 }
@@ -856,6 +870,18 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         }
         
+        home_force_rotate <- function() {
+            ridx <- input$playslist_rows_selected
+            if (!is.null(ridx)) {
+                editing$active <- "home_force_rotation"
+            }
+        }
+        visiting_force_rotate <- function() {
+            ridx <- input$playslist_rows_selected
+            if (!is.null(ridx)) {
+                editing$active <- "visiting_force_rotation"
+            }
+        }
         # Create a substitution
         
         insert_sub_old <- function() {

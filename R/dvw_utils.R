@@ -294,3 +294,78 @@ dv_change_startinglineup <- function(dvw, team, setnumber, new_rotation = NULL, 
     
     return(dvw)
 }
+
+
+
+# Test:
+# dvw <- datavolley::read_dv("/home/ick003/Documents/Donnees/VolleyBall/GameDatasets/Southern League 2020 Mens - Spring (Datavolley)/&fir01 boss men-van diemens_with_vt.dvw")
+# team = datavolley::visiting_team(dvw)
+# ridx = 101
+# dv_force_rotation(dvw, team, ridx, direction = 1)
+dv_force_rotation <- function(dvw, team, ridx, direction){
+    selectTeam = team
+    current_point_id <- dvw$plays$point_id[ridx]
+    current_set_number <- dvw$plays$set_number[ridx]
+    rows2change = rotations(dvw,  team = selectTeam, start_point_id = current_point_id, set_number = current_set_number)
+    rotation2change = unlist(rows2change$current_rotation[1,8:13])
+    names_r2c <- names(rotation2change)
+    if(direction == 1){
+        new_rotation = rotation2change[c(2:6, 1)]
+        names(new_rotation) <- names_r2c
+    }
+    if(direction == -1){
+        new_rotation = rotation2change[c(6,1:5)]
+        names(new_rotation) <- names_r2c
+    }
+    changedRows <- rotations(dvw, team = selectTeam, set_number = current_set_number, start_point_id = current_point_id, new_rotation = new_rotation)
+    toreplace <- dvw$plays[dvw$plays$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)]
+    new_xx <- dplyr::left_join(dplyr::select(toreplace, 'point_id'), changedRows$new_rotation, by = "point_id")
+    dvw$plays[dvw$plays$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)] <- new_xx
+    
+    # Need to update the setter position as well: change the column home/visiting_setter_position and the codes *z1 etc...
+    row2change = which(dvw$plays$point_id %in% changedRows$new_rotation$point_id)
+    if(selectTeam %eq% datavolley::home_team(dvw)){
+        dvw$plays$home_setter_position[row2change] <- dplyr::case_when(dvw$plays$home_p1[row2change] == new_setter ~ 1,
+                                                                       dvw$plays$home_p2[row2change] == new_setter ~ 2,
+                                                                       dvw$plays$home_p3[row2change] == new_setter ~ 3,
+                                                                       dvw$plays$home_p4[row2change] == new_setter ~ 4,
+                                                                       dvw$plays$home_p5[row2change] == new_setter ~ 5,
+                                                                       dvw$plays$home_p6[row2change] == new_setter ~ 6)
+    }
+    if(selectTeam %eq% datavolley::visiting_team(dvw)){
+        dvw$plays$visiting_setter_position[row2change] <- dplyr::case_when(dvw$plays$visiting_p1[row2change] == new_setter ~ 1,
+                                                                           dvw$plays$visiting_p2[row2change] == new_setter ~ 2,
+                                                                           dvw$plays$visiting_p3[row2change] == new_setter ~ 3,
+                                                                           dvw$plays$visiting_p4[row2change] == new_setter ~ 4,
+                                                                           dvw$plays$visiting_p5[row2change] == new_setter ~ 5,
+                                                                           dvw$plays$visiting_p6[row2change] == new_setter ~ 6)
+    }
+    
+    # Setter rotation
+    
+    idxvz = grepl("az[[:digit:]]", dvw$plays$code[row2change])
+    new_code_v = stringr::str_replace(dvw$plays$code[row2change][idxvz], "[[:digit:]]", as.character(dvw$plays$visiting_setter_position[row2change][idxvz]))
+    
+    idxhz = grepl("\\*z[[:digit:]]", dvw$plays$code[row2change])
+    new_code_h = stringr::str_replace(dvw$plays$code[row2change][idxhz], "[[:digit:]]", as.character(dvw$plays$visiting_setter_position[row2change][idxhz]))
+    
+    dvw$plays$code[row2change][idxvz] <- new_code_v
+    dvw$plays$code[row2change][idxhz] <- new_code_h
+    
+    # Setter declaration
+    
+    if (!grepl("^[[:digit:]][[:digit:]]", new_setter)) new_setter <- stringr::str_c("0", new_setter)
+    
+    if(selectTeam %eq% datavolley::visiting_team(dvw)){
+        idxvP = grepl("aP[[:digit:]][[:digit:]]", dvw$plays$code[row2change])
+        new_code_vP = stringr::str_replace(dvw$plays$code[row2change][idxvP], "[[:digit:]][[:digit:]]", new_setter)
+        dvw$plays$code[row2change][idxvP] <- new_code_vP
+    }
+    if(selectTeam %eq% datavolley::home_team(dvw)){
+        idxhP = grepl("\\*P[[:digit:]][[:digit:]]", dvw$plays$code[row2change])
+        new_code_hP = stringr::str_replace(dvw$plays$code[row2change][idxhP], "[[:digit:]][[:digit:]]", new_setter)
+        dvw$plays$code[row2change][idxhP] <- new_code_hP
+    }
+    
+    return(dvw)
+}
