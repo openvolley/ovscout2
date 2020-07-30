@@ -306,6 +306,21 @@ dv_force_rotation <- function(dvw, team, ridx, direction){
     selectTeam = team
     current_point_id <- dvw$plays$point_id[ridx]
     current_set_number <- dvw$plays$set_number[ridx]
+    new_setter = dplyr::case_when(selectTeam %eq% datavolley::home_team(dvw) ~ 
+                                      dplyr::case_when(dvw$plays$home_setter_position[ridx] %eq% 1 ~ dvw$plays$home_p1[ridx],
+                                                dvw$plays$home_setter_position[ridx] %eq% 2 ~ dvw$plays$home_p2[ridx], 
+                                                dvw$plays$home_setter_position[ridx] %eq% 3 ~ dvw$plays$home_p3[ridx],
+                                                dvw$plays$home_setter_position[ridx] %eq% 4 ~ dvw$plays$home_p4[ridx], 
+                                                dvw$plays$home_setter_position[ridx] %eq% 5 ~ dvw$plays$home_p5[ridx],
+                                                dvw$plays$home_setter_position[ridx] %eq% 6 ~ dvw$plays$home_p6[ridx]),
+                                  selectTeam %eq% datavolley::visiting_team(dvw) ~ 
+                                      dplyr::case_when(dvw$plays$visiting_setter_position[ridx] %eq% 1 ~ dvw$plays$visiting_p1[ridx],
+                                                dvw$plays$visiting_setter_position[ridx] %eq% 2 ~ dvw$plays$visiting_p2[ridx], 
+                                                dvw$plays$visiting_setter_position[ridx] %eq% 3 ~ dvw$plays$visiting_p3[ridx],
+                                                dvw$plays$visiting_setter_position[ridx] %eq% 4 ~ dvw$plays$visiting_p4[ridx], 
+                                                dvw$plays$visiting_setter_position[ridx] %eq% 5 ~ dvw$plays$visiting_p5[ridx],
+                                                dvw$plays$visiting_setter_position[ridx] %eq% 6 ~ dvw$plays$visiting_p6[ridx]))
+    new_setter = as.character(new_setter)
     rows2change = rotations(dvw,  team = selectTeam, start_point_id = current_point_id, set_number = current_set_number)
     rotation2change = unlist(rows2change$current_rotation[1,8:13])
     names_r2c <- names(rotation2change)

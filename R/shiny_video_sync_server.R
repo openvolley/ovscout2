@@ -126,6 +126,19 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         })
 
+        observe({
+            rtn = rotateTeams()
+            
+            if(rtn$home==1){
+                home_force_rotate()
+                rtn$home = 0
+            }
+            if(rtn$visiting==1){
+                visiting_force_rotate()
+                rtn$visiting=0
+            }
+        })
+        
         
         observeEvent(input$validate_ball_coords, {
             ridx <- input$playslist_rows_selected
@@ -540,10 +553,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                         } else if (ky %eq% "113") {
                             ## insert new setting actions
                             insert_setting_data_row()
-                        }  else if(ky %eq% "112") {
-                            home_force_rotate()
-                        } else if(ky %eq% "121") {
-                            visiting_force_rotate()
+                        # }  else if(ky %eq% "112") {
+                        #     home_force_rotate()
+                        # } else if(ky %eq% "121") {
+                        #     visiting_force_rotate()
                         } else if (ky %eq% "115") {
                             ## delete all setting actions
                             delete_setting_data_row()
@@ -874,12 +887,14 @@ ov_shiny_video_sync_server <- function(app_data) {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
                 editing$active <- "home_force_rotation"
+                code_make_change()
             }
         }
         visiting_force_rotate <- function() {
             ridx <- input$playslist_rows_selected
             if (!is.null(ridx)) {
                 editing$active <- "visiting_force_rotation"
+                code_make_change()
             }
         }
         # Create a substitution
@@ -1508,8 +1523,13 @@ ov_shiny_video_sync_server <- function(app_data) {
         newCoordsdata <- callModule(mod_courtrot, id = "courtrot", rdata = rdata, rowidx = reactive(input$playslist_rows_selected), styling = styling)
         
         rdataNew <- reactive({
-            ncd <- newCoordsdata
+            ncd <- newCoordsdata$pcCI
             ncd
+        })
+        
+        rotateTeams <- reactive({
+            rt = newCoordsdata$rt
+            rt
         })
         
         # General help

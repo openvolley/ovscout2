@@ -64,7 +64,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
                                               introBox(actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
                                               actionButton("edit_match_data_button", "Edit match data", icon = icon("volleyball-ball")),
                                               actionButton("edit_teams_button", "Edit teams", icon = icon("users")),
-                                              actionButton("edit_lineup_button", "Edit lineups", icon = icon("undo")), data.step = 3, data.intro = "Click on these action buttons if you want to edit the starting lineups, edit the rosters, or edit the match metadata."),
+                                              actionButton("edit_lineup_button", "Edit lineups", icon = icon("arrows-alt-h")), data.step = 3, data.intro = "Click on these action buttons if you want to edit the starting lineups, edit the rosters, or edit the match metadata."),
                                               uiOutput("save_file_ui", inline = TRUE),
                                               actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212")),
                                        column(4, uiOutput("current_event"))),
