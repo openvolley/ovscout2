@@ -30,6 +30,13 @@ dv_insert_sets_check <- function(dvw, no_set_attacks) {
 
 ## insert the set rows
 ## if ridx not supplied, recalculate it
+
+# Test:
+# dvw <- datavolley::read_dv("/home/ick003/Documents/Donnees/VolleyBall/GameDatasets/Southern League 2020 Mens - Spring (Datavolley)/&fir01 vikings me-phoenix men_with_vt.dvw")
+# ridx <- 11
+# no_set_attacks <- c("PR", "PP", "P2")
+# tt <- dv_insert_sets(dvw=dvw, ridx = ridx, no_set_attacks=no_set_attacks)
+# dv_create_substitution(dvw, team, ridx, in_player, out_player, new_setter)
 dv_insert_sets <- function(dvw, no_set_attacks, default_set_evaluation = "+", ridx = NULL) {
     if (is.null(ridx)) ridx <- dv_insert_sets_check(dvw = dvw, no_set_attacks = no_set_attacks)
     if (length(ridx) > 0) {
@@ -48,12 +55,17 @@ dv_insert_sets <- function(dvw, no_set_attacks, default_set_evaluation = "+", ri
                                                                                                                          .data$visiting_setter_position == 5 ~ .data$visiting_p5,
                                                                                                                          .data$visiting_setter_position == 6 ~ .data$visiting_p6)),
                            team_oncourt_setter_number = sprintf("%02d", .data$team_oncourt_setter_number),
-                           set_code = paste0(str_sub(.data$code, 1, 1), ## Team
+                           s_code = str_sub(.data$code, 1, 1),
+                           s_skill = "E",
+                           s_hittingtempo = str_sub(.data$code, 5, 5),
+                           s_eval = case_when(.data$num_players_numeric %in% c(0,1) ~ "#",
+                                     is.na(.data$num_players_numeric) ~ "+",
+                                     TRUE ~ default_set_evaluation),
+                           set_code = paste0(.data$s_code, ## Team
                                              .data$team_oncourt_setter_number, ## setter player_number
-                                             "E", # set skill
-                                             str_sub(.data$code, 5, 5), # hitting tempo
-                                             case_when(.data$num_blocker %eq% c(0,1) ~ "#",
-                                                       TRUE ~ default_set_evaluation)), #(FIVB recommendations)
+                                             .data$s_skill, # set skill
+                                             .data$s_hittingtempo, # hitting tempo
+                                             .data$s_eval), #(FIVB recommendations)
                            TEMP_attack_code = str_sub(.data$code, 7, 8),
                            setter_call = case_when(.data$TEMP_attack_code %eq% "X1" ~ "K1",
                                                    .data$TEMP_attack_code %eq% "X2" ~ "K2",
@@ -301,7 +313,7 @@ dv_change_startinglineup <- function(dvw, team, setnumber, new_rotation = NULL, 
 # dvw <- datavolley::read_dv("/home/ick003/Documents/Donnees/VolleyBall/GameDatasets/Southern League 2020 Mens - Spring (Datavolley)/&fir01 boss men-van diemens_with_vt.dvw")
 # team = datavolley::visiting_team(dvw)
 # ridx = 101
-# dv_force_rotation(dvw, team, ridx, direction = 1)
+# tt <- dv_force_rotation(dvw, team, ridx, direction = 1)
 dv_force_rotation <- function(dvw, team, ridx, direction){
     selectTeam = team
     current_point_id <- dvw$plays$point_id[ridx]
