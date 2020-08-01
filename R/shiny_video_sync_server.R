@@ -1619,6 +1619,44 @@ ov_shiny_video_sync_server <- function(app_data) {
                 )
             ))
         })
-        
+
+        ## height of the video player element
+        vo_height <- reactiveVal("auto")
+        observe({
+            if (!is.null(input$dv_height) && as.numeric(input$dv_height) > 0) {
+                vo_height(as.numeric(input$dv_height))
+                dojs(paste0("document.getElementById('video_overlay').style.height = '", vo_height(), "px';"))
+            } else {
+                vo_height("auto")
+                dojs(paste0("document.getElementById('video_overlay').style.height = '400px';"))
+            }
+        })
+        ## width of the video player element
+        vo_width <- reactiveVal("auto")
+        observe({
+            if (!is.null(input$dv_width) && as.numeric(input$dv_width) > 0) {
+                vo_width(as.numeric(input$dv_width))
+            } else {
+                vo_width("auto")
+            }
+        })
+        ## height of the video player container, use as negative vertical offset on the overlay element
+        observe({
+            if (!is.null(input$vo_voffset) && as.numeric(input$vo_voffset) > 0) {
+                dojs(paste0("document.getElementById('video_overlay').style.marginTop = '-", input$vo_voffset, "px';"))
+            } else {
+                dojs("document.getElementById('video_overlay').style.marginTop = '0px';")
+            }
+        })
+        ## video overlay
+        gg_tight <- list(theme(legend.position = "none", panel.background = element_rect(fill = "transparent", colour = NA), plot.background = element_rect(fill = "transparent", color = NA), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.spacing = unit(0, "null"), plot.margin = rep(unit(0, "null"), 4), axis.ticks = element_blank(), axis.ticks.length = unit(0, "null"), axis.text.x = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank(), axis.title.y = element_blank()), scale_x_continuous(expand = c(0, 0)), scale_y_continuous(expand = c(0, 0)))
+        observe({
+            output$video_overlay <- renderPlot({
+                NULL
+                ## test - red diagonal line across the overlay plot
+                ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red") + gg_tight
+            }, bg = "transparent", width = vo_width(), height = vo_height())
+        })
+
     }
 }
