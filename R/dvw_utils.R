@@ -13,7 +13,12 @@ reparse_dvw <- function(x, dv_read_args = list()) {
 
 preprocess_dvw <- function(x) {
     x$plays <- mutate(x$plays, clock_time = format(.data$time, "%H:%M:%S"))
-    msgs <- dplyr::filter(x$messages, !is.na(.data$file_line_number))
+    msgs <- dplyr::select(dplyr::filter(x$messages, !is.na(.data$file_line_number)), .data$file_line_number, .data$message)
+    ## check for negative steps in video_time
+    chk <- mutate(na.omit(dplyr::select(x$plays, .data$skill, .data$file_line_number, .data$video_time)), vdiff = .data$video_time - lag(.data$video_time))
+    if (any(chk$vdiff < 0, na.rm = TRUE)) {
+        msgs <- bind_rows(msgs, dplyr::select(mutate(dplyr::filter(chk, .data$vdiff < 0), message = "Video time went backwards"), .data$file_line_number, .data$message))
+    }
     msgs <- dplyr::summarize(group_by_at(msgs, "file_line_number"), error_message = paste0(.data$message, collapse = "<br />"))
     x$plays <- left_join(x$plays, msgs, by = "file_line_number")
     x$plays$error_icon <- ifelse(is.na(x$plays$error_message), "", HTML(as.character(shiny::icon("exclamation-triangle"))))
