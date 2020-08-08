@@ -114,12 +114,10 @@ if (any(lhok)) {
 
 library(ovscout)
 if (length(rgs) < 2 || is.na(rgs[2]) || !nzchar(rgs[2])) {
-    cat("choose dvw file\n")
-    if (.Platform$OS.type == "windows") {
-        dvw <- utils::choose.files(caption = "Choose dvw file", multi = FALSE, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
-    } else {
-        dvw <- file.choose()
-    }
+    dvw <- NULL
+    ## the ov_shiny_video_sync launcher will prompt for user to select file
+} else {
+    dvw <- rgs[2]
 }
 
 ## styling to use here
@@ -129,4 +127,4 @@ su_header <- shiny::fluidRow(id = "headerblock", shiny::tags$a(id = "headerlogo"
 su_css <- paste0("#headerblock { border-radius:0px; border:none; color: white; background: #000040 url(", im64("bgrev.jpg"), ") 0 0/100% auto no-repeat; } #headerlogo {float:right; clear:none;} #headerlogo img {width: 16em; max-width:30vw; margin:10px;}")
 
 ## TODO, option to specify video file
-ov_shiny_video_sync(dvw = dvw, video_file = NULL, launch_browser = TRUE, ui_header = su_header, css = su_css)
+ov_shiny_video_sync(dvw = dvw, video_file = NULL, launch_browser = TRUE, prompt_for_files = TRUE, ui_header = su_header, css = su_css)

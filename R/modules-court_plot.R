@@ -31,10 +31,9 @@ mod_courtrot_ui <- function(id) {
             column(1, actionButton(ns("rotate_visiting"), icon("undo"))),
             column(1)
         ),
-        fluidRow(
-            column(3, id = "hroster", uiOutput(ns("htroster"))),
-            column(6,plotOutput(ns("court_inset"),click = ns("plot_click"),dblclick = ns("plot_dblclick"))),
-            column(3, id = "vroster", uiOutput(ns("vtroster")))))
+        fluidRow(column(3, id = "hroster", uiOutput(ns("htroster"))),
+                 column(6,plotOutput(ns("court_inset"),click = ns("plot_click"),dblclick = ns("plot_dblclick"))),
+                 column(3, id = "vroster", uiOutput(ns("vtroster")))))
 }
 
 mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {

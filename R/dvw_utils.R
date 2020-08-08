@@ -63,7 +63,7 @@ dv_insert_sets <- function(dvw, no_set_attacks, default_set_evaluation = "+", ri
                            s_code = str_sub(.data$code, 1, 1),
                            s_skill = "E",
                            s_hittingtempo = str_sub(.data$code, 5, 5),
-                           s_eval = case_when(.data$num_players_numeric %in% c(0,1) ~ "#",
+                           s_eval = case_when(.data$num_players_numeric %in% c(0, 1) ~ "#",
                                      is.na(.data$num_players_numeric) ~ "+",
                                      TRUE ~ default_set_evaluation),
                            set_code = paste0(.data$s_code, ## Team
@@ -289,7 +289,7 @@ dv_change_startinglineup <- function(dvw, team, setnumber, new_rotation = NULL, 
     new_code_v = stringr::str_replace(dvw$plays$code[row2change][idxvz], "[[:digit:]]", as.character(dvw$plays$visiting_setter_position[row2change][idxvz]))
     
     idxhz = grepl("\\*z[[:digit:]]", dvw$plays$code[row2change])
-    new_code_h = stringr::str_replace(dvw$plays$code[row2change][idxhz], "[[:digit:]]", as.character(dvw$plays$visiting_setter_position[row2change][idxhz]))
+    new_code_h = stringr::str_replace(dvw$plays$code[row2change][idxhz], "[[:digit:]]", as.character(dvw$plays$home_setter_position[row2change][idxhz]))
     
     dvw$plays$code[row2change][idxvz] <- new_code_v
     dvw$plays$code[row2change][idxhz] <- new_code_h
