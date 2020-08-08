@@ -93,7 +93,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                               ) ## court rotation plot and team rosters
                                        )
                               ),
-                       column(5, 
+                       column(5,
                               introBox(DT::dataTableOutput("playslist", width = "98%"), data.step = 1, data.intro = "List of events. Existing events can be edited or deleted. New events can be added. They will appear here."),
                               uiOutput("error_message"))
                        )
