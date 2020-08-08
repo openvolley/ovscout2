@@ -19,9 +19,18 @@ names2roster <- function(pm) {
 mod_courtrot_ui <- function(id) {
     ns <- NS(id)
     fluidPage(
-        fluidRow(column(6,checkboxInput(ns("ballcoordsCI"), label = "Display ball coordinates", FALSE)),
-                 column(2,actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
-                 column(4,actionButton(ns("cancel_ball_coords"), "Cancel coordinates"))),
+        fluidRow(
+            column(6,checkboxInput(ns("ballcoordsCI"), label = "Display ball coordinates", FALSE)),
+            column(2,actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
+            column(4,actionButton(ns("cancel_ball_coords"), "Cancel coordinates"))
+            ),
+        fluidRow(
+            column(1),
+            column(1, actionButton(ns("rotate_home"),icon("undo"))),
+            column(8),
+            column(1, actionButton(ns("rotate_visiting"), icon("undo"))),
+            column(1)
+        ),
         fluidRow(column(3, id = "hroster", uiOutput(ns("htroster"))),
                  column(6,plotOutput(ns("court_inset"),click = ns("plot_click"),dblclick = ns("plot_dblclick"))),
                  column(3, id = "vroster", uiOutput(ns("vtroster")))))
@@ -56,6 +65,8 @@ mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
     })
     
     plot_dataCI <- reactiveValues(trigger = 0, x = NA, y = NA, xend = NA, yend = NA)
+    
+    rotate_teams <- reactiveValues(home = 0, visiting = 0)
     
     observe({
         req(input$plot_click)
@@ -131,10 +142,17 @@ mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
         p
     })
     
+    observeEvent(input$rotate_home, {
+        rotate_teams$home = 1
+    })
+    observeEvent(input$rotate_visiting, {
+        rotate_teams$visiting = 1
+    })
+    
     observeEvent(input$court_inset_swap, {
         court_inset_home_team_end(other_end(court_inset_home_team_end()))
         dojs("document.getElementById('court_inset_swap').blur();") ## un-focus from button
     })
-    return(plot_dataCI)
+    return(list(pcCI = plot_dataCI, rt = rotate_teams))
 }
 

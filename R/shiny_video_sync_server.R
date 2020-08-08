@@ -14,8 +14,10 @@ ov_shiny_video_sync_server <- function(app_data) {
         done_first_playlist_render <- FALSE
         running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
         debug <- 0L
-        plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "home_team_score", "visiting_team_score", "code")
-        plays_col_renames <- c(Set = "set_number", "Home score" = "home_team_score", "Visiting score" = "visiting_team_score")
+        #plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "home_team_score", "visiting_team_score", "code")
+        plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "code", "home_setter_position", "visiting_setter_position")
+        #plays_col_renames <- c(Set = "set_number", "Home score" = "home_team_score", "Visiting score" = "visiting_team_score")
+        plays_col_renames <- c(Set = "set_number", hs = "home_setter_position", as = "visiting_setter_position")
         is_skill <- function(z) !is.na(z) & (!z %in% c("Timeout", "Technical timeout", "Substitution"))
         no_set_attacks <- c("PR", "PP", "P2") ## attacks that don't need a set inserted before them
         default_set_evaluation <- "+" ## for inserted sets
@@ -125,6 +127,17 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         })
 
+        observe({
+            rtn = rotateTeams()
+            if(rtn$home==1){
+                home_force_rotate()
+                rtn$home = 0
+            }
+            if(rtn$visiting==1){
+                visiting_force_rotate()
+                rtn$visiting=0
+            }
+        })
 
         observeEvent(input$validate_ball_coords, {
             ridx <- playslist_current_row()
@@ -137,7 +150,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                     if (is.na(coordsdata$xend)) {
                         rdata$dvw$plays$end_coordinate[ridx] <- NA
                     } else {
-                        rdata$dvw$plays$end_coordinate[ridx] = datavolley::dv_xy2index(coordsdata$xend,coordsdata$yend)
+                        rdata$dvw$plays$end_coordinate[ridx] <- datavolley::dv_xy2index(coordsdata$xend,coordsdata$yend)
                     }
                     do_reparse = TRUE
                 }
@@ -147,7 +160,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                     if (is.na(coordsdata$x)) {
                         rdata$dvw$plays$start_coordinate[ridx] <- NA
                     } else {
-                        rdata$dvw$plays$start_coordinate[ridx] = datavolley::dv_xy2index(coordsdata$x,coordsdata$y)
+                        rdata$dvw$plays$start_coordinate[ridx] <- datavolley::dv_xy2index(coordsdata$x,coordsdata$y)
                     }
                     do_reparse = TRUE
                 }
@@ -159,6 +172,24 @@ ov_shiny_video_sync_server <- function(app_data) {
                 playslist_needs_scroll(TRUE)
                 if (!auto_playlist_updates) replace_playlist_data()
             }
+        })
+        
+        observeEvent(input$show_shortcuts, {
+            showModal(modalDialog(title = "Keyboard shortcuts", easyClose = TRUE, size = "l",
+                                  tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")),
+                                  tags$p(tags$strong("Keyboard controls")), tags$ul(tags$li("[r or 5] sync selected event video time"),
+                                                                                    tags$li("[i or 8] move to previous skill row"),
+                                                                                    tags$li("[k or 2] move to next skill row"),
+                                                                                    tags$li("[e or E] edit current code"),
+                                                                                    tags$li("[del] delete current code"),
+                                                                                    tags$li("[ins] insert new code above current"),
+                                                                                    tags$li("[F1] Home team rotate +1"),
+                                                                                    tags$li("[F2] insert setting codes before every attack"),
+                                                                                    tags$li("[F4] delete all setting codes (except errors)"),
+                                                                                    tags$li("[F6] insert digging codes after every attack"),
+                                                                                    tags$li("[F8] delete all digging codes"), 
+                                                                                    tags$li("[F10] Visiting team rotate +1"),
+                                                                                    )))
         })
 
         observeEvent(input$all_video_from_clock, {
@@ -341,6 +372,12 @@ ov_shiny_video_sync_server <- function(app_data) {
                 })
                 mydat$is_skill <- is_skill(mydat$skill)
                 mydat$set_number <- as.factor(mydat$set_number)
+                mydat$phase_type <- case_when(mydat$phase %eq% "Serve" ~ "S",
+                                              mydat$phase %eq% "Reception" ~ "R",
+                                              mydat$phase %eq% "Transition" ~ "T")
+                mydat$Score <- paste(mydat$home_team_score, mydat$visiting_team_score, sep = "-")
+                plays_cols_to_show <- c(plays_cols_to_show, "phase_type", "Score")
+                
                 cols_to_hide <- which(c(plays_cols_to_show, "is_skill") %in% c("is_skill"))-1 ## 0-based because no row names
                 cnames <- names(plays_do_rename(mydat[1, c(plays_cols_to_show, "is_skill"), drop = FALSE]))
                 cnames[plays_cols_to_show == "error_icon"] <- ""
@@ -563,7 +600,11 @@ ov_shiny_video_sync_server <- function(app_data) {
                         } else if (ky %eq% "113") {
                             ## insert new setting actions
                             insert_setting_data_row()
-                        }  else if (ky %eq% "115") {
+                        # }  else if(ky %eq% "112") {
+                        #     home_force_rotate()
+                        # } else if(ky %eq% "121") {
+                        #     visiting_force_rotate()
+                        } else if (ky %eq% "115") {
                             ## delete all setting actions
                             delete_setting_data_row()
                         }  else if (ky %eq% "117") {
@@ -721,8 +762,9 @@ ov_shiny_video_sync_server <- function(app_data) {
                     new_rotation = c(input$ht_P1,input$ht_P2,input$ht_P3,input$ht_P4,input$ht_P5,input$ht_P6)
                     # Change meta data in terms of starting rotation
                     rdata$dvw$meta$players_h[,paste0("starting_position_set", setnumber)] <- as.character(match(rdata$dvw$meta$players_h$number, new_rotation))
-                    # Change libero to "*" in meta
-                    #rdata$dvw$meta$players_h[rdata$dvw$meta$players_h$number %eq% input$ht_libero,paste0("starting_position_set", setnumber)] <- "*"
+                    ## Change libero to "*" in meta
+                    ## BR not sure if this is needed, it was commented out
+                    ##rdata$dvw$meta$players_h[rdata$dvw$meta$players_h$number %eq% input$ht_libero,paste0("starting_position_set", setnumber)] <- "*"
                     # Change in play rotation 
                     rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation, new_setter)
                 }
@@ -735,8 +777,9 @@ ov_shiny_video_sync_server <- function(app_data) {
                     new_rotation = c(input$vt_P1,input$vt_P2,input$vt_P3,input$vt_P4,input$vt_P5,input$vt_P6)
                     # Change meta data in terms of starting rotation
                     rdata$dvw$meta$players_v[,paste0("starting_position_set", setnumber)] <- as.character(match(rdata$dvw$meta$players_v$number, new_rotation))
-                    # Change libero to "*" in meta
-                    #rdata$dvw$meta$players_v[rdata$dvw$meta$players_v$number %eq% input$vt_libero,paste0("starting_position_set", setnumber)] <- "*"
+                    ## Change libero to "*" in meta
+                    ## BR not sure if this is needed, it was commented out
+                    ##rdata$dvw$meta$players_v[rdata$dvw$meta$players_v$number %eq% input$vt_libero,paste0("starting_position_set", setnumber)] <- "*"
                     # Change in play rotation 
                     rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation, new_setter)
                 }
@@ -846,6 +889,14 @@ ov_shiny_video_sync_server <- function(app_data) {
                             rdata$dvw <- dv_create_substitution(rdata$dvw, ridx, team = teamSelect, in_player = input$vt_inplayer, out_player = input$vt_outplayer,
                                                                 new_setter = input$vt_new_setter)
                         }
+                    } else if (editing$active %eq% "home_force_rotation"){
+                        if (is.logical(ridx)) ridx <- which(ridx)
+                        teamSelect = datavolley::home_team(rdata$dvw)
+                        rdata$dvw <- dv_force_rotation(rdata$dvw, team = teamSelect, ridx, direction = 1)
+                    } else if (editing$active %eq% "visiting_force_rotation"){
+                        if (is.logical(ridx)) ridx <- which(ridx)
+                        teamSelect = datavolley::visiting_team(rdata$dvw)
+                        rdata$dvw <- dv_force_rotation(rdata$dvw, team = teamSelect, ridx, direction = 1)
                     }
                     do_reparse <- TRUE
                 }
@@ -881,9 +932,23 @@ ov_shiny_video_sync_server <- function(app_data) {
                                       actionButton("edit_commit", label = "Confirm delete code (or press Enter)")))
             }
         }
-        
-        # Create a substitution
-        
+
+        home_force_rotate <- function() {
+            ridx <- input$playslist_rows_selected
+            if (!is.null(ridx)) {
+                editing$active <- "home_force_rotation"
+                code_make_change()
+            }
+        }
+        visiting_force_rotate <- function() {
+            ridx <- input$playslist_rows_selected
+            if (!is.null(ridx)) {
+                editing$active <- "visiting_force_rotation"
+                code_make_change()
+            }
+        }
+
+        ## Create a substitution
         insert_sub_old <- function() {
             ridx <- playslist_current_row()
             if (!is.null(ridx)) {
@@ -1505,93 +1570,57 @@ ov_shiny_video_sync_server <- function(app_data) {
 
         ## court inset showing rotation and team lists
         newCoordsdata <- callModule(mod_courtrot, id = "courtrot", rdata = rdata, rowidx = reactive(playslist_current_row()), styling = styling)
-        rdataNew <- reactive(newCoordsdata)
+
+        rdataNew <- reactive({
+            ncd <- newCoordsdata$pcCI
+            ncd
+        })
+
+        rotateTeams <- reactive({
+            rt = newCoordsdata$rt
+            rt
+        })
 
         ## General help
         observeEvent(input$general_help, introjs(session, options = list("nextLabel"="Next", "prevLabel"="Previous", "skipLabel"="Skip")))
-        ## Scouting Help
-        observeEvent(input$ovscout_helper, {
-            showModal(modalDialog(
-                title = "Controls helper",
-                easyClose = TRUE, size = "l",
-                    tags$div(tags$h4("Video controls:"),
-                             fluidRow(
-                                 column(2, actionButton("do_nothing", label = "m"), "or", actionButton("do_nothing", label = "3")),
-                                 column(8, tags$strong("Forward 0.1s"), "")
-                                      ),
-                             fluidRow(
-                                 column(2, actionButton("do_nothing", label = "l"), "or", actionButton("do_nothing", label = "6")),
-                                 column(8, tags$strong("Forward 2s"), "")
-                             ),
-                             fluidRow(
-                                 column(2, actionButton("do_nothing", label = ";"), "or", actionButton("do_nothing", label = "^")),
-                                 column(8, tags$strong("Forward 10s"), "")
-                             ),
-                             fluidRow(
-                                 column(2, actionButton("do_nothing", label = "n"), "or",actionButton("do_nothing", label = "1")),
-                                 column(8, tags$strong("Backward 0.1s"), "")
-                             ),
-                             fluidRow(
-                                 column(2, actionButton("do_nothing", label = "j"), "or", actionButton("do_nothing", label = "4")),
-                                 column(8, tags$strong("Backward 2s"), "")
-                             ),
-                             fluidRow(
-                                 column(2, actionButton("do_nothing", label = "h"), "or", actionButton("do_nothing", label = "$")),
-                                 column(8, tags$strong("Backward 10s"), "")
-                             ),
-                             fluidRow(
-                                 column(2, actionButton("do_nothing", label = "q"), "or", actionButton("do_nothing", label = "0")),
-                                 column(8, tags$strong("Pause video"), "")
-                             ),
-                             fluidRow(
-                                 column(2, actionButton("do_nothing", label = "g"), "or", actionButton("do_nothing", label = "#")),
-                                 column(8, tags$strong("Go to currently selected event."), "")
-                             ),
-                             tags$hr()
-                    ),
-                tags$div(tags$h4("Scouting controls:"),
-                         fluidRow(
-                             column(2, actionButton("do_nothing", label = "r"), "or",actionButton("do_nothing", label = "5")),
-                             column(8, tags$strong("Sync selected event video time"), "")
-                         ),
-                         fluidRow(
-                             column(2, actionButton("do_nothing", label = "i"), "or", actionButton("do_nothing", label = "8")),
-                             column(8, tags$strong("Move to previous skill row"), "")
-                         ),
-                         fluidRow(
-                             column(2, actionButton("do_nothing", label = "k"), "or", actionButton("do_nothing", label = "2")),
-                             column(8, tags$strong("Move to next skill row"), "")
-                         ),
-                         fluidRow(
-                             column(2, actionButton("do_nothing", label = "e"), "or", actionButton("do_nothing", label = "E")),
-                             column(8, tags$strong("Edit current code"), "")
-                         ),
-                         fluidRow(
-                             column(2, actionButton("do_nothing", label = "del")),
-                             column(8, tags$strong("Delete current code"), "")
-                         ),
-                         fluidRow(
-                             column(2, actionButton("do_nothing", label = "ins")),
-                             column(8, tags$strong("Insert new code above current"), "")
-                         ),
-                         fluidRow(
-                             column(2, actionButton("do_nothing", label = "F2")),
-                             column(8, tags$strong("Insert setting code before every attack"), "")
-                         ),
-                         fluidRow(
-                             column(2, actionButton("do_nothing", label = "F4")),
-                             column(8, tags$strong("Delete all setting codes (except errors)"), "")
-                         ),
-                         fluidRow(
-                             column(2, actionButton("do_nothing", label = "F6")),
-                             column(8, tags$strong("Insert digging codes after every attack"), "")
-                         ),
-                         fluidRow(
-                             column(2, actionButton("do_nothing", label = "F8")),
-                             column(8, tags$strong("Delete all digging codes"), "")
-                         )
-                )
-            ))
+
+        ## height of the video player element
+        vo_height <- reactiveVal("auto")
+        observe({
+            if (!is.null(input$dv_height) && as.numeric(input$dv_height) > 0) {
+                vo_height(as.numeric(input$dv_height))
+                dojs(paste0("document.getElementById('video_overlay').style.height = '", vo_height(), "px';"))
+            } else {
+                vo_height("auto")
+                dojs(paste0("document.getElementById('video_overlay').style.height = '400px';"))
+            }
         })
+        ## width of the video player element
+        vo_width <- reactiveVal("auto")
+        observe({
+            if (!is.null(input$dv_width) && as.numeric(input$dv_width) > 0) {
+                vo_width(as.numeric(input$dv_width))
+            } else {
+                vo_width("auto")
+            }
+        })
+        ## height of the video player container, use as negative vertical offset on the overlay element
+        observe({
+            if (!is.null(input$vo_voffset) && as.numeric(input$vo_voffset) > 0) {
+                dojs(paste0("document.getElementById('video_overlay').style.marginTop = '-", input$vo_voffset, "px';"))
+            } else {
+                dojs("document.getElementById('video_overlay').style.marginTop = '0px';")
+            }
+        })
+        ## video overlay
+        gg_tight <- list(theme(legend.position = "none", panel.background = element_rect(fill = "transparent", colour = NA), plot.background = element_rect(fill = "transparent", color = NA), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.spacing = unit(0, "null"), plot.margin = rep(unit(0, "null"), 4), axis.ticks = element_blank(), axis.ticks.length = unit(0, "null"), axis.text.x = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank(), axis.title.y = element_blank()), scale_x_continuous(expand = c(0, 0)), scale_y_continuous(expand = c(0, 0)))
+        observe({
+            output$video_overlay <- renderPlot({
+                NULL
+                ## test - red diagonal line across the overlay plot
+                ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red") + gg_tight
+            }, bg = "transparent", width = vo_width(), height = vo_height())
+        })
+
     }
 }
