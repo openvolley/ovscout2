@@ -144,18 +144,24 @@ ov_shiny_video_sync_server <- function(app_data) {
             do_reparse = FALSE
             coordsdata = rdataNew()
             if (!is.null(ridx) && !is.na(ridx)) {
-                if(!is.null(coordsdata$xend)){
+                if (!is.null(coordsdata$xend)) {
                     rdata$dvw$plays$end_coordinate_x[ridx] = coordsdata$xend
                     rdata$dvw$plays$end_coordinate_y[ridx] = coordsdata$yend
-                    if(is.na(coordsdata$xend)){rdata$dvw$plays$end_coordinate[ridx] <- NA
-                    }else{rdata$dvw$plays$end_coordinate[ridx] = datavolley::dv_xy2index(coordsdata$xend,coordsdata$yend)}
+                    if (is.na(coordsdata$xend)) {
+                        rdata$dvw$plays$end_coordinate[ridx] <- NA
+                    } else {
+                        rdata$dvw$plays$end_coordinate[ridx] <- datavolley::dv_xy2index(coordsdata$xend,coordsdata$yend)
+                    }
                     do_reparse = TRUE
                 }
-                if(!is.null(coordsdata$x)){
+                if (!is.null(coordsdata$x)) {
                     rdata$dvw$plays$start_coordinate_x[ridx] = coordsdata$x
                     rdata$dvw$plays$start_coordinate_y[ridx] = coordsdata$y
-                    if(is.na(coordsdata$x)){rdata$dvw$plays$start_coordinate[ridx] <- NA
-                    }else{rdata$dvw$plays$start_coordinate[ridx] = datavolley::dv_xy2index(coordsdata$x,coordsdata$y)}
+                    if (is.na(coordsdata$x)) {
+                        rdata$dvw$plays$start_coordinate[ridx] <- NA
+                    } else {
+                        rdata$dvw$plays$start_coordinate[ridx] <- datavolley::dv_xy2index(coordsdata$x,coordsdata$y)
+                    }
                     do_reparse = TRUE
                 }
            }
@@ -782,7 +788,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 ridx <- dplyr::filter(mutate(rdata$dvw$plays, rowN = row_number()), .data$skill %eq% "Set" & !.data$evaluation %eq% "Error")$rowN
                 if (length(ridx) > 0) {
                     if (is.logical(ridx)) ridx <- which(ridx)
-                    rdata$dvw$plays <-rdata$dvw$plays[-ridx, ]
+                    rdata$dvw$plays <- rdata$dvw$plays[-ridx, ]
                     do_reparse <- TRUE
                 }
             } else if (editing$active %eq% "insert setting actions") {
