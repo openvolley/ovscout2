@@ -14,9 +14,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         done_first_playlist_render <- FALSE
         running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
         debug <- 0L
-        #plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "home_team_score", "visiting_team_score", "code")
-        plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "code", "home_setter_position", "visiting_setter_position")
-        #plays_col_renames <- c(Set = "set_number", "Home score" = "home_team_score", "Visiting score" = "visiting_team_score")
+        plays_cols_to_show <- c("error_icon", "clock_time", "video_time", "set_number", "code", "home_setter_position", "visiting_setter_position", "phase_type", "Score", "is_skill")
         plays_col_renames <- c(Set = "set_number", hs = "home_setter_position", as = "visiting_setter_position")
         is_skill <- function(z) !is.na(z) & (!z %in% c("Timeout", "Technical timeout", "Substitution"))
         no_set_attacks <- c("PR", "PP", "P2") ## attacks that don't need a set inserted before them
@@ -347,6 +345,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         })
 
         observe({
+            ## parse on reload (without "error_message" in column names)
             if (!is.null(rdata$dvw) && nrow(rdata$dvw$plays) > 0 && !"error_message" %in% names(rdata$dvw$plays)) {
                 rdata$dvw <- preprocess_dvw(rdata$dvw)
             }
@@ -376,12 +375,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                                               mydat$phase %eq% "Reception" ~ "R",
                                               mydat$phase %eq% "Transition" ~ "T")
                 mydat$Score <- paste(mydat$home_team_score, mydat$visiting_team_score, sep = "-")
-                plays_cols_to_show <- c(plays_cols_to_show, "phase_type", "Score")
-                
-                cols_to_hide <- which(c(plays_cols_to_show, "is_skill") %in% c("is_skill"))-1 ## 0-based because no row names
-                cnames <- names(plays_do_rename(mydat[1, c(plays_cols_to_show, "is_skill"), drop = FALSE]))
+                cols_to_hide <- which(plays_cols_to_show %in% c("is_skill"))-1 ## 0-based because no row names
+                cnames <- names(plays_do_rename(mydat[1, plays_cols_to_show, drop = FALSE]))
                 cnames[plays_cols_to_show == "error_icon"] <- ""
-                out <- DT::datatable(mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, colnames = cnames,
+                out <- DT::datatable(mydat[, plays_cols_to_show, drop = FALSE], rownames = FALSE, colnames = cnames,
                                      extensions = "Scroller",
                                      escape = FALSE, filter = "top",
                                      selection = sel, options = list(scroller = TRUE,
@@ -441,19 +438,19 @@ ov_shiny_video_sync_server <- function(app_data) {
 
         ## if auto_playlist_updates is TRUE
         observe({
-            if (auto_playlist_updates) {
-                mydat <- rdata$dvw$plays
-                mydat$is_skill <- is_skill(mydat$skill)
-                mydat$set_number <- as.factor(mydat$set_number)
-                DT::replaceData(playslist_proxy, data = mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, clearSelection = "none")##, resetPaging = FALSE)
-            }
+            blah <- rdata$dvw
+            if (auto_playlist_updates) replace_playlist_data()
         })
         ## replace_playlist_data is used if auto_playlist_updates is FALSE
         replace_playlist_data <- function() {
             mydat <- rdata$dvw$plays
             mydat$is_skill <- is_skill(mydat$skill)
             mydat$set_number <- as.factor(mydat$set_number)
-            DT::replaceData(playslist_proxy, data = mydat[, c(plays_cols_to_show, "is_skill"), drop = FALSE], rownames = FALSE, clearSelection = "none")
+            mydat$phase_type <- case_when(mydat$phase %eq% "Serve" ~ "S",
+                                          mydat$phase %eq% "Reception" ~ "R",
+                                          mydat$phase %eq% "Transition" ~ "T")
+            mydat$Score <- paste(mydat$home_team_score, mydat$visiting_team_score, sep = "-")
+            DT::replaceData(playslist_proxy, data = mydat[, plays_cols_to_show, drop = FALSE], rownames = FALSE, clearSelection = "none")
         }
 
         find_next_skill_row <- function(current_row_idx = NULL, step = 1, respect_filters = TRUE) {
