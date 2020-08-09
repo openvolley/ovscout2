@@ -1,4 +1,4 @@
-## placeholder for script to build the release bundle and upload to github
+## build the release bundle and upload to github
 
 setwd("/path/to/ovscoutrepo")
 
@@ -8,6 +8,7 @@ if (i386) {
 } else {
     if (!identical(version$arch, "x86_64")) stop("need to run under 64-bit R to build a 64-bit release")
 }
+if (!.Platform$OS.type == "windows") stop("this must be run on windows")
 
 pwd <- getwd()
 if (!file.exists("DESCRIPTION")) stop("cannot find DESCRIPTION file, are you in the ovscout repo base directory?")
