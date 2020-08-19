@@ -1612,61 +1612,82 @@ ov_shiny_video_sync_server <- function(app_data) {
         })
         ## video overlay
         gg_tight <- list(theme(legend.position = "none", panel.background = element_rect(fill = "transparent", colour = NA), plot.background = element_rect(fill = "transparent", color = NA), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.spacing = unit(0, "null"), plot.margin = rep(unit(0, "null"), 4), axis.ticks = element_blank(), axis.ticks.length = unit(0, "null"), axis.text.x = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank(), axis.title.y = element_blank()), scale_x_continuous(limits = c(0, 1), expand = c(0, 0)), scale_y_continuous(limits = c(0, 1), expand = c(0, 0)))
+        current_overlay_digest <- ""
         observe({
-            output$video_overlay <- renderPlot({
-                if (!is.null(app_data$court_ref)) {
-                    tryCatch({
-                        ## show court outline and zones to help with scouting
-                        ## if current row is an attack and coding by cones, show cone polygons, otherwise show zones
-                        ridx <- playslist_current_row()
-                        polytype <- "zones"
-                        if (!is.null(ridx) && !is.na(ridx)) {
-                            try({
-                                if (rdata$dvw$plays$skill[ridx] %eq% "Attack" && rdata$dvw$meta$match$zones_or_cones %eq% "C" && rdata$dvw$plays$start_zone[ridx] %in% 1:9) polytype <- "cones"
-                            })
+            ## show court outline and zones to help with scouting
+            ridx <- playslist_current_row()
+            blah <- list(rdata$dvw, vo_width(), vo_height()) ## reactive to these
+            isolate({
+                odata <- if (!is.null(app_data$court_ref)) {
+                             tryCatch({
+                                 ## if current row is an attack and coding by cones, show cone polygons, otherwise show zones
+                                 polytype <- "zones"
+                                 if (!is.null(ridx) && !is.na(ridx)) {
+                                     try({
+                                         if (rdata$dvw$plays$skill[ridx] %eq% "Attack" && rdata$dvw$meta$match$zones_or_cones %eq% "C" && rdata$dvw$plays$start_zone[ridx] %in% 1:9) polytype <- "cones"
+                                     })
+                                 }
+                                 ## outer lines
+                                 cxy <- data.frame(x = c(rep(0.5, 3), 0.5, 3.5), xend = c(rep(3.5, 3), 0.5, 3.5),
+                                                   y = c(0.5, 3.5, 6.5, 0.5, 0.5),
+                                                   yend = c(0.5, 3.5, 6.5, 6.5, 6.5),
+                                                   width = 1.0)
+                                 ## serve zones
+                                 szlen <- 0.25 ## length of serve zone lines - make this at least 1 once clipping is implemented
+                                 sxy <- data.frame(x = c(0.5, 1.1, 1.7, 2.3, 2.9, 3.5),
+                                                   xend = c(0.5, 1.1, 1.7, 2.3, 2.9, 3.5),
+                                                   y = rep(0.5, 6), yend = rep(0.5-szlen, 6), width = 0.75)
+                                 cxy <- bind_rows(cxy, sxy)
+                                 sxy[, c("x", "y")] <- dv_flip_xy(sxy[, c("x", "y")])
+                                 sxy[, c("xend", "yend")] <- dv_flip_xy(sxy[, c("xend", "yend")])
+                                 cxy <- bind_rows(cxy, sxy)
+                                 if (polytype %eq% "cones") {
+                                     sz <- if (rdata$dvw$plays$start_zone[ridx] %in% c(4, 7, 5)) "L" else if (rdata$dvw$plays$start_zone[ridx] %in% c(3, 8, 6)) "M" else "R"
+                                     polyxy <- dv_cone_polygons(zone = sz, end = "upper")
+                                     Nc <- max(polyxy$cone_number)
+                                     polyxy$cone_number <- paste0(polyxy$cone_number, "U")
+                                     polyxy <- bind_rows(polyxy, mutate(dv_cone_polygons(zone = sz, end = "lower"), cone_number = paste0(.data$cone_number, "L")))
+                                     ## labels
+                                     labxy <- mutate(dv_cone2xy(rdata$dvw$plays$start_zone[ridx], end_cones = seq_len(Nc), end = "upper", xynames = c("x", "y")), label = row_number())
+                                     labxy <- bind_rows(labxy, mutate(dv_cone2xy(rdata$dvw$plays$start_zone[ridx], end_cones = seq_len(Nc), end = "lower", xynames = c("x", "y")), label = row_number()))
+                                 } else {
+                                     ## 3m and other zone lines
+                                     cxy <- bind_rows(cxy, data.frame(x = c(0.5, 0.5, 0.5, 0.5, 1.5, 2.5), xend = c(3.5, 3.5, 3.5, 3.5, 1.5, 2.5),
+                                                                      y = c(2.5, 4.5, 1.5, 5.5, 0.5, 0.5), yend = c(2.5, 4.5, 1.5, 5.5, 6.5, 6.5),
+                                                                      width = 0.75))
+                                     polyxy <- NULL
+                                     labxy <- data.frame(x = rep(c(1, 2, 3), 6), y = as.numeric(matrix(1:6, nrow = 3, ncol = 6, byrow = TRUE)),
+                                                         label = c(5, 6, 1, 7, 8, 9, 4, 3, 2, 2, 3, 4, 9, 8, 7, 1, 6, 5))
+                                 }
+                                 list(courtxy = cxy, polyxy = polyxy, labxy = labxy, w = vo_width(), h = vo_height())
+                             }, error = function(e) NULL)
+                         } else {
+                             NULL
+                         }
+            })
+            ## take care to avoid rendering the overlay more often than necessary
+            this_digest <- digest::digest(odata)
+            if (this_digest != current_overlay_digest) {
+                current_overlay_digest <<- this_digest
+                ## re-render overlay only if hash has changed
+                output$video_overlay <- renderPlot({
+                    if (is.null(odata)) {
+                        NULL
+                    } else {
+                        odata$courtxy[, c("x", "y")] <- ovideo::ov_transform_points(odata$courtxy[, c("x", "y")], ref = app_data$court_ref, direction = "to_image")
+                        odata$courtxy[, c("xend", "yend")] <- setNames(ovideo::ov_transform_points(odata$courtxy[, c("xend", "yend")], ref = app_data$court_ref, direction = "to_image"), c("xend", "yend"))
+                        odata$labxy[, c("x", "y")] <- ovideo::ov_transform_points(odata$labxy[, c("x", "y")], ref = app_data$court_ref, direction = "to_image")
+                        if (!is.null(odata$polyxy)) {
+                            odata$polyxy[, c("x", "y")] <- ovideo::ov_transform_points(odata$polyxy[, c("x", "y")], ref = app_data$court_ref, direction = "to_image")
                         }
-                        ## outer lines
-                        cxy <- data.frame(x = c(rep(0.5, 3), 0.5, 3.5), xend = c(rep(3.5, 3), 0.5, 3.5),
-                                          y = c(0.5, 3.5, 6.5, 0.5, 0.5),
-                                          yend = c(0.5, 3.5, 6.5, 6.5, 6.5),
-                                          width = 1.0) 
-                        if (polytype %eq% "cones") {
-                            sz <- if (rdata$dvw$plays$start_zone[ridx] %in% c(4, 7, 5)) "L" else if (rdata$dvw$plays$start_zone[ridx] %in% c(3, 8, 6)) "M" else "R"
-                            polyxy <- dv_cone_polygons(zone = sz, end = "upper")
-                            Nc <- max(polyxy$cone_number)
-                            polyxy$cone_number <- paste0(polyxy$cone_number, "U")
-                            polyxy <- bind_rows(polyxy, mutate(dv_cone_polygons(zone = sz, end = "lower"), cone_number = paste0(.data$cone_number, "L")))
-                            ## labels
-                            labxy <- mutate(dv_cone2xy(rdata$dvw$plays$start_zone[ridx], end_cones = seq_len(Nc), end = "upper", xynames = c("x", "y")), label = row_number())
-                            labxy <- bind_rows(labxy, mutate(dv_cone2xy(rdata$dvw$plays$start_zone[ridx], end_cones = seq_len(Nc), end = "lower", xynames = c("x", "y")), label = row_number()))
-                            temp <- ovideo::ov_transform_points(polyxy[, c("x", "y")], ref = app_data$court_ref, direction = "to_image")
-                            polyxy[, c("x", "y")] <- temp
-                        } else {
-                            ## 3m and other zone lines
-                            cxy <- bind_rows(cxy, data.frame(x = c(0.5, 0.5, 0.5, 0.5, 1.5, 2.5), xend = c(3.5, 3.5, 3.5, 3.5, 1.5, 2.5),
-                                                             y = c(2.5, 4.5, 1.5, 5.5, 0.5, 0.5), yend = c(2.5, 4.5, 1.5, 5.5, 6.5, 6.5),
-                                                             width = 0.75))
-                            polyxy <- NULL
-                            labxy <- data.frame(x = rep(c(1, 2, 3), 6), y = as.numeric(matrix(1:6, nrow = 3, ncol = 6, byrow = TRUE)),
-                                                label = c(5, 6, 1, 7, 8, 9, 4, 3, 2, 2, 3, 4, 9, 8, 7, 1, 6, 5))
-                        }
-                        pxy <- ovideo::ov_transform_points(cxy[, c("x", "y")], ref = app_data$court_ref, direction = "to_image")
-                        pxy <- bind_cols(pxy, setNames(ovideo::ov_transform_points(cxy[, c("xend", "yend")], ref = app_data$court_ref, direction = "to_image"), c("xend", "yend")))
-                        pxy$width <- cxy$width
-                        temp <- ovideo::ov_transform_points(labxy[, c("x", "y")], ref = app_data$court_ref, direction = "to_image")
-                        labxy[, c("x", "y")] <- temp
-                        p <- ggplot(pxy, aes_string("x", "y", xend = "xend", yend = "yend", size = "width")) + geom_segment(color = "blue") + gg_tight + scale_size_continuous(range = c(0.5, 1.0))
-                        if (!is.null(polyxy)) p <- p + geom_polygon(data = polyxy, aes_string(x = "x", y = "y", group = "cone_number"), inherit.aes = FALSE, color = "blue", fill = NA)
-                        p <- p + geom_label(data = labxy, aes_string(x = "x", y = "y", label = "label"), inherit.aes = FALSE, color = "blue", hjust = 0.5, vjust = 0.5)#, size = 1.5)
-                        p
-                    }, error = function(e) NULL)
-                } else {
-                    NULL
-                }
-                ## test - red diagonal line across the overlay plot
-                ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red")
-            }, bg = "transparent", width = vo_width(), height = vo_height())
+                        p <- ggplot(odata$courtxy, aes_string("x", "y", xend = "xend", yend = "yend", size = "width")) + geom_segment(color = "blue") + gg_tight + scale_size_continuous(range = c(0.5, 1.0))
+                        if (!is.null(odata$polyxy)) p <- p + geom_polygon(data = odata$polyxy, aes_string(x = "x", y = "y", group = "cone_number"), inherit.aes = FALSE, color = "blue", fill = NA)
+                        p + geom_label(data = odata$labxy, aes_string(x = "x", y = "y", label = "label"), inherit.aes = FALSE, color = "blue", hjust = 0.5, vjust = 0.5)#, size = 1.5)
+                    }
+                    ## test - red diagonal line across the overlay plot
+                    ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red")
+                }, bg = "transparent", width = vo_width(), height = vo_height())
+            }
         })
-
     }
 }

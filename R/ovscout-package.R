@@ -5,7 +5,7 @@
 #' @name ovscout
 #' @docType package
 #' @importFrom assertthat assert_that has_name is.flag is.string
-#' @importFrom datavolley read_dv dv_example_file dv_cone2xy dv_cone_polygons dv_xy dv_write ggcourt 
+#' @importFrom datavolley read_dv dv_example_file dv_cone2xy dv_cone_polygons dv_flip_xy dv_xy dv_write ggcourt 
 #' @importFrom dplyr .data bind_cols bind_rows case_when group_by_at lag lead left_join mutate row_number tibble
 #' @importFrom ggplot2 aes aes_string arrow coord_flip element_blank element_rect geom_label geom_path geom_point geom_polygon geom_segment geom_text ggplot scale_size_continuous scale_x_continuous scale_x_reverse scale_y_continuous scale_y_reverse theme unit
 #' @importFrom htmltools HTML tagList tags
