@@ -2,6 +2,7 @@
 ov_shiny_video_sync_server <- function(app_data) {
     function(input, output, session) {
         auto_playlist_updates <- TRUE ## temporary while testing - if TRUE allow the playslist table to update automatically (i.e. normal reactive behaviour, which gives slightly simpler code). If FALSE then control these updates manually, which might help avoid unnecessary redraws
+        reactive_scrolling <- FALSE ## testing, not sure it helps. In principle if multiple scroll requests get lined up before the first has actually been initiated, then it'll skip to just the last
         styling <- list(h_court_colour = "#bfefff", ## lightblue1
                         h_court_highlight = "darkblue",
                         v_court_colour = "#bcee68", ## darkolivegreen2
@@ -329,7 +330,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 }
                 ## update the table data, and it will automatically trigger the scroll to the current row once it has finished drawing
                 playslist_needs_scroll(TRUE)
-                if (!auto_playlist_updates) replace_playlist_data()
+                replace_playlist_data() ## always do this here, otherwise if a row is synced with the same existing time that it already has, it won't scroll (?)
             }
         })
 
@@ -397,11 +398,12 @@ ov_shiny_video_sync_server <- function(app_data) {
         }, server = TRUE)
         playslist_proxy <- DT::dataTableProxy("playslist")
         playslist_needs_scroll <- reactiveVal(FALSE)
+        playslist_scroll_target <- reactiveVal(-99L)
         observeEvent(input$playlist_redrawn, {
             ## when the table has finished being drawn, scroll it if necessary
             if (playslist_needs_scroll()) {
                 playslist_needs_scroll(FALSE)
-                scroll_playlist(playslist_current_row())
+                if (reactive_scrolling) playslist_scroll_target(playslist_current_row()) else scroll_playlist(playslist_current_row())
             }
             ## and mark current row as selected in the table, but don't re-scroll to it
             playslist_select_row(playslist_current_row(), scroll = FALSE)
@@ -413,10 +415,18 @@ ov_shiny_video_sync_server <- function(app_data) {
         ## the playslist_select_row function just changes the visible selection in the table, and optionally scrolls to it, but does not change playslist_current_row() value
         playslist_select_row <- function(rw, scroll = TRUE) {
             DT::selectRows(playslist_proxy, rw)
-            if (isTRUE(scroll)) scroll_playlist(rw)
+            if (isTRUE(scroll)) {
+                if (reactive_scrolling) playslist_scroll_target(rw) else scroll_playlist(rw)
+            }
         }
         ## when the user changes the selected row, update playslist_current_row
         observeEvent(input$playslist_rows_selected, playslist_current_row(input$playslist_rows_selected))
+
+        observe({
+            if (reactive_scrolling && !is.null(playslist_scroll_target()) && !is.na(playslist_scroll_target()) && playslist_scroll_target() > 0) {
+                scroll_playlist(playslist_scroll_target())
+            }
+        })
 
         scroll_playlist <- function(rw) {
             if (!is.null(rw)) {
@@ -429,6 +439,9 @@ ov_shiny_video_sync_server <- function(app_data) {
                 ## using the jquery scrollTo extension, enable in UI
                 ##stid <- paste0("$('#DataTables_Table_1 > tbody tr:nth-child(", scrollto+1, ")')")
                 ##dojs(paste0("$('.dataTables_scrollBody').scrollTo(", stid, ");"))
+
+                ## not tried yet https://github.com/rstudio/DT/issues/519
+                ## table.DataTable().row([row_id]).scrollTo(); ## (without scroller?)
 
                 ## other attempts
                 ##dojs(sprintf("$('#playslist').find('.dataTable').DataTable().row(%s).node().scrollIntoView();", max(0, rdata$plays_row_to_select-1)))
@@ -1140,7 +1153,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             } else if (what == "set_time") {
                 dojs(paste0(getel, ".currentTime='", myargs[[1]], "';"))
             } else if (what == "set_current_video_time") {
-                dojs(paste0("Shiny.onInputChange('set_current_video_time', ", getel, ".currentTime + '&", myargs[1], "')"))
+                dojs(paste0("Shiny.onInputChange('set_current_video_time', ", getel, ".currentTime + '&", myargs[1], "&' + new Date().getTime())"))
             } else if (what == "rew") {
                 dojs(paste0(getel, ".currentTime=", getel, ".currentTime - ", myargs[[1]], ";"))
             } else if (what == "ff") {
