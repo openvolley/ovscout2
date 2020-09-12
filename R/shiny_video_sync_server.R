@@ -319,6 +319,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                     ## give the block the same time
                     rdata$dvw$plays$video_time[ridx+1] <- round(tm, digits = input$video_time_decimal_places)
                     skip <- 2
+                } else if (rdata$dvw$plays$skill[ridx] %eq% "Attack" && ridx < nrow(rdata$dvw$plays) && rdata$dvw$plays$skill[ridx+1] %eq% "Dig") {
+                    ## give the dig a +1s time
+                    rdata$dvw$plays$video_time[ridx+1] <- round(tm+1, digits = input$video_time_decimal_places)
+                    skip <- 2
                 }
                 ## advance to the next skill row
                 if (ridx < nrow(rdata$dvw$plays)) {
