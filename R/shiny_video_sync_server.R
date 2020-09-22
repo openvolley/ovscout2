@@ -312,16 +312,17 @@ ov_shiny_video_sync_server <- function(app_data) {
             ridx <- as.integer(temp[2])
             tm <- as.numeric(temp[1])
             if (!is.null(ridx) && !is.na(ridx) && ridx > 0 && ridx <= nrow(rdata$dvw$plays)) {
-                rdata$dvw$plays$video_time[ridx] <- if (input$video_time_decimal_places < 1) floor(tm) else round(tm, digits = input$video_time_decimal_places)
+                tm <- if (input$video_time_decimal_places < 1) round(tm) else round(tm, digits = input$video_time_decimal_places)
+                rdata$dvw$plays$video_time[ridx] <- tm
                 rdata$dvw <- preprocess_dvw(rdata$dvw)
                 skip <- 1
                 if (rdata$dvw$plays$skill[ridx] %eq% "Attack" && ridx < nrow(rdata$dvw$plays) && rdata$dvw$plays$skill[ridx+1] %eq% "Block") {
                     ## give the block the same time
-                    rdata$dvw$plays$video_time[ridx+1] <- round(tm, digits = input$video_time_decimal_places)
+                    rdata$dvw$plays$video_time[ridx+1] <- tm
                     skip <- 2
                 } else if (rdata$dvw$plays$skill[ridx] %eq% "Attack" && ridx < nrow(rdata$dvw$plays) && rdata$dvw$plays$skill[ridx+1] %eq% "Dig") {
                     ## give the dig a +1s time
-                    rdata$dvw$plays$video_time[ridx+1] <- round(tm+1, digits = input$video_time_decimal_places)
+                    rdata$dvw$plays$video_time[ridx+1] <- tm+1
                     skip <- 2
                 }
                 ## advance to the next skill row
