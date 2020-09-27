@@ -32,7 +32,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                                         "end_zone", 1,
                                         "end_subzone", 1,
                                         "skill_type", 1,
-                                        "players", 1,
+                                        "num_players", 1,
                                         "special", 1,
                                         "custom", 5)
 
