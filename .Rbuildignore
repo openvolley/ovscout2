@@ -4,5 +4,6 @@
 ^README\.html$
 ^\.travis\.yml$
 standalone
+docs/
 ^\.github$
 ^codecov\.yml$
