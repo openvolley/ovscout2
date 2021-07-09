@@ -33,6 +33,7 @@ Imports:
     tidyselect,
     uuid
 Suggests:
+    covr,
     tcltk,
     testthat
 Remotes: openvolley/datavolley, openvolley/ovideo
