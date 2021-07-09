@@ -348,7 +348,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         })
 
         output$current_event <- renderUI({
-            tags$span(style = "font-size: large;", tags$strong("Current: "), selected_event()$code)
+            tags$div(id = "currentevent", style = if (!is.null(input$vo_voffset) && as.numeric(input$vo_voffset) > 0) paste0("margin-top: ", input$vo_offset - 50, "px") else "", tags$strong("Current: "), selected_event()$code)
         })
 
         observe({
@@ -1627,9 +1627,11 @@ ov_shiny_video_sync_server <- function(app_data) {
         ## height of the video player container, use as negative vertical offset on the overlay element
         observe({
             if (!is.null(input$vo_voffset) && as.numeric(input$vo_voffset) > 0) {
+                dojs(paste0("document.getElementById('currentevent').style.marginTop = '-", input$vo_voffset - 50, "px';"))
                 dojs(paste0("document.getElementById('video_overlay').style.marginTop = '-", input$vo_voffset, "px';"))
                 dojs(paste0("document.getElementById('video_overlay_img').style.marginTop = '-", input$vo_voffset, "px';"))
             } else {
+                dojs("document.getElementById('currentevent').style.marginTop = '-50px';")
                 dojs("document.getElementById('video_overlay').style.marginTop = '0px';")
                 dojs("document.getElementById('video_overlay_img').style.marginTop = '0px';")
             }
