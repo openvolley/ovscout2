@@ -669,7 +669,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                      "or",
                                                      build_code_entry_guide("edit", rdata$dvw$plays[ridx, ])))
                                       })
-                ))           
+                ))
                 if (!is_skill(rdata$dvw$plays$skill[ridx])) {
                     ## if it's a non-skill code then focus into the code_entry textbox with cursor at end of input
                     focus_in_code_entry("code_entry")
@@ -725,7 +725,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             removeModal()
         })
         observeEvent(input$edit_commit, {
-            code_make_change()
+            if (!is.null(editing$active)) code_make_change()
         })
         code_make_change <- function() {
             removeModal()
@@ -764,7 +764,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 rdata$dvw$meta$match$home_away <- input$match_edit_home_away
                 rdata$dvw$meta$match$day_number <- input$match_edit_day_number
                 rdata$dvw$meta$match$match_number <- input$match_edit_match_number
-                rdata$dvw$meta$match$regulation <- input$match_edit_regulation
+                ## currently disabled rdata$dvw$meta$match$regulation <- input$match_edit_regulation
                 rdata$dvw$meta$match$zones_or_cones <- input$match_edit_zones_or_cones
                 do_reparse <- TRUE
             } else if (editing$active %eq% "change starting lineup") {

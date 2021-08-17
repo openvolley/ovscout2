@@ -36,9 +36,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
     video_server_base_url <- paste0("http://localhost:", video_server_port)
     message(paste0("video server ", video_serve_method, " on port: ", video_server_port))
     fluidPage(theme=if (running_locally) "spacelab.css" else "https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.7/spacelab/bootstrap.min.css",
-              if (!running_locally) htmltools::htmlDependency("bootstrap", "3.3.7",
-                                                              src = c(href = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/"),
-                                                              script = "js/bootstrap.min.js", stylesheet = "css/bootstrap.min.css"),
+              htmltools::findDependencies(shiny::selectizeInput("foo", "bar", choices = "a")), ## workaround for https://github.com/rstudio/shiny/issues/3125
               tags$script("Shiny.addCustomMessageHandler('evaljs', function(jsexpr) { eval(jsexpr) });"), ## handler for running js code directly
               rintrojs::introjsUI(),
               tags$head(tags$style("body{font-size:15px} .well{padding:15px;} .myhidden {display:none;} table {font-size: small;} h2, h3, h4 {font-weight: bold;} .shiny-notification { height: 100px; width: 400px; position:fixed; top: calc(50% - 50px); left: calc(50% - 200px); } .code_entry_guide {color:#31708f; background-color:#d9edf7;border-color:#bce8f1;padding:4px;font-size:70%;} .sub_entry_guide {color:#31708f; background-color:#d9edf7;border-color:#bce8f1;padding:4px;font-size:40%;} .lineup_entry_guide {color:#31708f; background-color:#d9edf7;border-color:#bce8f1;padding:4px;font-size:40%;} .clet {color: red;} .iconbut { font-size: 150%; } #currentevent { position: absolute; font-size: large; color: red; margin-top: -350px; background-color: #FFFFFF80; }"),
