@@ -316,8 +316,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                 rdata$dvw$plays$video_time[ridx] <- tm
                 rdata$dvw <- preprocess_dvw(rdata$dvw)
                 skip <- 1
-                if (rdata$dvw$plays$skill[ridx] %eq% "Attack" && ridx < nrow(rdata$dvw$plays) && rdata$dvw$plays$skill[ridx+1] %eq% "Block") {
-                    ## give the block the same time
+                if (ridx < nrow(rdata$dvw$plays) && ((rdata$dvw$plays$skill[ridx] %eq% "Attack" && rdata$dvw$plays$skill[ridx+1] %eq% "Block") || (rdata$dvw$plays$skill[ridx] %eq% "Serve" && rdata$dvw$plays$skill[ridx+1] %eq% "Reception"))) {
+                    ## give the block the same time as the attack / reception the same time as the serve
                     rdata$dvw$plays$video_time[ridx+1] <- tm
                     skip <- 2
                 } else if (rdata$dvw$plays$skill[ridx] %eq% "Attack" && ridx < nrow(rdata$dvw$plays) && rdata$dvw$plays$skill[ridx+1] %eq% "Dig") {
