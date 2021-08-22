@@ -4,7 +4,13 @@
 \alias{ov_shiny_video_sync}
 \title{Launch a Shiny app for video synchronisation and scout editing}
 \usage{
-ov_shiny_video_sync(dvw, video_file = NULL, launch_browser = TRUE, ...)
+ov_shiny_video_sync(
+  dvw,
+  video_file = NULL,
+  launch_browser = TRUE,
+  prompt_for_files = interactive(),
+  ...
+)
 }
 \arguments{
 \item{dvw}{string or datavolley: either the path to a dvw file (which will be read by \code{\link[datavolley]{read_dv}}) or a datavolley object as returned by that function. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}}
@@ -13,7 +19,9 @@ ov_shiny_video_sync(dvw, video_file = NULL, launch_browser = TRUE, ...)
 
 \item{launch_browser}{logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny]{runApp}}'s \code{launch.browser} parameter)}
 
-\item{...}{: extra parameters passed to \code{\link[datavolley]{read_dv}} (if \code{dvw} is a provided as a string)}
+\item{prompt_for_files}{logical: if \code{dvw} was not specified, prompt the user to select the dvw file}
+
+\item{...}{: extra parameters passed to \code{\link[datavolley]{read_dv}} (if \code{dvw} is a provided as a string) and/or to the shiny server and UI functions}
 }
 \description{
 Launch a Shiny app for video synchronisation and scout editing
