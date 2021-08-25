@@ -9,7 +9,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                         v_court_highlight = "darkgreen")
 
         rdata <- reactiveValues(dvw = app_data$dvw)
-        tag_data <- reactiveValues(events = tibble(video_time = numeric(), tag = character()))
+        tag_data <- reactiveValues(events = tibble(video_time = numeric(), tag = character()), xy = NULL)
         editing <- reactiveValues(active = NULL)
         video_state <- reactiveValues(paused = FALSE)
         dv_read_args <- app_data$dv_read_args
@@ -176,7 +176,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         
         observeEvent(input$show_shortcuts, {
             showModal(modalDialog(title = "Keyboard shortcuts", easyClose = TRUE, size = "l",
-                                  tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")),
+                                  tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s, [, or 9] forwards 1 frame"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s, [b or 7] backwards 1 frame"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")),
                                   tags$p(tags$strong("Keyboard controls")), tags$ul(tags$li("[r or 5] sync selected event video time"),
                                                                                     tags$li("[i or 8] move to previous skill row"),
                                                                                     tags$li("[k or 2] move to next skill row"),
@@ -565,10 +565,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                             ## video go to currently-selected event
                             ev <- selected_event()
                             if (!is.null(ev)) do_video("set_time", ev$video_time)
-                        } else if (mycmd %in% utf8ToInt("nm13jhl;46$^")) {
+                        } else if (mycmd %in% utf8ToInt("nm13jhl;46$^b,79")) {
                             ## video forward/backward nav
-                            vidcmd <- if (tolower(mykey) %in% c("1", "n", "h", "j", "4", "$")) "rew" else "ff"
-                            dur <- if (tolower(mykey) %in% c("h", "$", ";", "^")) 10 else if (tolower(mykey) %in% c("n", "m", "1", "3")) 0.1 else 2
+                            vidcmd <- if (tolower(mykey) %in% c("1", "n", "h", "j", "4", "$", "b", "7")) "rew" else "ff"
+                            dur <- if (tolower(mykey) %in% c("h", "$", ";", "^")) 10 else if (tolower(mykey) %in% c("n", "m", "1", "3")) 0.1 else if (tolower(mykey) %in% c("b", "7", ",", "9")) 1/30 else 2
                             do_video(vidcmd, dur)
                         } else if (mykey %in% c("r", "R", "5")) {
                             ## set the video time of the current event
@@ -742,9 +742,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                 warning("code_make_change entered but editing not active")
             } else if (editing$active %eq% "tagging") {
                 ## add tag
-                if (!is.null(input$tag_text) && nzchar(input$tag_text)) {
-                    do_video("tag_current_video_time", base64enc::base64encode(charToRaw(input$tag_text)))
-                }
+                txt <- if (is.null(input$tag_text)) "" else input$tag_text
+                do_video("tag_current_video_time", if (nzchar(txt)) base64enc::base64encode(charToRaw(txt)) else "")
             } else if (editing$active %eq% "teams") {
                 ## update from all the input$ht_edit_name/id/coach/assistant inputs
                 htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
@@ -1169,9 +1168,11 @@ ov_shiny_video_sync_server <- function(app_data) {
         })
         observeEvent(input$tag_current_video_time, {
             temp <- strsplit(input$tag_current_video_time, split = "&", fixed = TRUE)[[1]]
-            tagtxt <- rawToChar(base64enc::base64decode(temp[2]))
+            tagtxt <- if (length(temp) >= 2) rawToChar(base64enc::base64decode(temp[2])) else ""
             tm <- as.numeric(temp[1])
-            tag_data$events <- bind_rows(tag_data$events, tibble(video_time = tm, tag = tagtxt))
+            extra <- selected_event()
+            if (!is.null(extra)) extra <- dplyr::select(extra, "match_id", "set_number", "file_line_number", scouted_video_time = "video_time")
+            tag_data$events <- bind_rows(tag_data$events, bind_cols(tibble(video_time = tm, tag = tagtxt), tag_data$xy, extra))
             cat(str(tag_data$events))
         })
         tag_manager <- function() {
@@ -1645,15 +1646,9 @@ ov_shiny_video_sync_server <- function(app_data) {
         ## court inset showing rotation and team lists
         newCoordsdata <- callModule(mod_courtrot, id = "courtrot", rdata = rdata, rowidx = reactive(playslist_current_row()), styling = styling)
 
-        rdataNew <- reactive({
-            ncd <- newCoordsdata$pcCI
-            ncd
-        })
+        rdataNew <- reactive(newCoordsdata$pcCI)
 
-        rotateTeams <- reactive({
-            rt = newCoordsdata$rt
-            rt
-        })
+        rotateTeams <- reactive(newCoordsdata$rt)
 
         ## General help
         observeEvent(input$general_help, introjs(session, options = list("nextLabel"="Next", "prevLabel"="Previous", "skipLabel"="Skip")))
@@ -1791,6 +1786,23 @@ ov_shiny_video_sync_server <- function(app_data) {
                 ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red") + gg_tight
                 NULL
             }, bg = "transparent", width = vo_width(), height = vo_height())
+        })
+
+        vid_to_crt <- function(obj) {
+            vxy <- c(obj$x, obj$y)
+            if (length(vxy) == 2 && !any(is.na(vxy))) {
+                courtxy <- ovideo::ov_transform_points(vxy[1], vxy[2], ref = app_data$court_ref, direction = "to_court")
+                cat("court: ", courtxy$x, ", ", courtxy$y, "\n")
+            }
+            courtxy
+        }
+
+        observeEvent(input$video_click, {
+            courtxy <- vid_to_crt(input$video_click)
+            courtxy$image_x <- input$video_click$x
+            courtxy$image_y <- input$video_click$y
+            tag_data$xy <- courtxy
+            add_tagged_event()
         })
     }
 }
