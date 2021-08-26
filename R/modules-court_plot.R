@@ -59,7 +59,7 @@ mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
     
     plot_dataCI <- reactiveValues(trigger = 0, x = NA, y = NA, xend = NA, yend = NA)
     
-    rotate_teams <- reactiveValues(home = 0, visiting = 0)
+    rotate_teams <- reactiveValues(home = 0L, visiting = 0L)
     
     observe({
         req(input$plot_click)
@@ -138,10 +138,10 @@ mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
     })
 
     observeEvent(input$rotate_home, {
-        rotate_teams$home <- 1
+        rotate_teams$home <- 1L
     })
     observeEvent(input$rotate_visiting, {
-        rotate_teams$visiting <- 1
+        rotate_teams$visiting <- 1L
     })
 
     observeEvent(input$court_inset_swap, {

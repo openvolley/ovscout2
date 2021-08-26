@@ -134,14 +134,14 @@ ov_shiny_video_sync_server <- function(app_data) {
         accept_ball_coords <- newCoordsdata$accept_ball_coords
 
         observe({
-            rtn = rotateTeams()
-            if(rtn$home==1){
+            rtn <- rotateTeams()
+            if (rtn$home > 0) {
                 home_force_rotate()
-                rtn$home = 0
+                rtn$home <- 0L
             }
-            if(rtn$visiting==1){
+            if (rtn$visiting > 0) {
                 visiting_force_rotate()
-                rtn$visiting=0
+                rtn$visiting <- 0L
             }
         })
 
@@ -940,12 +940,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                         }
                     } else if (editing$active %eq% "home_force_rotation"){
                         if (is.logical(ridx)) ridx <- which(ridx)
-                        teamSelect = datavolley::home_team(rdata$dvw)
-                        rdata$dvw <- dv_force_rotation(rdata$dvw, team = teamSelect, ridx, direction = 1)
+                        rdata$dvw <- dv_force_rotation(rdata$dvw, team = datavolley::home_team(rdata$dvw), ridx, direction = 1)
                     } else if (editing$active %eq% "visiting_force_rotation"){
                         if (is.logical(ridx)) ridx <- which(ridx)
-                        teamSelect = datavolley::visiting_team(rdata$dvw)
-                        rdata$dvw <- dv_force_rotation(rdata$dvw, team = teamSelect, ridx, direction = 1)
+                        rdata$dvw <- dv_force_rotation(rdata$dvw, team = datavolley::visiting_team(rdata$dvw), ridx, direction = 1)
                     }
                     do_reparse <- TRUE
                 }
@@ -1722,7 +1720,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         overlay_images <- reactiveVal(list(zones = NULL, cones_L = NULL, cones_M = NULL, cones_R = NULL, image_dir = NULL))
         ## generate static overlay images
         observe({
-            blah <- list(rdata$dvw, input$dv_height, input$dv_width) ## reactive to these
+            blah <- list(input$dv_height, input$dv_width) ## reactive to these ## previously also included rdata$dvw
             isolate(img_dir <- overlay_images()$image_dir)
             if (is.null(img_dir)) {
                 img_dir <- tempfile()
