@@ -19,20 +19,13 @@ names2roster <- function(pm) {
 mod_courtrot_ui <- function(id) {
     ns <- NS(id)
     fluidPage(
-        fluidRow(
-            column(6,checkboxInput(ns("ballcoordsCI"), label = "Display ball coordinates", FALSE)),
-            column(2,actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
-            column(4,actionButton(ns("cancel_ball_coords"), "Cancel coordinates"))
-            ),
-        fluidRow(
-            column(1),
-            column(1, actionButton(ns("rotate_home"),icon("undo"))),
-            column(8),
-            column(1, actionButton(ns("rotate_visiting"), icon("undo"))),
-            column(1)
-        ),
+        fluidRow(column(6, checkboxInput(ns("ballcoordsCI"), label = "Display ball coordinates", FALSE)),
+                 column(2, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
+                 column(4, actionButton(ns("validate_ball_coords"), label = "Accept ball coordinates"), actionButton(ns("cancel_ball_coords"), "Cancel ball coordinates"))),
+        fluidRow(column(1, offset = 1, actionButton(ns("rotate_home"),icon("undo"))),
+                 column(1, offset = 8, actionButton(ns("rotate_visiting"), icon("undo")))),
         fluidRow(column(3, id = "hroster", uiOutput(ns("htroster"))),
-                 column(6,plotOutput(ns("court_inset"),click = ns("plot_click"),dblclick = ns("plot_dblclick"))),
+                 column(6, plotOutput(ns("court_inset"), click = ns("plot_click"), dblclick = ns("plot_dblclick"))),
                  column(3, id = "vroster", uiOutput(ns("vtroster")))))
 }
 
@@ -57,7 +50,7 @@ mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
     })
     
     observeEvent(input$cancel_ball_coords, {
-        isolate(plot_dataCI$trigger <- 0)
+        plot_dataCI$trigger <- 0
         plot_dataCI$x <- NA
         plot_dataCI$y <- NA
         plot_dataCI$xend <- NA
@@ -70,10 +63,12 @@ mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
     
     observe({
         req(input$plot_click)
-        req(input$plot_dblclick)
-        isolate(plot_dataCI$trigger <- plot_dataCI$trigger + 1)
         plot_dataCI$x <- input$plot_click$x
         plot_dataCI$y <- input$plot_click$y
+    })
+    observe({
+        req(input$plot_dblclick)
+        isolate(plot_dataCI$trigger <- plot_dataCI$trigger + 1)
         plot_dataCI$xend <- input$plot_dblclick$x
         plot_dataCI$yend <- input$plot_dblclick$y
     })
@@ -136,23 +131,27 @@ mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
                     geom_segment(aes(x = plot_dataCI$x, y = plot_dataCI$y, xend = plot_dataCI$xend, yend = plot_dataCI$yend),
                                  arrow = arrow(length = unit(0.05, "npc")), linetype = "dashed")
             }
-            
+
         }
         if (court_inset_home_team_end() != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
         p
     })
-    
+
     observeEvent(input$rotate_home, {
-        rotate_teams$home = 1
+        rotate_teams$home <- 1
     })
     observeEvent(input$rotate_visiting, {
-        rotate_teams$visiting = 1
+        rotate_teams$visiting <- 1
     })
-    
+
     observeEvent(input$court_inset_swap, {
         court_inset_home_team_end(other_end(court_inset_home_team_end()))
         dojs("document.getElementById('court_inset_swap').blur();") ## un-focus from button
     })
-    return(list(pcCI = plot_dataCI, rt = rotate_teams))
+    accept_ball_coords <- reactiveVal(0L)
+    observeEvent(input$validate_ball_coords, {
+        accept_ball_coords(isolate(accept_ball_coords()) + 1L)
+    })
+    return(list(pcCI = plot_dataCI, rt = rotate_teams, accept_ball_coords = accept_ball_coords))
 }
 
