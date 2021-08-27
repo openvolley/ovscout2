@@ -1620,6 +1620,8 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         })
         ## video overlay
+        output$show_overlay_ui <- renderUI(if (!is.null(app_data$court_ref)) checkboxInput("show_overlay", "Show court overlay?", value = FALSE) else NULL)
+
         gg_tight <- list(theme(legend.position = "none", panel.background = element_rect(fill = "transparent", colour = NA), plot.background = element_rect(fill = "transparent", color = NA), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.spacing = unit(0, "null"), plot.margin = rep(unit(0, "null"), 4), axis.ticks = element_blank(), axis.ticks.length = unit(0, "null"), axis.text.x = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank(), axis.title.y = element_blank()), scale_x_continuous(limits = c(0, 1), expand = c(0, 0)), scale_y_continuous(limits = c(0, 1), expand = c(0, 0)))
         overlay_images <- reactiveVal(list(zones = NULL, cones_L = NULL, cones_M = NULL, cones_R = NULL, image_dir = NULL))
         ## generate static overlay images
@@ -1632,7 +1634,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 shiny::addResourcePath(prefix = "courtimg", img_dir)
             } else {
             }
-            if (!is.null(app_data$court_ref) && !is.null(input$dv_width) && as.numeric(input$dv_width) > 0 && !is.null(input$dv_height) && as.numeric(input$dv_height) > 0) {
+            if (isTRUE(input$show_overlay) && !is.null(app_data$court_ref) && !is.null(input$dv_width) && as.numeric(input$dv_width) > 0 && !is.null(input$dv_height) && as.numeric(input$dv_height) > 0) {
                 overlay_images(list(zones = gen_overlay_img(polytype = "zones", width = input$dv_width, height = input$dv_height, outdir = img_dir),
                                     cones_L = gen_overlay_img(polytype = "cones", sz = "L", width = input$dv_width, height = input$dv_height, outdir = img_dir),
                                     cones_M = gen_overlay_img(polytype = "cones", sz = "M", width = input$dv_width, height = input$dv_height, outdir = img_dir),
@@ -1686,26 +1688,30 @@ ov_shiny_video_sync_server <- function(app_data) {
             p + geom_label(data = labxy, aes_string(x = "x", y = "y", label = "label"), inherit.aes = FALSE, color = "blue", hjust = 0.5, vjust = 0.5)#, size = 1.5)
             fname <- tempfile(tmpdir = outdir, fileext = ".png")
             ggplot2::ggsave(fname, p, device = "png", width = width/100, height = height/100, dpi = 100, units = "in", bg = "transparent")
-            message(fname)
+            ##message(fname)
             basename(fname)
         }
 
         observe({
-            ridx <- playslist_current_row()
-            polytype <- "zones"
-            if (!is.null(ridx) && !is.na(ridx)) {
-                try({
-                    if (rdata$dvw$plays$skill[ridx] %eq% "Attack" && rdata$dvw$meta$match$zones_or_cones %eq% "C" && rdata$dvw$plays$start_zone[ridx] %in% 1:9) polytype <- "cones"
-                })
-            }
-            if (polytype %eq% "cones") {
-                sz <- if (rdata$dvw$plays$start_zone[ridx] %in% c(4, 7, 5)) "L" else if (rdata$dvw$plays$start_zone[ridx] %in% c(3, 8, 6)) "M" else "R"
-                polytype <- paste0("cones_", sz)
-            }
-            if (!is.null(overlay_images()[[polytype]])) {
-                dojs(paste0("document.getElementById('video_overlay_img').setAttribute('src', '/courtimg/", overlay_images()[[polytype]], "');"))
-            } else {
+            if (!isTRUE(input$show_overlay)) {
                 dojs(paste0("document.getElementById('video_overlay_img').setAttribute('src', '');"))
+            } else {
+                ridx <- playslist_current_row()
+                polytype <- "zones"
+                if (!is.null(ridx) && !is.na(ridx)) {
+                    try({
+                        if (rdata$dvw$plays$skill[ridx] %eq% "Attack" && rdata$dvw$meta$match$zones_or_cones %eq% "C" && rdata$dvw$plays$start_zone[ridx] %in% 1:9) polytype <- "cones"
+                    })
+                }
+                if (polytype %eq% "cones") {
+                    sz <- if (rdata$dvw$plays$start_zone[ridx] %in% c(4, 7, 5)) "L" else if (rdata$dvw$plays$start_zone[ridx] %in% c(3, 8, 6)) "M" else "R"
+                    polytype <- paste0("cones_", sz)
+                }
+                if (!is.null(overlay_images()[[polytype]])) {
+                    dojs(paste0("document.getElementById('video_overlay_img').setAttribute('src', '/courtimg/", overlay_images()[[polytype]], "');"))
+                } else {
+                    dojs(paste0("document.getElementById('video_overlay_img').setAttribute('src', '');"))
+                }
             }
         })
 
