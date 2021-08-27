@@ -18,15 +18,18 @@ names2roster <- function(pm) {
 
 mod_courtrot_ui <- function(id) {
     ns <- NS(id)
-    fluidPage(
-        fluidRow(column(6, checkboxInput(ns("ballcoordsCI"), label = "Display ball coordinates", FALSE)),
-                 column(2, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
-                 column(4, actionButton(ns("validate_ball_coords"), label = "Accept ball coordinates"), actionButton(ns("cancel_ball_coords"), "Cancel ball coordinates"))),
-        fluidRow(column(1, offset = 1, actionButton(ns("rotate_home"),icon("undo"))),
-                 column(1, offset = 8, actionButton(ns("rotate_visiting"), icon("undo")))),
-        fluidRow(column(3, id = "hroster", uiOutput(ns("htroster"))),
-                 column(6, plotOutput(ns("court_inset"), click = ns("plot_click"), dblclick = ns("plot_dblclick"))),
-                 column(3, id = "vroster", uiOutput(ns("vtroster")))))
+    tags$div(style = "border-radius: 4px; padding: 4px",
+             fluidRow(style = "min-height: 34px;", ## min-height to retain layout when buttons are hidden
+                      column(4, checkboxInput(ns("ballcoordsCI"), label = "Display ball coordinates", value = TRUE)),
+                      column(4, actionButton(ns("cancel_ball_coords"), "Cancel ball coordinates")),
+                      column(4, actionButton(ns("validate_ball_coords"), label = "Accept ball coordinates"))),
+             fluidRow(column(1, offset = 1, actionButton(ns("rotate_home"),icon("undo"))),
+                      column(1, offset = 8, actionButton(ns("rotate_visiting"), icon("undo")))),
+             fluidRow(column(3, id = "hroster", uiOutput(ns("htroster"))),
+                      column(6, plotOutput(ns("court_inset"), click = ns("plot_click"))),
+                      column(3, id = "vroster", uiOutput(ns("vtroster")))),
+             fluidRow(column(2, offset = 5, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")))
+             )
 }
 
 mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
@@ -38,40 +41,28 @@ mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
         re <- names2roster(rdata$dvw$meta$players_v)
         do.call(tags$div, c(list(tags$strong("Visiting team"), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
     })
-    output$coord_clickCI <- renderText({
-        xy_str <- function(e) {
-            if(is.null(e)) return("NULL\n")
-            paste0("x=", round(e$x, 1), " y=", round(e$y, 1), "\n")
-        }
-        paste0(
-            "Start (sgl-click): x=", round(plot_dataCI$x,2),"y=",round(plot_dataCI$y,2),"\n",
-            "End (dbl-click): x=", round(plot_dataCI$xend,2),"y=",round(plot_dataCI$yend,2)
-        )
-    })
-    
+
     observeEvent(input$cancel_ball_coords, {
-        plot_dataCI$trigger <- 0
-        plot_dataCI$x <- NA
-        plot_dataCI$y <- NA
-        plot_dataCI$xend <- NA
-        plot_dataCI$yend <- NA
+        clear_click_queue()
     })
-    
-    plot_dataCI <- reactiveValues(trigger = 0, x = NA, y = NA, xend = NA, yend = NA)
-    
+
     rotate_teams <- reactiveValues(home = 0L, visiting = 0L)
-    
-    observe({
+    ## we keep a queue of (up to) 3 clicked points
+    click_points <- reactiveValues(queue = data.frame(x = numeric(), y = numeric()))
+    add_to_click_queue <- function(x, y) {
+        if (!is.data.frame(x)) x <- data.frame(x = x, y = y)
+        click_points$queue <- if (nrow(click_points$queue) == 3) x else rbind(click_points$queue, x)
+        click_points$queue
+    }
+    clear_click_queue <- function() {
+        click_points$queue <- data.frame(x = numeric(), y = numeric())
+        click_points$queue
+    }
+    observeEvent(input$plot_click, {
         req(input$plot_click)
-        plot_dataCI$x <- input$plot_click$x
-        plot_dataCI$y <- input$plot_click$y
+        add_to_click_queue(x = input$plot_click$x, y = input$plot_click$y)
     })
-    observe({
-        req(input$plot_dblclick)
-        isolate(plot_dataCI$trigger <- plot_dataCI$trigger + 1)
-        plot_dataCI$xend <- input$plot_dblclick$x
-        plot_dataCI$yend <- input$plot_dblclick$y
-    })
+
     ## the court plot itself
     court_inset_home_team_end <- reactiveVal("lower")
     ball_coords <- reactive({input$ballcoordsCI})
@@ -107,31 +98,17 @@ mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
             }
             p <- p + geom_text(data = plxy, aes_string("x", "y", label = "court_num"), size = 6, fontface = "bold", vjust = 0) +
                 geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
-            
-            if(!is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & is.na(rdata$dvw$plays$end_coordinate_x[ridx]) & ball_coords()){
-                p = p + geom_point(data = rdata$dvw$plays[ridx,], 
-                                   aes_string("start_coordinate_x", "start_coordinate_y"), shape = 16, col = "green")
+            if (!is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & !is.na(rdata$dvw$plays$end_coordinate_x[ridx]) && ball_coords()) {
+                thisxy <- data.frame(x = as.numeric(rdata$dvw$plays[ridx, c("start_coordinate_x", "mid_coordinate_x", "end_coordinate_x")]),
+                                     y = as.numeric(rdata$dvw$plays[ridx, c("start_coordinate_y", "mid_coordinate_y", "end_coordinate_y")]))
+                p <- p + geom_point(data = thisxy[1, ], shape = 16, col = "green", size = 5) +
+                    geom_point(data = thisxy[3, ], shape = 16, col = "red", size = 5) +
+                    geom_path(data = na.omit(thisxy), arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
             }
-            if(is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & !is.na(rdata$dvw$plays$end_coordinate_x[ridx]) & ball_coords()){
-                p = p + geom_point(data = rdata$dvw$plays[ridx,], 
-                                   aes_string("end_coordinate_x", "end_coordinate_y"), shape = 16, col = "red")
+            if (nrow(click_points$queue) > 0) {
+                p <- p + geom_point(data = click_points$queue, shape = 16) +
+                    geom_path(data = click_points$queue, linetype = "dashed", colour = "black", arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
             }
-            if(!is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & !is.na(rdata$dvw$plays$end_coordinate_x[ridx]) & ball_coords()){
-                p = p + geom_point(data = rdata$dvw$plays[ridx,], aes_string("start_coordinate_x", "start_coordinate_y"), 
-                                   shape = 16, col = "green", size = 5) + 
-                    geom_point(data = rdata$dvw$plays[ridx,], aes_string("end_coordinate_x", "end_coordinate_y"), shape = 16, col = "red", size = 5) + 
-                    geom_segment(data = rdata$dvw$plays[ridx,], 
-                                 aes_string(x = "start_coordinate_x", y = "start_coordinate_y", xend = "end_coordinate_x", yend = "end_coordinate_y"),
-                                 arrow = arrow(length = unit(0.05, "npc")))
-            }
-            if (plot_dataCI$trigger > 0) {
-                p = p +
-                    geom_point(aes(plot_dataCI$x, plot_dataCI$y), shape = 16) +
-                    geom_point(aes(plot_dataCI$xend, plot_dataCI$yend), shape = 16)+
-                    geom_segment(aes(x = plot_dataCI$x, y = plot_dataCI$y, xend = plot_dataCI$xend, yend = plot_dataCI$yend),
-                                 arrow = arrow(length = unit(0.05, "npc")), linetype = "dashed")
-            }
-
         }
         if (court_inset_home_team_end() != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
         p
@@ -152,6 +129,6 @@ mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
     observeEvent(input$validate_ball_coords, {
         accept_ball_coords(isolate(accept_ball_coords()) + 1L)
     })
-    return(list(pcCI = plot_dataCI, rt = rotate_teams, accept_ball_coords = accept_ball_coords))
+    return(list(rt = rotate_teams, accept_ball_coords = accept_ball_coords, click_points = click_points, add_to_click_queue = add_to_click_queue, clear_click_queue = clear_click_queue))
 }
 

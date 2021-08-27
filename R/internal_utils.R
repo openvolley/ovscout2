@@ -18,6 +18,8 @@ dojs <- function(jscmd) {
     ##cat("js: ", jscmd, "\n")
     shiny::getDefaultReactiveDomain()$sendCustomMessage("evaljs", jscmd)
 }
+js_show2 <- function(id) dojs(paste0("var el=$('#", id, "'); el.show();"))
+js_hide2 <- function(id) dojs(paste0("var el=$('#", id, "'); el.hide();"))
 
 names_first_to_capital <- function(x, fun) {
     setNames(x, var2fc(if (missing(fun)) names(x) else vapply(names(x), fun, FUN.VALUE = "", USE.NAMES = FALSE)))
