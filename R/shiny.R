@@ -56,6 +56,13 @@ ov_shiny_video_sync <- function(dvw, video_file = NULL, launch_browser = TRUE, p
     } else {
         if (!file.exists(dvw$meta$video$file)) stop("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
     }
+    ## look for the court ref data, if it hasn't been provided
+    if (!"court_ref" %in% names(other_args)) {
+        crfile <- paste0(fs::path_ext_remove(video_file), "_video_info.rds")
+        if (file.exists(crfile)) tryCatch(other_args$court_ref <- readRDS(crfile)$court_ref, error = function(e) {
+            warning("found video_info.rds file but could not extract court_ref component")
+        })
+    }
     ## finally the shiny app
     app_data <- c(list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args), other_args)
     this_app <- list(ui = ov_shiny_video_sync_ui(app_data = app_data), server = ov_shiny_video_sync_server(app_data = app_data))
