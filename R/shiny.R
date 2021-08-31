@@ -63,6 +63,13 @@ ov_shiny_video_sync <- function(dvw, video_file = NULL, launch_browser = TRUE, p
             warning("found video_info.rds file but could not extract court_ref component")
         })
     }
+    if (!is.null(other_args$court_ref)) {
+        if (is.list(other_args$court_ref) && "court_ref" %in% names(other_args$court_ref)) other_args$court_ref <- other_args$court_ref$court_ref
+        if (!is.data.frame(other_args$court_ref) || !all(c("image_x", "image_y", "court_x", "court_y") %in% names(other_args$court_ref))) {
+            warning("court_ref is not of the expected format, ignoring")
+            other_args$court_ref <- NULL
+        }
+    }
     ## finally the shiny app
     app_data <- c(list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args), other_args)
     this_app <- list(ui = ov_shiny_video_sync_ui(app_data = app_data), server = ov_shiny_video_sync_server(app_data = app_data))
