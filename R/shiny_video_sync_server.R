@@ -1183,10 +1183,6 @@ ov_shiny_video_sync_server <- function(app_data) {
             tagtxt <- if (length(temp) >= 2) rawToChar(base64enc::base64decode(temp[2])) else ""
             tm <- as.numeric(temp[1])
             extra <- selected_event()
-            if (!is.null(extra) && !isTRUE(remember_include_all_pbp())) {
-                ## include just some key columns
-                extra <- dplyr::select(extra, "match_id", "set_number", "file_line_number", "video_time")
-            }
             thisxy <- data.frame(x = NA_real_, y = NA_real_)
             if (nrow(court_inset$click_points$queue) > 0) {
                 thisxy <- tail(court_inset$click_points$queue, 1)
@@ -1211,13 +1207,22 @@ ov_shiny_video_sync_server <- function(app_data) {
         observeEvent(input$tags_include_all_pbp, remember_include_all_pbp(input$tags_include_all_pbp))
         observeEvent(input$clear_tags, {
             tag_data$events <- tibble(tag_video_time = numeric(), tag = character())
+            editing$active <- NULL
             removeModal()
         })
         output$download_tags <- downloadHandler(
             filename = function() "tags.csv",
             content = function(file) {
+                editing$active <- NULL
+                this <- tag_data$events
+                this <- this[, setdiff(names(this), c("error_message", "error_icon"))] ## don't export these
+                if (!isTRUE(remember_include_all_pbp())) {
+                    ## include just some key columns
+                    ## note that if we tagged without a selected row, there are no additional data for that row
+                    this <- this[, intersect(names(this), c("match_id", "set_number", "file_line_number", "video_time", "tag", "tag_video_time", "image_x", "image_y", "x", "y"))]
+                }
+                write.csv(this, file, row.names = FALSE, na = "")
                 removeModal()
-                write.csv(tag_data$events, file, row.names = FALSE, na = "")
             }
         )
 
@@ -1587,9 +1592,10 @@ ov_shiny_video_sync_server <- function(app_data) {
         vo_height <- reactiveVal("auto")
         observe({
             if (!is.null(input$dv_height) && as.numeric(input$dv_height) > 0) {
-                vo_height(as.numeric(input$dv_height))
-                dojs(paste0("document.getElementById('video_overlay').style.height = '", vo_height(), "px';"))
-                dojs(paste0("document.getElementById('video_overlay_img').style.height = '", vo_height(), "px';"))
+                this <- as.numeric(input$dv_height)
+                vo_height(this)
+                dojs(paste0("document.getElementById('video_overlay').style.height = '", this, "px';"))
+                dojs(paste0("document.getElementById('video_overlay_img').style.height = '", this, "px';"))
             } else {
                 vo_height("auto")
                 dojs(paste0("document.getElementById('video_overlay').style.height = '400px';"))
@@ -1600,10 +1606,13 @@ ov_shiny_video_sync_server <- function(app_data) {
         vo_width <- reactiveVal("auto")
         observe({
             if (!is.null(input$dv_width) && as.numeric(input$dv_width) > 0) {
-                vo_width(as.numeric(input$dv_width))
-                dojs(paste0("document.getElementById('video_overlay_img').style.width = '", vo_width(), "px';"))
+                this <- as.numeric(input$dv_width)
+                vo_width(this)
+                dojs(paste0("document.getElementById('video_overlay').style.width = '", this, "px';"))
+                dojs(paste0("document.getElementById('video_overlay_img').style.width = '", this, "px';"))
             } else {
                 vo_width("auto")
+                dojs(paste0("document.getElementById('video_overlay').style.width = '600px';"))
                 dojs(paste0("document.getElementById('video_overlay_img').style.width = '600px';"))
             }
         })
@@ -1720,7 +1729,9 @@ ov_shiny_video_sync_server <- function(app_data) {
             output$video_overlay <- renderPlot({
                 ## test - red diagonal line across the overlay plot
                 ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red") + gg_tight
-                NULL
+                ## for tagging, need to plot SOMETHING else we don't get correct coordinates back
+                ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + gg_tight
+                ##NULL
             }, bg = "transparent", width = vo_width(), height = vo_height())
         })
 
