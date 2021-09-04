@@ -1183,12 +1183,15 @@ ov_shiny_video_sync_server <- function(app_data) {
             tagtxt <- if (length(temp) >= 2) rawToChar(base64enc::base64decode(temp[2])) else ""
             tm <- as.numeric(temp[1])
             extra <- selected_event()
+            ## add match_id regardless of whether there is a selected event
+            this_match_id <- rdata$dvw$meta$match_id
+            if (!is.null(extra)) extra <- extra[, setdiff(names(extra), "match_id")]
             thisxy <- data.frame(x = NA_real_, y = NA_real_)
             if (nrow(court_inset$click_points$queue) > 0) {
                 thisxy <- tail(court_inset$click_points$queue, 1)
                 thisxy <- cbind(thisxy, crt_to_vid(thisxy))
             }
-            tag_data$events <- bind_rows(tag_data$events, bind_cols(tibble(tag_video_time = tm, tag = tagtxt), thisxy, extra))
+            tag_data$events <- bind_rows(tag_data$events, bind_cols(tibble(match_id = this_match_id, tag_video_time = tm, tag = tagtxt), thisxy, extra))
             ## clear the ball coords data
             court_inset$clear_click_queue()
         })
@@ -1730,7 +1733,23 @@ ov_shiny_video_sync_server <- function(app_data) {
                 ## test - red diagonal line across the overlay plot
                 ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red") + gg_tight
                 ## for tagging, need to plot SOMETHING else we don't get correct coordinates back
-                ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + gg_tight
+                this <- selected_event()
+                ok <- FALSE
+                try({
+                    if (court_inset$ball_coords() && !is.null(this) && nrow(this) == 1 && !is.null(app_data$court_ref) && !is.na(this$start_coordinate_x) && !is.na(this$end_coordinate_x)) {
+                        thisxy <- data.frame(x = as.numeric(this[, c("start_coordinate_x", "mid_coordinate_x", "end_coordinate_x")]),
+                                             y = as.numeric(this[, c("start_coordinate_y", "mid_coordinate_y", "end_coordinate_y")]))
+                        thisxy <- setNames(ovideo::ov_transform_points(thisxy, ref = app_data$court_ref, direction = "to_image"), c("image_x", "image_y"))
+                        p <- ggplot(mapping = aes_string("image_x", "image_y")) + geom_point(data = thisxy[1, ], shape = 16, col = "green", size = 5) +
+                            geom_point(data = thisxy[3, ], shape = 16, col = "red", size = 5) +
+                            geom_path(data = na.omit(thisxy), arrow = arrow(length = unit(0.01, "npc"), ends = "last"))
+                        ok <- TRUE
+                    }
+                }, silent = TRUE)
+                if (!ok) {
+                    p <- ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y"))
+                }
+                p + gg_tight
                 ##NULL
             }, bg = "transparent", width = vo_width(), height = vo_height())
         })

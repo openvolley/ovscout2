@@ -129,6 +129,6 @@ mod_courtrot <- function(input, output, session, rdata, rowidx, styling) {
     observeEvent(input$validate_ball_coords, {
         accept_ball_coords(isolate(accept_ball_coords()) + 1L)
     })
-    return(list(rt = rotate_teams, accept_ball_coords = accept_ball_coords, click_points = click_points, add_to_click_queue = add_to_click_queue, clear_click_queue = clear_click_queue))
+    return(list(rt = rotate_teams, ball_coords_checkbox = ball_coords, accept_ball_coords = accept_ball_coords, click_points = click_points, add_to_click_queue = add_to_click_queue, clear_click_queue = clear_click_queue))
 }
 
