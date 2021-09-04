@@ -59,7 +59,7 @@ ov_shiny_video_sync <- function(dvw, video_file = NULL, launch_browser = TRUE, p
     ## look for the court ref data, if it hasn't been provided
     if (!"court_ref" %in% names(other_args)) {
         temp <- NULL
-        if (packageVersion("ovideo") >= "0.14.3") temp <- suppressWarnings(ov_get_video_data(video_file))
+        if (packageVersion("ovideo") >= "0.14.3") temp <- suppressWarnings(ovideo::ov_get_video_data(video_file))
         if (!is.null(temp)) {
             other_args$court_ref <- temp
         } else {
