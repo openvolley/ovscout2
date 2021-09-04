@@ -58,10 +58,16 @@ ov_shiny_video_sync <- function(dvw, video_file = NULL, launch_browser = TRUE, p
     }
     ## look for the court ref data, if it hasn't been provided
     if (!"court_ref" %in% names(other_args)) {
-        crfile <- paste0(fs::path_ext_remove(video_file), "_video_info.rds")
-        if (file.exists(crfile)) tryCatch(other_args$court_ref <- readRDS(crfile)$court_ref, error = function(e) {
-            warning("found video_info.rds file but could not extract court_ref component")
-        })
+        temp <- NULL
+        if (packageVersion("ovideo") >= "0.14.3") temp <- suppressWarnings(ov_get_video_data(video_file))
+        if (!is.null(temp)) {
+            other_args$court_ref <- temp
+        } else {
+            crfile <- paste0(fs::path_ext_remove(video_file), "_video_info.rds")
+            if (file.exists(crfile)) tryCatch(other_args$court_ref <- readRDS(crfile)$court_ref, error = function(e) {
+                warning("found video_info.rds file but could not extract court_ref component")
+            })
+        }
     }
     if (!is.null(other_args$court_ref)) {
         if (is.list(other_args$court_ref) && "court_ref" %in% names(other_args$court_ref)) other_args$court_ref <- other_args$court_ref$court_ref
