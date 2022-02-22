@@ -2,7 +2,7 @@ ov_shiny_video_sync_ui <- function(app_data) {
     ## some startup stuff
     running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
     video_src <- app_data$dvw$meta$video$file[1]
-    if (!fs::file_exists(video_src)) {
+    if (!fs::file_exists(as.character(video_src))) {
         ## can't find the file, go looking for it
         chk <- ovideo::ov_find_video_file(dvw_filename = app_data$dvw_filename, video_filename = video_src)
         if (!is.na(chk)) video_src <- chk
