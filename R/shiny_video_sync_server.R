@@ -202,7 +202,7 @@ ov_shiny_video_sync_server <- function(app_data) {
 
         observeEvent(input$show_shortcuts, {
             showModal(modalDialog(title = "Keyboard shortcuts", easyClose = TRUE, size = "l",
-                                  if (app_data$with_video) tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s, [, or 9] forwards 1 frame"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s, [b or 7] backwards 1 frame"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")),
+                                  if (app_data$with_video) tagList(tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s, [, or 9] forwards 1 frame"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s, [b or 7] backwards 1 frame"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event"))),
                                   fluidRow(column(6, tags$strong("Keyboard controls"),
                                            tags$ul(tags$li("[r or 5] sync selected event video time"),
                                                    tags$li("[i or 8] move to previous skill row"),
@@ -217,8 +217,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                    tags$li("[F8] delete all digging codes"),
                                                    tags$li("[F10] visiting team rotate +1"),
                                                    )),
-                                           column(6, tags$strong("Tagging"), tags$ul(tags$li("[left-click the court inset then press 't'] add a tag with the clicked court location. Alternatively, the location can be entered by left-clicking the video, if the court reference data has been provided"),
-                                                                                     tags$li("[T] open the tag manager (download or clear tag data)")),
+                                           column(6, if (app_data$with_video) tagList(tags$strong("Tagging"), tags$ul(tags$li("[left-click the court inset then press 't'] add a tag with the clicked court location. Alternatively, the location can be entered by left-clicking the video, if the court reference data has been provided"),
+                                                                                     tags$li("[T] open the tag manager (download or clear tag data)"))),
                                                   tags$strong("Ball coordinates"), tags$ul(tags$li("[left-click the court inset] register the start/mid/end ball positions"),
                                                                                            tags$li("[accept ball coordinates] to add coordinates to the currently selected item"))))
                                   ))
