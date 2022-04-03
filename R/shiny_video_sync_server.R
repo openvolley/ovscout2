@@ -202,7 +202,7 @@ ov_shiny_video_sync_server <- function(app_data) {
 
         observeEvent(input$show_shortcuts, {
             showModal(modalDialog(title = "Keyboard shortcuts", easyClose = TRUE, size = "l",
-                                  tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s, [, or 9] forwards 1 frame"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s, [b or 7] backwards 1 frame"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")),
+                                  if (app_data$with_video) tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s, [, or 9] forwards 1 frame"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s, [b or 7] backwards 1 frame"), tags$li("[q or 0] pause video"), tags$li("[g or #] go to currently-selected event")),
                                   fluidRow(column(6, tags$strong("Keyboard controls"),
                                            tags$ul(tags$li("[r or 5] sync selected event video time"),
                                                    tags$li("[i or 8] move to previous skill row"),
@@ -603,10 +603,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                             do_video(vidcmd, dur)
                         } else if (mykey %in% c("r", "R", "5")) {
                             ## set the video time of the current event
-                            sync_single_video_time()
+                            if (app_data$with_video) sync_single_video_time()
                         } else if (mykey %eq% "t") {
                             ## tag event at current time
-                            add_tagged_event()
+                            if (app_data$with_video) add_tagged_event()
                         } else if (mykey %eq% "T") {
                             ## pop up the tag manager dialog
                             tag_manager()
@@ -1231,6 +1231,7 @@ ov_shiny_video_sync_server <- function(app_data) {
 
         ## video functions
         do_video <- function(what, ..., id = "main_video") {
+            if (!app_data$with_video) return(NULL)
             getel <- paste0("document.getElementById('", id, "')")
             myargs <- list(...)
             if (what == "pause") {
@@ -1594,41 +1595,47 @@ ov_shiny_video_sync_server <- function(app_data) {
         ## height of the video player element
         vo_height <- reactiveVal("auto")
         observe({
-            if (!is.null(input$dv_height) && as.numeric(input$dv_height) > 0) {
-                this <- as.numeric(input$dv_height)
-                vo_height(this)
-                dojs(paste0("document.getElementById('video_overlay').style.height = '", this, "px';"))
-                dojs(paste0("document.getElementById('video_overlay_img').style.height = '", this, "px';"))
-            } else {
-                vo_height("auto")
-                dojs(paste0("document.getElementById('video_overlay').style.height = '400px';"))
-                dojs(paste0("document.getElementById('video_overlay_img').style.height = '400px';"))
+            if (app_data$with_video) {
+                if (!is.null(input$dv_height) && as.numeric(input$dv_height) > 0) {
+                    this <- as.numeric(input$dv_height)
+                    vo_height(this)
+                    dojs(paste0("document.getElementById('video_overlay').style.height = '", this, "px';"))
+                    dojs(paste0("document.getElementById('video_overlay_img').style.height = '", this, "px';"))
+                } else {
+                    vo_height("auto")
+                    dojs(paste0("document.getElementById('video_overlay').style.height = '400px';"))
+                    dojs(paste0("document.getElementById('video_overlay_img').style.height = '400px';"))
+                }
             }
         })
         ## width of the video player element
         vo_width <- reactiveVal("auto")
         observe({
-            if (!is.null(input$dv_width) && as.numeric(input$dv_width) > 0) {
-                this <- as.numeric(input$dv_width)
-                vo_width(this)
-                dojs(paste0("document.getElementById('video_overlay').style.width = '", this, "px';"))
-                dojs(paste0("document.getElementById('video_overlay_img').style.width = '", this, "px';"))
-            } else {
-                vo_width("auto")
-                dojs(paste0("document.getElementById('video_overlay').style.width = '600px';"))
-                dojs(paste0("document.getElementById('video_overlay_img').style.width = '600px';"))
+            if (app_data$with_video) {
+                if (!is.null(input$dv_width) && as.numeric(input$dv_width) > 0) {
+                    this <- as.numeric(input$dv_width)
+                    vo_width(this)
+                    dojs(paste0("document.getElementById('video_overlay').style.width = '", this, "px';"))
+                    dojs(paste0("document.getElementById('video_overlay_img').style.width = '", this, "px';"))
+                } else {
+                    vo_width("auto")
+                    dojs(paste0("document.getElementById('video_overlay').style.width = '600px';"))
+                    dojs(paste0("document.getElementById('video_overlay_img').style.width = '600px';"))
+                }
             }
         })
         ## height of the video player container, use as negative vertical offset on the overlay element
         observe({
-            if (!is.null(input$vo_voffset) && as.numeric(input$vo_voffset) > 0) {
-                dojs(paste0("document.getElementById('currentevent').style.marginTop = '-", input$vo_voffset - 50, "px';"))
-                dojs(paste0("document.getElementById('video_overlay').style.marginTop = '-", input$vo_voffset, "px';"))
-                dojs(paste0("document.getElementById('video_overlay_img').style.marginTop = '-", input$vo_voffset, "px';"))
-            } else {
-                dojs("document.getElementById('currentevent').style.marginTop = '-50px';")
-                dojs("document.getElementById('video_overlay').style.marginTop = '0px';")
-                dojs("document.getElementById('video_overlay_img').style.marginTop = '0px';")
+            if (app_data$with_video) {
+                if (!is.null(input$vo_voffset) && as.numeric(input$vo_voffset) > 0) {
+                    dojs(paste0("document.getElementById('currentevent').style.marginTop = '-", input$vo_voffset - 50, "px';"))
+                    dojs(paste0("document.getElementById('video_overlay').style.marginTop = '-", input$vo_voffset, "px';"))
+                    dojs(paste0("document.getElementById('video_overlay_img').style.marginTop = '-", input$vo_voffset, "px';"))
+                } else {
+                    dojs("document.getElementById('currentevent').style.marginTop = '-50px';")
+                    dojs("document.getElementById('video_overlay').style.marginTop = '0px';")
+                    dojs("document.getElementById('video_overlay_img').style.marginTop = '0px';")
+                }
             }
         })
         ## video overlay
@@ -1705,7 +1712,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         }
 
         observe({
-            if (!isTRUE(input$show_overlay)) {
+            if (!app_data$with_video || !isTRUE(input$show_overlay)) {
                 dojs(paste0("document.getElementById('video_overlay_img').setAttribute('src', '');"))
             } else {
                 ridx <- playslist_current_row()
@@ -1730,6 +1737,7 @@ ov_shiny_video_sync_server <- function(app_data) {
         ## other overlay plotting can be done here?
         observe({
             output$video_overlay <- renderPlot({
+                if (!app_data$with_video) return(NULL)
                 ## test - red diagonal line across the overlay plot
                 ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red") + gg_tight
                 ## for tagging, need to plot SOMETHING else we don't get correct coordinates back
@@ -1777,8 +1785,10 @@ ov_shiny_video_sync_server <- function(app_data) {
 
         ## single click the video to register a tag location, or starting ball coordinates
         observeEvent(input$video_click, {
-            courtxy <- vid_to_crt(input$video_click)
-            court_inset$add_to_click_queue(courtxy)
+            if (app_data$with_video) {
+                courtxy <- vid_to_crt(input$video_click)
+                court_inset$add_to_click_queue(courtxy)
+            }
         })
     }
 }

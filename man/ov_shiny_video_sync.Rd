@@ -15,7 +15,7 @@ ov_shiny_video_sync(
 \arguments{
 \item{dvw}{string or datavolley: either the path to a dvw file (which will be read by \code{\link[datavolley]{read_dv}}) or a datavolley object as returned by that function. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}}
 
-\item{video_file}{string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used}
+\item{video_file}{string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. Provide \code{video_file = NA} to run the app without a video file}
 
 \item{launch_browser}{logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny]{runApp}}'s \code{launch.browser} parameter)}
 
