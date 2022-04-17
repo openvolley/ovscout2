@@ -62,3 +62,19 @@ ov_default_attack_table <- function() {
     out$X10 <- out$X11 <- NA ## some other, unpopulated columns
     out
 }
+
+#' Default setter calls table
+#'
+#' @return A tibble
+#'
+#' @export
+ov_default_setter_calls_table <- function() {
+    dplyr::tribble(~code, ~X2, ~description, ~X4, ~colour, ~start_coordinate, ~mid_coordinate, ~end_coordinate, ~path, ~path_colour, ~X11,
+                   "K1", NA, "Front Quick", NA, 16711680L, 3949L, 4454L, 4958L, NA_character_, NA_integer_, NA,
+                   "K2", NA, "Back Quick", NA, 16711680L, 3864L, 4278L, 4974L, NA_character_, NA_integer_, NA,
+                   "K7", NA, "Seven", NA, 16711680L, 3923L, 4426L, 4930L, NA_character_, NA_integer_, NA,
+                   "KC", NA, "Quick in 3", NA, 16711680L, 3849L, 4449L, 5049L, NA_character_, NA_integer_, NA,
+                   "KM", NA, "Shifted to 2", NA, 16711680L, 0L, 0L, 0L, "4924,5524,5530,6332,6312,5012,5024", 12632256L, NA,
+                   "KP", NA, "Shifted to 4", NA, 16711680L, 0L, 0L, 0L, "5457,5057,5557,5552,6352,6364,5377,5077,5058,5058", 12632256L, NA,
+                   "KE", NA, "No First Tempo", NA, 0L, 0L, 0L, 0L, "5858,5826,6426,6458,6458", 12632256L, NA)
+}
