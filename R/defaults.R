@@ -7,7 +7,7 @@ ov_default_attack_table <- function() {
     out <- dplyr::tribble(~code, ~attacker_position, ~side, ~type, ~description, ~X6, ~colour, ~start_coordinate, ~set_type,
                           "CB", 2, "L", "N", "Slide next to setter", NA, 16711680, 4976, "C",
                           "CD", 2, "L", "N", "Slide away from setter", NA, 16711680, 4970, "C",
-                          "CF", 2, "L", "N", "Slide close to setter", 16711680, 4986, "C",
+                          "CF", 2, "L", "N", "Slide close to setter", NA,16711680, 4986, "C",
                           "C0", 7, "C", "U", "Medium Backrow D", NA, 0, 4114, "F",
                           "C5", 4, "R", "U", "11", NA, 0, 4912, "F",
                           "C6", 2, "L", "U", "Medium Red", NA, 0, 4988, "B",
@@ -78,3 +78,26 @@ ov_default_setter_calls_table <- function() {
                    "KP", NA, "Shifted to 4", NA, 16711680L, 0L, 0L, 0L, "5457,5057,5557,5552,6352,6364,5377,5077,5058,5058", 12632256L, NA,
                    "KE", NA, "No First Tempo", NA, 0L, 0L, 0L, 0L, "5858,5826,6426,6458,6458", 12632256L, NA)
 }
+
+#' Default winning symbols table
+#'
+#' @return A tibble
+#'
+#' @export
+ov_default_winning_symbols <- function() {
+    tribble(~skill, ~win_lose, ~code,
+            "S", "L", "=",
+            "S", "W", "#",
+            "R", "L", "=",
+            "A", "L", "=",
+            "A", "L", "/",
+            "A", "W", "#",
+            "B", "L", "=",
+            "B", "L", "/",
+            "B", "W", "#",
+            "D", "L", "=",
+            "E", "L", "=",
+            "F", "L", "=")
+}
+
+
