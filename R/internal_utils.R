@@ -1,6 +1,7 @@
 `%eq%` <- function (x, y) x == y & !is.na(x) & !is.na(y)
 
 is_nnn <- function(z) is.null(z) || is.na(z) || !nzchar(z)
+nn_or <- function(z, or = "") if (is.null(z)) or else z
 
 ## plotting
 court_circle <- function(cxy, r = 0.45, cz = NULL, end = "lower", nseg = 31) {
