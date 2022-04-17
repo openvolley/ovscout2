@@ -111,7 +111,7 @@ create_meta <- function(match, more, teams, players_h, players_v, video_file, at
                          sets_won = c(0L, 0L),
                          coach = nn_or(teams$coach, c("", "")),
                          assistant = nn_or(teams$assistant, c("", "")),
-                         shirt_color = nn_or(teams$shirt_color, c("#FF0000", "#0000FF")),
+                         shirt_colour = nn_or(teams$shirt_colour, c("#FF0000", "#0000FF")),
                          X7 = NA, X8 = NA, X9 = NA, X10 = NA,
                          home_away_team = c("*", "a"),
                          won_match = c(NA, NA))
@@ -200,8 +200,11 @@ make_player_id <- function(lastname, firstname) toupper(paste0(substr(lastname, 
 #' @export
 dv_create <- function(match, more, teams, players_h, players_v, video_file, attacks = ov_default_attack_table(), setter_calls = ov_default_setter_calls_table(), winning_symbols = ov_default_winning_symbols(), zones_or_cones = "Z", regulation = "indoor rally point", comments) {
     reg <- if (!missing(match) && "regulation" %in% names(match)) match$regulation else regulation
-    out <- list(file_meta = create_file_meta(file_type = if (grepl("beach", reg)) "beach" else "indoor"),
-                meta = create_meta(match = match, more = more, teams = teams, players_h = players_h, players_v = players_v, video_file = video_file, attacks = attacks, setter_calls = setter_calls, winning_symbols = winning_symbols, zones_or_cones = zones_or_cones, regulation = regulation, comments = comments))
-    out
+    out <- list(##raw,
+        messages = tibble(file_line_number = integer(), video_time = numeric(), message = character(), file_line = character()),
+        file_meta = create_file_meta(file_type = if (grepl("beach", reg)) "beach" else "indoor"),
+        meta = create_meta(match = match, more = more, teams = teams, players_h = players_h, players_v = players_v, video_file = video_file, attacks = attacks, setter_calls = setter_calls, winning_symbols = winning_symbols, zones_or_cones = zones_or_cones, regulation = regulation, comments = comments),
+        plays = tibble())
+    structure(out, class = c("datavolley", "list"))
 }
 
