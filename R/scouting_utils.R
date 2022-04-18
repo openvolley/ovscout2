@@ -1,11 +1,10 @@
-## add auto-codes necessary to make a complete rally
+## generate the auto-codes necessary to make a complete rally
 ## @param code character: vector of scouted codes, only those relating to skill executions along with the "*p" or "ap" code at the end
 ## @param home_rot, visiting_rot integer: home and visiting setter positions (1 to 6)
 ## @param home_setter, visiting_setter integer: jersey number of home and visiting setter
-## @param start_of_set logical: if `TRUE`, insert the lineup codes (requires home, visiting rot and setter values)
 ## @param rotated string: "a" or "*" if that team just sided out and rotated (requires the corresponding team's rot and setter values)
 ## @param winning_symbols data.frame: as returned by datavolley::winning_symbols_df
-add_auto_codes <- function(code, home_rot, visiting_rot, home_setter, visiting_setter, start_of_set = FALSE, rotated, winning_symbols) {
+make_auto_codes <- function(code, home_rot, visiting_rot, home_setter, visiting_setter, rotated, winning_symbols) {
     if (!grepl("^[a\\*]p[[:digit:]]+:[[:digit:]]+", tail(code, 1))) stop("the final element of the code vector should be the '*p' or 'ap' code")
     won_by <- substr(tail(code, 1), 1, 1)
     if (!won_by %in% c("*", "a")) stop("won_by must be '*' or 'a'")
@@ -15,21 +14,10 @@ add_auto_codes <- function(code, home_rot, visiting_rot, home_setter, visiting_s
     skill[!skill %in% c("S", "R", "A", "B", "D", "E", "F")] <- NA_character_
     evaluation_code <- substr(code, 6, 6)
     evaluation_code[!evaluation_code %in% c("#", "+", "!", "-", "/", "=")] <- NA_character_
-    if (start_of_set) {
-        ## home setter and position
-        if (!home_rot %in% 1:6) stop("invalid home rotation, should be 1--6")
-        if (!visiting_rot %in% 1:6) stop("invalid visiting rotation, should be 1--6")
-        ## e.g. "*P04>LUp"          "*z3>LUp"
-        lineup_codes <- c(sprintf("*P%02d>Lup", home_setter), paste0("*z", home_rot, ">Lup"), sprintf("aP%02d>Lup", visiting_setter), paste0("az", visiting_rot, ">Lup"))
-        position_codes <- c()
-    } else {
-        lineup_codes <- c()
-        if (!missing(rotated)) {
-            if (!rotated %in% c("*", "a")) stop("rotated should be '*' or 'a'")
-            position_codes <- paste0(rotated, "z", if (rotated == "*") home_rot else visiting_rot)
-        } else {
-            position_codes <- c()
-        }
+    position_codes <- c()
+    if (!missing(rotated)) {
+        if (!rotated %in% c("*", "a")) stop("rotated should be '*' or 'a'")
+        position_codes <- paste0(rotated, "z", if (rotated == "*") home_rot else visiting_rot)
     }
     wswin <- winning_symbols$win_lose == "W"
     wsidx <- skill %in% winning_symbols$skill[wswin] & evaluation_code %in% winning_symbols$code[wswin]
@@ -46,9 +34,8 @@ add_auto_codes <- function(code, home_rot, visiting_rot, home_setter, visiting_s
     } else if (sum(team_char %eq% won_by & lsidx) > 0) {
         warning("losing code for wrong team?")
     }
-    c(lineup_codes, position_codes, code[-length(code)], green_codes, tail(code, 1))
+    c(position_codes, code[-length(code)], green_codes, tail(code, 1))
 }
-
 
 create_file_meta <- function(file_type = "indoor", date_format = "%Y/%m/%d") {
     tdnow <- Sys.time()
@@ -66,7 +53,6 @@ create_file_meta <- function(file_type = "indoor", date_format = "%Y/%m/%d") {
            lastchange_idp = "ovscout", lastchange_prg = "ovscout-R", lastchange_rel = packageVersion("ovscout"), lastchange_ver = "", lastchange_nam = "",
            preferred_date_format = tolower(gsub("[%/]", "", date_format)), file_type = file_type)
 }
-
 
 create_meta <- function(match, more, teams, players_h, players_v, video_file, attacks, setter_calls, winning_symbols, zones_or_cones, regulation, comments) {
     meta <- list()
@@ -196,6 +182,7 @@ make_player_id <- function(lastname, firstname) toupper(paste0(substr(lastname, 
 #' x <- dv_create(teams = data.frame(team_id = c("TM1", "TM2"), team = c("Team 1", "Team 2")), comments = "Test file",
 #'                players_h = data.frame(firstname = toupper(letters[1:6]), lastname = "Player", number = 1:6),
 #'                players_v = data.frame(firstname = letters[10:15], lastname = "VisPlayer", number = 10:15))
+#' x <- dv_set_lineups(x, set_number = 1, lineups = list(6:1, 15:10), setter_positions = c(2, 1))
 #'
 #' @export
 dv_create <- function(match, more, teams, players_h, players_v, video_file, attacks = ov_default_attack_table(), setter_calls = ov_default_setter_calls_table(), winning_symbols = ov_default_winning_symbols(), zones_or_cones = "Z", regulation = "indoor rally point", comments) {
@@ -204,7 +191,109 @@ dv_create <- function(match, more, teams, players_h, players_v, video_file, atta
         messages = tibble(file_line_number = integer(), video_time = numeric(), message = character(), file_line = character()),
         file_meta = create_file_meta(file_type = if (grepl("beach", reg)) "beach" else "indoor"),
         meta = create_meta(match = match, more = more, teams = teams, players_h = players_h, players_v = players_v, video_file = video_file, attacks = attacks, setter_calls = setter_calls, winning_symbols = winning_symbols, zones_or_cones = zones_or_cones, regulation = regulation, comments = comments),
-        plays = tibble())
+        plays = tibble(), plays2 = tibble())
+    ## plays is the full plays dataframe, plays2 is just the columns that appear in the dvw file directly
     structure(out, class = c("datavolley", "list"))
+}
+
+#' Enter the team lineups at the start of the set
+#'
+#' @param x datavolley: a datavolley object
+#' @param set_number integer: set number, 1--3 for beach or 1--5 for indoor
+#' @param lineups list: two-element list with numeric vectors of player numbers. Each lineup is
+#' * for indoor, of length 6--8 (first 6 are player jersey numbers in positions 1--6, elements 7 and 8 are optionally the libero jersey numbers)
+#' * for beach, if length 2
+#' @param setter_positions integer: two-element integer vector giving the position on court of the two setters. At least one of `setter_positions` or `setters` must be provided. Ignored for beach
+#' @param setters integer: two-element integer vector giving the jersey numbers of the two setters. At least one of `setter_positions` or `setters` must be provided. Ignored for beach
+#'
+#' @return A modified version of `x`
+#'
+#' @export
+dv_set_lineups <- function(x, set_number, lineups, setter_positions, setters) {
+    assert_that(inherits(x, "datavolley"))
+    assert_that(is.list(lineups), length(lineups) == 2)
+    is_beach <- grepl("beach", x$meta$match$regulation)
+    max_n_sets <- if (is_beach) 3 else 5
+    if (set_number > max_n_sets) stop("set_number ", set_number, " is greater than the maximum expected")
+    if (is_beach) {
+        setter_positions <- setters <- c(NA_integer_, NA_integer_)
+    } else {
+        if (missing(setter_positions)) {
+            if (!missing(setters)) {
+                assert_that(length(setters) == 2)
+                setter_positions <- c(NA_integer_, NA_integer_)
+                if (setters[1] %in% lineups[[1]][1:6]) {
+                    setter_positions[1] <- which(lineups[[1]] == setters[1])
+                } else {
+                    stop("home setter ", setters[1], " is not in lineup")
+                }
+                if (setters[2] %in% lineups[[2]][1:6]) {
+                    setter_positions[2] <- which(lineups[[2]] == setters[2])
+                } else {
+                    stop("visiting setter ", setters[2], " is not in lineup")
+                }
+            } else {
+                stop("specify either setters or setter_positions")
+            }
+        } else if (missing(setters)) {
+            assert_that(length(setter_positions) == 2, all(setter_positions >= 1), all(setter_positions <= 6))
+            setters <- c(lineups[[1]][setter_positions[1]], lineups[[2]][setter_positions[2]])
+        }
+    }
+    ## update the starting positions of all players
+    x <- set_lineup(x, set_number = set_number, team = "*", lineup = lineups[[1]], is_beach = is_beach)
+    x <- set_lineup(x, set_number = set_number, team = "a", lineup = lineups[[2]], is_beach = is_beach)
+    ## insert the start-of-set codes and lineups in the plays data
+    ## e.g. "*P04>LUp"          "*z3>LUp"
+    lineup_codes <- c(sprintf("*P%02d>Lup", setters[1]), paste0("*z", setter_positions[1], ">Lup"), sprintf("aP%02d>Lup", setters[2]), paste0("az", setter_positions[2], ">Lup"))
+    newplays <- make_narrow_plays(lineup_codes, set_number = set_number, home_setter_position = setter_positions[1], visiting_setter_position = setter_positions[2], home_lineup = lineups[[1]], visiting_lineup = lineups[[2]])
+    x$plays2 <- bind_rows(x$plays2, newplays)
+    x
+}
+
+make_narrow_plays <- function(codes, set_number, home_setter_position, visiting_setter_position, home_lineup, visiting_lineup) {
+    out <- tibble(code = as.character(codes), ## col 1
+                       point_phase = NA_character_, ## col 2
+                       attack_phase = NA_character_, ## col 3
+                       X4 = NA, ## col 4
+                       start_coordinate = NA_integer_, mid_coordinate = NA_integer_, end_coordinate = NA_integer_, ## cols 5-7
+                       time = NA_character_, ## col 8
+                       set = set_number, home_rot = home_setter_position, visiting_rot = visiting_setter_position, ## cols 9-11, NB these 3 not used directly in dv_read
+                       video_file_number = NA, video_time = NA_integer_, ## cols 12-13
+                       X14 = NA ## col 14
+                       )
+    assert_that(length(home_lineup) == 6)
+    assert_that(length(visiting_lineup) == 6)
+    out <- bind_cols(out, setNames(as.data.frame(as.list(home_lineup)), paste0("home_p", 1:6))) ## cols 15-20
+    bind_cols(out, setNames(as.data.frame(as.list(visiting_lineup)), paste0("visiting_p", 1:6))) ## cols 21-26
+}
+
+set_lineup <- function(x, set_number, team, lineup, is_beach = FALSE) {
+    ##assert_that(is.string(team))
+    ##if (tolower(team) == "home" || team %eq% datavolley::home_team(x) || team %eq% datavolley::home_team_id(x)) team <- "*"
+    ##if (tolower(team) == "visiting" || team %eq% datavolley::visiting_team(x) || team %eq% datavolley::visiting_team_id(x)) team <- "a"
+    if (!team %in% c("*", "a")) stop("team ", team, " is not recognized")
+    assert_that(is.numeric(lineup))
+    if (is_beach) {
+        assert_that(length(lineup) == 2)
+    } else {
+        assert_that(length(lineup) %in% c(6, 7, 8))
+    }
+    players <- if (team == "*") x$meta$players_h else x$meta$players_v
+    ## update the starting positions of these players
+    sp <- rep(NA_character_, nrow(players))
+    for (i in seq_along(lineup)) sp[which(players$number == lineup[i])] <- as.character(i)
+    for (i in intersect(seq_along(lineup), 7:8)) sp[which(players$number == lineup[i])] <- "*" ## liberos
+    players[[paste0("starting_position_set", set_number)]] <- sp
+    if (team == "*") x$meta$players_h <- players else x$meta$players_v <- players
+    x
+}
+
+
+## update the metadata:
+## - played, partial set scores, score, duration, score_home_team, score_visiting_team in meta$result
+## - sets_won, won_match in meta$teams
+## - starting positions including substitutions in meta$players_h and meta$players_v
+dv_update_meta <- function(x) {
 }
 

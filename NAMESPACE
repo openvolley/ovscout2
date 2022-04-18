@@ -2,6 +2,7 @@
 
 export(dv_create)
 export(dv_example_file)
+export(dv_set_lineups)
 export(ov_default_attack_table)
 export(ov_default_setter_calls_table)
 export(ov_default_winning_symbols)

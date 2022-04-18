@@ -52,5 +52,6 @@ Create a datavolley match object
 x <- dv_create(teams = data.frame(team_id = c("TM1", "TM2"), team = c("Team 1", "Team 2")), comments = "Test file",
                players_h = data.frame(firstname = toupper(letters[1:6]), lastname = "Player", number = 1:6),
                players_v = data.frame(firstname = letters[10:15], lastname = "VisPlayer", number = 10:15))
+x <- dv_set_lineups(x, set_number = 1, lineups = list(6:1, 15:10), setter_positions = c(2, 1))
 
 }
