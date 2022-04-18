@@ -1,10 +1,8 @@
 ## generate the auto-codes necessary to make a complete rally
 ## @param code character: vector of scouted codes, only those relating to skill executions along with the "*p" or "ap" code at the end
 ## @param home_rot, visiting_rot integer: home and visiting setter positions (1 to 6)
-## @param home_setter, visiting_setter integer: jersey number of home and visiting setter
-## @param rotated string: "a" or "*" if that team just sided out and rotated (requires the corresponding team's rot and setter values)
 ## @param winning_symbols data.frame: as returned by datavolley::winning_symbols_df
-make_auto_codes <- function(code, home_rot, visiting_rot, home_setter, visiting_setter, rotated, winning_symbols) {
+make_auto_codes <- function(code, home_rot, visiting_rot, winning_symbols) {
     if (!grepl("^[a\\*]p[[:digit:]]+:[[:digit:]]+", tail(code, 1))) stop("the final element of the code vector should be the '*p' or 'ap' code")
     won_by <- substr(tail(code, 1), 1, 1)
     if (!won_by %in% c("*", "a")) stop("won_by must be '*' or 'a'")
@@ -14,11 +12,6 @@ make_auto_codes <- function(code, home_rot, visiting_rot, home_setter, visiting_
     skill[!skill %in% c("S", "R", "A", "B", "D", "E", "F")] <- NA_character_
     evaluation_code <- substr(code, 6, 6)
     evaluation_code[!evaluation_code %in% c("#", "+", "!", "-", "/", "=")] <- NA_character_
-    position_codes <- c()
-    if (!missing(rotated)) {
-        if (!rotated %in% c("*", "a")) stop("rotated should be '*' or 'a'")
-        position_codes <- paste0(rotated, "z", if (rotated == "*") home_rot else visiting_rot)
-    }
     wswin <- winning_symbols$win_lose == "W"
     wsidx <- skill %in% winning_symbols$skill[wswin] & evaluation_code %in% winning_symbols$code[wswin]
     lsidx <- skill %in% winning_symbols$skill[!wswin] & evaluation_code %in% winning_symbols$code[!wswin]
@@ -34,7 +27,7 @@ make_auto_codes <- function(code, home_rot, visiting_rot, home_setter, visiting_
     } else if (sum(team_char %eq% won_by & lsidx) > 0) {
         warning("losing code for wrong team?")
     }
-    c(position_codes, code[-length(code)], green_codes, tail(code, 1))
+    c(code[-length(code)], green_codes, tail(code, 1))
 }
 
 create_file_meta <- function(file_type = "indoor", date_format = "%Y/%m/%d") {
@@ -251,17 +244,19 @@ dv_set_lineups <- function(x, set_number, lineups, setter_positions, setters) {
     x
 }
 
-make_narrow_plays <- function(codes, set_number, home_setter_position, visiting_setter_position, home_lineup, visiting_lineup) {
+make_narrow_plays <- function(codes, set_number, home_setter_position, visiting_setter_position, home_lineup, visiting_lineup, scores = c(0L, 0L), serving = NA_character_) {
     out <- tibble(code = as.character(codes), ## col 1
-                       point_phase = NA_character_, ## col 2
-                       attack_phase = NA_character_, ## col 3
-                       X4 = NA, ## col 4
-                       start_coordinate = NA_integer_, mid_coordinate = NA_integer_, end_coordinate = NA_integer_, ## cols 5-7
-                       time = NA_character_, ## col 8
-                       set = set_number, home_rot = home_setter_position, visiting_rot = visiting_setter_position, ## cols 9-11, NB these 3 not used directly in dv_read
-                       video_file_number = NA, video_time = NA_integer_, ## cols 12-13
-                       X14 = NA ## col 14
-                       )
+                  point_phase = NA_character_, ## col 2
+                  attack_phase = NA_character_, ## col 3
+                  X4 = NA, ## col 4
+                  start_coordinate = NA_integer_, mid_coordinate = NA_integer_, end_coordinate = NA_integer_, ## cols 5-7
+                  time = NA_character_, ## col 8
+                  set = set_number, home_rot = home_setter_position, visiting_rot = visiting_setter_position, ## cols 9-11, NB these 3 not used directly in dv_read
+                  video_file_number = NA, video_time = NA_integer_, ## cols 12-13
+                  X14 = NA, ## col 14
+                  home_score_start_of_point = scores[1],
+                  visiting_score_start_of_point = scores[2],
+                  serving = serving)
     assert_that(length(home_lineup) == 6)
     assert_that(length(visiting_lineup) == 6)
     out <- bind_cols(out, setNames(as.data.frame(as.list(home_lineup)), paste0("home_p", 1:6))) ## cols 15-20
@@ -289,6 +284,95 @@ set_lineup <- function(x, set_number, team, lineup, is_beach = FALSE) {
     x
 }
 
+#' Enter scout codes from the console
+#'
+#' Probably only useful for testing
+#'
+#' @param x datavolley: a datavolley object as returned by [dv_create()]
+#'
+#' @return A modified version of x, with rows added to the plays2 component
+#'
+#' @export
+dv_scout_from_console <- function(x, prompt = "SCOUT> ") {
+    plays2 <- x$plays2
+    if (nrow(plays2) < 1) stop("no plays2 data, do you need to run dv_set_lineup?")
+    is_beach <- grepl("beach", x$meta$match$regulation)
+    ppt <- if (is_beach) 2L else 6L
+    pseq <- seq_len(ppt)
+    message("enter 'p' to assign the point to the home team, 'ap' to the visiting team, 'zzz' to exit")
+    game_state <- tail(plays2, 1)
+    game_state$serving <- NA ## adjust this if starting partway through set TODO
+    while (TRUE) {
+        rally_going <- TRUE
+        rally_codes <- c()
+        while (rally_going) {
+            code <- readline(prompt)
+            if (code == "zzz") break
+            if (code %in% c("p", "ap")) {
+                point_won_by <- if (code == "p") "*" else "a"
+                rally_codes <- unlist(lapply(rally_codes, ov_code_interpret, attack_table = x$meta$attacks)) ## compound_table, default_scouting_table)
+                scores_end_of_point <- as.numeric(game_state[, c("home_score_start_of_point", "visiting_score_start_of_point")]) + as.integer(c(point_won_by == "*", point_won_by == "a"))
+                pcode <- paste0(point_won_by, "p", sprintf("%02d:%02d", scores_end_of_point[1], scores_end_of_point[2]))
+                this <- add_rally(plays2, rally_codes = c(rally_codes, pcode), game_state = game_state, point_won_by = point_won_by, meta = x$meta)
+                plays2 <- this$plays2
+                game_state <- this$game_state
+                rally_going <- FALSE
+            } else {
+                rally_codes <- c(rally_codes, code)
+            }
+        }
+        if (code == "zzz") break
+    }
+    x$plays2 <- plays2
+    x
+}
+
+rotpos <- function(p, n = 6L) (p - 2) %% n + 1
+rotvec <- function(z) c(z[-1], z[1])
+
+add_rally <- function(plays2, rally_codes, game_state, point_won_by, meta) {
+    is_beach <- grepl("beach", meta$match$regulation)
+    ppt <- if (is_beach) 2L else 6L
+    pseq <- seq_len(ppt)
+    temp <- na.omit(stringr::str_match(rally_codes, "([a\\*])[:digit:][:digit:]S")[, 2])
+    if (length(temp) == 1) {
+        this_serving <- temp
+        if (!is.na(game_state$serving) && this_serving != game_state$serving) {
+            message("team ", this_serving, " has been scouted as serving, but I think team ", game_state$serving, " is serving")
+        }
+    } else {
+        ## no serve in this rally
+        if (!is.na(game_state$serving)) {
+            this_serving <- game_state$serving
+        } else {
+            stop("don't know who is serving") ## could happen on first point of set and rotation error scouted without serve, to deal with
+        }
+    }
+    ## add green codes if needed
+    rally_codes <- make_auto_codes(rally_codes, home_rot = game_state$home_rot, visiting_rot = game_state$visiting_rot, winning_symbols = meta$winning_symbols)
+    plays2 <- bind_rows(plays2, make_narrow_plays(rally_codes, set_number = game_state$set, home_setter_position = game_state$home_rot, visiting_setter_position = game_state$visiting_rot, home_lineup = as.numeric(game_state[, paste0("home_p", pseq)]), visiting_lineup = as.numeric(game_state[, paste0("visiting_p", pseq)]), scores = as.numeric(game_state[, c("home_score_start_of_point", "visiting_score_start_of_point")]), serving = this_serving))
+    ## update game_state
+    do_rot <- point_won_by != this_serving
+    game_state$serving <- point_won_by
+    if (point_won_by == "*") {
+        game_state$home_score_start_of_point <- game_state$home_score_start_of_point + 1L
+    } else {
+        game_state$visiting_score_start_of_point <- game_state$visiting_score_start_of_point + 1L
+    }
+    if (do_rot) {
+        if (point_won_by == "*") {
+            game_state$home_rot <- rotpos(game_state$home_rot, n = ppt)
+            game_state[, paste0("home_p", pseq)] <- as.list(rotvec(as.numeric(game_state[, paste0("home_p", pseq)])))
+            poscode <- paste0("*z", game_state$home_rot)
+        } else {
+            game_state$visiting_rot <- rotpos(game_state$visiting_rot)
+            game_state[, paste0("visiting_p", pseq)] <- as.list(rotvec(as.numeric(game_state[, paste0("visiting_p", pseq)])))
+            poscode <- paste0("az", game_state$visiting_rot)
+        }
+        plays2 <- bind_rows(plays2, make_narrow_plays(poscode, set_number = game_state$set, home_setter_position = game_state$home_rot, visiting_setter_position = game_state$visiting_rot, home_lineup = as.numeric(game_state[, paste0("home_p", pseq)]), visiting_lineup = as.numeric(game_state[, paste0("visiting_p", pseq)]), scores = as.numeric(game_state[, c("home_score_start_of_point", "visiting_score_start_of_point")]), serving = game_state$serving))
+    }
+    list(plays2 = plays2, game_state = game_state)
+}
 
 ## update the metadata:
 ## - played, partial set scores, score, duration, score_home_team, score_visiting_team in meta$result
