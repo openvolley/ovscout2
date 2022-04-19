@@ -92,11 +92,13 @@ dv_set_lineups <- function(x, set_number, lineups, setter_positions, setters) {
 #' Probably only useful for testing.
 #'
 #' @param x datavolley: a datavolley object as returned by [dv_create()]
+#' @param compound_table tibble: the table of default compound codes
+#' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
 #'
 #' @return A modified version of `x`, with rows added to the plays2 component
 #'
 #' @export
-dv_scout_from_console <- function(x, prompt = "SCOUT> ") {
+dv_scout_from_console <- function(x, prompt = "SCOUT> ", compound_table = ov_default_compound_table(), default_scouting_table = ov_default_scouting_table()) {
     if (is.null(x$plays2) || nrow(x$plays2) < 1) {
         if (!is.null(x$plays) && nrow(x$plays) > 0) x$plays2 <- plays_to_plays2(x$plays)
         ## note that this might get the last element of the serving column wrong, to fix
@@ -150,7 +152,7 @@ dv_scout_from_console <- function(x, prompt = "SCOUT> ") {
                 set_ended <- code %in% c("pzz", "apzz")
                 code <- sub("zz", "", code)
                 point_won_by <- if (code == "p") "*" else "a"
-                rally_codes <- unlist(lapply(rally_codes, ov_code_interpret, attack_table = x$meta$attacks)) ## compound_table, default_scouting_table)
+                rally_codes <- unlist(lapply(rally_codes, ov_code_interpret, attack_table = x$meta$attacks, compound_table = compound_table, default_scouting_table = default_scouting_table))
                 x <- add_rally(x, codes = rally_codes, point_won_by = point_won_by)
                 rally_going <- FALSE
                 if (is_end_of_set(x)) {

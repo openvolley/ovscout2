@@ -1,34 +1,7 @@
 ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_table) {
-    if (missing(default_scouting_table) || is.null(default_scouting_table)) {
-        default_scouting_table <- dplyr::tribble(~skill, ~default_skill, ~tempo, ~evaluation_code,
-                                                 "S", FALSE, "H", "+",
-                                                 "R", FALSE, "H", "+",
-                                                 "A", FALSE, "H", "+",
-                                                 "B", FALSE, "H", "+",
-                                                 "D", TRUE, "H", "+",
-                                                 "E", FALSE, "H", "+",
-                                                 "F", FALSE, "H", "+")
-    }
-    if (missing(compound_table) || is.null(compound_table)) {
-        compound_table <- dplyr::tribble(~skill, ~compound_skill, ~code, ~compound_code,~default_compound_skills,
-                                         "S", "R", "/", "/", TRUE,
-                                         "S", "R", "-", "#", TRUE,
-                                         "S", "R", "-", "+", TRUE,
-                                         "S", "R", "!", "!", TRUE,
-                                         "S", "R", "+", "-", TRUE,
-                                         "S", "R", "#", "=", TRUE,
-                                         "A", "B", "/", "#", TRUE,
-                                         "A", "B", "-", "+", TRUE,
-                                         "A", "B", "!", "!", TRUE,
-                                         "A", "B", "+", "-", TRUE,
-                                         "A", "B", "#", "=", TRUE,
-                                         "A", "D", "-", "#", FALSE,
-                                         "A", "D", "+", "-", FALSE,
-                                         "A", "D", "#", "=", FALSE)
-    }
-    if (missing(attack_table) || is.null(attack_table)) {
-        attack_table <- ov_default_attack_table()
-    }
+    if (missing(default_scouting_table) || is.null(default_scouting_table)) default_scouting_table <- ov_default_scouting_table()
+    if (missing(compound_table) || is.null(compound_table)) compound_table <- ov_default_compound_table()
+    if (missing(attack_table) || is.null(attack_table)) attack_table <- ov_default_attack_table()
 
     syntax_table <- dplyr::tribble(~code_type, ~name, ~stx_id,  ~range, ~value_list,
                                    "Main code", "team", "mc_te", 1, c("\\*", "a"),                                   # 1

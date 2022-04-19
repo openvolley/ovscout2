@@ -100,4 +100,42 @@ ov_default_winning_symbols <- function() {
             "F", "L", "=")
 }
 
+#' Default compound skills table
+#'
+#' @return A tibble
+#'
+#' @export
+ov_default_compound_table <- function() {
+    dplyr::tribble(~skill, ~compound_skill, ~code, ~compound_code,~default_compound_skills,
+                   "S", "R", "/", "/", TRUE,
+                   "S", "R", "-", "#", TRUE,
+                   "S", "R", "-", "+", TRUE,
+                   "S", "R", "!", "!", TRUE,
+                   "S", "R", "+", "-", TRUE,
+                   "S", "R", "#", "=", TRUE,
+                   "A", "B", "/", "#", TRUE,
+                   "A", "B", "-", "+", TRUE,
+                   "A", "B", "!", "!", TRUE,
+                   "A", "B", "+", "-", TRUE,
+                   "A", "B", "#", "=", TRUE,
+                   "A", "D", "-", "#", FALSE,
+                   "A", "D", "+", "-", FALSE,
+                   "A", "D", "#", "=", FALSE)
+}
 
+
+#' Default scouting (type and evaluation for each skill) table
+#'
+#' @return A tibble
+#'
+#' @export
+ov_default_scouting_table <- function() {
+    dplyr::tribble(~skill, ~default_skill, ~tempo, ~evaluation_code,
+                   "S", FALSE, "H", "+",
+                   "R", FALSE, "H", "+",
+                   "A", FALSE, "H", "+",
+                   "B", FALSE, "H", "+",
+                   "D", TRUE, "H", "+",
+                   "E", FALSE, "H", "+",
+                   "F", FALSE, "H", "+")
+}

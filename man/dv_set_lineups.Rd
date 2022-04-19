@@ -2,7 +2,7 @@
 % Please edit documentation in R/scouting_utils.R
 \name{dv_set_lineups}
 \alias{dv_set_lineups}
-\title{Enter the team lineups at the start of the set}
+\title{Enter the team lineups at the start of a set}
 \usage{
 dv_set_lineups(x, set_number, lineups, setter_positions, setters)
 }
@@ -13,17 +13,17 @@ dv_set_lineups(x, set_number, lineups, setter_positions, setters)
 
 \item{lineups}{list: two-element list with numeric vectors of player numbers. Each lineup is
 \itemize{
-\item for indoor, of length 6--8 (first 6 are player jersey numbers in positions 1--6, elements 7 and 8 are optionally the libero jersey numbers)
-\item for beach, if length 2
+\item for indoor, of length 6, 7, or 8 (first 6 are player jersey numbers in positions 1--6, elements 7 and 8 are optionally the libero jersey numbers)
+\item for beach, of length 2
 }}
 
-\item{setter_positions}{integer: two-element integer vector giving the position on court of the two setters. At least one of \code{setter_positions} or \code{setters} must be provided. Ignored for beach}
+\item{setter_positions}{integer: two-element integer vector giving the position on court of the two setters. At least one of \code{setter_positions} or \code{setters} must be provided for indoor. Ignored for beach}
 
-\item{setters}{integer: two-element integer vector giving the jersey numbers of the two setters. At least one of \code{setter_positions} or \code{setters} must be provided. Ignored for beach}
+\item{setters}{integer: two-element integer vector giving the jersey numbers of the two setters. At least one of \code{setter_positions} or \code{setters} must be provided for indoor. Ignored for beach}
 }
 \value{
 A modified version of \code{x}
 }
 \description{
-Enter the team lineups at the start of the set
+Enter the team lineups at the start of a set
 }

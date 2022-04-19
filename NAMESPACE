@@ -2,8 +2,11 @@
 
 export(dv_create)
 export(dv_example_file)
+export(dv_scout_from_console)
 export(dv_set_lineups)
 export(ov_default_attack_table)
+export(ov_default_compound_table)
+export(ov_default_scouting_table)
 export(ov_default_setter_calls_table)
 export(ov_default_winning_symbols)
 export(ov_shiny_video_sync)
