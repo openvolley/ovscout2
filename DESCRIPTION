@@ -15,6 +15,7 @@ Depends: datavolley (> 0.12.999)
 Imports:
     assertthat,
     base64enc,
+    data.table,
     dplyr,
     digest,
     DT,
