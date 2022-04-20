@@ -14,6 +14,8 @@ dv_scout_from_console(
 \arguments{
 \item{x}{datavolley: a datavolley object as returned by \code{\link[=dv_create]{dv_create()}}}
 
+\item{prompt}{string: the prompt to show}
+
 \item{compound_table}{tibble: the table of default compound codes}
 
 \item{default_scouting_table}{tibble: the table of scouting defaults (skill type and evaluation)}

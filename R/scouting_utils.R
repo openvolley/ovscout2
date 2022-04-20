@@ -15,9 +15,12 @@
 #' @return A datavolley object
 #'
 #' @examples
-#' x <- dv_create(teams = data.frame(team_id = c("TM1", "TM2"), team = c("Team 1", "Team 2")), comments = "Test file",
-#'                players_h = data.frame(firstname = toupper(letters[1:7]), lastname = "Player", number = 1:7),
-#'                players_v = data.frame(firstname = letters[10:15], lastname = "VisPlayer", number = 10:15))
+#' x <- dv_create(teams = data.frame(team_id = c("TM1", "TM2"), team = c("Team 1", "Team 2")),
+#'                comments = "Test file",
+#'                players_h = data.frame(firstname = toupper(letters[1:7]), lastname = "Player",
+#'                                       number = 1:7),
+#'                players_v = data.frame(firstname = letters[10:15], lastname = "VisPlayer",
+#'                                       number = 10:15))
 #'
 #' ## enter the team lineups for set 1
 #' x <- dv_set_lineups(x, set_number = 1, lineups = list(6:1, 15:10), setter_positions = c(2, 1))
@@ -92,6 +95,7 @@ dv_set_lineups <- function(x, set_number, lineups, setter_positions, setters) {
 #' Probably only useful for testing.
 #'
 #' @param x datavolley: a datavolley object as returned by [dv_create()]
+#' @param prompt string: the prompt to show
 #' @param compound_table tibble: the table of default compound codes
 #' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
 #'
