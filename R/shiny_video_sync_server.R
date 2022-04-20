@@ -210,6 +210,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                    tags$li("[e or E] edit current code"),
                                                    tags$li("[del] delete current code"),
                                                    tags$li("[ins] insert new code above current"),
+                                                   tags$li("[Shift-ins] insert new code below current"),
                                                    tags$li("[F1] home team rotate +1"),
                                                    tags$li("[F2] insert setting codes before every attack"),
                                                    tags$li("[F4] delete all setting codes (except errors)"),
@@ -574,8 +575,9 @@ ov_shiny_video_sync_server <- function(app_data) {
                             ## open code editing dialog
                             edit_current_code()
                         } else if (mycmd %eq% "45") {
-                            ## insert new row below current
-                            insert_data_row()
+                            ## handled via input$controlkey
+##                            ## insert new row below current
+##                            insert_data_row()
                         } else if(mycmd %eq% "83") {
                             insert_sub()
                         } else if (mycmd %eq% "8") {
@@ -644,8 +646,9 @@ ov_shiny_video_sync_server <- function(app_data) {
                                 removeModal()
                             }
                         } else if (ky %eq% "45" && is.null(editing$active)) {
-                            ## insert new row below current
-                            insert_data_row()
+                            ## insert new row above/below current
+                            where <- if (mycmd[3] == "true") "below" else "above" ## shift-insert is below, otherwise insert above
+                            insert_data_row(where)
                         } else if (ky %eq% "46" && is.null(editing$active)) {
                             ## delete current row
                             delete_data_row()
@@ -871,7 +874,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             } else {
                 ridx <- playslist_current_row()
                 if (!is.null(ridx)) {
-                    if (editing$active %in% c("edit", "insert")) {
+                    if (editing$active %in% c("edit", "insert above", "insert below")) {
                         current_code <- rdata$dvw$plays$code[ridx]
                         ## user has changed EITHER input$code_entry or used the code_entry_guide
                         ## infer code from code_entry_guide elements
@@ -910,8 +913,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                             ## can't handle that yet, is it even sensible to support?
                             warning("compound codes can't be used when editing an existing code")
                         }
-                    } else if (editing$active %eq% "insert" && !is.null(newcode)) {
-                        ## insert new line
+                    } else if (editing$active %eq% "insert above" && !is.null(newcode)) {
+                        ## insert new line above current
                         if (is.logical(ridx)) ridx <- which(ridx)
                         newline <- rdata$dvw$plays[rep(ridx, length(newcode)), ]
                         newline$code <- newcode
@@ -919,6 +922,12 @@ ov_shiny_video_sync_server <- function(app_data) {
                         ## set the newly-inserted line as the active row
                         ##nsr <- find_next_skill_row()
                         ##if (length(nsr) > 0) playslist_select_row(nsr)
+                    } else if (editing$active %eq% "insert below" && !is.null(newcode)) {
+                        ## insert new line below current
+                        if (is.logical(ridx)) ridx <- which(ridx)
+                        newline <- rdata$dvw$plays[rep(ridx, length(newcode)), ]
+                        newline$code <- newcode
+                        rdata$dvw$plays <- bind_rows(rdata$dvw$plays[seq(1, ridx, by = 1), ], newline, rdata$dvw$plays[seq(ridx + 1L, nrow(rdata$dvw$plays), by = 1), ])
                     } else if (editing$active %eq% "delete") {
                         if (is.logical(ridx)) ridx <- which(ridx)
                         rdata$dvw$plays <- rdata$dvw$plays[-ridx, ]
@@ -951,12 +960,16 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
             editing$active <- NULL
         }
-        insert_data_row <- function() {
+        insert_data_row <- function(where) {
+            if (missing(where)) where <- "above"
+            where <- tolower(where)
+            if (!where %in% c("above", "below")) where <- "above" ## default
             ridx <- playslist_current_row()
             if (!is.null(ridx)) {
-                if (ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
-                editing$active <- "insert"
-                showModal(modalDialog(title = "Insert new code", size = "l", footer = tags$div(actionButton("edit_commit", label = "Insert code (or press Enter)"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
+                if (where == "above" && ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
+                ## otherwise (if inserting below) use the current row (ridx) as the template
+                editing$active <- paste0("insert ", where)
+                showModal(modalDialog(title = paste0("Insert new code ", where, " current row"), size = "l", footer = tags$div(actionButton("edit_commit", label = "Insert code (or press Enter)"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
                                       "Enter new code either in the top text box or in the individual boxes (but not both)",
                                       textInput("code_entry", label = "Code:", value = ""),
                                       "or",
