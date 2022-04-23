@@ -2,9 +2,12 @@
 % Please edit documentation in R/defaults.R
 \name{ov_default_attack_table}
 \alias{ov_default_attack_table}
+\alias{ov_simplified_attack_table}
 \title{Default attack combination code table}
 \usage{
 ov_default_attack_table()
+
+ov_simplified_attack_table()
 }
 \value{
 A tibble

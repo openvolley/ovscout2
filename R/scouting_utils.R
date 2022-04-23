@@ -5,7 +5,7 @@
 #' @param teams data.frame: a 2-row data frame, with required columns `team_id`, `team` and optional columns `coach`, `assistant`, `shirt_colour`
 #' @param players_h,players_v data.frame: with required columns `number`, `firstname`, `lastname`, and optional columns `player_id`, `role` (character vector with "outside", "opposite", "middle", "libero", "setter"), `nickname`, `special_role` (character vector with "L", "C", or NA), `foreign` (logical, defaults to `FALSE`)
 #' @param video_file string: (optional) path to video file
-#' @param attacks data.frame: as returned by [ov_default_attack_table()]
+#' @param attacks data.frame: as returned by [ov_simplified_attack_table()] or [ov_default_attack_table()]
 #' @param setter_calls data.frame: as returned by [ov_default_setter_calls_table()]
 #' @param winning_symbols data.frame: as returned by [ov_default_winning_symbols()]
 #' @param zones_or_cones string: "Z" or "C". Will be ignored if `zones_or_cones` is provided in the `match` parameter
@@ -26,7 +26,7 @@
 #' x <- dv_set_lineups(x, set_number = 1, lineups = list(6:1, 15:10), setter_positions = c(2, 1))
 #'
 #' @export
-dv_create <- function(match, more, teams, players_h, players_v, video_file, attacks = ov_default_attack_table(), setter_calls = ov_default_setter_calls_table(), winning_symbols = ov_default_winning_symbols(), zones_or_cones = "Z", regulation = "indoor rally point", comments) {
+dv_create <- function(match, more, teams, players_h, players_v, video_file, attacks = ov_simplified_attack_table(), setter_calls = ov_default_setter_calls_table(), winning_symbols = ov_default_winning_symbols(), zones_or_cones = "Z", regulation = "indoor rally point", comments) {
     reg <- if (!missing(match) && "regulation" %in% names(match)) match$regulation else regulation
     out <- list(##raw,
         messages = tibble(file_line_number = integer(), video_time = numeric(), message = character(), file_line = character()),
@@ -216,7 +216,7 @@ change_setter <- function(x, team, new_setter) {
         message("new setter ", new_setter, " is not on court, ignoring new setter code")
     } else {
         setter_pos <- which(this_lup == new_setter)
-        if (team == "*") x$game_state$home_rot <- setter_pos else x$game_state$visiting_rot <- setter_pos
+        if (team == "*") x$game_state$home_setter_position <- setter_pos else x$game_state$visiting_setter_position <- setter_pos
         message(if (team == "*") "home" else "visiting", " team player ", new_setter, " is now the setter on court")
         x <- add_non_rally(x, codes = paste0(team, "P", new_setter))
     }
@@ -229,8 +229,7 @@ add_non_rally <- function(x, codes) {
 
 add_rally <- function(x, codes, point_won_by) {
     is_beach <- dv_is_beach(x)
-    ppt <- if (is_beach) 2L else 6L
-    pseq <- seq_len(ppt)
+    pseq <- seq_len(if (is_beach) 2L else 6L)
     temp <- na.omit(stringr::str_match(codes, "^([a\\*]?)[[:digit:]]+S")[, 2])
     if (length(temp) == 1) {
         if (nzchar(temp)) temp <- "*" ## was NNS, missing the leading *
@@ -262,13 +261,13 @@ add_rally <- function(x, codes, point_won_by) {
     }
     if (do_rot) {
         if (point_won_by == "*") {
-            x$game_state$home_rot <- rotpos(x$game_state$home_rot, n = ppt)
+            x$game_state$home_setter_position <- rotpos(x$game_state$home_setter_position, n = length(pseq))
             x$game_state[, paste0("home_p", pseq)] <- as.list(rotvec(as.numeric(x$game_state[, paste0("home_p", pseq)])))
-            poscode <- paste0("*z", x$game_state$home_rot)
+            poscode <- paste0("*z", x$game_state$home_setter_position)
         } else {
-            x$game_state$visiting_rot <- rotpos(x$game_state$visiting_rot)
+            x$game_state$visiting_setter_position <- rotpos(x$game_state$visiting_setter_position, n = length(pseq))
             x$game_state[, paste0("visiting_p", pseq)] <- as.list(rotvec(as.numeric(x$game_state[, paste0("visiting_p", pseq)])))
-            poscode <- paste0("az", x$game_state$visiting_rot)
+            poscode <- paste0("az", x$game_state$visiting_setter_position)
         }
         x <- add_to_plays2(x, codes = poscode)
     }
@@ -404,10 +403,24 @@ dv_write2 <- function(x, file, text_encoding = "UTF-8") {
     ##xp$attack_phase <- this
 
     ## setter position uses 0 or 5 when unknown
-    x$plays2$home_rot[is.na(x$plays2$home_rot)] <- 5
-    x$plays2$visiting_rot[is.na(x$plays2$visiting_rot)] <- 5
+    x$plays2$home_setter_position[is.na(x$plays2$home_setter_position)] <- 5
+    x$plays2$visiting_setter_position[is.na(x$plays2$visiting_setter_position)] <- 5
 
-    x$plays2 <- x$plays2[, setdiff(names(x$plays2), c("home_score_start_of_point", "visiting_score_start_of_point", "serving"))]
+    ##x$plays2 <- x$plays2[, setdiff(names(x$plays2), c("home_score_start_of_point", "visiting_score_start_of_point", "serving"))]
+    x$plays2$na_col <- NA
+    ## make sure we have the right columns, including the all-NA ones
+    nms <- c("code", "point_phase", "attack_phase", "na_col", ## cols 1-4
+             "start_coordinate", "mid_coordinate", "end_coordinate", ## cols 5-7
+             "time", ## col 8, HH.MM.SS format
+             "set", ## col 9
+             "home_setter_position", "visiting_setter_position", # 10-11
+             "video_file_number", "video_time", ## 12-13
+             "na_col", ## 14 need to check this one
+             if ("home_p3" %in% names(x$plays2)) paste0("home_p", 1:6) else c(paste0("home_p", 1:2), rep("na_col", 4)), ## 15-20, home team, court positons 1-6, entries are player numbers
+             if ("visiting_p3" %in% names(x$plays2)) paste0("visiting_p", 1:6) else c(paste0("visiting_p", 1:2), rep("na_col", 4)), ## 21-26, same for visiting team
+             "na_col" ## always a trailing ;
+             )
+    x$plays2 <- x$plays2[, nms]
     out <- df2txt(x$plays2)
     outf <- file(file, "ab")
     writeLines(out, outf, sep = "\n")
@@ -581,8 +594,8 @@ make_player_id <- function(lastname, firstname) toupper(paste0(substr(lastname, 
 add_to_plays2 <- function(x, codes, video_time, set_number, home_setter_position, visiting_setter_position, home_lineup, visiting_lineup, scores = c(0L, 0L), serving = NA_character_) {
     pseq <- seq_len(if (dv_is_beach(x)) 2L else 6L)
     if (missing(set_number)) set_number <- x$game_state$set
-    if (missing(home_setter_position)) home_setter_position <- x$game_state$home_rot
-    if (missing(visiting_setter_position)) visiting_setter_position <- x$game_state$visiting_rot
+    if (missing(home_setter_position)) home_setter_position <- x$game_state$home_setter_position
+    if (missing(visiting_setter_position)) visiting_setter_position <- x$game_state$visiting_setter_position
     if (missing(home_lineup)) home_lineup <- as.numeric(x$game_state[, paste0("home_p", pseq)])
     if (missing(visiting_lineup)) visiting_lineup <- as.numeric(x$game_state[, paste0("visiting_p", pseq)])
     if (missing(scores)) scores <- as.numeric(x$game_state[, c("home_score_start_of_point", "visiting_score_start_of_point")])
@@ -592,12 +605,12 @@ add_to_plays2 <- function(x, codes, video_time, set_number, home_setter_position
     out <- tibble(code = as.character(codes), ## col 1
                   point_phase = NA_character_, ## col 2
                   attack_phase = NA_character_, ## col 3
-                  X4 = NA, ## col 4
+##                  X4 = NA, ## col 4
                   start_coordinate = NA_integer_, mid_coordinate = NA_integer_, end_coordinate = NA_integer_, ## cols 5-7
                   time = time_but_utc(), ## col 8
-                  set = set_number, home_rot = home_setter_position, visiting_rot = visiting_setter_position, ## cols 9-11, NB these 3 not used directly in dv_read
+                  set = set_number, home_setter_position = home_setter_position, visiting_setter_position = visiting_setter_position, ## cols 9-11, NB these 3 not used directly in dv_read
                   video_file_number = NA, video_time = vt, ## cols 12-13
-                  X14 = NA, ## col 14
+  ##                X14 = NA, ## col 14
                   home_score_start_of_point = scores[1],
                   visiting_score_start_of_point = scores[2],
                   serving = serving)
@@ -673,6 +686,16 @@ time_but_utc <- function() {
 }
 
 plays_to_plays2 <- function(p) {
-    p2 <- mutate(p, serving = case_when(.data$serving_team == .data$home_team ~ "*", .data$serving_team == .data$visiting_team ~ "a"), X4 = NA, X14 = NA)
-    as_tibble(dplyr::select(p2, "code", "point_phase", "attack_phase", "X4", "start_coordinate", "mid_coordinate", "end_coordinate", "time", set = "set_number", home_rot = "home_setter_position", visiting_rot = "visiting_setter_position", "video_file_number", "video_time", "X14", "home_score_start_of_point", "visiting_score_start_of_point", "serving", "home_p1", "home_p2", "home_p3", "home_p4", "home_p5", "home_p6", "visiting_p1", "visiting_p2", "visiting_p3", "visiting_p4", "visiting_p5", "visiting_p6"))
+    p2 <- mutate(p, serving = case_when(.data$serving_team == .data$home_team ~ "*", .data$serving_team == .data$visiting_team ~ "a"))##, X4 = NA, X14 = NA)
+    as_tibble(dplyr::select(p2, "code", "point_phase", "attack_phase", ##"X4",
+                            "start_coordinate", "mid_coordinate", "end_coordinate", "time", set = "set_number", "home_setter_position", "visiting_setter_position", "video_file_number", "video_time", ##"X14",
+                            "home_score_start_of_point", "visiting_score_start_of_point", "serving", "home_p1", "home_p2", "home_p3", "home_p4", "home_p5", "home_p6", "visiting_p1", "visiting_p2", "visiting_p3", "visiting_p4", "visiting_p5", "visiting_p6"))
+}
+
+## parse just the skill rows, giving the team, player number, skill and type, and evaluation code
+minimal_parse_code <- function(codes) {
+    code_split <- stringr::str_match_all(codes, "^([a\\*])([[:digit:]][[:digit:]])([SRABDEF])([HMQTUNO])([#\\+!/=\\-])")
+    na_row <- as.list(rep(NA, 5))
+    parsed <- setNames(as.data.frame(cbind(codes, do.call(rbind, lapply(code_split, function(this) if (nrow(this) < 1) na_row else as.list(this[1, -1]))))), c("code", "team_code", "player_number", "skill_code", "skill_type_code", "evaluation_code"))
+    parsed
 }

@@ -11,7 +11,7 @@ dv_create(
   players_h,
   players_v,
   video_file,
-  attacks = ov_default_attack_table(),
+  attacks = ov_simplified_attack_table(),
   setter_calls = ov_default_setter_calls_table(),
   winning_symbols = ov_default_winning_symbols(),
   zones_or_cones = "Z",
@@ -30,7 +30,7 @@ dv_create(
 
 \item{video_file}{string: (optional) path to video file}
 
-\item{attacks}{data.frame: as returned by \code{\link[=ov_default_attack_table]{ov_default_attack_table()}}}
+\item{attacks}{data.frame: as returned by \code{\link[=ov_simplified_attack_table]{ov_simplified_attack_table()}} or \code{\link[=ov_default_attack_table]{ov_default_attack_table()}}}
 
 \item{setter_calls}{data.frame: as returned by \code{\link[=ov_default_setter_calls_table]{ov_default_setter_calls_table()}}}
 
