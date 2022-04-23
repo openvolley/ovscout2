@@ -29,3 +29,39 @@ names_first_to_capital <- function(x, fun) {
 var2fc <- function(x) {
     vapply(x, function(z) gsub("_", " ", paste0(toupper(substr(z, 1, 1)), substr(z, 2, nchar(z)))), FUN.VALUE = "", USE.NAMES = FALSE)
 }
+
+#' Variable width modal dialog
+#'
+#' @param width numeric: percentage of viewport width
+#' @param ... : as for [shiny::modalDialog()]
+#'
+#' @return As for [shiny::modalDialog()]
+#'
+#' @examples
+#' \dontrun{
+#'   showModal(vwModalDialog(title = "Wide dialog", "blah", width = 90))
+#' }
+#'
+#' @export
+vwModalDialog <- function(..., width = 90) {
+    rgs <- list(...)
+    rgs$size <- "l"
+    md <- do.call(shiny::modalDialog, rgs)
+    ## recursive function to inject style
+    rcc <- function(z) {
+        if (is.list(z) && "class" %in% names(z)) {
+            idx <- which(names(z) %eq% "class")
+            if (any(z[idx] %eq% "modal-lg")) z <- c(list(style = paste0("width: ", width, "vw;")), z)
+        }
+        ## call recursively on list children
+        list_child_idx <- vapply(z, is.list, FUN.VALUE = TRUE)
+        if (any(list_child_idx)) z[list_child_idx] <- lapply(z[list_child_idx], rcc)
+        z
+    }
+    rcc(md)
+}
+
+
+uuid <- function(n = 1L) uuid::UUIDgenerate(n = n)
+is_uuid <- function(x) is.character(x) & nchar(x) == 36 & grepl("^[[:digit:]abcdef\\-]+$", x)
+##all(is_uuid(uuid(n = 1000)))
