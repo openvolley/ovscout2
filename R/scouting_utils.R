@@ -283,18 +283,18 @@ update_meta <- function(x, set_ended = FALSE) {
     pseq <- seq_len(if (is_beach) 2L else 6L)
     if (set_ended) {
         ## only call this as the set ends, i.e. the last row in x$plays2 is the last action of the set
-        message("set ", x$game_state$set, " ended")
-        x <- add_non_rally(x, codes = paste0("**", x$game_state$set, "set"))
+        message("set ", x$game_state$set_number, " ended")
+        x <- add_non_rally(x, codes = paste0("**", x$game_state$set_number, "set"))
         ## add row(s) to x$meta$result if needed
-        if (nrow(x$meta$result) < x$game_state$set) {
-            x$meta$result <- bind_rows(x$meta$result, x$meta$result[0, ][rep(1, x$game_state$set - nrow(x$meta$result)), ]) ## add all-NA row(s)
+        if (nrow(x$meta$result) < x$game_state$set_number) {
+            x$meta$result <- bind_rows(x$meta$result, x$meta$result[0, ][rep(1, x$game_state$set_number - nrow(x$meta$result)), ]) ## add all-NA row(s)
         }
         set_start_rows <- which(grepl(">Lup", x$plays2$code) & !grepl(">Lup", dplyr::lag(x$plays2$code)))
-        if (length(set_start_rows) == x$game_state$set) {
+        if (length(set_start_rows) == x$game_state$set_number) {
             ## duration
             ## only do this for the set just finished, because this could be edited (or clock times edited) later
             set_start_end_time <- range(x$plays2$time[seq(tail(set_start_rows, 1), nrow(x$plays2))], na.rm = TRUE)
-            x$meta$result$duration[x$game_state$set] <- as.numeric(difftime(set_start_end_time[2], set_start_end_time[1], units = "min"))
+            x$meta$result$duration[x$game_state$set_number] <- as.numeric(difftime(set_start_end_time[2], set_start_end_time[1], units = "min"))
         }
     }
     ## update all set results, excluding durations
@@ -342,9 +342,9 @@ update_meta <- function(x, set_ended = FALSE) {
     }
     ## starting lineups and subs
     ## this can be done even for sets that haven't been completed
-    for (si in seq_len(max(x$plays2$set, na.rm = TRUE))) {
+    for (si in seq_len(max(x$plays2$set_number, na.rm = TRUE))) {
         ## use the final >Lup row for starting lineup
-        final_lup_row <- which(x$plays2$set == si & grepl(">Lup", x$plays2$code))
+        final_lup_row <- which(x$plays2$set_number == si & grepl(">Lup", x$plays2$code))
         if (length(final_lup_row) > 0) final_lup_row <- max(final_lup_row)
         if (length(final_lup_row) == 1) {
             home_starting_lineup <- as.numeric(x$plays2[final_lup_row, paste0("home_p", pseq)])
@@ -353,7 +353,7 @@ update_meta <- function(x, set_ended = FALSE) {
                 if (length(pl_row) == 1) x$meta$players_h[[paste0("starting_position_set", si)]][pl_row] <- as.character(j)
             }
             ## subs
-            all_home_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set == si & !grepl(">Lup", x$plays2$code)), paste0("home_p", pseq)]))))
+            all_home_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set_number == si & !grepl(">Lup", x$plays2$code)), paste0("home_p", pseq)]))))
             home_subs <- setdiff(all_home_pl, home_starting_lineup)
             x$meta$players_h[[paste0("starting_position_set", si)]][x$meta$players_h$number %in% home_subs] <- "*"
             ## visiting team
@@ -363,7 +363,7 @@ update_meta <- function(x, set_ended = FALSE) {
                 if (length(pl_row) == 1) x$meta$players_v[[paste0("starting_position_set", si)]][pl_row] <- as.character(j)
             }
             ## subs
-            all_visiting_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set == si & !grepl(">Lup", x$plays2$code)), paste0("visiting_p", pseq)]))))
+            all_visiting_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set_number == si & !grepl(">Lup", x$plays2$code)), paste0("visiting_p", pseq)]))))
             visiting_subs <- setdiff(all_visiting_pl, visiting_starting_lineup)
             x$meta$players_v[[paste0("starting_position_set", si)]][x$meta$players_v$number %in% visiting_subs] <- "*"
         }
@@ -376,7 +376,7 @@ is_end_of_set <- function(x) {
     if (dv_is_beach(x)) {
         if (max(scores) >= 21 && abs(diff(scores)) >= 2) return(TRUE)
     } else {
-        if (((max(scores) >= 25 && x$game_state$set < 5) || (max(scores) >= 15 && x$game_state$set == 5)) && abs(diff(scores)) >= 2) return(TRUE)
+        if (((max(scores) >= 25 && x$game_state$set_number < 5) || (max(scores) >= 15 && x$game_state$set_number == 5)) && abs(diff(scores)) >= 2) return(TRUE)
     }
     FALSE
 }
@@ -412,7 +412,7 @@ dv_write2 <- function(x, file, text_encoding = "UTF-8") {
     nms <- c("code", "point_phase", "attack_phase", "na_col", ## cols 1-4
              "start_coordinate", "mid_coordinate", "end_coordinate", ## cols 5-7
              "time", ## col 8, HH.MM.SS format
-             "set", ## col 9
+             "set_number", ## col 9
              "home_setter_position", "visiting_setter_position", # 10-11
              "video_file_number", "video_time", ## 12-13
              "na_col", ## 14 need to check this one
@@ -593,7 +593,7 @@ make_player_id <- function(lastname, firstname) toupper(paste0(substr(lastname, 
 ## if any of the set_number, home_setter_position, or following params are provided, they override what is provided in x$game_state. If all are provided, don't need to provide x
 add_to_plays2 <- function(x, codes, video_time, set_number, home_setter_position, visiting_setter_position, home_lineup, visiting_lineup, scores = c(0L, 0L), serving = NA_character_) {
     pseq <- seq_len(if (dv_is_beach(x)) 2L else 6L)
-    if (missing(set_number)) set_number <- x$game_state$set
+    if (missing(set_number)) set_number <- x$game_state$set_number
     if (missing(home_setter_position)) home_setter_position <- x$game_state$home_setter_position
     if (missing(visiting_setter_position)) visiting_setter_position <- x$game_state$visiting_setter_position
     if (missing(home_lineup)) home_lineup <- as.numeric(x$game_state[, paste0("home_p", pseq)])
@@ -608,7 +608,7 @@ add_to_plays2 <- function(x, codes, video_time, set_number, home_setter_position
 ##                  X4 = NA, ## col 4
                   start_coordinate = NA_integer_, mid_coordinate = NA_integer_, end_coordinate = NA_integer_, ## cols 5-7
                   time = time_but_utc(), ## col 8
-                  set = set_number, home_setter_position = home_setter_position, visiting_setter_position = visiting_setter_position, ## cols 9-11, NB these 3 not used directly in dv_read
+                  set_number = set_number, home_setter_position = home_setter_position, visiting_setter_position = visiting_setter_position, ## cols 9-11, NB these 3 not used directly in dv_read
                   video_file_number = NA, video_time = vt, ## cols 12-13
   ##                X14 = NA, ## col 14
                   home_score_start_of_point = scores[1],
@@ -688,7 +688,7 @@ time_but_utc <- function() {
 plays_to_plays2 <- function(p) {
     p2 <- mutate(p, serving = case_when(.data$serving_team == .data$home_team ~ "*", .data$serving_team == .data$visiting_team ~ "a"))##, X4 = NA, X14 = NA)
     as_tibble(dplyr::select(p2, "code", "point_phase", "attack_phase", ##"X4",
-                            "start_coordinate", "mid_coordinate", "end_coordinate", "time", set = "set_number", "home_setter_position", "visiting_setter_position", "video_file_number", "video_time", ##"X14",
+                            "start_coordinate", "mid_coordinate", "end_coordinate", "time", "set_number", "home_setter_position", "visiting_setter_position", "video_file_number", "video_time", ##"X14",
                             "home_score_start_of_point", "visiting_score_start_of_point", "serving", "home_p1", "home_p2", "home_p3", "home_p4", "home_p5", "home_p6", "visiting_p1", "visiting_p2", "visiting_p3", "visiting_p4", "visiting_p5", "visiting_p6"))
 }
 
