@@ -63,6 +63,15 @@ ov_default_attack_table <- function() {
     out
 }
 
+#' @export
+#' @rdname ov_default_attack_table
+ov_simplified_attack_table <- function() {
+    dplyr::filter(ov_default_attack_table(),
+                  .data$code %in% c("X1", "X2", "X7", "XD", "CF", "CD", "PP", "PR", "P2",
+                                    "VP", "V0", "V3", "V4", "V5", "V6", "V8",
+                                    "XP", "X0", "X5", "X6", "X8"))
+}
+
 #' Default setter calls table
 #'
 #' @return A tibble
