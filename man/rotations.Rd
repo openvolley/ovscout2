@@ -4,7 +4,7 @@
 \alias{rotations}
 \title{Get team rotations point by point}
 \usage{
-rotations(x, team, start_point_id, set_number, new_rotation = NULL)
+rotations(x, team, start_point_id, set_number, new_rotation, new_rotation_id)
 }
 \arguments{
 \item{x}{datavolley or data.frame: a datavolley object as returned by \code{read_dv}, or the plays component of that object}
@@ -15,7 +15,7 @@ rotations(x, team, start_point_id, set_number, new_rotation = NULL)
 
 \item{set_number}{value: Set number}
 
-\item{new_rotation}{vector: vector of player number, positionned from 1 to 6.}
+\item{new_rotation}{vector: vector of player number, positioned from 1 to 6.}
 }
 \value{
 list of 2 data.frames. Current data.frame, without changes, and updated data.frame, with new player rotation.

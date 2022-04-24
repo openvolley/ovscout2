@@ -1,3 +1,13 @@
+home_players <- function(x, limited = TRUE) {
+    if ("meta" %in% names(x)) x <- x$meta
+    if (limited) x$players_h[, c("number", "player_id", "lastname", "firstname", "name", "role")] else x$players_h
+}
+
+visiting_players <- function(x, limited = TRUE) {
+    if ("meta" %in% names(x)) x <- x$meta
+    if (limited) x$players_v[, c("number", "player_id", "lastname", "firstname", "name", "role")] else x$players_v
+}
+
 reparse_dvw <- function(x, dv_read_args = list()) {
     tf <- tempfile()
     on.exit(unlink(tf))
@@ -46,7 +56,8 @@ dv_insert_sets_check <- function(dvw, no_set_attacks) {
 dv_insert_sets <- function(dvw, no_set_attacks, default_set_evaluation = "+", ridx = NULL) {
     if (is.null(ridx)) ridx <- dv_insert_sets_check(dvw = dvw, no_set_attacks = no_set_attacks)
     if (length(ridx) > 0) {
-        set_code <- mutate(dvw$plays, passQ = case_when(lag(.data$skill) %in% c("Reception", "Dig") ~ lag(.data$evaluation)))
+        set_code <- mutate(dvw$plays, passQ = case_when(lag(.data$skill) %in% c("Reception") ~ lag(.data$evaluation)),
+                           digQ = case_when(lag(.data$skill) %in% c("Dig") ~ lag(.data$evaluation)))
         set_code <- mutate(dplyr::filter(set_code, row_number() %in% ridx),
                            team_oncourt_setter_number = case_when(.data$team %eq% .data$home_team ~ case_when(.data$home_setter_position == 1 ~ .data$home_p1,
                                                                                                               .data$home_setter_position == 2 ~ .data$home_p2,
@@ -76,9 +87,9 @@ dv_insert_sets <- function(dvw, no_set_attacks, default_set_evaluation = "+", ri
                            setter_call = case_when(.data$TEMP_attack_code %eq% "X1" ~ "K1",
                                                    .data$TEMP_attack_code %eq% "X2" ~ "K2",
                                                    .data$TEMP_attack_code %eq% "X7" ~ "K7",
-                                                   grepl("^(OK|Negative)", .data$passQ) ~ "KE",
-                                                   grepl("^(Perfect|Positive)", .data$passQ) ~ "KK",
-                                                   is.na(.data$passQ) ~ "KK",
+                                                   grepl("^(Negative)", .data$passQ) ~ "~~",
+                                                   grepl("^(Perfect|Positive|OK)", .data$passQ) ~ "KK",
+                                                   is.na(.data$passQ) ~ "~~",
                                                    TRUE ~ "~~"),
                            set_code = paste0(.data$set_code, .data$setter_call))
         ## TODO, these could be taken from the dvw$meta$attacks table, and then they would keep up with user configuration
@@ -144,16 +155,28 @@ dv_insert_digs <- function(dvw, ridx = NULL) {
 }
 
 
+# If ridx is null, substitution applies from last entered row (live coding)
 # Test:
-# dvw <- datavolley::read_dv("/home/ick003/Documents/Donnees/VolleyBall/GameDatasets/Southern League 2020 Womens (Datavolley)/& State U18 Women-Zuno Women.dvw")
+# dvw <- datavolley::read_dv("~/Documents/Donnees/Volleyball/Dropbox/ickowism@gmail.com/dvw_files_for_untangl/Australia U20 prep/2022SelectionCampDay3_oz0304orange-oz0304green.dvw")
 # ridx <- 11
 # team = datavolley::home_team(dvw)
+# in_player = 55
+# out_player = 7
+# new_setter = 3
+# new_dvw = dv_create_substitution(dvw, team, ridx=NULL, in_player, out_player, new_setter)
+# new_dvw$plays[(ridx-5):(ridx+45), c("home_setter_position",paste0("home_p",1:6), paste0("home_player_id",1:6), "player_id")]
+# dvw$plays[(ridx-5):(ridx+45), c("home_setter_position",paste0("home_p",1:6), paste0("home_player_id",1:6), "player_id")]
+# 
+# # FOr live coding
+# dvw$plays[(nrow(dvw$plays)-5):(nrow(dvw$plays)-1), c("home_setter_position",paste0("home_p",1:6), paste0("home_player_id",1:6), "player_id")]
 # in_player = 7
-# out_player = 16
+# out_player = 77
 # new_setter = 7
-# dv_create_substitution(dvw, team, ridx, in_player, out_player, new_setter)
+# new_dvw = dv_create_substitution(dvw, team, ridx=NULL, in_player, out_player, new_setter)
+# new_dvw$plays[(nrow(new_dvw$plays)-5):(nrow(new_dvw$plays)-1), c("home_setter_position",paste0("home_p",1:6), paste0("home_player_id",1:6), "player_id")]
 
 dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NULL, out_player = NULL, new_setter = NULL) {
+    if (is.null(ridx)) ridx <- nrow(dvw$plays)
     current_point_id <- dvw$plays$point_id[ridx]
     current_set_number <- dvw$plays$set_number[ridx]
     teamSelect <- team
@@ -166,29 +189,50 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
                             c(dvw$plays$visiting_p1[ridx], dvw$plays$visiting_p2[ridx], dvw$plays$visiting_p3[ridx],
                               dvw$plays$visiting_p4[ridx], dvw$plays$visiting_p5[ridx], dvw$plays$visiting_p6[ridx])
                         }
+    current_rotation_id <- if (is_home) {
+        c(dvw$plays$home_player_id1[ridx], dvw$plays$home_player_id2[ridx], dvw$plays$home_player_id3[ridx],
+          dvw$plays$home_player_id4[ridx], dvw$plays$home_player_id5[ridx], dvw$plays$home_player_id6[ridx])
+    } else {
+        c(dvw$plays$visiting_player_id1[ridx], dvw$plays$visiting_player_id2[ridx], dvw$plays$visiting_player_id3[ridx],
+          dvw$plays$visiting_player_id4[ridx], dvw$plays$visiting_player_id5[ridx], dvw$plays$visiting_player_id6[ridx])
+    }
     new_rotation <- current_rotation
-    if (any(current_rotation %eq% out_player)) new_rotation[current_rotation == out_player] <- in_player
+    new_rotation_id <- current_rotation_id
+    if (any(current_rotation %eq% out_player)) {
+        new_rotation[current_rotation == out_player] <- in_player
+        new_rotation_id[current_rotation == out_player] <- if (is_home) dvw$meta$players_h$player_id[dvw$meta$players_h$number==in_player] else dvw$meta$players_v$player_id[dvw$meta$players_v$number==in_player]
+    }
 
-    changedRows <- rotations(dvw, team = teamSelect, start_point_id = current_point_id,
-                             set_number = current_set_number, new_rotation = new_rotation)
+    changedRows <- rotations(dvw, team = teamSelect, start_point_id = current_point_id + 1L,
+                             set_number = current_set_number, new_rotation = new_rotation, new_rotation_id = new_rotation_id)
 
+    newRows <- rotations(dvw, team = teamSelect, start_point_id = current_point_id,
+                             set_number = current_set_number, new_rotation = new_rotation, new_rotation_id = new_rotation_id)
     toreplace <- dvw$plays[dvw$plays$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)]
-    new_xx <- dplyr::left_join(dplyr::select(toreplace, 'point_id'), changedRows$new_rotation, by = "point_id")
+    new_xx <- if (nrow(changedRows$new_rotation) > 0) dplyr::left_join(dplyr::select(toreplace, "point_id"), changedRows$new_rotation, by = "point_id") else NULL
 
     ## The first row of toreplace, which is the rotation line, is kept
     #new_xx[1,]<- toreplace[1,]
-    dvw$plays[dvw$plays$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)] <- new_xx
+    if (!is.null(new_xx)) {
+        dvw$plays[dvw$plays$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)] <- new_xx
+    }
+
     ## Add one row for substitution
     if (!grepl("^[[:digit:]]{2}", in_player)) in_player <- stringr::str_c("0", in_player)
     if (!grepl("^[[:digit:]]{2}", out_player)) out_player <- stringr::str_c("0", out_player)
 
-    new_row <- dvw$plays[dvw$plays$point_id %eq% current_point_id, ][1, ]
-    new_row[new_row$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)] <- new_xx[2, ]
+    new_row <- dvw$plays[dvw$plays$point_id %eq% current_point_id, ][nrow(dvw$plays[dvw$plays$point_id %eq% current_point_id, ]), ]
+    new_row[new_row$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)] <- newRows$new_rotation
     new_row$code <- paste0(teamCode, "c", out_player, ":", in_player)
+    new_row[, c("player_number", "player_name", "player_id", "skill", "skill_type", "evaluation_code", "evaluation", "start_zone", "end_zone", "end_subzone", "end_cone", 
+               "team_touch_id", "phase","point_won_by")] <- NA
+    new_row$substitution <- TRUE
+    new_row$point <- FALSE
 
-    dvw$plays$file_line_number[which(dvw$plays$file_line_number > new_row$file_line_number)] <-  dvw$plays$file_line_number[which(dvw$plays$file_line_number > new_row$file_line_number)] + 1L
+    ##dvw$plays$file_line_number[which(dvw$plays$file_line_number >= new_row$file_line_number)] <-  dvw$plays$file_line_number[which(dvw$plays$file_line_number >= new_row$file_line_number)] + 1L
     new_row$file_line_number <- new_row$file_line_number + 1L
-    dvw$plays <-  dplyr::arrange(dplyr::bind_rows(dvw$plays, new_row), .data$file_line_number)
+
+    dvw$plays <-  dplyr::bind_rows(dvw$plays, new_row)
 
     ## If the substitution leads to a change of setter:
     if (!is.null(new_setter) && nzchar(new_setter)) {
@@ -240,11 +284,11 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
 # new_rotation = c(28,25,29,32,24,33)
 # new_setter = 28
 # dv_change_startinglineup(dvw, team, setnumber, new_rotation, new_setter)
-dv_change_startinglineup <- function(dvw, team, setnumber, new_rotation = NULL, new_setter) {
+dv_change_startinglineup <- function(dvw, team, setnumber, new_rotation = NULL, new_rotation_id = NULL, new_setter) {
     if (!team %in% datavolley::teams(dvw)) stop("team does not appear in the data")
     selectTeam <- team
     is_home <- selectTeam %eq% datavolley::home_team(dvw)
-    changedRows <- rotations(dvw, team = selectTeam, set_number = setnumber, new_rotation = new_rotation)
+    changedRows <- rotations(dvw, team = selectTeam, set_number = setnumber, new_rotation = new_rotation, new_rotation_id = new_rotation_id)
     toreplace <- dvw$plays[dvw$plays$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)]
     new_xx <- dplyr::left_join(dplyr::select(toreplace, "point_id"), changedRows$new_rotation, by = "point_id")
     dvw$plays[dvw$plays$point_id %in% changedRows$new_rotation$point_id, colnames(changedRows$new_rotation)] <- new_xx

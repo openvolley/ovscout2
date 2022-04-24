@@ -815,33 +815,35 @@ ov_shiny_video_sync_server <- function(app_data) {
             } else if (editing$active %eq% "change starting lineup") {
                 if(input$ht_set_number != "" && input$ht_P1  != ""  && input$ht_P2 != "" &&
                    input$ht_P3 != "" &&  input$ht_P4 != "" && input$ht_P5 != "" &&
-                   input$ht_P6 != "" && input$ht_libero != "" && input$ht_setter != ""){
+                   input$ht_P6 != "" && input$ht_setter != ""){
                     team = datavolley::home_team(rdata$dvw)
                     setnumber = input$ht_set_number
                     new_setter = input$ht_setter
                     new_rotation = c(input$ht_P1,input$ht_P2,input$ht_P3,input$ht_P4,input$ht_P5,input$ht_P6)
+                    new_rotation_id = rdata$dvw$meta$players_h$player_id[match(new_rotation, rdata$dvw$meta$players_h$number)]
                     # Change meta data in terms of starting rotation
-                    rdata$dvw$meta$players_h[,paste0("starting_position_set", setnumber)] <- as.character(match(rdata$dvw$meta$players_h$number, new_rotation))
+                    rdata$dvw$meta$players_h[,paste0("starting_position_set", setnumber)] <- as.character(match(rdata$dvw$meta$players_h$player_id, new_rotation_id))
                     ## Change libero to "*" in meta
                     ## BR not sure if this is needed, it was commented out
                     ##rdata$dvw$meta$players_h[rdata$dvw$meta$players_h$number %eq% input$ht_libero,paste0("starting_position_set", setnumber)] <- "*"
                     # Change in play rotation 
-                    rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation, new_setter)
+                    rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation, new_rotation_id, new_setter)
                 }
                 if(input$vt_set_number != "" && input$vt_P1  != ""  && input$vt_P2 != "" &&
                    input$vt_P3 != "" &&  input$vt_P4 != "" && input$vt_P5 != "" && 
-                   input$vt_P6 != "" && input$vt_libero != "" && input$vt_setter != ""){
+                   input$vt_P6 != "" && input$vt_setter != ""){
                     team = datavolley::visiting_team(rdata$dvw)
                     setnumber = input$vt_set_number
                     new_setter = input$vt_setter
                     new_rotation = c(input$vt_P1,input$vt_P2,input$vt_P3,input$vt_P4,input$vt_P5,input$vt_P6)
+                    new_rotation_id = rdata$dvw$meta$players_v$player_id[match(new_rotation, rdata$dvw$meta$players_v$number)]
                     # Change meta data in terms of starting rotation
-                    rdata$dvw$meta$players_v[,paste0("starting_position_set", setnumber)] <- as.character(match(rdata$dvw$meta$players_v$number, new_rotation))
+                    rdata$dvw$meta$players_v[,paste0("starting_position_set", setnumber)] <- as.character(match(rdata$dvw$meta$players_v$player_id, new_rotation_id))
                     ## Change libero to "*" in meta
                     ## BR not sure if this is needed, it was commented out
                     ##rdata$dvw$meta$players_v[rdata$dvw$meta$players_v$number %eq% input$vt_libero,paste0("starting_position_set", setnumber)] <- "*"
                     # Change in play rotation 
-                    rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation, new_setter)
+                    rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation, new_rotation_id, new_setter)
                 }
                 do_reparse <- TRUE
             } else if (editing$active %eq% "delete all setting actions") {
