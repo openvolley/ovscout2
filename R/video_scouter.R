@@ -1261,7 +1261,11 @@ guess_attack_code <- function(game_state, dvw) {
     thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
     d <- sqrt((atbl$start_x - thisxy[1])^2 + (atbl$start_y - thisxy[2])^2)
     ## if setter is back row, slides are unlikely
-    if (get_setter_pos(game_state) %in% c(5, 6, 1)) d[grepl("Slide ", atbl$description)] <- d[grepl("Slide ", atbl$description)] + 0.5 ## penalty. Hard-coding "Slide" is not great, could also look for type = "N" but some scouts use this for non-slides. TODO FIX
+    if (get_setter_pos(game_state) %in% c(5, 6, 1)) {
+        d[grepl("Slide ", atbl$description)] <- d[grepl("Slide ", atbl$description)] + 0.5 ## penalty. Hard-coding "Slide" is not great, could also look for type = "N" but some scouts use this for non-slides. TODO FIX
+        ## also back-row right side is less likely than front-row right side if setter is back row
+        d[atbl$attacker_position %eq% 9] <- d[atbl$attacker_position %eq% 9] + 0.5
+    }
     ## TODO also incorporate set -> attack contact time and distance, to infer tempo
     d[is.na(d)] <- Inf
     ac <- head(atbl$code[order(d)], 5)
