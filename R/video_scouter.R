@@ -96,12 +96,13 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
 #' Scouting options
 #'
 #' @param nblockers logical: scout the number of blockers on each attack?
+#' @param transition_sets logical: scout sets in transition? If `FALSE`, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted
 #'
 #' @return A named list
 #'
 #' @export
-ov_scouter_options <- function(nblockers = TRUE) {
-    list(nblockers = nblockers)
+ov_scouter_options <- function(nblockers = TRUE, transition_sets = FALSE) {
+    list(nblockers = nblockers, transition_sets = FALSE)
 }
 
 ov_scouter_ui <- function(app_data) {
@@ -613,7 +614,9 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(rbind(overlay_points(), courtxy))
                     ## pop up to find either serve error, or passing player
                     ## passing player options
-                    pass_pl_opts <- c(guess_pass_player_options(game_state, dvw = rdata$dvw), "Unknown")
+                    pass_pl_opts <- guess_pass_player_options(game_state, dvw = rdata$dvw)
+                    names(pass_pl_opts$choices) <- player_nums_to(pass_pl_opts$choices, team = other(game_state$current_team), dvw = rdata$dvw)
+                    pass_pl_opts$choices <- c(pass_pl_opts$choices, Unknown = "Unknown")
                     serve_type_buttons <- make_fat_radio_buttons(choices = c(Jump = "Q", "Jump-float" = "M", Float = "H", Topspin = "T"), selected = if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else "Q", input_var = "serve_type", style = "width:100%; height:7vh;")
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "select_passer", style = "width:100%; height:7vh;")
                     serve_error_buttons <- make_fat_buttons(choices = c("Serve error" = "=", "Serve error (in net)" = "=N", "Serve error (foot fault)" = "=Z", "Serve error (long)" = "=O", "Serve error (out left)" = "=L", "Serve error (out right)" = "=R"), input_var = "was_serve_error", style = "width:100%; height:7vh;")
@@ -695,9 +698,14 @@ ov_scouter_server <- function(app_data) {
                         ## choose the player who didn't pass
                     }
                     sp <- get_setter(game_state)
-                    sp <- c(sp, setdiff(get_players(game_state, dvw = rdata$dvw), sp), get_liberos(game_state, dvw = rdata$dvw), "Unknown")
+                    sp <- c(sp, setdiff(get_players(game_state, dvw = rdata$dvw), sp), get_liberos(game_state, dvw = rdata$dvw))
+                    names(sp) <- player_nums_to(sp, team = game_state$current_team, dvw = rdata$dvw)
+                    sp <- c(sp, Unknown = "Unknown")
                     setter_buttons <- make_fat_radio_buttons(choices = sp, input_var = "c2_player", style = "width:100%; height:7vh;")
-                    opp_buttons <- make_fat_radio_buttons(choices = c(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw), get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw), "Unknown"), input_var = "c2_opp_player", style = "width:100%; height:7vh;")
+                    opp <- c(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw), get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw))
+                    names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
+                    opp <- c(opp, Unknown = "Unknown")
+                    opp_buttons <- make_fat_radio_buttons(choices = opp, input_var = "c2_opp_player", style = "width:100%; height:7vh;")
                     showModal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Second contact:")),
                                             do.call(fixedRow, lapply(c2_buttons$buttons[1:5], function(but) column(2, but))),
@@ -772,13 +780,19 @@ ov_scouter_server <- function(app_data) {
                     ## popup
                     ac <- c(guess_attack_code(game_state, dvw = rdata$dvw), "Other attack")
                     c3_buttons <- make_fat_radio_buttons(choices = c(setNames(ac, ac), c("Opp. dig" = "aD", "Opp. overpass attack" = "aPR")), input_var = "c3", style = "width:100%; height:7vh;")
-                    ap <- c(get_players(game_state, dvw = rdata$dvw), "Unknown") ## TODO better based on rotation
+                    ap <- get_players(game_state, dvw = rdata$dvw)
+                    ## TODO default selection better based on rotation
+                    names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
+                    ap <- c(ap, Unknown = "Unknown")
                     attacker_buttons <- make_fat_radio_buttons(choices = ap, input_var = "c3_player", style = "width:100%; height:7vh;")
                     if (isTRUE(app_data$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3), input_var = "nblockers", style = "width:100%; height:7vh;")
                     ## attack error, blocked, replay will be scouted on next entry
                     ## TODO other special codes ?
                     ## TODO "F" freeball
-                    opp_player_buttons <- make_fat_radio_buttons(choices = c(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw), get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw), "Unknown"), input_var = "c3_opp_player", style = "width:100%; height:7vh;")
+                    opp <- c(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw), get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw))
+                    names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
+                    opp <- c(opp, Unknown = "Unknown")
+                    opp_player_buttons <- make_fat_radio_buttons(choices = opp, input_var = "c3_opp_player", style = "width:100%; height:7vh;")
                     showModal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack:")),
                                             do.call(fixedRow, lapply(c3_buttons$buttons[seq_along(ac)], function(but) column(2, but))),
@@ -846,7 +860,9 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(courtxy)
                     ## popup
                     c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill" = "A#", "Attack error" = "A=", "Dig" = "D", "Dig error" = "D="), input_var = "c1", style = "width:100%; height:7vh;")
-                    digp <- c(get_players(game_state, dvw = rdata$dvw), get_liberos(game_state, dvw = rdata$dvw), "Unknown") ## TODO better based on rotation
+                    digp <- c(get_players(game_state, dvw = rdata$dvw), get_liberos(game_state, dvw = rdata$dvw)) ## TODO better based on rotation
+                    names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
+                    digp <- c(digp, Unknown = "Unknown")
                     dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = "Unknown", input_var = "c1_dig_player", style = "width:100%; height:7vh;")
                     showModal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack outcome:")),
@@ -910,7 +926,11 @@ ov_scouter_server <- function(app_data) {
                             rally_state("rally ended")
                             game_state$point_won_by <- other(game_state$current_team)
                         } else {
-                            rally_state("click second contact")
+                            if (!isTRUE(app_data$options$transition_sets)) {
+                                rally_state("click third contact")
+                            } else {
+                                rally_state("click second contact")
+                            }
                         }
                     }
                     removeModal()
@@ -1170,6 +1190,20 @@ get_players <- function(game_state, team, dvw) {
 ## - attack tempo based on time and distance between set and attack contacts
 ## - number of blockers based on attack tempo and location (default to 1 on quick, 2 on medium, 3 on high  - make this configurable)
 
+player_nums_to <- function(nums, team, dvw, to = "number lastname") {
+    to <- match.arg(to, c("name", "number lastname"))
+    temp_players <- if (team == "*") dvw$meta$players_h else if (team == "a") dvw$meta$players_v else stop("team should be '*' or 'a'")
+    temp <- left_join(tibble(number = nums), temp_players[, c("number", if (to == "name") "name", if (to == "number lastname") "lastname")], by = "number")
+    if (to == "name") {
+        temp$name[is.na(temp$name)] <- ""
+        temp$name
+    } else if (to == "number lastname") {
+        temp$lastname[is.na(temp$lastname)] <- ""
+        paste(temp$number, temp$lastname, sep = "<br />")
+    } else {
+        character()
+    }
+}
 
 ## return a list of the possible passing players, and our guess of the most likely passer
 guess_pass_player_options <- function(game_state, dvw) {
@@ -1251,7 +1285,7 @@ make_fat_buttons <- function(choices, selected, input_var, extra_class = c(), as
     selected <- if (missing(selected)) 1L else if (selected %in% choices) which(choices == selected) else if (selected %in% names(choices)) which(names(choices) == selected) else if (!is.na(selected)) 1L
     clickfun <- if (as_radio) paste0("console.log('clicked'); $('.", cls, "').removeClass('active'); $(this).addClass('active');")##, if (!is.na(selected)) paste0(" $('#", ids[selected], "').click();"))
                 else NULL
-    buts <- lapply(seq_along(choices), function(i) tags$button(class = paste(c("btn", "btn-default", "fatradio", cls, extra_class, if (i %eq% selected && as_radio) "active"), collapse = " "), id = ids[i], names(choices)[i], onclick = paste0(clickfun, " Shiny.setInputValue('", input_var, "', '", choices[[i]], "', {priority: 'event'})"), ...))
+    buts <- lapply(seq_along(choices), function(i) tags$button(class = paste(c("btn", "btn-default", "fatradio", cls, extra_class, if (i %eq% selected && as_radio) "active"), collapse = " "), id = ids[i], HTML(names(choices)[i]), onclick = paste0(clickfun, " Shiny.setInputValue('", input_var, "', '", choices[[i]], "', {priority: 'event'})"), ...))
     if (!is.na(selected) && as_radio) {
         ##cat("setting selected:\n")
         thisjs <- paste0("Shiny.setInputValue(\"", input_var, "\", \"", choices[[selected]], "\")")
