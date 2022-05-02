@@ -4,10 +4,12 @@
 \alias{ov_scouter_options}
 \title{Scouting options}
 \usage{
-ov_scouter_options(nblockers = TRUE)
+ov_scouter_options(nblockers = TRUE, transition_sets = FALSE)
 }
 \arguments{
 \item{nblockers}{logical: scout the number of blockers on each attack?}
+
+\item{transition_sets}{logical: scout sets in transition? If \code{FALSE}, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted}
 }
 \value{
 A named list

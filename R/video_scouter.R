@@ -184,7 +184,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                        tags$button(tags$span(icon("pause-circle", style = "vertical-align:middle;")), onclick = "if (document.getElementById('main_video').paused == true) { document.getElementById('main_video').play(); } else { document.getElementById('main_video').pause(); }", title = "Pause"),
                                        #tags$button(tags$span(icon("stop-circle", style = "vertical-align:middle;")), onclick = paste0(cstr, "video_stop();"), title = "Stop"),
                                        ),
-                              if (app_data$with_video) introBox(tags$div(id = "video_holder", style = "position:relative;", tags$video(id = "main_video", style = "border: 1px solid black; width: 90%;", src = file.path(video_server_base_url, basename(video_src)), autoplay = "false")), tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 4, data.intro = "Video of the game to scout."), ##controls = "controls", 
+                              if (app_data$with_video) introBox(tags$div(id = "video_holder", style = "position:relative;", tags$video(id = "main_video", style = "border: 1px solid black; width: 90%;", src = file.path(video_server_base_url, basename(video_src)), autoplay = "false")), tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 4, data.intro = "Video of the game to scout."), ##controls = "controls",
                               fluidRow(column(4, offset = 8, uiOutput("rally_state"))),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
                               fluidRow(column(8,
@@ -600,9 +600,24 @@ ov_scouter_server <- function(app_data) {
                     ## serving player TODO also allow pre-input (check) of this
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     ## serve type TODO also allow pre-input of this
-                    st <- app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
+                    # Check game history of serve by this player:
+                    serving_history <- dplyr::arrange(dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::mutate(dplyr::select(dplyr::filter(rdata$dvw$plays, skill %eq% "Serve",
+                                                                                                                                 .data$team == game_state$serving,
+                                                                                                                                 .data$player_number %eq% sp),
+                                              .data$skill_type),
+                                              stype = case_when(.data$skill_type %eq% "Float serve" ~ "H",
+                                                                .data$skill_type %eq% "Topspin serve" ~ "T",
+                                                                .data$skill_type %eq% "Jump-float serve" ~ "M",
+                                                                .data$skill_type %eq% "Jump serve" ~ "Q")),.data$skill_type, .data$stype), n = dplyr::n())), n)
+
+                    if(nrow(serving_history)>0){
+                      st <- serving_history$stype[1]
+                    }else{
+                      st <- app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
+                    }
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
                     ## time probably won't have resolved yet, so add it after next click
+                    #browser()
                     rally_codes(code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y))
                     rally_state("click serve end")
                 } else if (rally_state() == "click serve end") {
@@ -617,9 +632,26 @@ ov_scouter_server <- function(app_data) {
                     pass_pl_opts <- guess_pass_player_options(game_state, dvw = rdata$dvw)
                     names(pass_pl_opts$choices) <- player_nums_to(pass_pl_opts$choices, team = other(game_state$current_team), dvw = rdata$dvw)
                     pass_pl_opts$choices <- c(pass_pl_opts$choices, Unknown = "Unknown")
-                    serve_type_buttons <- make_fat_radio_buttons(choices = c(Jump = "Q", "Jump-float" = "M", Float = "H", Topspin = "T"), selected = if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else "Q", input_var = "serve_type", style = "width:100%; height:7vh;")
+
+                    sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
+                    serving_history <- dplyr::arrange(dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::mutate(dplyr::select(dplyr::filter(rdata$dvw$plays,
+                                                                                                                                                skill %eq% "Serve",
+                                                                                                                                                .data$team == game_state$serving,
+                                                                                                                                                .data$player_number %eq% sp),
+                                                                                                                                  .data$skill_type),
+                                                                                                                    stype = case_when(.data$skill_type %eq% "Float serve" ~ "H",
+                                                                                                                                      .data$skill_type %eq% "Topspin serve" ~ "T",
+                                                                                                                                      .data$skill_type %eq% "Jump-float serve" ~ "M",
+                                                                                                                                      .data$skill_type %eq% "Jump serve" ~ "Q")),.data$skill_type, .data$stype), n = dplyr::n())), n)
+
+                    selected_serve_type =  if (nrow(serving_history)>0) serving_history$stype else if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else "Q"
+
+                    serve_type_buttons <- make_fat_radio_buttons(choices = c(Jump = "Q", "Jump-float" = "M", Float = "H", Topspin = "T"),
+                                                                 selected = selected_serve_type,
+                                                                 input_var = "serve_type", style = "width:100%; height:7vh;")
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "select_passer", style = "width:100%; height:7vh;")
                     serve_error_buttons <- make_fat_buttons(choices = c("Serve error" = "=", "Serve error (in net)" = "=N", "Serve error (foot fault)" = "=Z", "Serve error (long)" = "=O", "Serve error (out left)" = "=L", "Serve error (out right)" = "=R"), input_var = "was_serve_error", style = "width:100%; height:7vh;")
+                    #browser()
                     showModal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Serve type:")),
                                             do.call(fixedRow, lapply(serve_type_buttons$buttons, function(but) column(2, but))),
@@ -666,7 +698,6 @@ ov_scouter_server <- function(app_data) {
                     removeModal()
                     special_code <- substr(serve_err_type, 2, 2)
                     esz <- paste(dv_xy2subzone(game_state$end_x, game_state$end_y), collapse = "")
-
                     rc <- rally_codes()
                     Sidx <- which(rc$skill == "S")
                     if (length(Sidx) == 1) {
@@ -1206,26 +1237,85 @@ player_nums_to <- function(nums, team, dvw, to = "number lastname") {
 }
 
 ## return a list of the possible passing players, and our guess of the most likely passer
+## First, we identify the rotation, and check if passing has occured in the past from a serve at that location.
+## If yes, the passer (currently on court) with the most receptions will be proposed in priority.
+## If no, we assume S-H-M rotation, and articulate the 3-player passing line with each taking left-middle-right channel.
 guess_pass_player_options <- function(game_state, dvw) {
     beach <- is_beach(dvw)
     pseq <- if (beach) 1:2 else 1:6
     if (game_state$serving %eq% "*") {
         passing_team <- "a"
         passing_rot <- game_state$visiting_setter_position
+        passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
         libs <- if (beach) c() else dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
+
+        # Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
+        passing_responsibility <- player_responsibility_fn(system = "shm", skill = "Reception",
+                                                           setter_position = passing_rot,
+                                                           zone = passing_zone, libs = libs, home_visiting = "visiting")
+
+
+        passing_responsibility_prior <- setNames(rep(0, 7), c(paste0("visiting_p",1:6),"libero"))
+        passing_responsibility_prior[passing_responsibility] <- 1
+
+        # Update the probability with the history of the game
+
+        passing_history <- dplyr::filter(dvw$plays, skill %eq% "Reception",
+                                         .data$visiting_setter_position %eq% as.character(passing_rot),
+                                         .data$end_zone %eq% passing_zone,
+                                         .data$team %eq% "a")
+
+        passing_responsibility_posterior <- passing_responsibility_prior
+        if(nrow(passing_history)>0){
+          passing_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(passing_history, "team", "player_number", paste0("visiting_p",1:6)), cols = paste0("visiting_p",1:6)), .data$value %eq% .data$player_number), .data$name), n_reception = dplyr::n()))
+          passing_responsibility_posterior[passing_history$name] <- passing_responsibility_prior[passing_history$name] + passing_history$n_reception
+          passing_responsibility_posterior <-  passing_responsibility_posterior / sum(passing_responsibility_posterior)
+        }
+        plsel_tmp <- names(sort(passing_responsibility_posterior, decreasing = TRUE))
+
         poc <- paste0("visiting_p", pseq) ## players on court
     } else if (game_state$serving %eq% "a") {
         passing_team <- "*"
         passing_rot <- game_state$home_setter_position
+        passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
         libs <- if (beach) c() else dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"]
+
+        # Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
+        passing_responsibility <- player_responsibility_fn(system = "shm", skill = "Reception",
+                                                           setter_position = passing_rot,
+                                                           zone = passing_zone, libs = libs, home_visiting = "home")
+
+
+        passing_responsibility_prior <- setNames(rep(0, 7), c(paste0("home_p",1:6),"libero"))
+        passing_responsibility_prior[passing_responsibility] <- 1
+
+        # Update the probability with the history of the game
+
+        passing_history <- dplyr::filter(dvw$plays, skill %eq% "Reception",
+                                         .data$home_setter_position %eq% as.character(passing_rot),
+                                         .data$end_zone %eq% passing_zone,
+                                         .data$team %eq% "*")
+
+        passing_responsibility_posterior <- passing_responsibility_prior
+        if(nrow(passing_history)>0){
+          passing_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(passing_history, "team", "player_number",
+                                                                                                                             paste0("home_p",1:6)), cols = paste0("home_p",1:6)),
+                                                                                           .data$value %eq% .data$player_number), .data$name), n_reception = dplyr::n()))
+          passing_responsibility_posterior[passing_history$name] <- passing_responsibility_prior[passing_history$name] + passing_history$n_reception
+          passing_responsibility_posterior <-  passing_responsibility_posterior / sum(passing_responsibility_posterior)
+        }
+        plsel_tmp <- names(sort(passing_responsibility_posterior, decreasing = TRUE))
+
+
         poc <- paste0("home_p", pseq) ## players on court
     } else {
         return(list(choices = numeric(), selected = c()))
     }
     pp <- c(as.numeric(reactiveValuesToList(game_state)[poc]), libs)
+    plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(reactiveValuesToList(game_state)[plsel_tmp[1]])
     ## passing player guess based on reception xy c(game_state$end_x, game_state$end_y), rotation, and assumed passing system
     ## for now, either the first libero or last player in pp
-    list(choices = pp, selected = if (length(libs) > 0) libs[1] else tail(pp, 1))
+    list(choices = pp, selected = plsel)
 }
 
 guess_pass_quality <- function(game_state, dvw) {
