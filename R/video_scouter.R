@@ -746,7 +746,7 @@ ov_scouter_server <- function(app_data) {
                             rally_state("click third contact")
                         } else if (input$c2 == "E=") {
                             ## set error
-                            rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$current_team, pnum = sp, skill = "E", esz = esz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y)))
+                            rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$current_team, pnum = sp, skill = "E", eval = "=", esz = esz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y)))
                             rally_state("rally ended")
                             game_state$point_won_by <- other(game_state$current_team)
                         } else if (input$c2 %in% c("PP", "P2")) {
