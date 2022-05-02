@@ -599,25 +599,10 @@ ov_scouter_server <- function(app_data) {
                     ## add placeholder serve code, will get updated on next click
                     ## serving player TODO also allow pre-input (check) of this
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
-                    ## serve type TODO also allow pre-input of this
-                    # Check game history of serve by this player:
-                    serving_history <- dplyr::arrange(dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::mutate(dplyr::select(dplyr::filter(rdata$dvw$plays, skill %eq% "Serve",
-                                                                                                                                 .data$team == game_state$serving,
-                                                                                                                                 .data$player_number %eq% sp),
-                                              .data$skill_type),
-                                              stype = case_when(.data$skill_type %eq% "Float serve" ~ "H",
-                                                                .data$skill_type %eq% "Topspin serve" ~ "T",
-                                                                .data$skill_type %eq% "Jump-float serve" ~ "M",
-                                                                .data$skill_type %eq% "Jump serve" ~ "Q")),.data$skill_type, .data$stype), n = dplyr::n())), n)
-
-                    if(nrow(serving_history)>0){
-                      st <- serving_history$stype[1]
-                    }else{
-                      st <- app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
-                    }
+                    ## serve type should have been selected in the preselect
+                    st <- if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
                     ## time probably won't have resolved yet, so add it after next click
-                    #browser()
                     rally_codes(code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y))
                     rally_state("click serve end")
                 } else if (rally_state() == "click serve end") {
@@ -634,24 +619,12 @@ ov_scouter_server <- function(app_data) {
                     pass_pl_opts$choices <- c(pass_pl_opts$choices, Unknown = "Unknown")
 
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
-                    serving_history <- dplyr::arrange(dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::mutate(dplyr::select(dplyr::filter(rdata$dvw$plays,
-                                                                                                                                                skill %eq% "Serve",
-                                                                                                                                                .data$team == game_state$serving,
-                                                                                                                                                .data$player_number %eq% sp),
-                                                                                                                                  .data$skill_type),
-                                                                                                                    stype = case_when(.data$skill_type %eq% "Float serve" ~ "H",
-                                                                                                                                      .data$skill_type %eq% "Topspin serve" ~ "T",
-                                                                                                                                      .data$skill_type %eq% "Jump-float serve" ~ "M",
-                                                                                                                                      .data$skill_type %eq% "Jump serve" ~ "Q")),.data$skill_type, .data$stype), n = dplyr::n())), n)
-
-                    selected_serve_type =  if (nrow(serving_history)>0) serving_history$stype else if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else "Q"
-
                     serve_type_buttons <- make_fat_radio_buttons(choices = c(Jump = "Q", "Jump-float" = "M", Float = "H", Topspin = "T"),
-                                                                 selected = selected_serve_type,
+                                                                 selected = input$serve_preselect_type,
                                                                  input_var = "serve_type", style = "width:100%; height:7vh;")
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "select_passer", style = "width:100%; height:7vh;")
                     serve_error_buttons <- make_fat_buttons(choices = c("Serve error" = "=", "Serve error (in net)" = "=N", "Serve error (foot fault)" = "=Z", "Serve error (long)" = "=O", "Serve error (out left)" = "=L", "Serve error (out right)" = "=R"), input_var = "was_serve_error", style = "width:100%; height:7vh;")
-                    #browser()
+                    ##browser()
                     showModal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Serve type:")),
                                             do.call(fixedRow, lapply(serve_type_buttons$buttons, function(but) column(2, but))),
@@ -668,12 +641,10 @@ ov_scouter_server <- function(app_data) {
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = "width:100%; height:7vh; background-color:#F44;")),
                                                      column(2, offset = 8, actionButton("assign_passer", "Continue", style = "width:100%; height:7vh; background-color:#4F4;")))
                                             ))
-                    dojs(serve_type_buttons$js)
-                    dojs(passer_buttons$js)
                 } else if (rally_state() == "enter serve outcome") {
                     sp <- if (!is.null(input$serve_preselect_player)) input$serve_preselect_player else if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     game_state$current_team <- other(game_state$serving)
-                    st <- if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else if (!is.null(input$serve_type)) input$serve_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
+                    st <- if (!is.null(input$serve_type)) input$serve_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
                     pp <- input$select_passer
                     removeModal()
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
@@ -756,9 +727,6 @@ ov_scouter_server <- function(app_data) {
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = "width:100%; height:7vh; background-color:#F44;")),
                                                      column(2, offset = 8, actionButton("assign_c2", "Continue", style = "width:100%; height:7vh; background-color:#4F4;")))
                                             ))
-                    dojs(c2_buttons$js)
-                    dojs(setter_buttons$js)
-                    dojs(opp_buttons$js)
                 } else if (rally_state() == "second contact details") {
                     ## set uses end position for zone/subzone
                     esz <- paste(dv_xy2subzone(game_state$start_x, game_state$start_y), collapse = "")
@@ -839,9 +807,6 @@ ov_scouter_server <- function(app_data) {
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = "width:100%; height:7vh; background-color:#F44;")),
                                                      column(2, offset = 8, actionButton("assign_c3", "Continue", style = "width:100%; height:7vh; background-color:#4F4;")))
                                             ))
-                    dojs(c3_buttons$js)
-                    dojs(attacker_buttons$js)
-                    dojs(opp_player_buttons$js)
                 } else if (rally_state() == "third contact details") {
                     ## possible values for input$c3 are: an attack code, Freeball
                     ##                                   "Opp. dig" = "aD", "Opp. overpass attack" = "aPR"
@@ -907,8 +872,6 @@ ov_scouter_server <- function(app_data) {
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = "width:100%; height:7vh; background-color:#F44;")),
                                                      column(2, offset = 8, actionButton("assign_c1", "Continue", style = "width:100%; height:7vh; background-color:#4F4;")))
                                             ))
-                    dojs(c1_buttons$js)
-                    dojs(dig_player_buttons$js)
                 } else if (rally_state() == "first contact details") {
                     ## possible values for input$c1 are currently: A#, A=, D, D=
                     esz <- paste(dv_xy2subzone(game_state$end_x, game_state$end_y), collapse = "")
@@ -1051,10 +1014,6 @@ ov_scouter_server <- function(app_data) {
                      tags$strong("Rally state: "), rally_state())
         })
         observeEvent(rally_state(), {
-            ##if (rally_state() == "click the video to start") {
-            ##    ##dojs("$('#video_overlay_img').src
-            ##} else {
-            ##}
             if (rally_state() == "click serve start") {
                 ## show the serve player and tempo pre-select buttons
                 sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
@@ -1062,7 +1021,10 @@ ov_scouter_server <- function(app_data) {
                 ## other players that could be serving, if the rotation is somehow wrong
                 other_sp <- get_players(game_state, team = game_state$serving, dvw = rdata$dvw)
                 serve_player_buttons <- make_fat_radio_buttons(choices = c(sp, setdiff(other_sp, sp)), selected = sp, input_var = "serve_preselect_player", style = "width:100%; height:7vh;")
-                serve_type_buttons <- make_fat_radio_buttons(choices = c(Jump = "Q", "Jump-float" = "M", Float = "H", Topspin = "T"), selected = "Q", input_var = "serve_preselect_type", style = "width:100%; height:7vh;")
+                ## default serve type is either the most common serve type by this player, or the default serve type
+                st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state)
+                if (is.na(st_default)) st_default <- app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
+                serve_type_buttons <- make_fat_radio_buttons(choices = c(Jump = "Q", "Jump-float" = "M", Float = "H", Topspin = "T"), selected = st_default, input_var = "serve_preselect_type", style = "width:100%; height:7vh;")
                 output$serve_preselect <- renderUI(
                     tags$div(tags$strong("Serve type:"), do.call(fixedRow, lapply(serve_type_buttons$buttons, function(but) column(2, but))),
                              tags$strong("Serve player:"), do.call(fixedRow, lapply(serve_player_buttons$buttons, function(but) column(2, but))))
@@ -1090,6 +1052,18 @@ ov_scouter_server <- function(app_data) {
     }
 }
 
+## a player's most common serve type
+## px is a plays object
+get_player_serve_type <- function(px, serving_player_num, game_state) {
+    if (is.null(px)) return(NA_character_)
+    out <- dplyr::select(dplyr::filter(px, .data$skill %eq% "Serve" & .data$team == game_state$serving & .data$player_number %eq% serving_player_num), .data$skill_type)
+    out <- mutate(out, stype = case_when(.data$skill_type %eq% "Float serve" ~ "H",
+                                         .data$skill_type %eq% "Topspin serve" ~ "T",
+                                         .data$skill_type %eq% "Jump-float serve" ~ "M",
+                                         .data$skill_type %eq% "Jump serve" ~ "Q"))
+    out <- dplyr::arrange(dplyr::count(out, .data$stype), .data$n)
+    if (nrow(out) > 0) out$stype[1] else NA_character_
+}
 
 make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
     pseq <- seq_len(if (dv_is_beach(x)) 2L else 6L)
@@ -1203,7 +1177,6 @@ get_players <- function(game_state, team, dvw) {
 }
 
 ## TODO
-## - show the current rally codes, and/or current state
 ## - if on first serve of the set, the click is at the wrong end according to game_state$home_end and game_state$serving == "*", then either auto-flip the court or pause and check with user
 ## - outside of video pane, have "Rewind 5s", "Pause", "Enter manual code" buttons
 ## - propagate clicks to video itself? (controls)
@@ -1259,8 +1232,7 @@ guess_pass_player_options <- function(game_state, dvw) {
         passing_responsibility_prior <- setNames(rep(0, 7), c(paste0("visiting_p",1:6),"libero"))
         passing_responsibility_prior[passing_responsibility] <- 1
 
-        # Update the probability with the history of the game
-
+        ## Update the probability with the history of the game
         passing_history <- dplyr::filter(dvw$plays, skill %eq% "Reception",
                                          .data$visiting_setter_position %eq% as.character(passing_rot),
                                          .data$end_zone %eq% passing_zone,
