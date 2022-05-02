@@ -4,12 +4,21 @@
 \alias{ov_scouter_options}
 \title{Scouting options}
 \usage{
-ov_scouter_options(nblockers = TRUE, transition_sets = FALSE)
+ov_scouter_options(
+  nblockers = TRUE,
+  transition_sets = FALSE,
+  team_system = "SHM3"
+)
 }
 \arguments{
 \item{nblockers}{logical: scout the number of blockers on each attack?}
 
 \item{transition_sets}{logical: scout sets in transition? If \code{FALSE}, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted}
+
+\item{team_system}{string: the assumed system that teams are using to assign passing responsibility
+\itemize{
+\item "SHM3" - a setter-hitter-middle rotation, with 3 passers (the libero and two outside hitters)
+}}
 }
 \value{
 A named list

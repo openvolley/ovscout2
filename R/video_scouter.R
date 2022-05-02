@@ -97,12 +97,14 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
 #'
 #' @param nblockers logical: scout the number of blockers on each attack?
 #' @param transition_sets logical: scout sets in transition? If `FALSE`, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted
+#' @param team_system string: the assumed system that teams are using to assign passing responsibility
+#' * "SHM3" - a setter-hitter-middle rotation, with 3 passers (the libero and two outside hitters)
 #'
 #' @return A named list
 #'
 #' @export
-ov_scouter_options <- function(nblockers = TRUE, transition_sets = FALSE) {
-    list(nblockers = nblockers, transition_sets = FALSE)
+ov_scouter_options <- function(nblockers = TRUE, transition_sets = FALSE, team_system = "SHM3") {
+    list(nblockers = nblockers, transition_sets = transition_sets, team_system = team_system)
 }
 
 ov_scouter_ui <- function(app_data) {
@@ -613,7 +615,7 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(rbind(overlay_points(), courtxy))
                     ## pop up to find either serve error, or passing player
                     ## passing player options
-                    pass_pl_opts <- guess_pass_player_options(game_state, dvw = rdata$dvw)
+                    pass_pl_opts <- guess_pass_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
                     names(pass_pl_opts$choices) <- player_nums_to(pass_pl_opts$choices, team = other(game_state$current_team), dvw = rdata$dvw)
                     pass_pl_opts$choices <- c(pass_pl_opts$choices, Unknown = "Unknown")
 
@@ -1244,7 +1246,7 @@ player_nums_to <- function(nums, team, dvw, to = "number lastname") {
 ## First, we identify the rotation, and check if passing has occured in the past from a serve at that location.
 ## If yes, the passer (currently on court) with the most receptions will be proposed in priority.
 ## If no, we assume S-H-M rotation, and articulate the 3-player passing line with each taking left-middle-right channel.
-guess_pass_player_options <- function(game_state, dvw) {
+guess_pass_player_options <- function(game_state, dvw, system) {
     beach <- is_beach(dvw)
     pseq <- if (beach) 1:2 else 1:6
     if (game_state$serving %eq% "*") {
@@ -1254,7 +1256,7 @@ guess_pass_player_options <- function(game_state, dvw) {
         libs <- if (beach) c() else dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
 
         # Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
-        passing_responsibility <- player_responsibility_fn(system = "shm", skill = "Reception",
+        passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception",
                                                            setter_position = passing_rot,
                                                            zone = passing_zone, libs = libs, home_visiting = "visiting")
 
@@ -1284,7 +1286,7 @@ guess_pass_player_options <- function(game_state, dvw) {
         libs <- if (beach) c() else dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"]
 
         # Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
-        passing_responsibility <- player_responsibility_fn(system = "shm", skill = "Reception",
+        passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception",
                                                            setter_position = passing_rot,
                                                            zone = passing_zone, libs = libs, home_visiting = "home")
 
