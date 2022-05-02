@@ -15,7 +15,7 @@ ov_scouter_options(
 
 \item{transition_sets}{logical: scout sets in transition? If \code{FALSE}, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted}
 
-\item{team_system}{string: the assumed system that teams are using to assign passing responsibility
+\item{team_system}{string: the assumed system that teams are using to assign e.g. passing and hitting responsibilities
 \itemize{
 \item "SHM3" - a setter-hitter-middle rotation, with 3 passers (the libero and two outside hitters)
 }}

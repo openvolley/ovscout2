@@ -97,7 +97,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
 #'
 #' @param nblockers logical: scout the number of blockers on each attack?
 #' @param transition_sets logical: scout sets in transition? If `FALSE`, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted
-#' @param team_system string: the assumed system that teams are using to assign passing responsibility
+#' @param team_system string: the assumed system that teams are using to assign e.g. passing and hitting responsibilities
 #' * "SHM3" - a setter-hitter-middle rotation, with 3 passers (the libero and two outside hitters)
 #'
 #' @return A named list
