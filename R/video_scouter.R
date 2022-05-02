@@ -188,20 +188,19 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                               fluidRow(column(4, offset = 8, uiOutput("rally_state"))),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
                               fluidRow(column(8,
-                                              introBox(actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
+                                              ## some elements commented out for now - BR
+                                              introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
                                               actionButton("edit_match_data_button", "Edit match data", icon = icon("volleyball-ball")),
                                               actionButton("edit_teams_button", "Edit teams", icon = icon("users")),
                                               actionButton("edit_lineup_button", "Edit lineups", icon = icon("arrows-alt-h")), data.step = 3, data.intro = "Click on these action buttons if you want to edit the starting lineups, edit the rosters, or edit the match metadata."),
-                                              uiOutput("save_file_ui", inline = TRUE),
-                                              actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212"))),
+                                              uiOutput("save_file_ui", inline = TRUE)
+                                              )),
                               tags$div(style = "height: 14px;"),
-                              fluidRow(column(5, actionButton("show_shortcuts", tags$span(icon("keyboard"), "Show keyboard shortcuts"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
+                              fluidRow(column(5, actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
+                                              actionButton("show_shortcuts", tags$span(icon("keyboard"), "Show keyboard shortcuts"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
                                               sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1),
-                                              tags$p(tags$strong("Other options")),
-                                              tags$span("Decimal places on video time:"),
-                                              numericInput("video_time_decimal_places", label = NULL, value = 0, min = 0, max = 2, step = 1, width = "6em"),
-                                              uiOutput("show_overlay_ui"),
-                                              uiOutput("vtdp_ui")),
+                                              uiOutput("show_overlay_ui")
+                                              ),
                                        column(7) ## WAS court rotation plot and team rosters
                                        )
                               ),
@@ -1049,6 +1048,37 @@ ov_scouter_server <- function(app_data) {
         observe({
             game_state$home_end <- court_inset$home_team_end()
         })
+
+        ## file save
+        output$save_file_ui <- renderUI({
+            if (is.null(rdata$dvw$plays2)) {
+                NULL
+            } else {
+                downloadButton("save_file_button", "Save file")
+            }
+        })
+        output$save_file_button <- downloadHandler(
+            filename = reactive(
+                if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename)) basename(rdata$dvw$meta$filename) else "myfile.dvw"
+            ),
+            content = function(file) {
+                tryCatch(dv_write2(rdata$dvw, file = file),
+                         error = function(e) {
+                             rds_ok <- FALSE
+                             if (running_locally) {
+                                 ## this only makes sense if running locally, not deployed on a remote server
+                                 tf <- tempfile(fileext = ".rds")
+                                 try({
+                                     saveRDS(rdata$dvw, file = tf)
+                                     rds_ok <- file.exists(tf) && file.size(tf) > 0
+                                 }, silent = TRUE)
+                             }
+                             showModal(modalDialog(title = "Save error",
+                                                   tags$div(class = "alert alert-danger", "Sorry, the save failed. The error message was:", tags$br(), tags$pre(conditionMessage(e)), tags$br(), if (rds_ok) paste0("The edited datavolley object has been saved to ", tf, ". You might be able to recover your edited information from that (contact the package authors for assistance)."))))
+                             NULL
+                         })
+            }
+        )
     }
 }
 
