@@ -422,7 +422,23 @@ ov_scouter_server <- function(app_data) {
                     if (length(mycmd) == 5) {
                         ky <- mycmd[5] ## key pressed, as ASCII code
                         if (debug > 1) cat("key: ", ky, "\n")
-                        if (ky %in% c(90, 122)) {
+                        if (ky %eq% 27) {
+                            ## esc
+                            if (is.null(editing$active) || !editing$active %eq% "teams") {
+                                editing$active <- NULL
+                                removeModal()
+                            }
+                        } else if (ky %eq% 13) {
+                            ## enter
+                            ## if editing, treat as update
+                            if (!is.null(editing$active) && !editing$active %eq% "teams") {
+                                changed <- code_make_change(editing$active, dvw = rdata$dvw, input = input, htdata_edit = htdata_edit(), vtdata_edit = vtdata_edit())
+                                rdata$dvw <- changed$dvw
+                                ## if (changed$do_reparse) ## needed?
+                                editing$active <- NULL
+                            }
+                            ## but not for team editing, because pressing enter in the DT fires this too
+                        } else if (ky %in% c(90, 122)) {
                             ## z
                             ## temporarily hide the modal, so the video can be seen
                             dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
