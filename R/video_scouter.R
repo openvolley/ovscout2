@@ -541,10 +541,6 @@ ov_scouter_server <- function(app_data) {
         vid_to_crt <- function(obj) {
             courtxy <- data.frame(x = rep(NA_real_, length(obj$x)), y = rep(NA_real_, length(obj$x)))
             if (!is.null(app_data$court_ref)) {
-                ##vxy <- c(obj$x, obj$y)
-                ##if (length(vxy) == 2 && !any(is.na(vxy))) {
-                ##    courtxy <- ovideo::ov_transform_points(vxy[1], vxy[2], ref = app_data$court_ref, direction = "to_court")
-                ##}
                 if (length(obj$x) > 0) courtxy <- ovideo::ov_transform_points(obj$x, obj$y, ref = app_data$court_ref, direction = "to_court")
             }
             courtxy
@@ -552,10 +548,6 @@ ov_scouter_server <- function(app_data) {
         crt_to_vid <- function(obj) {
             imagexy <- data.frame(image_x = rep(NA_real_, length(obj$x)), image_y = rep(NA_real_, length(obj$x)))
             if (!is.null(app_data$court_ref)) {
-                ##vxy <- cbind(obj$x, obj$y)
-                ##if (length(vxy) == 2 && !any(is.na(vxy))) {
-                ##    imagexy <- setNames(ovideo::ov_transform_points(vxy[1], vxy[2], ref = app_data$court_ref, direction = "to_image"), c("image_x", "image_y"))
-                ##}
                 if (length(obj$x) > 0) imagexy <- setNames(ovideo::ov_transform_points(obj$x, obj$y, ref = app_data$court_ref, direction = "to_image"), c("image_x", "image_y"))
             }
             imagexy
@@ -583,8 +575,6 @@ ov_scouter_server <- function(app_data) {
         })
         retrieve_video_time <- function(id) {
             if (is_uuid(id)) {
-                ##cat("looking for time with uuid: ", id, "\n")
-                ##cat("available entry uuids: ", paste(names(video_times), collapse = " "), "\n")
                 if (nzchar(id) && id %in% names(video_times)) video_times[[id]] else NA_real_
             } else {
                 id
@@ -619,7 +609,6 @@ ov_scouter_server <- function(app_data) {
                     game_state$start_t <- game_state$current_time_uuid
                     overlay_points(courtxy)
                     ## add placeholder serve code, will get updated on next click
-                    ## serving player TODO also allow pre-input (check) of this
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     ## serve type should have been selected in the preselect
                     st <- if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
@@ -833,7 +822,7 @@ ov_scouter_server <- function(app_data) {
                                             ))
                 } else if (rally_state() == "third contact details") {
                     ## possible values for input$c3 are: an attack code, Freeball
-                    ##                                   "Opp. dig" = "aD", "Opp. overpass attack" = "aPR"
+                    ##    "Opp. dig" = "aD", "Opp. overpass attack" = "aPR"
                     if (input$c3 %in% c("aD", "aPR")) {
                         stop("opposition c3 not coded")
                     } else {
@@ -1064,13 +1053,12 @@ ov_scouter_server <- function(app_data) {
         rally_state <- reactiveVal("click the video to start")
         rally_codes <- reactiveVal(empty_rally_codes)
         temp <- as.list(tail(app_data$dvw$plays2, 1))
-        if (!"serving" %in% names(temp) || is.na(temp$serving)) temp$serving <- "*" ## FIX TODO
+        if (!"serving" %in% names(temp) || is.na(temp$serving)) temp$serving <- "*" ## default to home team serving - maybe allow this as a parm to ov_scouter (maybe TODO)
         temp$current_team <- temp$serving
-##        temp$home_end <- "lower" ## FIX TODO
         temp$start_x <- temp$start_y <- temp$end_x <- temp$end_y <- NA_real_
         temp$current_time_uuid <- ""
         game_state <- do.call(reactiveValues, temp)
-        court_inset$home_team_end("upper") ## init
+        court_inset$home_team_end("upper") ## home team end defaults to upper
 
         observe({
             game_state$home_end <- court_inset$home_team_end()
@@ -1118,6 +1106,7 @@ get_player_serve_type <- function(px, serving_player_num, game_state, opts) {
     chc <- dplyr::filter(opts$skill_tempo_map, .data$skill == "Serve")
     chc <- setNames(chc$tempo_code, chc$tempo)
     out$stype <- do.call(dplyr::recode, c(list(out$skill_type), as.list(chc)))
+    ## was previously hard-coded
     ##out <- mutate(out, stype = case_when(.data$skill_type %eq% "Float serve" ~ "H",
     ##                                     .data$skill_type %eq% "Topspin serve" ~ "T",
     ##                                     .data$skill_type %eq% "Jump-float serve" ~ "M",
@@ -1245,8 +1234,8 @@ get_players <- function(game_state, team, dvw) {
 ##   Team * a
 ##   Number blah
 ##   Skill S R etc but not including T C P etc
-##   - and a text box to enter T, C, P etc
-## - player selection via the court inset, with players shown in their assumed playing locations (? what to do with libero?)
+##   - and text boxes to enter T, C, P etc
+## - player selection via the court inset, with players shown in their assumed playing locations ?
 
 ## default/pre-selected choices:
 ## - serves, guess serve type based on player's previous serves AND/OR time between serve and reception contacts
