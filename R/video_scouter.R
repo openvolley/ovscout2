@@ -104,7 +104,13 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
 #'
 #' @export
 ov_scouter_options <- function(nblockers = TRUE, transition_sets = FALSE, team_system = "SHM3") {
-    list(nblockers = nblockers, transition_sets = transition_sets, team_system = team_system)
+    skill_tempo_map <- tribble(~skill, ~tempo_code, ~tempo,
+                               "Serve", "Q", "Jump serve",
+                               "Serve", "M", "Jump-float serve",
+                               "Serve", "H", "Float serve",
+                               "Serve", "T", "Topspin serve")
+    ## or (some) beach conventions are T=jump-float, H=standing; VM use H=float far from the service line and T=float from the service line
+    list(nblockers = nblockers, transition_sets = transition_sets, team_system = team_system, skill_tempo_map = skill_tempo_map)
 }
 
 ov_scouter_ui <- function(app_data) {
@@ -194,8 +200,10 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                               introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
                                               actionButton("edit_match_data_button", "Edit match data", icon = icon("volleyball-ball")),
                                               actionButton("edit_teams_button", "Edit teams", icon = icon("users")),
-                                              actionButton("edit_lineup_button", "Edit lineups", icon = icon("arrows-alt-h")), data.step = 3, data.intro = "Click on these action buttons if you want to edit the starting lineups, edit the rosters, or edit the match metadata."),
-                                              uiOutput("save_file_ui", inline = TRUE)
+                                              actionButton("edit_lineup_button", "Edit lineups", icon = icon("arrows-alt-h")),
+                                              uiOutput("switch_serving_ui", inline = TRUE),
+                                              uiOutput("save_file_ui", inline = TRUE),
+                                              data.step = 3, data.intro = "Click on these action buttons if you want to edit the starting lineups, edit the rosters, or edit the match metadata.")
                                               )),
                               tags$div(style = "height: 14px;"),
                               fluidRow(column(5, actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
@@ -263,6 +271,19 @@ ov_scouter_server <- function(app_data) {
             }
             ## and clear the clicked coordinates queue
             court_inset$clear_click_queue()
+        })
+
+        output$switch_serving_ui <- renderUI({
+            if (rally_state() %in% c("click the video to start", "click serve start")) {
+                actionButton("switch_serving", "Switch serving team")
+            } else {
+                ## can't switch serving team once the rally has started
+                NULL
+            }
+        })
+        observeEvent(input$switch_serving, {
+            game_state$serving <- other(game_state$serving)
+            game_state$current_team <- game_state$serving
         })
 
         plays_do_rename <- function(z) names_first_to_capital(dplyr::rename(z, plays_col_renames))
@@ -544,7 +565,7 @@ ov_scouter_server <- function(app_data) {
         loop_trigger <- reactiveVal(0L)
         observeEvent(input$video_click, {
             ## when video clicked, get the corresponding video time and trigger the loop
-            flash_screen()
+            flash_screen() ## visual indicator that click has registered
             time_uuid <- uuid()
             game_state$current_time_uuid <- time_uuid
             do_video("get_time_fid", time_uuid) ## make asynchronous request
@@ -620,7 +641,9 @@ ov_scouter_server <- function(app_data) {
                     pass_pl_opts$choices <- c(pass_pl_opts$choices, Unknown = "Unknown")
 
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
-                    serve_type_buttons <- make_fat_radio_buttons(choices = c(Jump = "Q", "Jump-float" = "M", Float = "H", Topspin = "T"),
+                    chc <- app_data$options$skill_tempo_map %>% dplyr::filter(.data$skill == "Serve") %>% mutate(tempo = sub(" serve", "", .data$tempo))
+                    chc <- setNames(chc$tempo_code, chc$tempo)
+                    serve_type_buttons <- make_fat_radio_buttons(choices = chc,
                                                                  selected = input$serve_preselect_type,
                                                                  input_var = "serve_type", style = "width:100%; height:7vh;")
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "select_passer", style = "width:100%; height:7vh;")
@@ -1023,9 +1046,11 @@ ov_scouter_server <- function(app_data) {
                 other_sp <- get_players(game_state, team = game_state$serving, dvw = rdata$dvw)
                 serve_player_buttons <- make_fat_radio_buttons(choices = c(sp, setdiff(other_sp, sp)), selected = sp, input_var = "serve_preselect_player", style = "width:100%; height:7vh;")
                 ## default serve type is either the most common serve type by this player, or the default serve type
-                st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state)
+                st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state, opts = app_data$options)
                 if (is.na(st_default)) st_default <- app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
-                serve_type_buttons <- make_fat_radio_buttons(choices = c(Jump = "Q", "Jump-float" = "M", Float = "H", Topspin = "T"), selected = st_default, input_var = "serve_preselect_type", style = "width:100%; height:7vh;")
+                chc <- app_data$options$skill_tempo_map %>% dplyr::filter(.data$skill == "Serve") %>% mutate(tempo = sub(" serve", "", .data$tempo))
+                chc <- setNames(chc$tempo_code, chc$tempo)
+                serve_type_buttons <- make_fat_radio_buttons(choices = chc, selected = st_default, input_var = "serve_preselect_type", style = "width:100%; height:7vh;")
                 output$serve_preselect <- renderUI(
                     tags$div(tags$strong("Serve type:"), do.call(fixedRow, lapply(serve_type_buttons$buttons, function(but) column(2, but))),
                              tags$strong("Serve player:"), do.call(fixedRow, lapply(serve_player_buttons$buttons, function(but) column(2, but))))
@@ -1086,13 +1111,17 @@ ov_scouter_server <- function(app_data) {
 
 ## a player's most common serve type
 ## px is a plays object
-get_player_serve_type <- function(px, serving_player_num, game_state) {
+get_player_serve_type <- function(px, serving_player_num, game_state, opts) {
     if (is.null(px)) return(NA_character_)
     out <- dplyr::select(dplyr::filter(px, .data$skill %eq% "Serve" & .data$team == game_state$serving & .data$player_number %eq% serving_player_num), .data$skill_type)
-    out <- mutate(out, stype = case_when(.data$skill_type %eq% "Float serve" ~ "H",
-                                         .data$skill_type %eq% "Topspin serve" ~ "T",
-                                         .data$skill_type %eq% "Jump-float serve" ~ "M",
-                                         .data$skill_type %eq% "Jump serve" ~ "Q"))
+    ## reverse-map serve description to code, e.g. Jump serve back to "Q"
+    chc <- dplyr::filter(opts$skill_tempo_map, .data$skill == "Serve")
+    chc <- setNames(chc$tempo_code, chc$tempo)
+    out$stype <- do.call(dplyr::recode, c(list(out$skill_type), as.list(chc)))
+    ##out <- mutate(out, stype = case_when(.data$skill_type %eq% "Float serve" ~ "H",
+    ##                                     .data$skill_type %eq% "Topspin serve" ~ "T",
+    ##                                     .data$skill_type %eq% "Jump-float serve" ~ "M",
+    ##                                     .data$skill_type %eq% "Jump serve" ~ "Q"))
     out <- dplyr::arrange(dplyr::count(out, .data$stype), desc(.data$n))
     if (nrow(out) > 0) out$stype[1] else NA_character_
 }
@@ -1492,6 +1521,13 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, styling, wi
 ##                p <- p + geom_point(data = click_points$queue, shape = 16) +
 ##                    geom_path(data = click_points$queue, linetype = "dashed", colour = "black", arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
 ##            }
+            ## add the serving team indicator
+            temp <- court_circle(cz = 1, r = 0.2, end = "upper")
+            temp$y <- temp$y + 0.75 ## shift to behind baseline
+            p <- p + geom_polygon(data = temp, fill = if (gs$serving %eq% "a") "white" else NA, colour = "black")
+            temp <- court_circle(cz = 1, r = 0.2, end = "lower")
+            temp$y <- temp$y - 0.75 ## shift to behind baseline
+            p <- p + geom_polygon(data = temp, fill = if (gs$serving %eq% "*") "white" else NA, colour = "black")
             if (court_inset_home_team_end() != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
 ##            if (gs$home_end != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
         }
