@@ -1236,6 +1236,7 @@ get_players <- function(game_state, team, dvw) {
 ##   Skill S R etc but not including T C P etc
 ##   - and text boxes to enter T, C, P etc
 ## - player selection via the court inset, with players shown in their assumed playing locations ?
+## - allow starting libero to be specified in the lineup, and that libero shown first in selections by default
 
 ## default/pre-selected choices:
 ## - serves, guess serve type based on player's previous serves AND/OR time between serve and reception contacts
@@ -1248,12 +1249,13 @@ get_players <- function(game_state, team, dvw) {
 player_nums_to <- function(nums, team, dvw, to = "number lastname") {
     to <- match.arg(to, c("name", "number lastname"))
     temp_players <- if (team == "*") dvw$meta$players_h else if (team == "a") dvw$meta$players_v else stop("team should be '*' or 'a'")
-    temp <- left_join(tibble(number = nums), temp_players[, c("number", if (to == "name") "name", if (to == "number lastname") "lastname")], by = "number")
+    temp <- left_join(tibble(number = nums), temp_players[, c("number", if (to == "name") "name", if (to == "number lastname") "lastname", "special_role")], by = "number")
     if (to == "name") {
         temp$name[is.na(temp$name)] <- ""
         temp$name
     } else if (to == "number lastname") {
         temp$lastname[is.na(temp$lastname)] <- ""
+        temp$lastname[temp$special_role %eq% "L"] <- paste0(temp$lastname[temp$special_role %eq% "L"], " (L)")
         paste(temp$number, temp$lastname, sep = "<br />")
     } else {
         character()
