@@ -6,6 +6,7 @@
 #' @param start_point_id vector: vector of pointids for which to return the rotation
 #' @param set_number value: Set number
 #' @param new_rotation vector: vector of player number, positioned from 1 to 6.
+#' @param new_rotation_id vector: vector of player IDs, positioned from 1 to 6.
 #'
 #' @return list of 2 data.frames. Current data.frame, without changes, and updated data.frame, with new player rotation. 
 #'

@@ -16,6 +16,8 @@ rotations(x, team, start_point_id, set_number, new_rotation, new_rotation_id)
 \item{set_number}{value: Set number}
 
 \item{new_rotation}{vector: vector of player number, positioned from 1 to 6.}
+
+\item{new_rotation_id}{vector: vector of player IDs, positioned from 1 to 6.}
 }
 \value{
 list of 2 data.frames. Current data.frame, without changes, and updated data.frame, with new player rotation.

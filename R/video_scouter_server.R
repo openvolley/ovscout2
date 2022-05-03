@@ -856,8 +856,9 @@ ov_scouter_server <- function(app_data) {
                 tryCatch(dv_write2(rdata$dvw, file = file),
                          error = function(e) {
                              rds_ok <- FALSE
-                             if (running_locally) {
+                             if (!nzchar(Sys.getenv("SHINY_PORT"))) {
                                  ## this only makes sense if running locally, not deployed on a remote server
+                                 ## if no port defined, assumed running under shiny within R, not under shiny server
                                  tf <- tempfile(fileext = ".rds")
                                  try({
                                      saveRDS(rdata$dvw, file = tf)

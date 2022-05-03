@@ -25,7 +25,6 @@ Imports:
     lubridate,
     ovideo (>= 0.0.5),
     rintrojs,
-    rlang,
     servr (>= 0.15.1),
     shiny,
     shinyTime,

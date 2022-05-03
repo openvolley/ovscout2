@@ -17,7 +17,7 @@ get_player_serve_type <- function(px, serving_player_num, game_state, opts) {
 }
 
 make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
-    pseq <- seq_len(if (dv_is_beach(x)) 2L else 6L)
+    pseq <- seq_len(if (dv_is_beach(dvw)) 2L else 6L)
     if (is.data.frame(rally_codes)) {
         codes <- codes_from_rc_rows(rally_codes)
         start_coord <- dv_xy2index(as.numeric(rally_codes$start_x), as.numeric(rally_codes$start_y))
@@ -166,7 +166,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
         passing_responsibility_prior[passing_responsibility] <- 1
 
         ## Update the probability with the history of the game
-        passing_history <- dplyr::filter(dvw$plays, skill %eq% "Reception",
+        passing_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Reception",
                                          .data$visiting_setter_position %eq% as.character(passing_rot),
                                          .data$end_zone %eq% passing_zone,
                                          .data$team %eq% "a")
@@ -197,7 +197,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
 
         # Update the probability with the history of the game
 
-        passing_history <- dplyr::filter(dvw$plays, skill %eq% "Reception",
+        passing_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Reception",
                                          .data$home_setter_position %eq% as.character(passing_rot),
                                          .data$end_zone %eq% passing_zone,
                                          .data$team %eq% "*")
