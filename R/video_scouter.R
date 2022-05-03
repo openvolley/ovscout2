@@ -1093,7 +1093,7 @@ get_player_serve_type <- function(px, serving_player_num, game_state) {
                                          .data$skill_type %eq% "Topspin serve" ~ "T",
                                          .data$skill_type %eq% "Jump-float serve" ~ "M",
                                          .data$skill_type %eq% "Jump serve" ~ "Q"))
-    out <- dplyr::arrange(dplyr::count(out, .data$stype), .data$n)
+    out <- dplyr::arrange(dplyr::count(out, .data$stype), desc(.data$n))
     if (nrow(out) > 0) out$stype[1] else NA_character_
 }
 
