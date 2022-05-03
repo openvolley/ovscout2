@@ -1,0 +1,296 @@
+## a player's most common serve type
+## px is a plays object
+get_player_serve_type <- function(px, serving_player_num, game_state, opts) {
+    if (is.null(px)) return(NA_character_)
+    out <- dplyr::select(dplyr::filter(px, .data$skill %eq% "Serve" & .data$team == game_state$serving & .data$player_number %eq% serving_player_num), .data$skill_type)
+    ## reverse-map serve description to code, e.g. Jump serve back to "Q"
+    chc <- dplyr::filter(opts$skill_tempo_map, .data$skill == "Serve")
+    chc <- setNames(chc$tempo_code, chc$tempo)
+    out$stype <- do.call(dplyr::recode, c(list(out$skill_type), as.list(chc)))
+    ## was previously hard-coded
+    ##out <- mutate(out, stype = case_when(.data$skill_type %eq% "Float serve" ~ "H",
+    ##                                     .data$skill_type %eq% "Topspin serve" ~ "T",
+    ##                                     .data$skill_type %eq% "Jump-float serve" ~ "M",
+    ##                                     .data$skill_type %eq% "Jump serve" ~ "Q"))
+    out <- dplyr::arrange(dplyr::count(out, .data$stype), desc(.data$n))
+    if (nrow(out) > 0) out$stype[1] else NA_character_
+}
+
+make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
+    pseq <- seq_len(if (dv_is_beach(x)) 2L else 6L)
+    if (is.data.frame(rally_codes)) {
+        codes <- codes_from_rc_rows(rally_codes)
+        start_coord <- dv_xy2index(as.numeric(rally_codes$start_x), as.numeric(rally_codes$start_y))
+        end_coord <- dv_xy2index(as.numeric(rally_codes$end_x), as.numeric(rally_codes$end_y))
+        vt <- rally_codes$t
+    } else {
+        ## rally_codes are just char, which means that these aren't skill codes, they are auto codes (position codes or similar)
+        codes <- rally_codes
+        start_coord <- end_coord <- NA_integer_
+        vt <- NA_real_
+    }
+    if (rally_ended) {
+        assert_that(game_state$point_won_by %in% c("*", "a"))
+        ## add green codes if needed
+        ## add the [*a]pXX:YY code at the end of the rally
+        scores_end_of_point <- c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point) + as.integer(c(game_state$point_won_by == "*", game_state$point_won_by == "a"))
+        pcode <- paste0(game_state$point_won_by, "p", sprintf("%02d:%02d", scores_end_of_point[1], scores_end_of_point[2]))
+        codes <- make_auto_codes(c(codes, pcode), dvw)
+        if (length(start_coord) > 1 || !is.na(start_coord)) {
+            ## we've added entries to code, so we need to add dummy (NA) coord and video time values as well
+            n_extra <- length(codes) - nrow(rally_codes)
+            start_coord <- c(start_coord, rep(NA_integer_, n_extra))
+            end_coord <- c(end_coord, rep(NA_integer_, n_extra))
+            vt <- c(vt, rep(NA_real_, n_extra))
+        }
+    }
+    ##cat("codes: "); print(codes)
+
+    out <- tibble(code = codes, ## col 1
+                  point_phase = NA_character_, ## col 2
+                  attack_phase = NA_character_, ## col 3
+##                  X4 = NA, ## col 4
+                  start_coordinate = start_coord, mid_coordinate = NA_integer_, end_coordinate = end_coord, ## cols 5-7
+                  time = time_but_utc(), ## col 8
+                  set_number = game_state$set_number, home_setter_position = game_state$home_setter_position, visiting_setter_position = game_state$visiting_setter_position, ## cols 9-11, NB these 3 not used directly in dv_read
+                  video_file_number = NA, video_time = vt, ## cols 12-13
+  ##                X14 = NA, ## col 14
+                  home_score_start_of_point = game_state$home_score_start_of_point,
+                  visiting_score_start_of_point = game_state$visiting_score_start_of_point,
+                  serving = game_state$serving)
+    out <- bind_cols(out, as.data.frame(reactiveValuesToList(game_state)[paste0("home_p", pseq)]))
+    bind_cols(out, as.data.frame(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
+}
+
+plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
+    pseq <- if (is_beach(dvw)) 1:2 else 1:6
+    out <- datavolley:::parse_code(plays2$code, meta = dvw$meta, evaluation_decoder = evaluation_decoder, file_type = if (is_beach(dvw)) "beach" else "indoor")$plays
+    out$home_setter_position <- plays2$home_setter_position
+    out$visiting_setter_position <- plays2$visiting_setter_position
+    out$home_team_score <- plays2$home_score_start_of_point ## TODO FIX
+    out$visiting_team_score <- plays2$visiting_score_start_of_point ## TODO FIX
+  ##code team player_number player_name player_id skill skill_type evaluation_code evaluation attack_code
+  ##attack_description set_code set_description set_type start_zone end_zone end_subzone end_cone skill_subtype num_players
+  ##num_players_numeric special_code timeout end_of_set substitution point home_team_score visiting_team_score
+  ##home_setter_position visiting_setter_position custom_code file_line_number
+    out$phase <- datavolley::play_phase(out)
+    out$set_number <- plays2$set_number
+    out$video_time <- plays2$video_time
+    out$error_icon <- ""##ifelse(is.na(x$plays$error_message), "", HTML(as.character(shiny::icon("exclamation-triangle"))))
+    bind_cols(out, plays2[, c(paste0("home_p", pseq), paste0("visiting_p", pseq))])
+}
+
+is_beach <- function(dvw) isTRUE(grepl("beach", dvw$meta$match$regulation))
+zpn <- function(n) sprintf("%02d", as.numeric(n))
+other <- function(tm) { oth <- rep(NA_character_, length(tm)); oth[tm %eq% "*"] <- "a"; oth[tm %eq% "a"] <- "*"; oth }
+##other <- function(tm) c("a", "*")[as.numeric(factor(tm, levels = c("*", "a")))]
+
+empty_rally_codes <- tibble(code = character(), t = numeric(), start_x = numeric(), start_y = numeric(), end_x = numeric(), end_y = numeric())
+print_rally_codes <- function(rc) {
+    tr <- function(z) tryCatch(round(z, 1), error = function(e) z)
+    rc$code <- codes_from_rc_rows(rc)
+    do.call(cat, c(lapply(seq_len(nrow(rc)), function(i) paste0(rc$code[i], ", t=", tr(rc$t[i]), ", start x=", tr(rc$start_x[i]), ", y=", tr(rc$start_y[i]), ", end x=", tr(rc$end_x[i]), ", y=", tr(rc$end_y[i]))), list(sep = "\n")))
+}
+codes_from_rc_rows <- function(rc) sub("~+$", "", paste0(rc$team, rc$pnum, rc$skill, rc$tempo, rc$eval, rc$combo, rc$target, rc$sz, rc$ez, rc$esz, rc$x_type, rc$num_p, rc$special, rc$custom))
+
+get_setter_pos <- function(game_state, team) {
+    if (missing(team)) team <- game_state$current_team
+    if (team == "*") game_state$home_setter_position else if (team == "a") game_state$visiting_setter_position else NA_integer_
+}
+
+get_setter <- function(game_state, team) {
+    pseq <- 1:6 ## indoor only
+    if (missing(team)) team <- game_state$current_team
+    if (team == "*") {
+        as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)])[game_state$home_setter_position]
+    } else if (team == "a") {
+        as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)])[game_state$visiting_setter_position]
+    } else {
+        0L
+    }
+}
+
+get_liberos <- function(game_state, team, dvw) {
+    if (missing(team)) team <- game_state$current_team
+    if (is_beach(dvw)) c() else if (team == "*") dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"] else if (team == "a") dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"] else c()
+}
+
+get_players <- function(game_state, team, dvw) {
+    pseq <- if (is_beach(dvw)) 1:2 else 1:6
+    if (missing(team)) team <- game_state$current_team
+    if (team == "*") {
+        as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)])
+    } else if (team == "a") {
+        as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)])
+    } else {
+        0L
+    }
+}
+
+player_nums_to <- function(nums, team, dvw, to = "number lastname") {
+    to <- match.arg(to, c("name", "number lastname"))
+    temp_players <- if (team == "*") dvw$meta$players_h else if (team == "a") dvw$meta$players_v else stop("team should be '*' or 'a'")
+    temp <- left_join(tibble(number = nums), temp_players[, c("number", if (to == "name") "name", if (to == "number lastname") "lastname", "special_role")], by = "number")
+    if (to == "name") {
+        temp$name[is.na(temp$name)] <- ""
+        temp$name
+    } else if (to == "number lastname") {
+        temp$lastname[is.na(temp$lastname)] <- ""
+        temp$lastname[temp$special_role %eq% "L"] <- paste0(temp$lastname[temp$special_role %eq% "L"], " (L)")
+        paste(temp$number, temp$lastname, sep = "<br />")
+    } else {
+        character()
+    }
+}
+
+## return a list of the possible passing players, and our guess of the most likely passer
+## First, we identify the rotation, and check if passing has occured in the past from a serve at that location.
+## If yes, the passer (currently on court) with the most receptions will be proposed in priority.
+## If no, we assume S-H-M rotation, and articulate the 3-player passing line with each taking left-middle-right channel.
+guess_pass_player_options <- function(game_state, dvw, system) {
+    beach <- is_beach(dvw)
+    pseq <- if (beach) 1:2 else 1:6
+    if (game_state$serving %eq% "*") {
+        passing_team <- "a"
+        passing_rot <- game_state$visiting_setter_position
+        passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
+        libs <- if (beach) c() else dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
+
+        # Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
+        passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception",
+                                                           setter_position = passing_rot,
+                                                           zone = passing_zone, libs = libs, home_visiting = "visiting")
+
+
+        passing_responsibility_prior <- setNames(rep(0, 7), c(paste0("visiting_p",1:6),"libero"))
+        passing_responsibility_prior[passing_responsibility] <- 1
+
+        ## Update the probability with the history of the game
+        passing_history <- dplyr::filter(dvw$plays, skill %eq% "Reception",
+                                         .data$visiting_setter_position %eq% as.character(passing_rot),
+                                         .data$end_zone %eq% passing_zone,
+                                         .data$team %eq% "a")
+
+        passing_responsibility_posterior <- passing_responsibility_prior
+        if(nrow(passing_history)>0){
+          passing_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(passing_history, "team", "player_number", paste0("visiting_p",1:6)), cols = paste0("visiting_p",1:6)), .data$value %eq% .data$player_number), .data$name), n_reception = dplyr::n()))
+          passing_responsibility_posterior[passing_history$name] <- passing_responsibility_prior[passing_history$name] + passing_history$n_reception
+          passing_responsibility_posterior <-  passing_responsibility_posterior / sum(passing_responsibility_posterior)
+        }
+        plsel_tmp <- names(sort(passing_responsibility_posterior, decreasing = TRUE))
+
+        poc <- paste0("visiting_p", pseq) ## players on court
+    } else if (game_state$serving %eq% "a") {
+        passing_team <- "*"
+        passing_rot <- game_state$home_setter_position
+        passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
+        libs <- if (beach) c() else dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"]
+
+        # Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
+        passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception",
+                                                           setter_position = passing_rot,
+                                                           zone = passing_zone, libs = libs, home_visiting = "home")
+
+
+        passing_responsibility_prior <- setNames(rep(0, 7), c(paste0("home_p",1:6),"libero"))
+        passing_responsibility_prior[passing_responsibility] <- 1
+
+        # Update the probability with the history of the game
+
+        passing_history <- dplyr::filter(dvw$plays, skill %eq% "Reception",
+                                         .data$home_setter_position %eq% as.character(passing_rot),
+                                         .data$end_zone %eq% passing_zone,
+                                         .data$team %eq% "*")
+
+        passing_responsibility_posterior <- passing_responsibility_prior
+        if(nrow(passing_history)>0){
+          passing_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(passing_history, "team", "player_number",
+                                                                                                                             paste0("home_p",1:6)), cols = paste0("home_p",1:6)),
+                                                                                           .data$value %eq% .data$player_number), .data$name), n_reception = dplyr::n()))
+          passing_responsibility_posterior[passing_history$name] <- passing_responsibility_prior[passing_history$name] + passing_history$n_reception
+          passing_responsibility_posterior <-  passing_responsibility_posterior / sum(passing_responsibility_posterior)
+        }
+        plsel_tmp <- names(sort(passing_responsibility_posterior, decreasing = TRUE))
+
+
+        poc <- paste0("home_p", pseq) ## players on court
+    } else {
+        return(list(choices = numeric(), selected = c()))
+    }
+    pp <- c(as.numeric(reactiveValuesToList(game_state)[poc]), libs)
+    plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(reactiveValuesToList(game_state)[plsel_tmp[1]])
+    ## passing player guess based on reception xy c(game_state$end_x, game_state$end_y), rotation, and assumed passing system
+    ## for now, either the first libero or last player in pp
+    list(choices = pp, selected = plsel)
+}
+
+guess_pass_quality <- function(game_state, dvw) {
+    if (is_beach(dvw)) {
+        ## TODO
+        cat("beach, defaulting to '+' pass quality\n")
+        return("+")
+    }
+    ## reference clicks to lower court
+    do_flip_click <- (game_state$current_team == "*" && game_state$home_end == "upper") || (game_state$current_team == "a" && game_state$home_end == "lower")
+    thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
+    ## sets use "start" coordinates but "end" zone/subzone
+    esz <- paste(dv_xy2subzone(game_state$start_x, game_state$start_y), collapse = "")
+    ## TODO account for time since previous contact, and better boundaries here
+    out <- if (thisxy[2] > 3.5) {
+        "/" ## overpass
+    } else if (thisxy[2] >= 3 & thisxy[1] >= 2  & thisxy[1] <= 3) {
+        "#"
+    } else if (thisxy[2] >= 3.25 & thisxy[1] >= 1.5  & thisxy[1] <= 3) {
+        "+"
+    } else if (thisxy[2] > 2.25 & thisxy[1] >= 1 & thisxy[1] <= 3.5) {
+        "!"
+    } else {
+        "-"
+    }
+    cat("guessed pass quality: ", out, "\n")
+    out
+}
+
+guess_attack_code <- function(game_state, dvw) {
+    atbl <- dvw$meta$attacks
+    do_flip_click <- (game_state$current_team == "*" && game_state$home_end == "upper") || (game_state$current_team == "a" && game_state$home_end == "lower")
+    thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
+    d <- sqrt((atbl$start_x - thisxy[1])^2 + (atbl$start_y - thisxy[2])^2)
+    ## if setter is back row, slides are unlikely
+    if (get_setter_pos(game_state) %in% c(5, 6, 1)) {
+        d[grepl("Slide ", atbl$description)] <- d[grepl("Slide ", atbl$description)] + 0.5 ## penalty. Hard-coding "Slide" is not great, could also look for type = "N" but some scouts use this for non-slides. TODO FIX
+        ## also back-row right side is less likely than front-row right side if setter is back row
+        d[atbl$attacker_position %eq% 9] <- d[atbl$attacker_position %eq% 9] + 0.5
+    }
+    ## TODO also incorporate set -> attack contact time and distance, to infer tempo
+    d[is.na(d)] <- Inf
+    ac <- head(atbl$code[order(d)], 5)
+    for (i in head(seq_along(ac), -1)) {
+        ## swap e.g. V5 X5 so that X5 is first
+        if (substr(ac[i], 2, 2) == substr(ac[i+1], 2, 2) && grepl("^V", ac[i]) && grepl("^X", ac[i+1])) ac[c(i, i+1)] <- ac[c(i+1, i)]
+    }
+    ac
+}
+
+## returns a list with components
+##  buttons: a list of button tags
+##  js: if radio = TRUE, the js needed to make radio-style behaviour and to set the initial choice
+make_fat_radio_buttons <- function(...) make_fat_buttons(..., as_radio = TRUE)
+make_fat_buttons <- function(choices, selected, input_var, extra_class = c(), as_radio = FALSE, ...) {
+    if (length(choices) < 1) return(NULL)
+    if (length(names(choices)) < 1) names(choices) <- choices
+    cls <- uuid()
+    ids <- uuid(n = length(choices))
+    ## the actual buttons
+    selected <- if (missing(selected)) 1L else if (selected %in% choices) which(choices == selected) else if (selected %in% names(choices)) which(names(choices) == selected) else if (!is.na(selected)) 1L
+    clickfun <- if (as_radio) paste0("console.log('clicked'); $('.", cls, "').removeClass('active'); $(this).addClass('active');")##, if (!is.na(selected)) paste0(" $('#", ids[selected], "').click();"))
+                else NULL
+    buts <- lapply(seq_along(choices), function(i) tags$button(class = paste(c("btn", "btn-default", "fatradio", cls, extra_class, if (i %eq% selected && as_radio) "active"), collapse = " "), id = ids[i], HTML(names(choices)[i]), onclick = paste0(clickfun, " Shiny.setInputValue('", input_var, "', '", choices[[i]], "', {priority: 'event'})"), ...))
+    if (!is.na(selected) && as_radio) {
+        ##cat("setting selected:\n")
+        thisjs <- paste0("Shiny.setInputValue(\"", input_var, "\", \"", choices[[selected]], "\")")
+        ##cat(thisjs,"\n")
+        dojs(thisjs)
+    }
+    list(buttons = buts)##, js = if (as_radio) paste0("$('.", cls, "').click(function(e) { $('.", cls, "').removeClass('active'); $(this).addClass('active'); });", if (!is.na(selected)) paste0(" $('#", ids[selected], "').click();")) else NULL)
+}
