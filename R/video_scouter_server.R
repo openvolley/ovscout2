@@ -616,11 +616,17 @@ ov_scouter_server <- function(app_data) {
                     ## popup
                     ac <- c(guess_attack_code(game_state, dvw = rdata$dvw), "Other attack")
                     c3_buttons <- make_fat_radio_buttons(choices = c(setNames(ac, ac), c("Opp. dig" = "aD", "Opp. overpass attack" = "aPR")), input_var = "c3", style = "width:100%; height:7vh;")
-                    ap <- get_players(game_state, dvw = rdata$dvw)
+                    #ap <- get_players(game_state, dvw = rdata$dvw)
+
+                    attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
+
+                    ap <- attack_pl_opts$choices
+
                     ## TODO default selection better based on rotation
                     names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
                     ap <- c(ap, Unknown = "Unknown")
-                    attacker_buttons <- make_fat_radio_buttons(choices = ap, input_var = "c3_player", style = "width:100%; height:7vh;")
+
+                    attacker_buttons <- make_fat_radio_buttons(choices = ap, selected = attack_pl_opts$selected, input_var = "c3_player", style = "width:100%; height:7vh;")
                     if (isTRUE(app_data$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3), input_var = "nblockers", style = "width:100%; height:7vh;")
                     ## attack error, blocked, replay will be scouted on next entry
                     ## TODO other special codes ?
@@ -693,10 +699,20 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(courtxy)
                     ## popup
                     c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill" = "A#", "Attack error" = "A=", "Dig" = "D", "Dig error" = "D="), input_var = "c1", style = "width:100%; height:7vh;")
-                    digp <- c(get_players(game_state, dvw = rdata$dvw), get_liberos(game_state, dvw = rdata$dvw)) ## TODO better based on rotation
+
+                    # Identify defending players
+
+                    dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
+
+                    digp <- dig_pl_opts$choices
+
                     names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
                     digp <- c(digp, Unknown = "Unknown")
-                    dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = "Unknown", input_var = "c1_dig_player", style = "width:100%; height:7vh;")
+
+                    # digp <- c(get_players(game_state, dvw = rdata$dvw), get_liberos(game_state, dvw = rdata$dvw)) ## TODO better based on rotation
+                    # names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
+                    # digp <- c(digp, Unknown = "Unknown")
+                    dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "c1_dig_player", style = "width:100%; height:7vh;")
                     showModal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack outcome:")),
                                             do.call(fixedRow, lapply(c1_buttons$buttons[1:2], function(but) column(2, but))),

@@ -212,7 +212,6 @@ guess_pass_player_options <- function(game_state, dvw, system) {
         }
         plsel_tmp <- names(sort(passing_responsibility_posterior, decreasing = TRUE))
 
-
         poc <- paste0("home_p", pseq) ## players on court
     } else {
         return(list(choices = numeric(), selected = c()))
@@ -251,6 +250,77 @@ guess_pass_quality <- function(game_state, dvw) {
     out
 }
 
+## return a list of the possible attacking players, and our guess of the most likely attacker
+## First, we identify the rotation, and check if attacking has occurred in the past from that location / rotation.
+## If yes, the attacker (currently on court) with the most attacks will be proposed in priority.
+## If no, we assume S-H-M rotation, and articulate the 4-player attacking system (front-left, front-middle, front-or-back-right, back-middle).
+guess_attack_player_options <- function(game_state, dvw, system) {
+  beach <- is_beach(dvw)
+  pseq <- if (beach) 1:2 else 1:6
+  if (game_state$current_team %eq% "*") {
+    attacking_team <- game_state$current_team
+    setter_rot <- game_state$home_setter_position
+    attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
+    #libs <- if (beach) c() else dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
+
+    # Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+    attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack",
+                                                       setter_position = setter_rot,
+                                                       zone = attacking_zone, libs = libs, home_visiting = "home")
+
+
+    attacking_responsibility_prior <- setNames(rep(0, 6), c(paste0("home_p",1:6)))
+    attacking_responsibility_prior[attacking_responsibility] <- 1
+
+    ## Update the probability with the history of the game
+    attacking_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Attack",
+                                     .data$home_setter_position %eq% as.character(setter_rot),
+                                     .data$start_zone %eq% attacking_zone,
+                                     .data$team %eq% "*")
+
+    attacking_responsibility_posterior <- attacking_responsibility_prior
+    if(nrow(attacking_history)>0){
+      attacking_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(attacking_history, "team", "player_number", paste0("home_p",1:6)), cols = paste0("home_p",1:6)), .data$value %eq% .data$player_number), .data$name), n_attacks = dplyr::n()))
+      attacking_responsibility_posterior[attacking_history$name] <- attacking_responsibility_prior[attacking_history$name] + attacking_history$n_attacks
+      attacking_responsibility_posterior <-  attacking_responsibility_posterior / sum(attacking_responsibility_posterior)
+    }
+    poc <- names(sort(attacking_responsibility_posterior, decreasing = TRUE))
+  } else if (game_state$current_team %eq% "a") {
+    attacking_team <- game_state$current_team
+    setter_rot <- game_state$visiting_setter_position
+    attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
+    #libs <- if (beach) c() else dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
+
+    # Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+    attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack",
+                                                         setter_position = setter_rot,
+                                                         zone = attacking_zone, libs = libs, home_visiting = "visiting")
+
+
+    attacking_responsibility_prior <- setNames(rep(0, 6), c(paste0("visiting_p",1:6)))
+    attacking_responsibility_prior[attacking_responsibility] <- 1
+
+    ## Update the probability with the history of the game
+    attacking_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Attack",
+                                       .data$visiting_setter_position %eq% as.character(setter_rot),
+                                       .data$start_zone %eq% attacking_zone,
+                                       .data$team %eq% "*")
+
+    attacking_responsibility_posterior <- attacking_responsibility_prior
+    if(nrow(attacking_history)>0){
+      attacking_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(attacking_history, "team", "player_number", paste0("visiting_p",1:6)), cols = paste0("visiting_p",1:6)), .data$value %eq% .data$player_number), .data$name), n_attacks = dplyr::n()))
+      attacking_responsibility_posterior[attacking_history$name] <- attacking_responsibility_prior[attacking_history$name] + attacking_history$n_attacks
+      attacking_responsibility_posterior <-  attacking_responsibility_posterior / sum(attacking_responsibility_posterior)
+    }
+    poc <- names(sort(attacking_responsibility_posterior, decreasing = TRUE))
+  } else {
+    return(list(choices = numeric(), selected = c()))
+  }
+  pp <- as.numeric(reactiveValuesToList(game_state)[poc])
+  plsel <- as.numeric(reactiveValuesToList(game_state)[poc[1]])
+  list(choices = pp, selected = plsel)
+}
+
 guess_attack_code <- function(game_state, dvw) {
     atbl <- dvw$meta$attacks
     do_flip_click <- (game_state$current_team == "*" && game_state$home_end == "upper") || (game_state$current_team == "a" && game_state$home_end == "lower")
@@ -270,6 +340,85 @@ guess_attack_code <- function(game_state, dvw) {
         if (substr(ac[i], 2, 2) == substr(ac[i+1], 2, 2) && grepl("^V", ac[i]) && grepl("^X", ac[i+1])) ac[c(i, i+1)] <- ac[c(i+1, i)]
     }
     ac
+}
+
+
+
+## return a list of the possible digging players, and our guess of the most likely defender
+## First, we identify the rotation, and check if defense has occurred in the past from that location / rotation & opp attack
+## If yes, the defender (currently on court) with the most digs will be proposed in priority.
+## If no, we assume S-H-M rotation, and articulate the perimeter defense system.
+guess_dig_player_options <- function(game_state, dvw, system) {
+  beach <- is_beach(dvw)
+  pseq <- if (beach) 1:2 else 1:6
+  if (game_state$current_team %eq% "a") {
+    defending_team <- game_state$current_team
+    setter_rot <- game_state$visiting_setter_position
+    attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
+    defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
+    libs <- if (beach) c() else dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
+
+    # Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+    dig_responsibility <- player_responsibility_fn(system = system, skill = "Dig",
+                                                         setter_position = setter_rot,
+                                                         zone = defending_zone, libs = libs, home_visiting = "visiting", opp_attack_start_zone = attacking_zone)
+
+
+    dig_responsibility_prior <- setNames(rep(0, 6), c(paste0("visiting_p",1:6)))
+    dig_responsibility_prior[dig_responsibility] <- 1
+
+    ## Update the probability with the history of the game
+    digging_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Dig",
+                                       .data$visiting_setter_position %eq% as.character(setter_rot),
+                                       .data$start_zone %eq% attacking_zone,
+                                     .data$end_zone %eq% defending_zone,
+                                       .data$team %eq% "a")
+
+    dig_responsibility_posterior <- dig_responsibility_prior
+    if(nrow(digging_history)>0){
+      digging_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(digging_history, "team", "player_number", paste0("visiting_p",1:6)), cols = paste0("visiting_p",1:6)), .data$value %eq% .data$player_number), .data$name), n_digs = dplyr::n()))
+      dig_responsibility_posterior[digging_history$name] <- dig_responsibility_prior[digging_history$name] + digging_history$n_digs
+      dig_responsibility_posterior <-  dig_responsibility_posterior / sum(dig_responsibility_posterior)
+    }
+    plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
+    poc <- paste0("visiting_p", pseq)
+  } else if (game_state$current_team %eq% "*") {
+    defending_team <- game_state$current_team
+    setter_rot <- game_state$home_setter_position
+    attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
+    defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
+    libs <- if (beach) c() else dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"]
+
+    # Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+    dig_responsibility <- player_responsibility_fn(system = system, skill = "Dig",
+                                                   setter_position = setter_rot,
+                                                   zone = defending_zone, libs = libs, home_visiting = "home", opp_attack_start_zone = attacking_zone)
+
+
+    dig_responsibility_prior <- setNames(rep(0, 6), c(paste0("visiting_p",1:6)))
+    dig_responsibility_prior[dig_responsibility] <- 1
+
+    ## Update the probability with the history of the game
+    digging_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Dig",
+                                     .data$visiting_setter_position %eq% as.character(setter_rot),
+                                     .data$start_zone %eq% attacking_zone,
+                                     .data$end_zone %eq% defending_zone,
+                                     .data$team %eq% "*")
+
+    dig_responsibility_posterior <- dig_responsibility_prior
+    if(nrow(digging_history)>0){
+      digging_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(digging_history, "team", "player_number", paste0("home_p",1:6)), cols = paste0("home_p",1:6)), .data$value %eq% .data$player_number), .data$name), n_digs = dplyr::n()))
+      dig_responsibility_posterior[digging_history$name] <- dig_responsibility_prior[digging_history$name] + digging_history$n_digs
+      dig_responsibility_posterior <-  dig_responsibility_posterior / sum(dig_responsibility_posterior)
+    }
+    plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
+    poc <- paste0("home_p", pseq)
+  } else {
+    return(list(choices = numeric(), selected = c()))
+  }
+  pp <- c(as.numeric(reactiveValuesToList(game_state)[poc]), libs)
+  plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(reactiveValuesToList(game_state)[plsel_tmp[1]])
+  list(choices = pp, selected = plsel)
 }
 
 ## returns a list with components
