@@ -662,7 +662,10 @@ ov_scouter_server <- function(app_data) {
                     ## TODO, this better
                     rc <- rally_codes()
                     rc$eval[rc$skill %eq% "R"] <- passq
-                    rc$eval[rc$skill %eq% "S"] <- passq
+                    ## find corresponding serve evaluation code
+                    seval <- app_data$compound_table$code[app_data$compound_table$skill %eq% "S" & app_data$compound_table$compound_skill %eq% "R" & app_data$compound_table$compound_code %eq% passq]
+                    if (nchar(seval) != 1) seval <- "~"
+                    rc$eval[rc$skill %eq% "S"] <- seval
                     rally_codes(rc)
                     ## possible values for input$c2 are: Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball attack" = "P2", "Freeball over" = "F",
                     ##                                   "Opp. dig" = "aD", "Opp. overpass attack" = "aPR"

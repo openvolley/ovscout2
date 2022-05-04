@@ -5,6 +5,7 @@
 #' @param court_ref data.frame or string: data.frame with the court reference (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
 #' @param scouting_options list: a named list with entries as per [ov_scouter_options()]
 #' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
+#' @param compound_code tibble: the table of compound codes
 #' @param launch_browser logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny]{runApp}}'s \code{launch.browser} parameter)
 #' @param prompt_for_files logical: if \code{dvw} was not specified, prompt the user to select the dvw file
 #' @param ... : extra parameters passed to \code{\link[datavolley]{dv_read}} (if \code{dvw} is a provided as a string) and/or to the shiny server and UI functions
@@ -12,7 +13,7 @@
 #' @seealso \code{\link[datavolley]{dv_read}}
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     dots <- list(...)
@@ -85,7 +86,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
     opts <- ov_scouter_options()
     for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
     ## finally the shiny app
-    app_data <- c(list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = !is.na(video_file), court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, ui_header = tags$div()), other_args)
+    app_data <- c(list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = !is.na(video_file), court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, ui_header = tags$div()), other_args)
     app_data$serving <- "*" ## HACK for testing
     app_data$play_overlap <- 0.5 ## amount (in seconds) to rewind before restarting the video, after pausing to enter data
     app_data$evaluation_decoder <- skill_evaluation_decoder() ## to expose as a parameter, perhaps

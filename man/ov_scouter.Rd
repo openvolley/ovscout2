@@ -10,6 +10,7 @@ ov_scouter(
   court_ref,
   scouting_options = ov_scouter_options(),
   default_scouting_table = ov_default_scouting_table(),
+  compound_table = ov_default_compound_table(),
   launch_browser = TRUE,
   prompt_for_files = interactive(),
   ...
@@ -31,6 +32,8 @@ ov_scouter(
 \item{prompt_for_files}{logical: if \code{dvw} was not specified, prompt the user to select the dvw file}
 
 \item{...}{: extra parameters passed to \code{\link[datavolley]{dv_read}} (if \code{dvw} is a provided as a string) and/or to the shiny server and UI functions}
+
+\item{compound_code}{tibble: the table of compound codes}
 }
 \description{
 Launch a Shiny app for scouting
