@@ -155,7 +155,7 @@ ov_scouter_server <- function(app_data) {
             DT::replaceData(playslist_proxy, data = mydat[, plays_cols_to_show, drop = FALSE], rownames = FALSE, clearSelection = "none")
         }
 
-        video_state <- reactiveValues(paused = FALSE)
+        video_state <- reactiveValues(paused = TRUE) ## starts paused
         editing <- reactiveValues(active = NULL)
 
         ## height of the video player element
@@ -215,6 +215,7 @@ ov_scouter_server <- function(app_data) {
                 dojs(paste0(getel, ".play();"))
                 video_state$paused <- FALSE
             } else if (what == "toggle_pause") {
+                ## careful using this, because it doesn't update video_state$paused
                 dojs(paste0("if (", getel, ".paused == true) { ", getel, ".play(); } else { ", getel, ".pause(); }"))
             } else if (what == "get_time") {
                 dojs(paste0("Shiny.setInputValue('video_time', ", getel, ".currentTime)"))
@@ -284,9 +285,11 @@ ov_scouter_server <- function(app_data) {
                         if (debug > 1) cat("key: ", ky, "\n")
                         if (ky %eq% 27) {
                             ## esc
-                            if (is.null(editing$active) || !editing$active %eq% "teams") {
+                            if (is.null(editing$active) || !editing$active %in% "teams") {
+                                do_unpause <- editing$active %eq% "admin"
                                 editing$active <- NULL
                                 removeModal()
+                                if (do_unpause) do_video("pause")
                             }
                         } else if (ky %eq% 13) {
                             ## enter
@@ -304,7 +307,23 @@ ov_scouter_server <- function(app_data) {
                             dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
                         } else if (ky %in% utf8ToInt("qQ0")) {
                             ## video pause/unpause
-                            if (is.null(editing$active)) do_video("toggle_pause")
+                            if (video_state$paused) {
+                                ## we are paused
+                                if (is.null(editing$active)) {
+                                    ## just unpause
+                                    do_video("pause")
+                                } else if (editing$active %eq% "admin") {
+                                    ## otherwise, and only if we have the admin modal showing, dismiss it and unpause
+                                    editing$active <- NULL
+                                    removeModal()
+                                    do_video("pause")
+                                }
+                            } else {
+                                ## not paused, so pause and show admin modal
+                                do_video("pause")
+                                editing$active <- "admin"
+                                show_admin_modal()
+                            }
                         } else if (ky %in% utf8ToInt("nm13jhl;46$^b,79")) {
                             if (is.null(editing$active)) {
                                 ## video forward/backward nav
@@ -904,13 +923,20 @@ ov_scouter_server <- function(app_data) {
             game_state$home_end <- court_inset$home_team_end()
         })
 
-        ## file save
-        output$save_file_ui <- renderUI({
-            if (is.null(rdata$dvw$plays2)) {
-                NULL
-            } else {
-                downloadButton("save_file_button", "Save file")
-            }
+        show_admin_modal <- function() {
+            showModal(vwModalDialog(title = "Miscellaneous", footer = NULL,
+                                    if (!is.null(rdata$dvw$plays2)) {
+                                        tags$div(tags$p(tags$strong("File operations")), downloadButton("save_file_button", "Save file"))
+                                    },
+                                    tags$hr(),
+                                    fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Continue", style = "width:100%; height:7vh; background-color:#4F4;")))
+                                    ))
+        }
+        observeEvent(input$admin_dismiss, {
+            ## dismiss the admin modal and unpause the video
+            editing$active <- NULL
+            removeModal()
+            do_video("pause")
         })
         output$save_file_button <- downloadHandler(
             filename = reactive(
