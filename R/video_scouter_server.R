@@ -5,7 +5,8 @@ ov_scouter_server <- function(app_data) {
         styling <- list(h_court_colour = "#bfefff", ## lightblue1
                         h_court_highlight = "darkblue",
                         v_court_colour = "#bcee68", ## darkolivegreen2
-                        v_court_highlight = "darkgreen")
+                        v_court_highlight = "darkgreen",
+                        continue = "#10C424", cancel = "#D41024")
 
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "home_setter_position", "visiting_setter_position", "Score", "is_skill")
         plays_col_renames <- c(Set = "set_number", hs = "home_setter_position", as = "visiting_setter_position")
@@ -285,8 +286,13 @@ ov_scouter_server <- function(app_data) {
                         if (debug > 1) cat("key: ", ky, "\n")
                         if (ky %eq% 27) {
                             ## esc
-                            if (is.null(editing$active) || !editing$active %in% "teams") {
-                                do_unpause <- editing$active %eq% "admin"
+                            if (isTRUE(scout_modal_active())) {
+                                ## if we have a scouting modal showing, treat this as cancel and rewind
+                                do_video("rew", 3)
+                                do_video("play")
+                                remove_scout_modal()
+                            } else if (is.null(editing$active) || !editing$active %in% "teams") {
+                                do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
                                 editing$active <- NULL
                                 removeModal()
                                 if (do_unpause) do_video("pause")
@@ -307,22 +313,28 @@ ov_scouter_server <- function(app_data) {
                             dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
                         } else if (ky %in% utf8ToInt("qQ0")) {
                             ## video pause/unpause
-                            if (video_state$paused) {
-                                ## we are paused
-                                if (is.null(editing$active)) {
-                                    ## just unpause
-                                    do_video("pause")
-                                } else if (editing$active %eq% "admin") {
-                                    ## otherwise, and only if we have the admin modal showing, dismiss it and unpause
-                                    editing$active <- NULL
-                                    removeModal()
-                                    do_video("pause")
-                                }
+                            ## don't allow unpause if we have a scouting modal shown
+                            if (isTRUE(scout_modal_active())) {
+                                ## but do allow pause, if somehow it isn't already
+                                if (!video_state$paused) do_video("pause")
                             } else {
-                                ## not paused, so pause and show admin modal
-                                do_video("pause")
-                                editing$active <- "admin"
-                                show_admin_modal()
+                                if (video_state$paused) {
+                                    ## we are paused
+                                    if (is.null(editing$active)) {
+                                        ## just unpause
+                                        do_video("pause")
+                                    } else if (editing$active %eq% "admin") {
+                                        ## otherwise, and only if we have the admin modal showing, dismiss it and unpause
+                                        editing$active <- NULL
+                                        removeModal()
+                                        do_video("pause")
+                                    }
+                                } else {
+                                    ## not paused, so pause and show admin modal
+                                    do_video("pause")
+                                    editing$active <- "admin"
+                                    show_admin_modal()
+                                }
                             }
                         } else if (ky %in% utf8ToInt("nm13jhl;46$^b,79")) {
                             if (is.null(editing$active)) {
@@ -437,6 +449,17 @@ ov_scouter_server <- function(app_data) {
             as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = combo, target = target, sz = sz, ez = ez, esz = esz, x_type = x_type, num_p = num_p, special = special, custom = custom), as.character), list(t = t, start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y)))
         }
 
+        ## keep track of whether we have a modal up or not, so that pause behaviour can be modified
+        scout_modal_active <- reactiveVal(FALSE)
+        show_scout_modal <- function(...) {
+            scout_modal_active(TRUE)
+            showModal(...)
+        }
+        remove_scout_modal <- function() {
+            scout_modal_active(FALSE)
+            removeModal()
+        }
+
         ## single click the video to register a tag location, or starting ball coordinates
         observeEvent(loop_trigger(), {
             if (loop_trigger() > 0) {
@@ -481,7 +504,7 @@ ov_scouter_server <- function(app_data) {
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "select_passer", style = "width:100%; height:7vh;")
                     serve_error_buttons <- make_fat_buttons(choices = c("Serve error" = "=", "Serve error (in net)" = "=N", "Serve error (foot fault)" = "=Z", "Serve error (long)" = "=O", "Serve error (out left)" = "=L", "Serve error (out right)" = "=R"), input_var = "was_serve_error", style = "width:100%; height:7vh;")
                     ##browser()
-                    showModal(vwModalDialog(title = "Details", footer = NULL,
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Serve type:")),
                                             do.call(fixedRow, lapply(serve_type_buttons$buttons, function(but) column(2, but))),
                                             tags$hr(),
@@ -494,15 +517,15 @@ ov_scouter_server <- function(app_data) {
                                             tags$p(tags$strong("Select passer:")),
                                             do.call(fixedRow, lapply(passer_buttons$buttons, function(but) column(1, but))),
                                             tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = "width:100%; height:7vh; background-color:#F44;")),
-                                                     column(2, offset = 8, actionButton("assign_passer", "Continue", style = "width:100%; height:7vh; background-color:#4F4;")))
+                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
+                                                     column(2, offset = 8, actionButton("assign_passer", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
                                             ))
                 } else if (rally_state() == "enter serve outcome") {
                     sp <- if (!is.null(input$serve_preselect_player)) input$serve_preselect_player else if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     game_state$current_team <- other(game_state$serving)
                     st <- if (!is.null(input$serve_type)) input$serve_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
                     pp <- input$select_passer
-                    removeModal()
+                    remove_scout_modal()
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
                     esz <- paste(dv_xy2subzone(game_state$end_x, game_state$end_y), collapse = "")
                     start_t <- retrieve_video_time(game_state$start_t)
@@ -522,7 +545,7 @@ ov_scouter_server <- function(app_data) {
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     serve_err_type <- if (!is.null(input$was_serve_error)) input$was_serve_error else "="
                     st <- if (!is.null(input$serve_type)) input$serve_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
-                    removeModal()
+                    remove_scout_modal()
                     special_code <- substr(serve_err_type, 2, 2)
                     esz <- paste(dv_xy2subzone(game_state$end_x, game_state$end_y), collapse = "")
                     rc <- rally_codes()
@@ -564,7 +587,7 @@ ov_scouter_server <- function(app_data) {
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
                     opp_buttons <- make_fat_radio_buttons(choices = opp, input_var = "c2_opp_player", style = "width:100%; height:7vh;")
-                    showModal(vwModalDialog(title = "Details", footer = NULL,
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Second contact:")),
                                             do.call(fixedRow, lapply(c2_buttons$buttons[1:5], function(but) column(2, but))),
                                             tags$br(),
@@ -580,8 +603,8 @@ ov_scouter_server <- function(app_data) {
                                             tags$br(),
                                             do.call(fixedRow, lapply(opp_buttons$buttons, function(but) column(1, but))),
                                             tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = "width:100%; height:7vh; background-color:#F44;")),
-                                                     column(2, offset = 8, actionButton("assign_c2", "Continue", style = "width:100%; height:7vh; background-color:#4F4;")))
+                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
+                                                     column(2, offset = 8, actionButton("assign_c2", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
                                             ))
                 } else if (rally_state() == "second contact details") {
                     ## set uses end position for zone/subzone
@@ -620,7 +643,7 @@ ov_scouter_server <- function(app_data) {
                     } else {
                         stop("opposition c2 not coded")
                     }
-                    removeModal()
+                    remove_scout_modal()
                     if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
                     do_video("play")
                 } else if (rally_state() == "click third contact") {
@@ -654,7 +677,7 @@ ov_scouter_server <- function(app_data) {
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
                     opp_player_buttons <- make_fat_radio_buttons(choices = opp, input_var = "c3_opp_player", style = "width:100%; height:7vh;")
-                    showModal(vwModalDialog(title = "Details", footer = NULL,
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack:")),
                                             do.call(fixedRow, lapply(c3_buttons$buttons[seq_along(ac)], function(but) column(2, but))),
                                             tags$br(), tags$p("by player"), tags$br(),
@@ -666,8 +689,8 @@ ov_scouter_server <- function(app_data) {
                                             tags$br(), tags$p("by player"), tags$br(),
                                             do.call(fixedRow, lapply(opp_player_buttons$buttons, function(but) column(1, but))),
                                             tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = "width:100%; height:7vh; background-color:#F44;")),
-                                                     column(2, offset = 8, actionButton("assign_c3", "Continue", style = "width:100%; height:7vh; background-color:#4F4;")))
+                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
+                                                     column(2, offset = 8, actionButton("assign_c3", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
                                             ))
                 } else if (rally_state() == "third contact details") {
                     ## possible values for input$c3 are: an attack code, Freeball
@@ -703,7 +726,7 @@ ov_scouter_server <- function(app_data) {
                             game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                         }
                     }
-                    removeModal()
+                    remove_scout_modal()
                     if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
                     do_video("play")
                 } else if (rally_state() == "click attack end point") {
@@ -732,7 +755,7 @@ ov_scouter_server <- function(app_data) {
                     # names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
                     # digp <- c(digp, Unknown = "Unknown")
                     dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "c1_dig_player", style = "width:100%; height:7vh;")
-                    showModal(vwModalDialog(title = "Details", footer = NULL,
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack outcome:")),
                                             do.call(fixedRow, lapply(c1_buttons$buttons[1:2], function(but) column(2, but))),
                                             tags$br(), tags$hr(), tags$div("OR"), tags$br(),
@@ -741,8 +764,8 @@ ov_scouter_server <- function(app_data) {
                                             tags$br(), tags$p("by player"), tags$br(),
                                             do.call(fixedRow, lapply(dig_player_buttons$buttons, function(but) column(1, but))),
                                             tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = "width:100%; height:7vh; background-color:#F44;")),
-                                                     column(2, offset = 8, actionButton("assign_c1", "Continue", style = "width:100%; height:7vh; background-color:#4F4;")))
+                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
+                                                     column(2, offset = 8, actionButton("assign_c1", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
                                             ))
                 } else if (rally_state() == "first contact details") {
                     ## possible values for input$c1 are currently: A#, A=, D, D=
@@ -799,7 +822,7 @@ ov_scouter_server <- function(app_data) {
                             }
                         }
                     }
-                    removeModal()
+                    remove_scout_modal()
                     if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
                     do_video("play")
                 } else {
@@ -854,8 +877,9 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$cancelrew, {
             do_video("rew", 3)
             do_video("play")
-            removeModal()
+            remove_scout_modal()
         })
+
         observeEvent(input$was_serve_error, {
             rally_state("serve error")
             loop_trigger(loop_trigger() + 1L)
@@ -929,7 +953,7 @@ ov_scouter_server <- function(app_data) {
                                         tags$div(tags$p(tags$strong("File operations")), downloadButton("save_file_button", "Save file"))
                                     },
                                     tags$hr(),
-                                    fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Continue", style = "width:100%; height:7vh; background-color:#4F4;")))
+                                    fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
                                     ))
         }
         observeEvent(input$admin_dismiss, {
