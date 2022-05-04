@@ -832,36 +832,40 @@ ov_scouter_server <- function(app_data) {
             if (rally_state() == "rally ended") {
                 ## add rally codes to scout object now
                 rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw))
-                ## update game_state
-                do_rot <- game_state$point_won_by != game_state$serving
-                if (game_state$point_won_by == "*") {
-                    game_state$home_score_start_of_point <- game_state$home_score_start_of_point + 1L
-                } else {
-                    game_state$visiting_score_start_of_point <- game_state$visiting_score_start_of_point + 1L
-                }
-                if (do_rot) {
-                    if (game_state$point_won_by == "*") {
-                        game_state$home_setter_position <- rotpos(game_state$home_setter_position, n = length(pseq))
-                        temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]))
-                        for (i in pseq) game_state[[paste0("home_p", i)]] <- temp[i]
-                        poscode <- paste0("*z", game_state$home_setter_position)
-                    } else {
-                        game_state$visiting_setter_position <- rotpos(game_state$visiting_setter_position, n = length(pseq))
-                        temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
-                        for (i in pseq) game_state[[paste0("visiting_p", i)]] <- temp[i]
-                        poscode <- paste0("az", game_state$visiting_setter_position)
-                    }
-                    rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw))
-                }
-                ## reset for next rally
-                game_state$serving <- game_state$current_team <- game_state$point_won_by
-                rally_codes(empty_rally_codes)
-                game_state$start_x <- game_state$start_y <- game_state$end_x <- game_state$end_y <- NA_real_
-                game_state$current_time_uuid <- ""
-                game_state$point_won_by <- NA_character_
-                rally_state("click serve start")
+                do_rally_end_things()
             }
         })
+
+        do_rally_end_things <- function() {
+            ## update game_state
+            do_rot <- game_state$point_won_by != game_state$serving
+            if (game_state$point_won_by == "*") {
+                game_state$home_score_start_of_point <- game_state$home_score_start_of_point + 1L
+            } else {
+                game_state$visiting_score_start_of_point <- game_state$visiting_score_start_of_point + 1L
+            }
+            if (do_rot) {
+                if (game_state$point_won_by == "*") {
+                    game_state$home_setter_position <- rotpos(game_state$home_setter_position, n = length(pseq))
+                    temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]))
+                    for (i in pseq) game_state[[paste0("home_p", i)]] <- temp[i]
+                    poscode <- paste0("*z", game_state$home_setter_position)
+                } else {
+                    game_state$visiting_setter_position <- rotpos(game_state$visiting_setter_position, n = length(pseq))
+                    temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
+                    for (i in pseq) game_state[[paste0("visiting_p", i)]] <- temp[i]
+                    poscode <- paste0("az", game_state$visiting_setter_position)
+                }
+                rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw))
+            }
+            ## reset for next rally
+            game_state$serving <- game_state$current_team <- game_state$point_won_by
+            rally_codes(empty_rally_codes)
+            game_state$start_x <- game_state$start_y <- game_state$end_x <- game_state$end_y <- NA_real_
+            game_state$current_time_uuid <- ""
+            game_state$point_won_by <- NA_character_
+            rally_state("click serve start")
+        }
 
         ## convert the rally codes into plays2 rows, and build plays from plays2
         observe({
@@ -953,8 +957,12 @@ ov_scouter_server <- function(app_data) {
                                     tags$hr(),
                                     tags$p(tags$strong("Match actions")),
                                     ## TODO consider if these buttons should be available mid-rally or not
-                                    fixedRow(column(3, make_fat_buttons(choices = "Timeout (home)", input_var = "timeout_home")),
-                                             column(3, make_fat_buttons(choices = "Timeout (visiting)", input_var = "timeout_visiting"))),
+                                    fluidRow(column(6, tags$strong(home_team(rdata$dvw), "(home)")),
+                                             column(6, tags$strong(visiting_team(rdata$dvw), "(visiting)"))),
+                                    fluidRow(column(2, make_fat_buttons(choices = c("Won current rally" = "*p"), input_var = "point_win")),
+                                             column(2, make_fat_buttons(choices = c(Timeout = "*T"), input_var = "timeout")),
+                                             column(2, offset = 2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "point_win")),
+                                             column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "timeout"))),
                                     tags$hr(),
                                     fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
                                     ))
@@ -989,18 +997,25 @@ ov_scouter_server <- function(app_data) {
             }
         )
 
-        observeEvent(input$timeout_home, {
-            rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2("*T", game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
+        observeEvent(input$timeout, {
+            if (!is.null(input$timeout) && input$timeout %in% c("*T", "aT")) {
+                rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(input$timeout, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
+            }
             editing$active <- NULL
             removeModal()
             do_video("pause")
         })
 
-        observeEvent(input$timeout_visiting, {
-            rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2("aT", game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
+        observeEvent(input$point_win, {
+            if (!is.null(input$point_win) && input$point_win %in% c("*p", "ap")) {
+                game_state$point_won_by <- substr(input$point_win, 1, 1)
+                rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(character(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw))
+                do_rally_end_things()
+            }
             editing$active <- NULL
             removeModal()
             do_video("pause")
         })
+
     }
 }
