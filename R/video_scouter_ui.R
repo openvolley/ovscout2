@@ -84,7 +84,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                               ## some elements commented out for now - BR
                                               introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
                                               actionButton("edit_match_data_button", "Edit match data", icon = icon("volleyball-ball")),
-                                              actionButton("edit_teams_button", "Edit teams", icon = icon("users")),
+                                              mod_team_edit_ui(id = "team_editor"),
                                               actionButton("edit_lineup_button", "Edit lineups", icon = icon("arrows-alt-h")),
                                               uiOutput("switch_serving_ui", inline = TRUE),
                                               uiOutput("save_file_ui", inline = TRUE),

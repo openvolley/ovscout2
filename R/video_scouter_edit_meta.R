@@ -21,51 +21,6 @@ match_data_edit_modal <- function(dvw) {
                           ))
 }
 
-
-team_data_edit_modal <- function(dvw) {
-    htidx <- which(dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
-    vtidx <- which(dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
-    showModal(modalDialog(title = "Edit teams", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update teams data"), actionButton("edit_cancel", label = "Cancel")),
-                          tabsetPanel(
-                              tabPanel("Home team",
-                                       fluidRow(column(4, textInput("ht_edit_name", label = "Team name:", value = dvw$meta$teams$team[htidx])),
-                                                column(4, textInput("ht_edit_id", label = "Team ID:", value = dvw$meta$teams$team_id[htidx])),
-                                                column(4, textInput("ht_edit_coach", label = "Coach:", value = dvw$meta$teams$coach[htidx])),
-                                                column(4, textInput("ht_edit_assistant", label = "Assistant:", value = dvw$meta$teams$assistant[htidx]))),
-                                       DT::dataTableOutput("ht_edit_team"),
-                                       wellPanel(
-                                           fluidRow(column(2, textInput("ht_new_id", label = "ID:", placeholder = "ID")),
-                                                    column(1, textInput("ht_new_number", label = "Number:", placeholder = "Number")),
-                                                    column(3, textInput("ht_new_lastname", label = "Last name:", placeholder = "Last name")),
-                                                    column(3, textInput("ht_new_firstname", label = "First name:", placeholder = "First name")),
-                                                    column(2, selectInput("ht_new_role", label = "Role", choices = c("", "libero", "outside", "opposite", "middle", "setter", "unknown"))),
-                                                    column(1, selectInput("ht_new_special", label = "Special", choices = c("", "L", "C")))),
-                                           fluidRow(column(3, offset = 9, actionButton("ht_add_player_button", "Add player")))
-                                       ),
-                                       uiOutput("ht_delete_player_ui")
-                                       ),
-                              tabPanel("Visiting team",
-                                       fluidRow(column(4, textInput("vt_edit_name", label = "Team name:", value = dvw$meta$teams$team[vtidx])),
-                                                column(4, textInput("vt_edit_id", label = "Team ID:", value = dvw$meta$teams$team_id[vtidx])),
-                                                column(4, textInput("vt_edit_coach", label = "Coach:", value = dvw$meta$teams$coach[vtidx])),
-                                                column(4, textInput("vt_edit_assistant", label = "Assistant:", value = dvw$meta$teams$assistant[vtidx]))),
-                                       DT::dataTableOutput("vt_edit_team"),
-                                       wellPanel(
-                                           fluidRow(column(2, textInput("vt_new_id", label = "ID:", placeholder = "ID")),
-                                                    column(1, textInput("vt_new_number", label = "Number:", placeholder = "Number")),
-                                                    column(3, textInput("vt_new_lastname", label = "Last name:", placeholder = "Last name")),
-                                                    column(3, textInput("vt_new_firstname", label = "First name:", placeholder = "First name")),
-                                                    column(2, selectInput("vt_new_role", label = "Role", choices = c("", "libero", "outside", "opposite", "middle", "setter", "unknown"))),
-                                                    column(1, selectInput("vt_new_special", label = "Special", choices = c("", "L", "C")))),
-                                           fluidRow(column(3, offset = 9, actionButton("vt_add_player_button", "Add player")))
-                                       ),
-                                       uiOutput("vt_delete_player_ui")
-                                       )
-                          )
-                          ))
-}
-
-
 code_make_change <- function(editing_active, dvw, input, htdata_edit = NULL, vtdata_edit = NULL) {
     removeModal()
     do_reparse <- FALSE
@@ -74,21 +29,22 @@ code_make_change <- function(editing_active, dvw, input, htdata_edit = NULL, vtd
         warning("code_make_change entered but editing not active")
     } else if (editing_active %eq% "teams") {
         ## update from all the input$ht_edit_name/id/coach/assistant inputs
+        te_ns <- function(id) paste0("team_editor-", id) ## to reference the UI elements in the team_editor module. Note the hard-coding of the 'team_editor' id
         htidx <- which(dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
-        dvw$meta$teams$team[htidx] <- input$ht_edit_name
-        dvw$meta$teams$team_id[htidx] <- input$ht_edit_id
-        dvw$meta$teams$coach[htidx] <- input$ht_edit_coach
-        dvw$meta$teams$assistant[htidx] <- input$ht_edit_assistant
+        dvw$meta$teams$team[htidx] <- input[[te_ns("ht_edit_name")]]
+        dvw$meta$teams$team_id[htidx] <- input[[te_ns("ht_edit_id")]]
+        dvw$meta$teams$coach[htidx] <- input[[te_ns("ht_edit_coach")]]
+        dvw$meta$teams$assistant[htidx] <- input[[te_ns("ht_edit_assistant")]]
         if (!is.null(htdata_edit)) {
             dvw$meta$players_h <- htdata_edit
             dvw$meta$players_h$name <- paste(dvw$meta$players_h$firstname, dvw$meta$players_h$lastname)
         }
         ## and visiting team
         vtidx <- which(dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
-        dvw$meta$teams$team[vtidx] <- input$vt_edit_name
-        dvw$meta$teams$team_id[vtidx] <- input$vt_edit_id
-        dvw$meta$teams$coach[vtidx] <- input$vt_edit_coach
-        dvw$meta$teams$assistant[vtidx] <- input$vt_edit_assistant
+        dvw$meta$teams$team[vtidx] <- input[[te_ns("vt_edit_name")]]
+        dvw$meta$teams$team_id[vtidx] <- input[[te_ns("vt_edit_id")]]
+        dvw$meta$teams$coach[vtidx] <- input[[te_ns("vt_edit_coach")]]
+        dvw$meta$teams$assistant[vtidx] <- input[[te_ns("vt_edit_assistant")]]
         if (!is.null(vtdata_edit)) {
             dvw$meta$players_v <- vtdata_edit
             dvw$meta$players_v$name <- paste(dvw$meta$players_v$firstname, dvw$meta$players_v$lastname)

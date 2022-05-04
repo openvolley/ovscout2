@@ -244,152 +244,12 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## team data editing
-        htdata_edit <- reactiveVal(NULL)
-        vtdata_edit <- reactiveVal(NULL)
-
-        observeEvent(input$edit_teams_button, {
-            editing$active <- "teams"
-            team_data_edit_modal(rdata$dvw)
-        })
-
-        ## TODO, convert team editing into a module?
-        output$ht_edit_team <- DT::renderDataTable({
-            if (is.null(htdata_edit())) htdata_edit(rdata$dvw$meta$players_h)
-            if (!is.null(htdata_edit())) {
-                cols_to_hide <- which(!names(htdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
-                cnames <- names(names_first_to_capital(htdata_edit()))
-                DT::datatable(htdata_edit(), rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
-            } else {
-                NULL
-            }
-        }, server = TRUE)
-        ht_edit_team_proxy <- DT::dataTableProxy("ht_edit_team")
-        htdata_display <- reactiveVal(NULL)
-        output$ht_display_team <- DT::renderDataTable({
-            if (is.null(htdata_display())) htdata_display(rdata$dvw$meta$players_h)
-            if (!is.null(htdata_display())) {
-                cols_to_hide <- which(!names(htdata_display()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
-                cnames <- names(names_first_to_capital(htdata_display()))
-                DT::datatable(htdata_display(), rownames = FALSE, colnames = cnames, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
-            } else {
-                NULL
-            }
-        }, server = TRUE)
-        ht_display_team_proxy <- DT::dataTableProxy("ht_display_team")
-        observeEvent(input$ht_edit_team_cell_edit, {
-            info <- input$ht_edit_team_cell_edit
-            isolate(temp <- htdata_edit())
-            temp[info$row, info$col+1L] <- DT::coerceValue(info$value, temp[[info$row, info$col+1L]]) ## no row names so +1 on col indices
-            DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
-            htdata_edit(temp)
-        })
-        output$ht_delete_player_ui <- renderUI({
-            if (!is.null(input$ht_edit_team_rows_selected)) {
-                actionButton("ht_delete_player_button", "Delete selected player")
-            } else {
-                NULL
-            }
-        })
-        observeEvent(input$ht_delete_player_button, {
-            ridx <- input$ht_edit_team_rows_selected
-            if (!is.null(ridx)) {
-                temp <- htdata_edit()
-                temp <- temp[-ridx, ]
-                DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
-                htdata_edit(temp)
-            }
-        })
-        observeEvent(input$ht_add_player_button, {
-            chk <- list(input$ht_new_id, input$ht_new_number, input$ht_new_lastname, input$ht_new_firstname)
-            if (!any(vapply(chk, is_nnn, FUN.VALUE = TRUE))) {
-                try({
-                    newrow <- tibble(number = as.numeric(input$ht_new_number), player_id = input$ht_new_id, lastname = input$ht_new_lastname, firstname = input$ht_new_firstname, role = if (nzchar(input$ht_new_role)) input$ht_new_role else NA_character_, special_role = if (nzchar(input$ht_new_special)) input$ht_new_special else NA_character_)
-                    newrow$name <- paste(newrow$firstname, newrow$lastname)
-                    temp <- bind_rows(htdata_edit(), newrow)
-                    temp <- dplyr::arrange(temp, .data$number)
-                    DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
-                    htdata_edit(temp)
-                    ## clear inputs
-                    updateTextInput(session, "ht_new_number", value = "")
-                    updateTextInput(session, "ht_new_id", value = "")
-                    updateTextInput(session, "ht_new_lastname", value = "")
-                    updateTextInput(session, "ht_new_firstname", value = "")
-                    updateSelectInput(session, "ht_new_role", selected = "")
-                    updateSelectInput(session, "ht_new_special", selected = "")
-                })
-            }
-        })
-        output$vt_edit_team <- DT::renderDataTable({
-            if (is.null(vtdata_edit())) vtdata_edit(rdata$dvw$meta$players_v)
-            if (!is.null(vtdata_edit())) {
-                cols_to_hide <- which(!names(vtdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
-                cnames <- names(names_first_to_capital(vtdata_edit()))
-                DT::datatable(vtdata_edit(), rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
-            } else {
-                NULL
-            }
-        }, server = TRUE)
-        vt_edit_team_proxy <- DT::dataTableProxy("vt_edit_team")
-        vtdata_display <- reactiveVal(NULL)
-        output$vt_display_team <- DT::renderDataTable({
-            if (is.null(vtdata_display())) vtdata_display(rdata$dvw$meta$players_v)
-            if (!is.null(vtdata_display())) {
-                cols_to_hide <- which(!names(vtdata_display()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
-                cnames <- names(names_first_to_capital(vtdata_display()))
-                DT::datatable(vtdata_display(), rownames = FALSE, colnames = cnames, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
-            } else {
-                NULL
-            }
-        }, server = TRUE)
-        vt_display_team_proxy <- DT::dataTableProxy("vt_display_team")
-        observeEvent(input$vt_edit_team_cell_edit, {
-            info <- input$vt_edit_team_cell_edit
-            isolate(temp <- vtdata_edit())
-            temp[info$row, info$col+1L] <- DT::coerceValue(info$value, temp[[info$row, info$col+1L]]) ## no row names so +1 on col indices
-            DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
-            vtdata_edit(temp)
-        })
-        output$vt_delete_player_ui <- renderUI({
-            if (!is.null(input$vt_edit_team_rows_selected)) {
-                actionButton("vt_delete_player_button", "Delete selected player")
-            } else {
-                NULL
-            }
-        })
-        observeEvent(input$vt_delete_player_button, {
-            ridx <- input$vt_edit_team_rows_selected
-            if (!is.null(ridx)) {
-                temp <- vtdata_edit()
-                temp <- temp[-ridx, ]
-                DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
-                vtdata_edit(temp)
-            }
-        })
-        observeEvent(input$vt_add_player_button, {
-            chk <- list(input$vt_new_id, input$vt_new_number, input$vt_new_lastname, input$vt_new_firstname)
-            if (!any(vapply(chk, is_nnn, FUN.VALUE = TRUE))) {
-                try({
-                    newrow <- tibble(number = as.numeric(input$vt_new_number), player_id = input$vt_new_id, lastname = input$vt_new_lastname, firstname = input$vt_new_firstname, role = if (nzchar(input$vt_new_role)) input$vt_new_role else NA_character_, special_role = if (nzchar(input$vt_new_special)) input$vt_new_special else NA_character_)
-                    newrow$name <- paste(newrow$firstname, newrow$lastname)
-                    temp <- bind_rows(vtdata_edit(), newrow)
-                    temp <- dplyr::arrange(temp, .data$number)
-                    DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
-                    vtdata_edit(temp)
-                    ## clear inputs
-                    updateTextInput(session, "vt_new_number", value = "")
-                    updateTextInput(session, "vt_new_id", value = "")
-                    updateTextInput(session, "vt_new_lastname", value = "")
-                    updateTextInput(session, "vt_new_firstname", value = "")
-                    updateSelectInput(session, "vt_new_role", selected = "")
-                    updateSelectInput(session, "vt_new_special", selected = "")
-                })
-            }
-        })
+        team_edit_mod <- callModule(mod_team_edit, id = "team_editor", dvw = rdata$dvw, editing = editing)
 
         observeEvent(input$edit_cancel, {
             if (!is.null(editing$active) && editing$active %in% "teams") {
-                htdata_edit(NULL)
-                vtdata_edit(NULL)
+                team_edit_mod$htdata_edit(NULL)
+                team_edit_mod$vtdata_edit(NULL)
             }
             editing$active <- NULL
             removeModal()
@@ -397,7 +257,7 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$edit_commit, {
             if (!is.null(editing$active)) {
-                changed <- code_make_change(editing$active, dvw = rdata$dvw, input = input, htdata_edit = htdata_edit(), vtdata_edit = vtdata_edit())
+                changed <- code_make_change(editing$active, dvw = rdata$dvw, input = input, htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit())
                 rdata$dvw <- changed$dvw
                 ## if (changed$do_reparse) ## needed?
                 editing$active <- NULL
@@ -432,7 +292,7 @@ ov_scouter_server <- function(app_data) {
                             ## enter
                             ## if editing, treat as update
                             if (!is.null(editing$active) && !editing$active %eq% "teams") {
-                                changed <- code_make_change(editing$active, dvw = rdata$dvw, input = input, htdata_edit = htdata_edit(), vtdata_edit = vtdata_edit())
+                                changed <- code_make_change(editing$active, dvw = rdata$dvw, input = input, htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit())
                                 rdata$dvw <- changed$dvw
                                 ## if (changed$do_reparse) ## needed?
                                 editing$active <- NULL
@@ -442,14 +302,17 @@ ov_scouter_server <- function(app_data) {
                             ## z
                             ## temporarily hide the modal, so the video can be seen
                             dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
-                        } else if (ky %in% utf8ToInt("qQ0")) { ## video navigation
-                            do_video("toggle_pause")
+                        } else if (ky %in% utf8ToInt("qQ0")) {
+                            ## video pause/unpause
+                            if (is.null(editing$active)) do_video("toggle_pause")
                         } else if (ky %in% utf8ToInt("nm13jhl;46$^b,79")) {
-                            ## video forward/backward nav
-                            ## same as for other ovscout interface, although the fine control is not needed here?
-                            vidcmd <- if (ky %in% utf8ToInt("1nhj4$b7")) "rew" else "ff"
-                            dur <- if (ky %in% utf8ToInt("h$;^")) 10 else if (ky %in% utf8ToInt("nm13")) 0.1 else if (ky %in% utf8ToInt("b7,9")) 1/30 else 2
-                            do_video(vidcmd, dur)
+                            if (is.null(editing$active)) {
+                                ## video forward/backward nav
+                                ## same as for other ovscout interface, although the fine control is not needed here?
+                                vidcmd <- if (ky %in% utf8ToInt("1nhj4$b7")) "rew" else "ff"
+                                dur <- if (ky %in% utf8ToInt("h$;^")) 10 else if (ky %in% utf8ToInt("nm13")) 0.1 else if (ky %in% utf8ToInt("b7,9")) 1/30 else 2
+                                do_video(vidcmd, dur)
+                            }
                         }
                     }
                 }
@@ -932,7 +795,7 @@ ov_scouter_server <- function(app_data) {
                         for (i in pseq) game_state[[paste0("visiting_p", i)]] <- temp[i]
                         poscode <- paste0("az", game_state$visiting_setter_position)
                     }
-                    rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state))
+                    rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw))
                 }
                 ## reset for next rally
                 game_state$serving <- game_state$current_team <- game_state$point_won_by
@@ -946,7 +809,7 @@ ov_scouter_server <- function(app_data) {
 
         ## convert the rally codes into plays2 rows, and build plays from plays2
         observe({
-            temp_rally_plays2 <- if (nrow(rally_codes()) > 0) make_plays2(rally_codes(), game_state = game_state) else NULL
+            temp_rally_plays2 <- if (nrow(rally_codes()) > 0) make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw) else NULL
             ##            cat(str(temp_rally_plays2))
             ##            cat(str(rdata$dvw$plays2))
             rdata$dvw$plays <- plays2_to_plays(bind_rows(rdata$dvw$plays2, temp_rally_plays2), dvw = rdata$dvw, evaluation_decoder = app_data$evaluation_decoder)
