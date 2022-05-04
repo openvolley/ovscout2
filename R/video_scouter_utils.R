@@ -292,7 +292,7 @@ guess_attack_player_options <- function(game_state, dvw, system) {
     ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
     attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack",
                                                          setter_position = setter_rot,
-                                                         zone = attacking_zone, libs = NULLxs, home_visiting = "visiting")
+                                                         zone = attacking_zone, libs = NULL, home_visiting = "visiting")
 
 
     attacking_responsibility_prior <- setNames(rep(0, 6), c(paste0("visiting_p",1:6)))
@@ -432,7 +432,7 @@ make_fat_buttons <- function(choices, selected, input_var, extra_class = c(), as
     selected <- if (missing(selected)) 1L else if (selected %in% choices) which(choices == selected) else if (selected %in% names(choices)) which(names(choices) == selected) else if (!is.na(selected)) 1L
     clickfun <- if (as_radio) paste0("console.log('clicked'); $('.", cls, "').removeClass('active'); $(this).addClass('active');")##, if (!is.na(selected)) paste0(" $('#", ids[selected], "').click();"))
                 else NULL
-    buts <- lapply(seq_along(choices), function(i) tags$button(class = paste(c("btn", "btn-default", "fatradio", cls, extra_class, if (i %eq% selected && as_radio) "active"), collapse = " "), id = ids[i], HTML(names(choices)[i]), onclick = paste0(clickfun, " Shiny.setInputValue('", input_var, "', '", choices[[i]], "', {priority: 'event'})"), ...))
+    buts <- lapply(seq_along(choices), function(i) tags$button(class = paste(c("btn", "btn-default", "fatradio", cls, extra_class, if (grepl("(L)", names(choices)[i], fixed = TRUE)) "libero", if (i %eq% selected && as_radio) "active"), collapse = " "), id = ids[i], HTML(names(choices)[i]), onclick = paste0(clickfun, " Shiny.setInputValue('", input_var, "', '", choices[[i]], "', {priority: 'event'})"), ...))
     if (!is.na(selected) && as_radio) {
         ##cat("setting selected:\n")
         thisjs <- paste0("Shiny.setInputValue(\"", input_var, "\", \"", choices[[selected]], "\")")
