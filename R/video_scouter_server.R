@@ -956,13 +956,13 @@ ov_scouter_server <- function(app_data) {
                                     },
                                     tags$hr(),
                                     tags$p(tags$strong("Match actions")),
-                                    ## TODO consider if these buttons should be available mid-rally or not
+                                    ## TODO consider if all of these buttons should be available mid-rally or not (e.g. timeouts)
                                     fluidRow(column(6, tags$strong(home_team(rdata$dvw), "(home)")),
                                              column(6, tags$strong(visiting_team(rdata$dvw), "(visiting)"))),
-                                    fluidRow(column(2, make_fat_buttons(choices = c("Won current rally" = "*p"), input_var = "point_win")),
-                                             column(2, make_fat_buttons(choices = c(Timeout = "*T"), input_var = "timeout")),
-                                             column(2, offset = 2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "point_win")),
-                                             column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "timeout"))),
+                                    fluidRow(column(2, make_fat_buttons(choices = c("Won current rally" = "*p"), input_var = "manual_code")),
+                                             column(2, make_fat_buttons(choices = c(Timeout = "*T"), input_var = "manual_code")),
+                                             column(2, offset = 2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "manual_code")),
+                                             column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "manual_code"))),
                                     tags$hr(),
                                     fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
                                     ))
@@ -997,25 +997,19 @@ ov_scouter_server <- function(app_data) {
             }
         )
 
-        observeEvent(input$timeout, {
-            if (!is.null(input$timeout) && input$timeout %in% c("*T", "aT")) {
-                rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(input$timeout, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
+        observeEvent(input$manual_code, {
+            if (!is.null(input$manual_code)) {
+                if (input$timeout %in% c("*T", "aT")) {
+                    rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(input$timeout, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
+                } else if (input$point_win %in% c("*p", "ap")) {
+                    game_state$point_won_by <- substr(input$point_win, 1, 1)
+                    rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(character(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw))
+                    do_rally_end_things()
+                }
             }
             editing$active <- NULL
             removeModal()
             do_video("pause")
         })
-
-        observeEvent(input$point_win, {
-            if (!is.null(input$point_win) && input$point_win %in% c("*p", "ap")) {
-                game_state$point_won_by <- substr(input$point_win, 1, 1)
-                rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(character(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw))
-                do_rally_end_things()
-            }
-            editing$active <- NULL
-            removeModal()
-            do_video("pause")
-        })
-
     }
 }
