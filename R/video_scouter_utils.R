@@ -62,6 +62,26 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
     bind_cols(out, as.data.frame(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
 }
 
+game_state_make_substitution <- function(game_state, team, player_out, player_in, dvw) {
+    team <- match.arg(team, c("*", "a"))
+    pseq <- seq_len(if (dv_is_beach(dvw)) 2L else 6L)
+    lup_cols <- if (team == "*") paste0("home_p", pseq) else paste0("visiting_p", pseq)
+    this_lup <- as.numeric(reactiveValuesToList(game_state)[lup_cols])
+    available_players <- if (team == "*") dvw$meta$players_h$number else dvw$meta$players_v$number
+    if (!player_out %in% this_lup) {
+        message("player being subbed out is not on court, ignoring sub")
+    } else if (player_in %in% this_lup) {
+        message("player being subbed in is already on court, ignoring sub")
+    ##} else if (!player_in %in% available_players) {
+    ##    message("player being subbed in is not in player list, ignoring sub")
+    } else {
+        this_lup[this_lup == player_out] <- player_in
+        for (i in seq_along(lup_cols)) game_state[[lup_cols[i]]] <- this_lup[i]
+        message(if (team == "*") "home" else "visiting", " team player ", player_in, " in for player ", player_out)
+    }
+    game_state
+}
+
 plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
     pseq <- if (is_beach(dvw)) 1:2 else 1:6
     out <- datavolley:::parse_code(plays2$code, meta = dvw$meta, evaluation_decoder = evaluation_decoder, file_type = if (is_beach(dvw)) "beach" else "indoor")$plays

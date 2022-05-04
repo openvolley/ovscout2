@@ -950,6 +950,19 @@ ov_scouter_server <- function(app_data) {
         })
 
         show_admin_modal <- function() {
+            ## home player sub buttons
+            ht_on <- get_players(game_state, team = "*", dvw = rdata$dvw)
+            ht_other <- setdiff(rdata$dvw$meta$players_h$number, ht_on)
+            ht_other <- setdiff(ht_other, get_liberos(game_state, team = "*", dvw = rdata$dvw))
+            ht_sub_out <- make_fat_radio_buttons(choices = ht_on, input_var = "ht_sub_out")
+            ht_sub_in <- make_fat_radio_buttons(choices = ht_other, input_var = "ht_sub_in")
+            ## visiting player sub buttons
+            vt_on <- get_players(game_state, team = "a", dvw = rdata$dvw)
+            vt_other <- setdiff(rdata$dvw$meta$players_v$number, vt_on)
+            vt_other <- setdiff(vt_other, get_liberos(game_state, team = "a", dvw = rdata$dvw))
+            vt_sub_out <- make_fat_radio_buttons(choices = vt_on, input_var = "vt_sub_out")
+            vt_sub_in <- make_fat_radio_buttons(choices = vt_other, input_var = "vt_sub_in")
+
             showModal(vwModalDialog(title = "Miscellaneous", footer = NULL,
                                     if (!is.null(rdata$dvw$plays2)) {
                                         tags$div(tags$p(tags$strong("File operations")), downloadButton("save_file_button", "Save file"))
@@ -963,8 +976,19 @@ ov_scouter_server <- function(app_data) {
                                              column(2, make_fat_buttons(choices = c(Timeout = "*T"), input_var = "manual_code")),
                                              column(2, offset = 2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "manual_code")),
                                              column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "manual_code"))),
+                                    fluidRow(column(6, tags$p("Player out"),
+                                                    do.call(fixedRow, lapply(ht_sub_out$buttons, function(but) column(2, but))),
+                                                    tags$p("Player in"),
+                                                    do.call(fixedRow, lapply(ht_sub_in$buttons, function(but) column(if (length(ht_other) <= 6) 2 else 1, but)))),
+                                             column(6, tags$p("Player out"),
+                                                    do.call(fixedRow, lapply(vt_sub_out$buttons, function(but) column(2, but))),
+                                                    tags$p("Player in"),
+                                                    do.call(fixedRow, lapply(vt_sub_in$buttons, function(but) column(if (length(vt_other) <= 6) 2 else 1, but))))
+                                             ),
+                                    fluidRow(column(2, offset = 4, make_fat_buttons(choices = c("Make substitution" = "*C"), input_var = "manual_code")),
+                                             column(2, offset = 4, make_fat_buttons(choices = c("Make substitution" = "aC"), input_var = "manual_code"))),
                                     tags$hr(),
-                                    fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
+                                    fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Return to scouting", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
                                     ))
         }
         observeEvent(input$admin_dismiss, {
@@ -1005,6 +1029,17 @@ ov_scouter_server <- function(app_data) {
                     game_state$point_won_by <- substr(input$manual_code, 1, 1)
                     rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(character(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw))
                     do_rally_end_things()
+                } else if (input$manual_code %in% c("*C", "aC")) {
+                    ## substitution
+                    if (input$manual_code %eq% "*C") {
+                        p_out <- as.numeric(input$ht_sub_out)
+                        p_in <- as.numeric(input$ht_sub_in)
+                    } else {
+                        p_out <- as.numeric(input$vt_sub_out)
+                        p_in <- as.numeric(input$vt_sub_in)
+                    }
+                    game_state <- game_state_make_substitution(game_state, team = substr(input$manual_code, 1, 1), player_out = p_out, player_in = p_in, dvw = rdata$dvw)
+                    rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(paste0(substr(input$manual_code, 1, 1), "C", p_out, ".", p_in), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
                 }
             }
             editing$active <- NULL
