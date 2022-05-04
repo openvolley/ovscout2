@@ -261,12 +261,11 @@ guess_attack_player_options <- function(game_state, dvw, system) {
     attacking_team <- game_state$current_team
     setter_rot <- game_state$home_setter_position
     attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
-    #libs <- if (beach) c() else dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
 
-    # Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+    ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
     attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack",
                                                        setter_position = setter_rot,
-                                                       zone = attacking_zone, libs = libs, home_visiting = "home")
+                                                       zone = attacking_zone, libs = NULL, home_visiting = "home")
 
 
     attacking_responsibility_prior <- setNames(rep(0, 6), c(paste0("home_p",1:6)))
@@ -289,12 +288,11 @@ guess_attack_player_options <- function(game_state, dvw, system) {
     attacking_team <- game_state$current_team
     setter_rot <- game_state$visiting_setter_position
     attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
-    #libs <- if (beach) c() else dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
 
-    # Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+    ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
     attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack",
                                                          setter_position = setter_rot,
-                                                         zone = attacking_zone, libs = libs, home_visiting = "visiting")
+                                                         zone = attacking_zone, libs = NULLxs, home_visiting = "visiting")
 
 
     attacking_responsibility_prior <- setNames(rep(0, 6), c(paste0("visiting_p",1:6)))
