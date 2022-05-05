@@ -1,6 +1,6 @@
 ov_scouter_server <- function(app_data) {
     function(input, output, session) {
-        debug <- 0L
+        debug <- 1L
 
         styling <- list(h_court_colour = "#bfefff", ## lightblue1
                         h_court_highlight = "darkblue",
@@ -51,7 +51,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         output$switch_serving_ui <- renderUI({
-            if (rally_state() %in% c("click the video to start", "click serve start")) {
+            if (rally_state() %in% c("click or unpause the video to start", "click serve start")) {
                 actionButton("switch_serving", "Switch serving team")
             } else {
                 ## can't switch serving team once the rally has started
@@ -207,6 +207,7 @@ ov_scouter_server <- function(app_data) {
                 if (video_state$paused) {
                     dojs(paste0(getel, ".play();"))
                     video_state$paused <- FALSE
+                    if (rally_state() == "click or unpause the video to start") rally_state("click serve start")
                 } else {
                     dojs(paste0(getel, ".pause();"))
                     video_state$paused <- TRUE
@@ -238,6 +239,10 @@ ov_scouter_server <- function(app_data) {
                 NULL
             }
         }
+
+        observeEvent(input$playback_rate, {
+            if (!is.null(input$playback_rate)) do_video("playback_rate", input$playback_rate)
+        })
 
 
         observeEvent(input$edit_match_data_button, {
@@ -439,19 +444,6 @@ ov_scouter_server <- function(app_data) {
         ## rally_codes is a reactive that returns a tibble with columns team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, t, start_x, start_y, end_x, end_y
         ## rally_codes are the actions in the current rally
 
-        code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, end_x = NA_real_, end_y = NA_real_) {
-            ## abbreviated parameer names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
-            if (missing(tempo)) tempo <- tryCatch(app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == skill], error = function(e) "~")
-            if (missing(eval)) eval <- tryCatch(app_data$default_scouting_table$evaluation_code[app_data$default_scouting_table$skill == skill], error = function(e) "~")
-            if (nchar(esz) == 2) {
-                ez <- substr(esz, 1, 1)
-                esz <- substr(esz, 2, 2)
-            }
-            ##tibble(code = sub("~+$", "", paste0(team, zpn(pnum), skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom)), t = t, start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y)
-            if (is.null(pnum) || is.na(pnum) || pnum %eq% "Unknown") pnum <- 0L
-            as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = combo, target = target, sz = sz, ez = ez, esz = esz, x_type = x_type, num_p = num_p, special = special, custom = custom), as.character), list(t = t, start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y)))
-        }
-
         ## keep track of whether we have a modal up or not, so that pause behaviour can be modified
         scout_modal_active <- reactiveVal(FALSE)
         show_scout_modal <- function(...) {
@@ -468,7 +460,7 @@ ov_scouter_server <- function(app_data) {
             if (loop_trigger() > 0) {
                 courtxy <- vid_to_crt(input$video_click)
                 ##court_inset$add_to_click_queue(courtxy)
-                if (rally_state() == "click the video to start") {
+                if (rally_state() == "click or unpause the video to start") {
                     do_video("play")
                     rally_state("click serve start")
                 } else if (rally_state() == "click serve start") {
@@ -483,7 +475,7 @@ ov_scouter_server <- function(app_data) {
                     st <- if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
                     ## time probably won't have resolved yet, so add it after next click
-                    rally_codes(code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y))
+                    rally_codes(code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table))
                     rally_state("click serve end")
                 } else if (rally_state() == "click serve end") {
                     do_video("pause")
@@ -504,7 +496,6 @@ ov_scouter_server <- function(app_data) {
                     serve_type_buttons <- make_fat_radio_buttons(choices = chc, selected = input$serve_preselect_type, input_var = "serve_type")
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "select_passer")
                     serve_error_buttons <- make_fat_buttons(choices = c("Serve error" = "=", "Serve error (in net)" = "=N", "Serve error (foot fault)" = "=Z", "Serve error (long)" = "=O", "Serve error (out left)" = "=L", "Serve error (out right)" = "=R"), input_var = "was_serve_error")
-                    ##browser()
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Serve type:")),
                                             do.call(fixedRow, lapply(serve_type_buttons$buttons, function(but) column(2, but))),
@@ -536,18 +527,9 @@ ov_scouter_server <- function(app_data) {
                     Sidx <- which(rc$skill == "S")
                     if (length(Sidx) == 1) {
                         ## update the serve code entry
-                        rc$pnum[Sidx] <- zpn(sp)
-                        rc$tempo[Sidx] <- st
-                        rc$ez[Sidx] <- substr(esz, 1, 1)
-                        rc$esz[Sidx] <- substr(esz, 2, 2)
-                        rc$t[Sidx] <- start_t
-                        rc$end_x[Sidx] <- game_state$end_x
-                        rc$end_y[Sidx] <- game_state$end_y
-                        ##rc[Sidx, ] <- mutate(rc[Sidx, ], pnum = zpn(sp), tempo = st, esz = esz, t = start_t, end_x = game_state$end_x, end_y = game_state$end_y)
+                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, esz = esz, t = start_t, end_x = game_state$end_x, end_y = game_state$end_y)
                     }
-                    rally_codes(bind_rows(
-                        rc,
-                        code_trow(team = other(game_state$serving), pnum = pp, skill = "R", tempo = st, sz = sz, esz = esz, t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y)))
+                    rally_codes(bind_rows(rc, code_trow(team = other(game_state$serving), pnum = pp, skill = "R", tempo = st, sz = sz, esz = esz, t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, default_scouting_table = app_data$default_scouting_table)))
                     rally_state("click second contact")
                     do_video("rew", app_data$play_overlap); do_video("play")
                 } else if (rally_state() == "serve ace") {
@@ -562,20 +544,9 @@ ov_scouter_server <- function(app_data) {
                     rc <- rally_codes()
                     Sidx <- which(rc$skill == "S")
                     if (length(Sidx) == 1) {
-                        ## update the serve code entry
-                        rc$pnum[Sidx] <- zpn(sp)
-                        rc$tempo[Sidx] <- st
-                        rc$eval[Sidx] <- "#"
-                        rc$ez[Sidx] <- substr(esz, 1, 1)
-                        rc$esz[Sidx] <- substr(esz, 2, 2)
-                        rc$t[Sidx] <- start_t
-                        rc$end_x[Sidx] <- game_state$end_x
-                        rc$end_y[Sidx] <- game_state$end_y
-                        ## this doesn't work?? rc[Sidx, ] <- mutate(rc[Sidx, ], pnum = zpn(sp), tempo = st, eval = "#", ez = substr(esz, 1, 1), esz = substr(esz, 2, 2), t = start_t, end_x = game_state$end_x, end_y = game_state$end_y)
+                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, eval = "#", ez = substr(esz, 1, 1), esz = substr(esz, 2, 2), t = start_t, end_x = game_state$end_x, end_y = game_state$end_y)
                     }
-                    rally_codes(bind_rows(
-                        rc,
-                        code_trow(team = other(game_state$serving), pnum = pp, skill = "R", eval = "=", tempo = st, sz = sz, esz = esz, t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y)))
+                    rally_codes(bind_rows(rc, code_trow(team = other(game_state$serving), pnum = pp, skill = "R", eval = "=", tempo = st, sz = sz, esz = esz, t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, default_scouting_table = app_data$default_scouting_table)))
 
                     game_state$current_team <- game_state$serving
                     game_state$point_won_by <- game_state$serving
@@ -592,16 +563,7 @@ ov_scouter_server <- function(app_data) {
                     Sidx <- which(rc$skill == "S")
                     if (length(Sidx) == 1) {
                         ## update the serve code entry
-                        rc$pnum[Sidx] <- zpn(sp)
-                        rc$tempo[Sidx] <- st
-                        rc$eval[Sidx] <- "="
-                        rc$ez[Sidx] <- substr(esz, 1, 1)
-                        rc$esz[Sidx] <- substr(esz, 2, 2)
-                        rc$special[Sidx] <- if (nzchar(special_code)) special_code else "~"
-                        rc$t[Sidx] <- retrieve_video_time(game_state$start_t)
-                        rc$end_x[Sidx] <- game_state$end_x
-                        rc$end_y[Sidx] <- game_state$end_y
-                        ##rc[Sidx, ] <- mutate(rc[Sidx, ], pnum = zpn(sp), tempo = st, eval = "=", esz = esz, special = if (nzchar(special_code)) special_code else "~", t = retrieve_video_time(game_state$start_t), end_x = game_state$end_x, end_y = game_state$end_y)
+                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, eval = "=", esz = esz, special = if (nzchar(special_code)) special_code else "~", t = retrieve_video_time(game_state$start_t), end_x = game_state$end_x, end_y = game_state$end_y)
                     }
                     rally_codes(rc)
                     rally_state("rally ended")
@@ -621,7 +583,7 @@ ov_scouter_server <- function(app_data) {
                     ## TODO maybe also setter call here
                     c2_buttons <- make_fat_radio_buttons(
                         choices = c(Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball attack" = "P2", "Freeball over" = "F", ## rcv team actions
-                                    "Opp. dig" = "aD", "Opp. overpass attack" = "aPR"), ## opp actions
+                                    "Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR"), ## opp actions
                         selected = "E", input_var = "c2")
                     if (app_data$is_beach) {
                         stop("setter for beach")
@@ -646,7 +608,7 @@ ov_scouter_server <- function(app_data) {
                                             tags$br(),
                                             tags$div("OR"),
                                             tags$br(),
-                                            do.call(fixedRow, lapply(c2_buttons$buttons[6:7], function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(c2_buttons$buttons[6:8], function(but) column(2, but))),
                                             tags$br(),
                                             tags$p("by player"),
                                             tags$br(),
@@ -666,34 +628,51 @@ ov_scouter_server <- function(app_data) {
                     seval <- app_data$compound_table$code[app_data$compound_table$skill %eq% "S" & app_data$compound_table$compound_skill %eq% "R" & app_data$compound_table$compound_code %eq% passq]
                     if (nchar(seval) != 1) seval <- "~"
                     rc$eval[rc$skill %eq% "S"] <- seval
-                    rally_codes(rc)
+                    start_t <- retrieve_video_time(game_state$start_t)
                     ## possible values for input$c2 are: Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball attack" = "P2", "Freeball over" = "F",
-                    ##                                   "Opp. dig" = "aD", "Opp. overpass attack" = "aPR"
+                    ##                                   "Opp. dig" = "aD", error "aD=", "Opp. overpass attack" = "aPR"
                     if (input$c2 %in% c("E", "E=", "PP", "P2", "F")) {
                         sp <- input$c2_player
-                        start_t <- retrieve_video_time(game_state$start_t)
                         if (input$c2 == "E") {
-                            rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$current_team, pnum = sp, skill = "E", esz = esz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y)))
+                            rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "E", esz = esz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
                             rally_state("click third contact")
                         } else if (input$c2 == "E=") {
                             ## set error
-                            rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$current_team, pnum = sp, skill = "E", eval = "=", esz = esz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y)))
+                            rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "E", eval = "=", esz = esz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
                             rally_state("rally ended")
                             game_state$point_won_by <- other(game_state$current_team)
                         } else if (input$c2 %in% c("PP", "P2")) {
                             ## setter dump or second ball attack
-                            sz <- paste(dv_xy2zone(game_state$start_x, game_state$start_y), collapse = "")
+                            sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
                             ## NOTE we have hard-coded PP, P2 here, TODO fix to allow other codes to be used
                             trg <- if (input$c2 == "PP") "S" else "~"
-                            rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = input$c2, target = trg, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y)))
+                            rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = input$c2, target = trg, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
                             rally_state("click attack end point")
                             game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                         } else if (input$c2 == "F") {
                             ## freeball over
-                            stop("freeball not coded")
+                            sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
+                            rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "F", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
+                            ## TODO add end pos to this on next contact
+                            game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
+                            rally_state("click attack end point") ## TODO don't use that popup, have a dedicated one
                         }
-                    } else {
-                        stop("opposition c2 not coded")
+                    } else if (input$c2 %eq% "aPR") {
+                        ## opposition overpass attack
+                        op <- if (!is.null(input$c2_opp_player)) input$c2_opp_player else 0L
+                        rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = "PR", sz = substr(esz, 1, 1), t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
+                        rally_state("click attack end point")
+                    } else if (input$c2 %in% c("aD", "aD=")) {
+                        ## opposition dig on overpass
+                        op <- if (!is.null(input$c2_opp_player)) input$c2_opp_player else 0L
+                        rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "D", eval = if (input$c2 %eq% "aD=") "=" else "~", sz = substr(esz, 1, 1), t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
+                        if (input$c2 %eq% "aD=") {
+                            game_state$point_won_by <- game_state$current_team
+                            rally_state("rally ended")
+                        } else {
+                            game_state$current_team <- other(game_state$current_team)
+                            rally_state("click second contact")
+                        }
                     }
                     remove_scout_modal()
                     if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
@@ -709,7 +688,7 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(courtxy)
                     ## popup
                     ac <- c(guess_attack_code(game_state, dvw = rdata$dvw), "Other attack")
-                    c3_buttons <- make_fat_radio_buttons(choices = c(setNames(ac, ac), c("Opp. dig" = "aD", "Opp. overpass attack" = "aPR")), input_var = "c3")
+                    c3_buttons <- make_fat_radio_buttons(choices = c(setNames(ac, ac), c("Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR")), input_var = "c3")
                     #ap <- get_players(game_state, dvw = rdata$dvw)
 
                     attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
@@ -737,7 +716,7 @@ ov_scouter_server <- function(app_data) {
                                             if (isTRUE(app_data$options$nblockers)) tags$div(tags$br(), "with", tags$br()),
                                             if (isTRUE(app_data$options$nblockers)) do.call(fixedRow, lapply(nblocker_buttons$buttons, function(but) column(2, but))),
                                             tags$br(), tags$hr(), tags$div("OR"), tags$br(),
-                                            do.call(fixedRow, lapply(tail(c3_buttons$buttons, 2), function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(tail(c3_buttons$buttons, 3), function(but) column(2, but))),
                                             tags$br(), tags$p("by player"), tags$br(),
                                             do.call(fixedRow, lapply(opp_player_buttons$buttons, function(but) column(1, but))),
                                             tags$hr(),
@@ -747,16 +726,34 @@ ov_scouter_server <- function(app_data) {
                 } else if (rally_state() == "third contact details") {
                     ## possible values for input$c3 are: an attack code, Freeball
                     ##    "Opp. dig" = "aD", "Opp. overpass attack" = "aPR"
-                    if (input$c3 %in% c("aD", "aPR")) {
-                        stop("opposition c3 not coded")
+                    start_t <- retrieve_video_time(game_state$start_t)
+                    sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
+                    if (input$c3 %eq% "aPR") {
+                        ## opposition overpass attack
+                        op <- if (!is.null(input$c3_opp_player)) input$c3_opp_player else 0L
+                        rally_codes(bind_rows(rally_codes(), code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = "PR", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
+                        rally_state("click attack end point")
+                    } else if (input$c3 %in% c("aD", "aD=")) {
+                        ## opposition dig on overpass
+                        op <- if (!is.null(input$c3_opp_player)) input$c3_opp_player else 0L
+                        rally_codes(bind_rows(rally_codes(), code_trow(team = other(game_state$current_team), pnum = op, skill = "D", eval = if (input$c3 %eq% "aD=") "=" else "~", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
+                        if (input$c3 %eq% "aD=") {
+                            game_state$point_won_by <- game_state$current_team
+                            rally_state("rally ended")
+                        } else {
+                            game_state$current_team <- other(game_state$current_team)
+                            rally_state("click second contact")
+                        }
                     } else {
                         if (input$c3 == "F") {
                             ## freeball over
-                            stop("freeball not coded")
+                            rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = if (!is.null(input$c3_player)) input$c3_player else 0L, skill = "F", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
+                            ## TODO add end pos to this on next contact
+                            game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
+                            rally_state("click attack end point") ## TODO don't use that popup, have a dedicated one
                         } else {
                             ## only an attack code or "Other attack" for the time being
-                            ap <- input$c3_player
-                            start_t <- retrieve_video_time(game_state$start_t)
+                            ap <- if (!is.null(input$c3_player)) input$c3_player else 0L
                             ac <- input$c3
                             if (nchar(ac) == 2) {
                                 tempo <- tryCatch(rdata$dvw$meta$attacks$type[rdata$dvw$meta$attacks$code %eq% input$c3], error = function(e) "~")
@@ -769,11 +766,10 @@ ov_scouter_server <- function(app_data) {
                             }
                             if (nchar(tempo) != 1) tempo <- "~"
                             if (nchar(targ) != 1 || targ %eq% "-") targ <- "~"
-                            sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
                             nb <- input$nblockers
                             if (is.null(nb) || !nb %in% 0:3) nb <- "~"
                             ##if (nchar(input$c3) == 2) {
-                            rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$current_team, pnum = ap, skill = "A", tempo = tempo, combo = ac, target = targ, sz = sz, num_p = nb, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y)))
+                            rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$current_team, pnum = ap, skill = "A", tempo = tempo, combo = ac, target = targ, sz = sz, num_p = nb, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
                             rally_state("click attack end point")
                             game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                         }
@@ -862,7 +858,8 @@ ov_scouter_server <- function(app_data) {
                             if (!is.na(Aidx)) rc$eval[Aidx] <- "-"
                             eval <- "+"
                         }
-                        rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "D", eval = eval, tempo = tempo, sz = substr(esz, 1, 1), t = end_t, start_x = game_state$end_x, start_y = game_state$end_y)))
+                        ## TODO CHECK is the dig start zone the same as the attack start zone, or its end zone?
+                        rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "D", eval = eval, tempo = tempo, sz = substr(esz, 1, 1), t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, default_scouting_table = app_data$default_scouting_table)))
                         if (input$c1 == "D=") {
                             rally_state("rally ended")
                             game_state$point_won_by <- other(game_state$current_team)
@@ -881,8 +878,13 @@ ov_scouter_server <- function(app_data) {
                     stop("unknown rally state: ", rally_state())
                 }
             }
-            if (nrow(rally_codes())) { cat("rally codes:\n"); print_rally_codes(rally_codes()) }
-            cat("rally state: ", rally_state(), "\n")
+            if (debug > 0) {
+                if (nrow(rally_codes())) {
+                    cat("rally codes:\n")
+                    print_rally_codes(rally_codes())
+                }
+                cat("rally state: ", rally_state(), "\n")
+            }
             if (rally_state() == "rally ended") {
                 ## add rally codes to scout object now
                 rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw))
@@ -994,7 +996,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## initialize the game state
-        rally_state <- reactiveVal("click the video to start")
+        rally_state <- reactiveVal("click or unpause the video to start")
         rally_codes <- reactiveVal(empty_rally_codes)
         temp <- as.list(tail(app_data$dvw$plays2, 1))
         if (!"serving" %in% names(temp) || is.na(temp$serving)) temp$serving <- "*" ## default to home team serving - maybe allow this as a parm to ov_scouter (maybe TODO)

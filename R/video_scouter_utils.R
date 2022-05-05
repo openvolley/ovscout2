@@ -113,6 +113,52 @@ print_rally_codes <- function(rc) {
 }
 codes_from_rc_rows <- function(rc) sub("~+$", "", paste0(rc$team, rc$pnum, rc$skill, rc$tempo, rc$eval, rc$combo, rc$target, rc$sz, rc$ez, rc$esz, rc$x_type, rc$num_p, rc$special, rc$custom))
 
+code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, end_x = NA_real_, end_y = NA_real_, default_scouting_table) {
+    ## abbreviated parameter names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
+    if (missing(tempo) || tempo %eq% "~" || is.na(tempo)) tempo <- tryCatch(default_scouting_table$tempo[default_scouting_table$skill == skill], error = function(e) "~")
+    if (missing(eval) || eval %eq% "~" || is.na(eval)) eval <- tryCatch(default_scouting_table$evaluation_code[default_scouting_table$skill == skill], error = function(e) "~")
+    if (nchar(esz) == 2) {
+        ez <- substr(esz, 1, 1)
+        esz <- substr(esz, 2, 2)
+    } else {
+        esz <- if (nchar(esz) > 0) substr(esz, 1, 1) else "~" ## first char only
+    }
+    if (is.null(pnum) || is.na(pnum) || pnum %eq% "Unknown") pnum <- 0L
+    as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = combo, target = target, sz = sz, ez = ez, esz = esz, x_type = x_type, num_p = num_p, special = special, custom = custom), as.character), list(t = t, start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y)))
+}
+
+update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, t, start_x, start_y, end_x, end_y) {
+    new_ez <- if (!missing(ez)) ez else trow$ez
+    new_esz <- trow$esz
+    if (!missing(esz)) {
+        if (nchar(esz) == 2) {
+            new_ez <- substr(esz, 1, 1)
+            new_esz <- substr(esz, 2, 2)
+        } else {
+            new_esz <- if (nchar(esz) > 0) substr(esz, 1, 1) else "~" ## first char only
+        }
+    }
+    code_trow(team = if (!missing(team)) team else trow$team,
+              pnum = if (!missing(pnum)) pnum else trow$pnum,
+              skill = if (!missing(skill)) skill else trow$skill,
+              tempo = if (!missing(tempo)) tempo else trow$tempo,
+              eval = if (!missing(eval)) eval else trow$eval,
+              combo = if (!missing(combo)) combo else trow$combo,
+              target = if (!missing(target)) target else trow$target,
+              sz = if (!missing(sz)) sz else trow$sz,
+              ez = new_ez,
+              esz = new_esz,
+              x_type = if (!missing(x_type)) x_type else trow$x_type,
+              num_p = if (!missing(num_p)) num_p else trow$num_p,
+              special = if (!missing(special)) special else trow$special,
+              custom = if (!missing(custom)) custom else trow$custom,
+              t = if (!missing(t)) t else trow$t,
+              start_x = if (!missing(start_x)) start_x else trow$start_x,
+              start_y = if (!missing(start_y)) start_y else trow$start_y,
+              end_x = if (!missing(end_x)) end_x else trow$end_x,
+              end_y = if (!missing(end_y)) end_y else trow$end_y)
+}
+
 get_setter_pos <- function(game_state, team) {
     if (missing(team)) team <- game_state$current_team
     if (team == "*") game_state$home_setter_position else if (team == "a") game_state$visiting_setter_position else NA_integer_
@@ -266,7 +312,7 @@ guess_pass_quality <- function(game_state, dvw) {
     } else {
         "-"
     }
-    cat("guessed pass quality: ", out, "\n")
+    ##cat("guessed pass quality: ", out, "\n")
     out
 }
 
