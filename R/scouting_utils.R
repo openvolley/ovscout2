@@ -635,8 +635,13 @@ make_auto_codes <- function(code, x) {
     evaluation_code <- substr(code, 6, 6)
     evaluation_code[!evaluation_code %in% c("#", "+", "!", "-", "/", "=")] <- NA_character_
     wswin <- x$meta$winning_symbols$win_lose == "W"
-    wsidx <- skill %in% x$meta$winning_symbols$skill[wswin] & evaluation_code %in% x$meta$winning_symbols$code[wswin]
-    lsidx <- skill %in% x$meta$winning_symbols$skill[!wswin] & evaluation_code %in% x$meta$winning_symbols$code[!wswin]
+    ## for each skill/eval pair in code, is it a W or L or neither?
+    my_wl <- vapply(seq_along(skill), function(i) {
+        out <- x$meta$winning_symbols[x$meta$winning_symbols$skill %eq% skill[i] & x$meta$winning_symbols$code %eq% evaluation_code[i], ]
+        if (nrow(out) == 1) out$win_lose else NA_character_
+    }, FUN.VALUE = "A", USE.NAMES = FALSE)
+    wsidx <- my_wl %eq% "W" ## skill %in% x$meta$winning_symbols$skill[wswin] & evaluation_code %in% x$meta$winning_symbols$code[wswin]
+    lsidx <- my_wl %eq% "L" ## skill %in% x$meta$winning_symbols$skill[!wswin] & evaluation_code %in% x$meta$winning_symbols$code[!wswin]
     green_codes <- c()
     lost_by <- setdiff(c("*", "a"), won_by)
     if (sum(team_char %eq% won_by & wsidx) < 1) {
