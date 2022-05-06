@@ -1103,6 +1103,7 @@ ov_scouter_server <- function(app_data) {
         )
 
         observeEvent(input$manual_code, {
+            ok <- TRUE
             if (!is.null(input$manual_code)) {
                 if (input$manual_code %in% c("*T", "aT")) {
                     rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(input$manual_code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
@@ -1119,13 +1120,20 @@ ov_scouter_server <- function(app_data) {
                         p_out <- as.numeric(input$vt_sub_out)
                         p_in <- as.numeric(input$vt_sub_in)
                     }
-                    game_state <- game_state_make_substitution(game_state, team = substr(input$manual_code, 1, 1), player_out = p_out, player_in = p_in, dvw = rdata$dvw)
-                    rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(paste0(substr(input$manual_code, 1, 1), "C", p_out, ".", p_in), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
+                    if (length(p_out) == 1 && length(p_in) == 1) {
+                        game_state <- game_state_make_substitution(game_state, team = substr(input$manual_code, 1, 1), player_out = p_out, player_in = p_in, dvw = rdata$dvw)
+                        rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(paste0(substr(input$manual_code, 1, 1), "C", p_out, ".", p_in), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
+                    } else {
+                        ## players in/out not selected, ignore
+                        ok <- FALSE
+                    }
                 }
             }
-            editing$active <- NULL
-            removeModal()
-            do_video("pause")
+            if (ok) {
+                editing$active <- NULL
+                removeModal()
+                do_video("pause")
+            }
         })
     }
 }
