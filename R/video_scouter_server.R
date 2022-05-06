@@ -498,16 +498,16 @@ ov_scouter_server <- function(app_data) {
                     serve_error_buttons <- make_fat_buttons(choices = c("Serve error" = "=", "Serve error (in net)" = "=N", "Serve error (foot fault)" = "=Z", "Serve error (long)" = "=O", "Serve error (out left)" = "=L", "Serve error (out right)" = "=R"), input_var = "was_serve_error")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Serve type:")),
-                                            do.call(fixedRow, lapply(serve_type_buttons$buttons, function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),
                                             tags$hr(),
                                             tags$div("AND"),
                                             tags$br(),
-                                            do.call(fixedRow, lapply(serve_error_buttons$buttons, function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(serve_error_buttons, function(but) column(2, but))),
                                             tags$br(),
                                             tags$div("OR"),
                                             tags$br(),
                                             tags$p(tags$strong("Select passer:")),
-                                            do.call(fixedRow, lapply(passer_buttons$buttons, function(but) column(1, but))),
+                                            do.call(fixedRow, lapply(passer_buttons, function(but) column(1, but))),
                                             fixedRow(column(2, actionButton("was_serve_ace", "Reception error (serve ace)", style = paste0("width:100%; height:7vh;")))),
                                             tags$hr(),
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
@@ -597,22 +597,22 @@ ov_scouter_server <- function(app_data) {
                     opp <- c(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw), get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw))
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
-                    opp_buttons <- make_fat_radio_buttons(choices = opp, input_var = "c2_opp_player")
+                    opp_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c2_opp_player")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Second contact:")),
-                                            do.call(fixedRow, lapply(c2_buttons$buttons[1:5], function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(c2_buttons[1:5], function(but) column(2, but))),
                                             tags$br(),
                                             tags$p("by player"),
                                             tags$br(),
-                                            do.call(fixedRow, lapply(setter_buttons$buttons, function(but) column(1, but))),
+                                            do.call(fixedRow, lapply(setter_buttons, function(but) column(1, but))),
                                             tags$br(),
                                             tags$div("OR"),
                                             tags$br(),
-                                            do.call(fixedRow, lapply(c2_buttons$buttons[6:8], function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(c2_buttons[6:8], function(but) column(2, but))),
                                             tags$br(),
                                             tags$p("by player"),
                                             tags$br(),
-                                            do.call(fixedRow, lapply(opp_buttons$buttons, function(but) column(1, but))),
+                                            do.call(fixedRow, lapply(opp_buttons, function(but) column(1, but))),
                                             tags$hr(),
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
                                                      column(2, offset = 8, actionButton("assign_c2", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
@@ -707,18 +707,18 @@ ov_scouter_server <- function(app_data) {
                     opp <- c(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw), get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw))
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
-                    opp_player_buttons <- make_fat_radio_buttons(choices = opp, input_var = "c3_opp_player")
+                    opp_player_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c3_opp_player")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack:")),
-                                            do.call(fixedRow, lapply(c3_buttons$buttons[seq_along(ac)], function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(c3_buttons[seq_along(ac)], function(but) column(2, but))),
                                             tags$br(), tags$p("by player"), tags$br(),
-                                            do.call(fixedRow, lapply(attacker_buttons$buttons, function(but) column(1, but))),
+                                            do.call(fixedRow, lapply(attacker_buttons, function(but) column(1, but))),
                                             if (isTRUE(app_data$options$nblockers)) tags$div(tags$br(), "with", tags$br()),
-                                            if (isTRUE(app_data$options$nblockers)) do.call(fixedRow, lapply(nblocker_buttons$buttons, function(but) column(2, but))),
+                                            if (isTRUE(app_data$options$nblockers)) do.call(fixedRow, lapply(nblocker_buttons, function(but) column(2, but))),
                                             tags$br(), tags$hr(), tags$div("OR"), tags$br(),
-                                            do.call(fixedRow, lapply(tail(c3_buttons$buttons, 3), function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(tail(c3_buttons, 3), function(but) column(2, but))),
                                             tags$br(), tags$p("by player"), tags$br(),
-                                            do.call(fixedRow, lapply(opp_player_buttons$buttons, function(but) column(1, but))),
+                                            do.call(fixedRow, lapply(opp_player_buttons, function(but) column(1, but))),
                                             tags$hr(),
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
                                                      column(2, offset = 8, actionButton("assign_c3", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
@@ -788,35 +788,47 @@ ov_scouter_server <- function(app_data) {
                     game_state$end_t <- game_state$current_time_uuid
                     overlay_points(courtxy)
                     ## popup
-                    c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill" = "A#", "Attack error" = "A=", "Dig" = "D", "Dig error" = "D="), input_var = "c1")
+                    c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill" = "A#", "Attack error" = "A=", "Dig" = "D", "Dig error" = "D=", "Block fault" = "B/"), input_var = "c1")
 
-                    # Identify defending players
-
+                    ## Identify defending players
                     dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
-
                     digp <- dig_pl_opts$choices
-
                     names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
                     digp <- c(digp, Unknown = "Unknown")
 
                     # digp <- c(get_players(game_state, dvw = rdata$dvw), get_liberos(game_state, dvw = rdata$dvw)) ## TODO better based on rotation
                     # names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
                     # digp <- c(digp, Unknown = "Unknown")
-                    dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "c1_dig_player")
+                    dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "c1_def_player")
+                    blockp <- get_players(game_state, team = game_state$current_team, dvw = rdata$dvw)
+                    if (length(blockp) == 6) blockp <- blockp[2:4] ## front-row
+                    names(blockp) <- player_nums_to(blockp, team = game_state$current_team, dvw = rdata$dvw)
+                    blockp <- c(blockp, Unknown = "Unknown")
+                    block_player_buttons <- make_fat_radio_buttons(choices = blockp, selected = NA, input_var = "c1_block_touch_player")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack outcome:")),
-                                            do.call(fixedRow, lapply(c1_buttons$buttons[1:2], function(but) column(2, but))),
-                                            tags$br(), tags$hr(), tags$div("OR"), tags$br(),
-                                            tags$p(tags$strong("Dig outcome:")),
-                                            do.call(fixedRow, lapply(c1_buttons$buttons[3:4], function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(c1_buttons[1:2], function(but) column(2, but))),
+                                            tags$br(), tags$hr(), tags$div("OR", tags$strong("Defence outcome:")),
+                                            do.call(fixedRow, lapply(c1_buttons[3:5], function(but) column(2, but))),
                                             tags$br(), tags$p("by player"), tags$br(),
-                                            do.call(fixedRow, lapply(dig_player_buttons$buttons, function(but) column(1, but))),
+                                            do.call(fixedRow, lapply(dig_player_buttons, function(but) column(1, but))),
+                                            tags$br(), tags$hr(), tags$div("WITH", tags$strong("Block touch"), "by player"), tags$br(),
+                                            do.call(fixedRow, lapply(block_player_buttons, function(but) column(2, but))),
                                             tags$hr(),
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
                                                      column(2, offset = 8, actionButton("assign_c1", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
                                             ))
                 } else if (rally_state() == "first contact details") {
-                    ## possible values for input$c1 are currently: A#, A=, D, D=
+                    ## possible values for input$c1 are currently: A#, A=, D, D=, B/
+                    ## any of these except B/ can be preceded by a block touch
+                    if (!is.null(input$c1_block_touch_player)) {
+                        if (!input$c1 %eq% "B/") {
+                            beval <- if (input$c1 %eq% "A#") "=" else app_data$default_scouting_table$evaluation_code[app_data$default_scouting_table$skill == "B"]
+                            rc <- rally_codes()
+                            Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
+                            rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = input$c1_block_touch_player, skill = "B", eval = beval, tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, default_scouting_table = app_data$default_scouting_table))) ## TODO x,y?
+                        }
+                    }
                     esz <- paste(dv_xy2subzone(game_state$end_x, game_state$end_y), collapse = "")
                     if (input$c1 %in% c("A#", "A=")) {
                         ##end_t <- retrieve_video_time(game_state$end_t)
@@ -834,9 +846,17 @@ ov_scouter_server <- function(app_data) {
                         rally_state("rally ended")
                         ## "current" team here is the digging team
                         game_state$point_won_by <- if (eval == "#") other(game_state$current_team) else game_state$current_team
+                    } else if (input$c1 %eq% "B/") {
+                        rc <- rally_codes()
+                        Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
+                        ## block fault player should be in input$c1_def_player, but we'll take input$b1_block_touch_player otherwise
+                        bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
+                        rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "/", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, default_scouting_table = app_data$default_scouting_table))) ## TODO x,y?
+                        rally_state("rally ended")
+                        game_state$point_won_by <- other(game_state$current_team) ## "current" team here is the digging team
                     } else {
                         ## D or D=
-                        digp <- input$c1_dig_player
+                        digp <- input$c1_def_player
                         end_t <- retrieve_video_time(game_state$end_t)
                         rc <- rally_codes()
                         ## was the previous skill an attack, or one previous to that an attack with a block in between
@@ -987,8 +1007,8 @@ ov_scouter_server <- function(app_data) {
                 chc <- setNames(chc$tempo_code, chc$tempo)
                 serve_type_buttons <- make_fat_radio_buttons(choices = chc, selected = st_default, input_var = "serve_preselect_type")
                 output$serve_preselect <- renderUI(
-                    tags$div(tags$strong("Serve type:"), do.call(fixedRow, lapply(serve_type_buttons$buttons, function(but) column(2, but))),
-                             tags$strong("Serve player:"), do.call(fixedRow, lapply(serve_player_buttons$buttons, function(but) column(2, but))))
+                    tags$div(tags$strong("Serve type:"), do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),
+                             tags$strong("Serve player:"), do.call(fixedRow, lapply(serve_player_buttons, function(but) column(2, but))))
                 )
             } else {
                 output$serve_preselect <- NULL
@@ -1015,14 +1035,14 @@ ov_scouter_server <- function(app_data) {
             ht_on <- get_players(game_state, team = "*", dvw = rdata$dvw)
             ht_other <- setdiff(rdata$dvw$meta$players_h$number, ht_on)
             ht_other <- setdiff(ht_other, get_liberos(game_state, team = "*", dvw = rdata$dvw))
-            ht_sub_out <- make_fat_radio_buttons(choices = ht_on, input_var = "ht_sub_out")
-            ht_sub_in <- make_fat_radio_buttons(choices = ht_other, input_var = "ht_sub_in")
+            ht_sub_out <- make_fat_radio_buttons(choices = ht_on, selected = NA, input_var = "ht_sub_out")
+            ht_sub_in <- make_fat_radio_buttons(choices = ht_other, selected = NA, input_var = "ht_sub_in")
             ## visiting player sub buttons
             vt_on <- get_players(game_state, team = "a", dvw = rdata$dvw)
             vt_other <- setdiff(rdata$dvw$meta$players_v$number, vt_on)
             vt_other <- setdiff(vt_other, get_liberos(game_state, team = "a", dvw = rdata$dvw))
-            vt_sub_out <- make_fat_radio_buttons(choices = vt_on, input_var = "vt_sub_out")
-            vt_sub_in <- make_fat_radio_buttons(choices = vt_other, input_var = "vt_sub_in")
+            vt_sub_out <- make_fat_radio_buttons(choices = vt_on, selected = NA, input_var = "vt_sub_out")
+            vt_sub_in <- make_fat_radio_buttons(choices = vt_other, selected = NA, input_var = "vt_sub_in")
 
             showModal(vwModalDialog(title = "Miscellaneous", footer = NULL,
                                     if (!is.null(rdata$dvw$plays2)) {
@@ -1038,13 +1058,13 @@ ov_scouter_server <- function(app_data) {
                                              column(2, offset = 2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "manual_code")),
                                              column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "manual_code"))),
                                     fluidRow(column(6, tags$p("Player out"),
-                                                    do.call(fixedRow, lapply(ht_sub_out$buttons, function(but) column(2, but))),
+                                                    do.call(fixedRow, lapply(ht_sub_out, function(but) column(2, but))),
                                                     tags$p("Player in"),
-                                                    do.call(fixedRow, lapply(ht_sub_in$buttons, function(but) column(if (length(ht_other) <= 6) 2 else 1, but)))),
+                                                    do.call(fixedRow, lapply(ht_sub_in, function(but) column(if (length(ht_other) <= 6) 2 else 1, but)))),
                                              column(6, tags$p("Player out"),
-                                                    do.call(fixedRow, lapply(vt_sub_out$buttons, function(but) column(2, but))),
+                                                    do.call(fixedRow, lapply(vt_sub_out, function(but) column(2, but))),
                                                     tags$p("Player in"),
-                                                    do.call(fixedRow, lapply(vt_sub_in$buttons, function(but) column(if (length(vt_other) <= 6) 2 else 1, but))))
+                                                    do.call(fixedRow, lapply(vt_sub_in, function(but) column(if (length(vt_other) <= 6) 2 else 1, but))))
                                              ),
                                     fluidRow(column(2, offset = 4, make_fat_buttons(choices = c("Make substitution" = "*C"), input_var = "manual_code")),
                                              column(2, offset = 4, make_fat_buttons(choices = c("Make substitution" = "aC"), input_var = "manual_code"))),
