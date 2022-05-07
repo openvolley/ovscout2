@@ -9,9 +9,7 @@ ov_scouter_server <- function(app_data) {
                         continue = "#10C424", cancel = "#D41024")
 
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "home_setter_position", "visiting_setter_position", "Score", "is_skill")
-        plays_col_renames <- c(Set = "set_number", hs = "home_setter_position", as = "visiting_setter_position")
-        is_skill <- function(z) !is.na(z) & (!z %in% c("Timeout", "Technical timeout", "Substitution"))
-        reactive_scrolling <- FALSE ## testing, not sure it helps. In principle if multiple scroll requests get lined up before the first has actually been initiated, then it'll skip to just the last
+        plays_cols_renames <- c(Set = "set_number", hs = "home_setter_position", as = "visiting_setter_position")
 
         ## this is temporary stupidity
         app_data$dvw$plays <- plays2_to_plays(app_data$dvw$plays2, dvw = app_data$dvw, evaluation_decoder = app_data$evaluation_decoder)
@@ -123,102 +121,7 @@ ov_scouter_server <- function(app_data) {
             if (htok && vtok) actionButton("edit_commit", label = "Update teams lineups", style = paste0("background-color:", styling$continue)) else NULL
         })
 
-        plays_do_rename <- function(z) names_first_to_capital(dplyr::rename(z, plays_col_renames))
-        ## the plays display in the RHS table
-        output$playslist <- DT::renderDataTable({
-            isolate(mydat <- rdata$dvw$plays) ## render once, then isolate from further renders - will be done by replaceData below
-            if (!is.null(input$window_height) && !is.na(input$window_height)) {
-                plh <- input$window_height*0.4
-            } else {
-                plh <- 200
-            }
-            if (!is.null(mydat)) {
-                ## make sure all cols are present, otherwise the DT proxy won't update properly when those columns are added later
-                for (cl in setdiff(c("skill", "set_number", "home_team_score", "visiting_team_score", plays_cols_to_show), c("Score", "is_skill"))) {
-                    if (!cl %in% names(mydat)) mydat[[cl]] <- rep(NA, nrow(mydat))
-                }
-                isolate({
-                    last_skill_row <- which(is_skill(mydat$skill))
-                    if (length(last_skill_row)) last_skill_row <- max(last_skill_row)
-                    sel <- list(mode = "single")
-                    if (length(last_skill_row) > 0) {
-                        sel$target <- "row"
-                        sel$selected <- last_skill_row
-                    }
-                })
-                mydat$is_skill <- is_skill(mydat$skill)
-                mydat$set_number <- as.factor(mydat$set_number)
-                mydat$Score <- paste(mydat$home_team_score, mydat$visiting_team_score, sep = "-")
-                cols_to_hide <- which(plays_cols_to_show %in% c("is_skill")) - 1L ## 0-based because no row names
-                cnames <- names(plays_do_rename(mydat[1, plays_cols_to_show, drop = FALSE]))
-                cnames[plays_cols_to_show == "error_icon"] <- ""
-                out <- DT::datatable(mydat[, plays_cols_to_show, drop = FALSE], rownames = FALSE, colnames = cnames,
-                                     extensions = "Scroller",
-                                     escape = FALSE, ##filter = "top",
-                                     selection = sel, options = list(scroller = TRUE,
-                                                                     lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = TRUE, "scrollY" = paste0(plh, "px"), ordering = FALSE, ##autoWidth = TRUE,
-                                                                     columnDefs = list(list(targets = cols_to_hide, visible = FALSE)),
-                                                                     drawCallback = DT::JS("function(settings) { Shiny.setInputValue('playlist_redrawn', new Date().getTime()); }")
-                                                                     ##list(targets = 0, width = "20px")) ## does nothing
-                                                                     ))
-                out <- DT::formatStyle(out, "is_skill", target = "row", backgroundColor = DT::styleEqual(c(FALSE, TRUE), c("#f0f0e0", "lightgreen"))) ## colour skill rows green
-                out <- DT::formatStyle(out, "error_icon", color = "red")
-                out
-            } else {
-                NULL
-            }
-        }, server = TRUE)
-        playslist_proxy <- DT::dataTableProxy("playslist")
-        playslist_needs_scroll <- reactiveVal(FALSE)
-        playslist_scroll_target <- reactiveVal(-99L)
-        observeEvent(input$playlist_redrawn, {
-            ## when the table has finished being drawn, scroll it if necessary
-            if (playslist_needs_scroll()) {
-                playslist_needs_scroll(FALSE)
-                if (reactive_scrolling) playslist_scroll_target(playslist_current_row()) else scroll_playlist(playslist_current_row())
-            }
-            ## and mark current row as selected in the table, but don't re-scroll to it
-            playslist_select_row(playslist_current_row(), scroll = FALSE)
-        })
-        ## keep track of selected playslist row as a reactiveVal
-        ##   when updating e.g. video time, set this reactiveVal, then wait for DT to redraw THEN scroll
-        playslist_current_row <- reactiveVal(NULL)
-        ## the playslist_select_row function just changes the visible selection in the table, and optionally scrolls to it, but does not change playslist_current_row() value
-        playslist_select_row <- function(rw, scroll = TRUE) {
-            DT::selectRows(playslist_proxy, rw)
-            if (isTRUE(scroll)) {
-                if (reactive_scrolling) playslist_scroll_target(rw) else scroll_playlist(rw)
-            }
-        }
-        ## when the user changes the selected row, update playslist_current_row
-        observeEvent(input$playslist_rows_selected, playslist_current_row(input$playslist_rows_selected))
-
-        observe({
-            if (reactive_scrolling && !is.null(playslist_scroll_target()) && !is.na(playslist_scroll_target()) && playslist_scroll_target() > 0) {
-                scroll_playlist(playslist_scroll_target())
-            }
-        })
-
-        scroll_playlist <- function(rw) {
-            if (!is.null(rw)) {
-                ## scrolling works on the VISIBLE row index, so it depends on any column filters that might have been applied
-                visible_rowidx <- which(input$playslist_rows_all == rw)
-                scrollto <- max(visible_rowidx-1-5, 0) ## -1 for zero indexing, -5 to keep the selected row 5 from the top
-                dojs(paste0("$('#playslist').find('.dataTable').DataTable().scroller.toPosition(", scrollto, ", false);")) ## no anim, faster
-            }
-        }
-
-        observe({
-            ## replace playlist data when dvw$plays changes
-            if (!is.null(rdata$dvw$plays) && nrow(rdata$dvw$plays) > 0) replace_playlist_data()
-        })
-        replace_playlist_data <- function() {
-            mydat <- rdata$dvw$plays
-            mydat$is_skill <- is_skill(mydat$skill)
-            mydat$set_number <- as.factor(mydat$set_number)
-            mydat$Score <- paste(mydat$home_team_score, mydat$visiting_team_score, sep = "-")
-            DT::replaceData(playslist_proxy, data = mydat[, plays_cols_to_show, drop = FALSE], rownames = FALSE, clearSelection = "none")
-        }
+        playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show, plays_cols_renames = plays_cols_renames)
 
         video_state <- reactiveValues(paused = TRUE) ## starts paused
         editing <- reactiveValues(active = NULL)
@@ -1017,7 +920,7 @@ ov_scouter_server <- function(app_data) {
             ##            cat(str(temp_rally_plays2))
             ##            cat(str(rdata$dvw$plays2))
             rdata$dvw$plays <- plays2_to_plays(bind_rows(rdata$dvw$plays2, temp_rally_plays2), dvw = rdata$dvw, evaluation_decoder = app_data$evaluation_decoder)
-            scroll_playlist(nrow(rdata$dvw$plays))
+            playslist_mod$scroll_playslist(nrow(rdata$dvw$plays))
         })
 
         observeEvent(input$cancelrew, {

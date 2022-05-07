@@ -111,6 +111,7 @@ plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
     bind_cols(out, plays2[, c(paste0("home_p", pseq), paste0("visiting_p", pseq))])
 }
 
+is_skill <- function(z) !is.na(z) & (!z %in% c("Timeout", "Technical timeout", "Substitution"))
 is_beach <- function(dvw) isTRUE(grepl("beach", dvw$meta$match$regulation))
 zpn <- function(n) sprintf("%02d", as.numeric(n))
 other <- function(tm) { oth <- rep(NA_character_, length(tm)); oth[tm %eq% "*"] <- "a"; oth[tm %eq% "a"] <- "*"; oth }
