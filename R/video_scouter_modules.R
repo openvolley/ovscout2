@@ -1,21 +1,12 @@
-mod_courtrot2_ui <- function(id, with_ball_coords = TRUE) {
+mod_teamslists_ui <- function(id) {
     ns <- NS(id)
     tags$div(style = "border-radius: 4px; padding: 4px",
-             if (with_ball_coords) fluidRow(style = "min-height: 34px;", ## min-height to retain layout when buttons are hidden
-                                       column(4, checkboxInput(ns("ballcoordsCI"), label = "Display ball coordinates", value = TRUE)),
-                                       column(4, actionButton(ns("cancel_ball_coords"), "Cancel ball coordinates")),
-                                       column(4, actionButton(ns("validate_ball_coords"), label = "Accept ball coordinates"))),
-             fluidRow(column(12, plotOutput(ns("court_inset"), click = ns("plot_click"))),),
-             fluidRow(column(1, offset = 0, actionButton(ns("rotate_home"),icon("undo"))),
-                      column(2, offset = 4, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
-                      column(1, offset = 3, actionButton(ns("rotate_visiting"), icon("undo")))),
              fluidRow(column(6, id = "hroster", uiOutput(ns("htroster"))),
                       column(6, id = "vroster", uiOutput(ns("vtroster"))))
              )
 }
 
-mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, styling, with_ball_coords = TRUE) {
-    pseq <- if (is_beach(isolate(rdata$dvw))) 1:2 else 1:6
+mod_teamslists <- function(input, output, session, rdata) {
     output$htroster <- renderUI({
         re <- names2roster(rdata$dvw$meta$players_h)
         do.call(tags$div, c(list(tags$strong("Home team"), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
@@ -24,6 +15,24 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         re <- names2roster(rdata$dvw$meta$players_v)
         do.call(tags$div, c(list(tags$strong("Visiting team"), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
     })
+}
+
+mod_courtrot2_ui <- function(id, with_ball_coords = TRUE) {
+    ns <- NS(id)
+    tags$div(style = "border-radius: 4px; padding: 4px",
+             if (with_ball_coords) fluidRow(style = "min-height: 34px;", ## min-height to retain layout when buttons are hidden
+                                       column(4, checkboxInput(ns("ballcoordsCI"), label = "Display ball coordinates", value = TRUE)),
+                                       column(4, actionButton(ns("cancel_ball_coords"), "Cancel ball coordinates")),
+                                       column(4, actionButton(ns("validate_ball_coords"), label = "Accept ball coordinates"))),
+             fluidRow(column(12, plotOutput(ns("court_inset"), click = ns("plot_click"), height = "45vh")),),
+             fluidRow(column(2, offset = 0, actionButton(ns("rotate_home"), tags$span("Home", icon("undo")))),
+                      column(2, offset = 3, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
+                      column(2, offset = 2, actionButton(ns("rotate_visiting"), tags$span("Visiting", icon("undo")))))
+             )
+}
+
+mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, styling, with_ball_coords = TRUE) {
+    pseq <- if (is_beach(isolate(rdata$dvw))) 1:2 else 1:6
 
     observeEvent(input$cancel_ball_coords, {
         clear_click_queue()

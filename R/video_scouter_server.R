@@ -31,6 +31,7 @@ ov_scouter_server <- function(app_data) {
         court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = reactive(game_state), rally_codes = rally_codes, styling = styling, with_ball_coords = FALSE)
         rotateTeams <- reactive(court_inset$rt)
         accept_ball_coords <- court_inset$accept_ball_coords ## the "accept" button
+        teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata)
 
         observe({
             if (nrow(court_inset$click_points$queue) > 1) {## && !is.null(playslist_current_row()) && !is.na(playslist_current_row())) {

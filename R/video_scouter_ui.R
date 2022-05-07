@@ -95,7 +95,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                               sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1),
                                               uiOutput("show_overlay_ui")
                                               ),
-                                       column(7) ## WAS court rotation plot and team rosters
+                                       column(7, wellPanel(mod_teamslists_ui(id = "teamslists")))
                                        )
                               ),
                        column(3,
