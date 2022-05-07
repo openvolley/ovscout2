@@ -97,6 +97,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
 #' Scouting options
 #'
 #' @param nblockers logical: scout the number of blockers on each attack?
+#' @param default_nblockers integer: if `nblockers` is TRUE, what number of blockers should we default to? If `NA`, no default
 #' @param transition_sets logical: scout sets in transition? If `FALSE`, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted
 #' @param team_system string: the assumed system that teams are using to assign e.g. passing and hitting responsibilities
 #' * "SHM3" - a setter-hitter-middle rotation, with 3 passers (the libero and two outside hitters)
@@ -104,14 +105,14 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
 #' @return A named list
 #'
 #' @export
-ov_scouter_options <- function(nblockers = TRUE, transition_sets = FALSE, team_system = "SHM3") {
+ov_scouter_options <- function(nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, team_system = "SHM3") {
     skill_tempo_map <- tribble(~skill, ~tempo_code, ~tempo,
                                "Serve", "Q", "Jump serve",
                                "Serve", "M", "Jump-float serve",
                                "Serve", "H", "Float serve",
                                "Serve", "T", "Topspin serve")
     ## or (some) beach conventions are T=jump-float, H=standing; VM use H=float far from the service line and T=float from the service line
-    list(nblockers = nblockers, transition_sets = transition_sets, team_system = team_system, skill_tempo_map = skill_tempo_map)
+    list(nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, team_system = team_system, skill_tempo_map = skill_tempo_map)
 }
 
 

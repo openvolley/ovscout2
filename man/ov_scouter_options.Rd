@@ -6,12 +6,15 @@
 \usage{
 ov_scouter_options(
   nblockers = TRUE,
+  default_nblockers = NA,
   transition_sets = FALSE,
   team_system = "SHM3"
 )
 }
 \arguments{
 \item{nblockers}{logical: scout the number of blockers on each attack?}
+
+\item{default_nblockers}{integer: if \code{nblockers} is TRUE, what number of blockers should we default to? If \code{NA}, no default}
 
 \item{transition_sets}{logical: scout sets in transition? If \code{FALSE}, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted}
 

@@ -700,7 +700,7 @@ ov_scouter_server <- function(app_data) {
                     ap <- c(ap, Unknown = "Unknown")
 
                     attacker_buttons <- make_fat_radio_buttons(choices = ap, selected = attack_pl_opts$selected, input_var = "c3_player")
-                    if (isTRUE(app_data$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3), input_var = "nblockers")
+                    if (isTRUE(app_data$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3), selected = if (!is.null(app_data$options$default_nblockers)) app_data$options$default_nblockers, input_var = "nblockers")
                     ## attack error, blocked, replay will be scouted on next entry
                     ## TODO other special codes ?
                     ## TODO "F" freeball
