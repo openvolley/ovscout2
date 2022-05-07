@@ -42,24 +42,25 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$match$zones_or_cones <- input[[md_ns("match_edit_zones_or_cones")]]
         do_reparse <- TRUE
     } else if (editing_active %eq% "change starting lineup") {
+        le_ns <- function(id) paste0("lineup_editor-", id) ## to reference the UI elements in the lineup_editor module. Note the hard-coding of the 'lineup_editor' id
         beach <- is_beach(dvw)
         pseq <- if (beach) 1:2 else 1:6
-        htok <- nzchar(input$ht_P1) && nzchar(input$ht_P2)
-        if (!beach) htok <- htok && nzchar(input$ht_P3) && nzchar(input$ht_P4) && nzchar(input$ht_P5) && nzchar(input$ht_P6) && nzchar(input$ht_setter)
+        htok <- nzchar(input[[le_ns("ht_P1")]]) && nzchar(input[[le_ns("ht_P2")]])
+        if (!beach) htok <- htok && nzchar(input[[le_ns("ht_P3")]]) && nzchar(input[[le_ns("ht_P4")]]) && nzchar(input[[le_ns("ht_P5")]]) && nzchar(input[[le_ns("ht_P6")]]) && nzchar(input[[le_ns("ht_setter")]])
         if (htok) {
-            ht <- list(lineup = as.numeric(c(input$ht_P1, input$ht_P2, if (!beach) c(input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6))), setter = NA_integer_)
-            if (!beach) ht$setter <- as.numeric(input$ht_setter)
+            ht <- list(lineup = as.numeric(c(input[[le_ns("ht_P1")]], input[[le_ns("ht_P2")]], if (!beach) c(input[[le_ns("ht_P3")]], input[[le_ns("ht_P4")]], input[[le_ns("ht_P5")]], input[[le_ns("ht_P6")]]))), setter = NA_integer_)
+            if (!beach) ht$setter <- as.numeric(input[[le_ns("ht_setter")]])
             ## TODO deal with libero
         } else {
             ## missing or incomplete home team lineup
             ht <- list(lineup = as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]), setter = NA_integer_)
             if (!beach) ht$setter <- as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)])[game_state$home_setter_position]
         }
-        vtok <- nzchar(input$vt_P1) && nzchar(input$vt_P2)
-        if (!beach) vtok <- vtok && nzchar(input$vt_P3) && nzchar(input$vt_P4) && nzchar(input$vt_P5) && nzchar(input$vt_P6) && nzchar(input$vt_setter)
+        vtok <- nzchar(input[[le_ns("vt_P1")]]) && nzchar(input[[le_ns("vt_P2")]])
+        if (!beach) vtok <- vtok && nzchar(input[[le_ns("vt_P3")]]) && nzchar(input[[le_ns("vt_P4")]]) && nzchar(input[[le_ns("vt_P5")]]) && nzchar(input[[le_ns("vt_P6")]]) && nzchar(input[[le_ns("vt_setter")]])
         if (vtok) {
-            vt <- list(lineup = as.numeric(c(input$vt_P1, input$vt_P2, if (!beach) c(input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6))), setter = NA_integer_)
-            if (!beach) vt$setter <- as.numeric(input$vt_setter)
+            vt <- list(lineup = as.numeric(c(input[[le_ns("vt_P1")]], input[[le_ns("vt_P2")]], if (!beach) c(input[[le_ns("vt_P3")]], input[[le_ns("vt_P4")]], input[[le_ns("vt_P5")]], input[[le_ns("vt_P6")]]))), setter = NA_integer_)
+            if (!beach) vt$setter <- as.numeric(input[[le_ns("vt_setter")]])
             ## TODO deal with libero
         } else {
             ## missing or incomplete home team lineup

@@ -185,6 +185,96 @@ mod_match_data_edit <- function(input, output, session, rdata, editing, styling)
     })
 }
 
+mod_lineup_edit_ui <- function(id) {
+    ns <- NS(id)
+    actionButton(ns("edit_lineup_button"), "Edit lineups", icon = icon("arrows-alt-h"))
+}
+
+mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, styling) {
+    ns <- session$ns
+    beach <- is_beach(isolate(rdata$dvw))
+    observeEvent(input$edit_lineup_button, {
+        editing$active <- "change starting lineup"
+        htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
+        vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
+        gs <- game_state()
+        ht_setter <- get_setter(gs, team = "*")
+        if (is.null(ht_setter) || is.na(ht_setter) || ht_setter %eq% 0L) ht_setter <- ""
+        vt_setter <- get_setter(gs, team = "a")
+        if (is.null(vt_setter) || is.na(vt_setter) || vt_setter %eq% 0L) vt_setter <- ""
+        showModal(
+            vwModalDialog(
+                title = "Edit starting line up", size = "l", footer = tags$div(uiOutput(ns("edit_lineup_commit_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", style = paste0("background-color:", styling$cancel))),
+                tabsetPanel(
+                    tabPanel("Home team",
+                             tags$style(paste0("#ht_display_team {border: 2px solid ", styling$h_court_colour, ";}")),
+                             DT::dataTableOutput(ns("ht_display_team")),
+                             wellPanel(
+                                 fluidRow(
+                                     ##column(1, textInput(ns("ht_set_number"), label = "Set", placeholder = "Set number")),
+                                     column(1, textInput(ns("ht_P1"), label = "P1", value = if (!is.null(gs$home_p1) && !is.na(gs$home_p1)) gs$home_p1 else "", placeholder = "P1")),
+                                     column(1, textInput(ns("ht_P2"), label = "P2", value = if (!is.null(gs$home_p2) && !is.na(gs$home_p2)) gs$home_p2 else "", placeholder = "P2")),
+                                     column(1, textInput(ns("ht_P3"), label = "P3", value = if (!is.null(gs$home_p3) && !is.na(gs$home_p3)) gs$home_p3 else "", placeholder = "P3")),
+                                     column(1, textInput(ns("ht_P4"), label = "P4", value = if (!is.null(gs$home_p4) && !is.na(gs$home_p4)) gs$home_p4 else "", placeholder = "P4")),
+                                     column(1, textInput(ns("ht_P5"), label = "P5", value = if (!is.null(gs$home_p5) && !is.na(gs$home_p5)) gs$home_p5 else "", placeholder = "P5")),
+                                     column(1, textInput(ns("ht_P6"), label = "P6", value = if (!is.null(gs$home_p6) && !is.na(gs$home_p6)) gs$home_p6 else "", placeholder = "P6"))),
+                                 fluidRow(
+                                     column(1, textInput(ns("ht_setter"), label = "Setter", value = ht_setter, placeholder = "Setter")),
+                                     column(1, textInput(ns("ht_libero"), label = "Libero", placeholder = "Libero"))
+                                 ),
+                                 style = paste0("background: ", styling$h_court_colour)
+                             )),
+                        tabPanel("Visiting team",
+                                 tags$style(paste0("#vt_display_team {border: 2px solid ", styling$v_court_colour, ";}")),
+                                 DT::dataTableOutput(ns("vt_display_team")),
+                                 wellPanel(
+                                     fluidRow(
+                                         ##column(1, textInput(ns("vt_set_number"), label = "Set", placeholder = "Set number")),
+                                         column(1, textInput(ns("vt_P1"), label = "P1", value = if (!is.null(gs$visiting_p1) && !is.na(gs$visiting_p1)) gs$visiting_p1 else "", placeholder = "P1")),
+                                         column(1, textInput(ns("vt_P2"), label = "P2", value = if (!is.null(gs$visiting_p2) && !is.na(gs$visiting_p2)) gs$visiting_p2 else "", placeholder = "P2")),
+                                         column(1, textInput(ns("vt_P3"), label = "P3", value = if (!is.null(gs$visiting_p3) && !is.na(gs$visiting_p3)) gs$visiting_p3 else "", placeholder = "P3")),
+                                         column(1, textInput(ns("vt_P4"), label = "P4", value = if (!is.null(gs$visiting_p4) && !is.na(gs$visiting_p4)) gs$visiting_p4 else "", placeholder = "P4")),
+                                         column(1, textInput(ns("vt_P5"), label = "P5", value = if (!is.null(gs$visiting_p5) && !is.na(gs$visiting_p5)) gs$visiting_p5 else "", placeholder = "P5")),
+                                         column(1, textInput(ns("vt_P6"), label = "P6", value = if (!is.null(gs$visiting_p6) && !is.na(gs$visiting_p6)) gs$visiting_p6 else "", placeholder = "P6"))),
+                                     fluidRow(
+                                         column(1, textInput(ns("vt_setter"), label = "Setter", value = vt_setter, placeholder = "Setter")),
+                                         column(1, textInput(ns("vt_libero"), label = "Libero", placeholder = "Libero"))
+                                     ),
+                                     style = paste0("background: ", styling$v_court_colour)
+                                 ))
+                    )
+                ))
+        })
+
+    output$edit_lineup_commit_ui <- renderUI({
+        htok <- nzchar(input$ht_P1) && nzchar(input$ht_P2)
+        if (!beach) htok <- htok && nzchar(input$ht_P3) && nzchar(input$ht_P4) && nzchar(input$ht_P5) && nzchar(input$ht_P6) && nzchar(input$ht_setter)
+        vtok <- nzchar(input$vt_P1) && nzchar(input$vt_P2)
+        if (!beach) vtok <- vtok && nzchar(input$vt_P3) && nzchar(input$vt_P4) && nzchar(input$vt_P5) && nzchar(input$vt_P6) && nzchar(input$vt_setter)
+        if (htok && vtok) actionButton("edit_commit", label = "Update teams lineups", style = paste0("background-color:", styling$continue)) else NULL
+    })
+
+    output$ht_display_team <- DT::renderDataTable({
+        this <- rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "role", "special_role")]
+        if (!is.null(this)) {
+            DT::datatable(names_first_to_capital(this), rownames = FALSE, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
+        } else {
+            NULL
+        }
+    })##, server = TRUE)
+    ##ht_display_team_proxy <- DT::dataTableProxy("ht_display_team")
+
+    output$vt_display_team <- DT::renderDataTable({
+        this <- rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "role", "special_role")]
+        if (!is.null(this)) {
+            DT::datatable(names_first_to_capital(this), rownames = FALSE, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
+        } else {
+            NULL
+        }
+    })##, server = TRUE)
+    ##vt_display_team_proxy <- DT::dataTableProxy("vt_display_team")
+}
+
 mod_team_edit_ui <- function(id) {
     ns <- NS(id)
     actionButton(ns("edit_teams_button"), "Edit teams", icon = icon("users"))
@@ -252,18 +342,6 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
     }, server = TRUE)
 
     ht_edit_team_proxy <- DT::dataTableProxy("ht_edit_team")
-    htdata_display <- reactiveVal(NULL)
-    output$ht_display_team <- DT::renderDataTable({
-        if (is.null(htdata_display())) htdata_display(rdata$dvw$meta$players_h)
-        if (!is.null(htdata_display())) {
-            cols_to_hide <- which(!names(htdata_display()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
-            cnames <- names(names_first_to_capital(htdata_display()))
-            DT::datatable(htdata_display(), rownames = FALSE, colnames = cnames, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
-        } else {
-            NULL
-        }
-    }, server = TRUE)
-    ht_display_team_proxy <- DT::dataTableProxy("ht_display_team")
     observeEvent(input$ht_edit_team_cell_edit, {
         info <- input$ht_edit_team_cell_edit
         isolate(temp <- htdata_edit())
@@ -318,18 +396,6 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         }
     }, server = TRUE)
     vt_edit_team_proxy <- DT::dataTableProxy("vt_edit_team")
-    vtdata_display <- reactiveVal(NULL)
-    output$vt_display_team <- DT::renderDataTable({
-        if (is.null(vtdata_display())) vtdata_display(rdata$dvw$meta$players_v)
-        if (!is.null(vtdata_display())) {
-            cols_to_hide <- which(!names(vtdata_display()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
-            cnames <- names(names_first_to_capital(vtdata_display()))
-            DT::datatable(vtdata_display(), rownames = FALSE, colnames = cnames, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
-        } else {
-            NULL
-        }
-    }, server = TRUE)
-    vt_display_team_proxy <- DT::dataTableProxy("vt_display_team")
     observeEvent(input$vt_edit_team_cell_edit, {
         info <- input$vt_edit_team_cell_edit
         isolate(temp <- vtdata_edit())

@@ -85,7 +85,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                               introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
                                                   mod_match_data_edit_ui(id = "match_data_editor"),
                                                   mod_team_edit_ui(id = "team_editor"),
-                                                  actionButton("edit_lineup_button", "Edit lineups", icon = icon("arrows-alt-h")),
+                                                  mod_lineup_edit_ui(id = "lineup_editor"),
                                                   uiOutput("switch_serving_ui", inline = TRUE),
                                                   data.step = 3, data.intro = "Click on these action buttons if you want to edit the starting lineups, edit the rosters, or edit the match metadata.")
                                               )),
