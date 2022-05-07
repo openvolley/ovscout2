@@ -28,26 +28,26 @@ ov_scouter_server <- function(app_data) {
         ## court inset showing rotation and team lists
         court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = reactive(game_state), rally_codes = rally_codes, styling = styling, with_ball_coords = FALSE)
         rotateTeams <- reactive(court_inset$rt)
-        accept_ball_coords <- court_inset$accept_ball_coords ## the "accept" button
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata)
 
-        observe({
-            if (nrow(court_inset$click_points$queue) > 1) {## && !is.null(playslist_current_row()) && !is.na(playslist_current_row())) {
-                js_show2("courtrot-validate_ball_coords")
-                js_show2("courtrot-cancel_ball_coords")
-            } else {
-                js_hide2("courtrot-validate_ball_coords")
-                js_hide2("courtrot-cancel_ball_coords")
-            }
-        })
-
-        observeEvent(accept_ball_coords(), {
-            if (accept_ball_coords() > 0) { ## ignore the initial triggering of this on app startup
-                warning("ball coords not implemented here yet")
-            }
-            ## and clear the clicked coordinates queue
-            court_inset$clear_click_queue()
-        })
+        ## court module clicking not used here yet
+        ##accept_ball_coords <- court_inset$accept_ball_coords ## the "accept" button
+        ##observe({
+        ##    if (nrow(court_inset$click_points$queue) > 1) {## && !is.null(playslist_current_row()) && !is.na(playslist_current_row())) {
+        ##        js_show2("courtrot-validate_ball_coords")
+        ##        js_show2("courtrot-cancel_ball_coords")
+        ##    } else {
+        ##        js_hide2("courtrot-validate_ball_coords")
+        ##        js_hide2("courtrot-cancel_ball_coords")
+        ##    }
+        ##})
+        ##observeEvent(accept_ball_coords(), {
+        ##    if (accept_ball_coords() > 0) { ## ignore the initial triggering of this on app startup
+        ##        warning("ball coords not implemented here yet")
+        ##    }
+        ##    ## and clear the clicked coordinates queue
+        ##    court_inset$clear_click_queue()
+        ##})
 
         output$switch_serving_ui <- renderUI({
             if (rally_state() %in% c("click or unpause the video to start", "click serve start")) {
