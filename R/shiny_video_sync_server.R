@@ -1578,7 +1578,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                        ),
                                                    style = "background: #bfefff"
                                                ),
-                                               uiOutput("ht_delete_player_ui")
+                                               uiOutput("ht_delete_player_ui") ## why is this here?
                                       ),
                                       tabPanel("Visiting team",
                                                tags$style("#vt_display_team {border: 2px solid #bcee68;}"),
@@ -1598,7 +1598,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                    ),
                                                    style = "background: #bcee68"
                                                ),
-                                               uiOutput("vt_delete_player_ui")
+                                               uiOutput("vt_delete_player_ui") ## why is this here?
                                       )
                                   )
             ))
