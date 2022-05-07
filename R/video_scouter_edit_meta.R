@@ -1,26 +1,4 @@
 ## match data editing
-match_data_edit_modal <- function(dvw) {
-    match_time <- if (!is.na(dvw$meta$match$time)) {
-                      as.POSIXct(dvw$meta$match$time, origin = "1970-01-01")
-                  } else {
-                      NULL
-                  }
-    showModal(modalDialog(title = "Edit match data", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update match data (or press Enter)"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
-                          tags$div(
-                                   fluidRow(column(4, shiny::dateInput("match_edit_date", label = "Match date:", value = dvw$meta$match$date)),
-                                            column(4, textInput("match_edit_time", label = "Start time:", value = match_time, placeholder = "HH:MM:SS")),
-                                            column(4, textInput("match_edit_season", label = "Season:", value = dvw$meta$match$season))),
-                                   fluidRow(column(4, textInput("match_edit_league", label = "League:", value = dvw$meta$match$league)),
-                                            column(4, textInput("match_edit_phase", label = "Phase:", value = dvw$meta$match$phase)),
-                                            column(4, shiny::selectInput("match_edit_home_away", label = "Home/away:", choices = c("", "Home", "Away"), selected = dvw$meta$match$home_away))),
-                                   fluidRow(column(4, textInput("match_edit_day_number", "Day number:", value = dvw$meta$match$day_number)),
-                                            column(4, textInput("match_edit_match_number", "Match number:", value = dvw$meta$match$match_number)),
-                                            ##column(2, shiny::selectInput("match_edit_regulation", "Regulation:", choices = c("indoor sideout", "indoor rally point", "beach rally point"), selected = dvw$meta$match$regulation)),
-                                            column(4, shiny::selectInput("match_edit_zones_or_cones", "Zones or cones:", choices = c("C", "Z"), selected = dvw$meta$match$zones_or_cones), tags$span(style = "font-size:small", "Note: changing cones/zones here will only change the indicator in the file header, it will not convert a file recorded with zones into one recorded with cones, or vice-versa. Don't change this unless you know what you are doing!")))
-                               )
-                          ))
-}
-
 code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit = NULL, vtdata_edit = NULL) {
     removeModal()
     do_reparse <- FALSE
@@ -51,16 +29,17 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         }
         do_reparse <- TRUE
     } else if (editing_active %eq% "match_data") {
-        dvw$meta$match$date <- input$match_edit_date
-        dvw$meta$match$time <- tryCatch(lubridate::hms(input$match_edit_time), error = function(e) lubridate::as.period(NA))
-        dvw$meta$match$season <- input$match_edit_season
-        dvw$meta$match$league <- input$match_edit_league
-        dvw$meta$match$phase <- input$match_edit_phase
-        dvw$meta$match$home_away <- input$match_edit_home_away
-        dvw$meta$match$day_number <- input$match_edit_day_number
-        dvw$meta$match$match_number <- input$match_edit_match_number
-        ## currently disabled dvw$meta$match$regulation <- input$match_edit_regulation
-        dvw$meta$match$zones_or_cones <- input$match_edit_zones_or_cones
+        md_ns <- function(id) paste0("match_data_editor-", id) ## to reference the UI elements in the match_data_editor module. Note the hard-coding of the 'match_data_editor' id
+        dvw$meta$match$date <- input[[md_ns("match_edit_date")]]
+        dvw$meta$match$time <- tryCatch(lubridate::hms(input[[md_ns("match_edit_time")]]), error = function(e) lubridate::as.period(NA))
+        dvw$meta$match$season <- input[[md_ns("match_edit_season")]]
+        dvw$meta$match$league <- input[[md_ns("match_edit_league")]]
+        dvw$meta$match$phase <- input[[md_ns("match_edit_phase")]]
+        dvw$meta$match$home_away <- input[[md_ns("match_edit_home_away")]]
+        dvw$meta$match$day_number <- input[[md_ns("match_edit_day_number")]]
+        dvw$meta$match$match_number <- input[[md_ns("match_edit_match_number")]]
+        ## currently disabled dvw$meta$match$regulation <- input[[md_ns("match_edit_regulation")]]
+        dvw$meta$match$zones_or_cones <- input[[md_ns("match_edit_zones_or_cones")]]
         do_reparse <- TRUE
     } else if (editing_active %eq% "change starting lineup") {
         beach <- is_beach(dvw)

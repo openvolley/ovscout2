@@ -83,11 +83,11 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                               fluidRow(column(8,
                                               ## some elements commented out for now - BR
                                               introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
-                                              actionButton("edit_match_data_button", "Edit match data", icon = icon("volleyball-ball")),
-                                              mod_team_edit_ui(id = "team_editor"),
-                                              actionButton("edit_lineup_button", "Edit lineups", icon = icon("arrows-alt-h")),
-                                              uiOutput("switch_serving_ui", inline = TRUE),
-                                              data.step = 3, data.intro = "Click on these action buttons if you want to edit the starting lineups, edit the rosters, or edit the match metadata.")
+                                                  mod_match_data_edit_ui(id = "match_data_editor"),
+                                                  mod_team_edit_ui(id = "team_editor"),
+                                                  actionButton("edit_lineup_button", "Edit lineups", icon = icon("arrows-alt-h")),
+                                                  uiOutput("switch_serving_ui", inline = TRUE),
+                                                  data.step = 3, data.intro = "Click on these action buttons if you want to edit the starting lineups, edit the rosters, or edit the match metadata.")
                                               )),
                               tags$div(style = "height: 14px;"),
                               fluidRow(column(5, actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212"),

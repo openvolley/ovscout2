@@ -308,14 +308,10 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(input$playback_rate)) do_video("playback_rate", input$playback_rate)
         })
 
-
-        observeEvent(input$edit_match_data_button, {
-            editing$active <- "match_data"
-            match_data_edit_modal(rdata$dvw)
-        })
-
+        ## match data editing
+        match_data_edit_mod <- callModule(mod_match_data_edit, id = "match_data_editor", rdata = rdata, editing = editing, styling = styling)
         ## team data editing
-        team_edit_mod <- callModule(mod_team_edit, id = "team_editor", dvw = rdata$dvw, editing = editing)
+        team_edit_mod <- callModule(mod_team_edit, id = "team_editor", rdata = rdata, editing = editing, styling = styling)
 
         observeEvent(input$edit_cancel, {
             if (!is.null(editing$active) && editing$active %in% "teams") {
@@ -376,7 +372,11 @@ ov_scouter_server <- function(app_data) {
                             if (!is.null(editing$active) && !editing$active %eq% "teams") {
                                 changed <- code_make_change(editing$active, game_state = game_state, dvw = rdata$dvw, input = input, htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit())
                                 rdata$dvw <- changed$dvw
-                                ## if (changed$do_reparse) ## needed?
+                                if (changed$do_reparse) {
+                                    ## we don't need to reparse (??), but (might) need to adjust game_state, e.g. if we've changed lineups
+                                    temp <- as.list(tail(rdata$dvw$plays2, 1))
+                                    for (nm in intersect(c("home_setter_position", "visiting_setter_position", paste0("home_p", 1:6), paste0("visiting_p", 1:6)), names(temp))) game_state[[nm]] <- temp[[nm]]
+                                }
                                 editing$active <- NULL
                             }
                             ## but not for team editing, because pressing enter in the DT fires this too

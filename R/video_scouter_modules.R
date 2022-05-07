@@ -151,28 +151,62 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     return(list(rt = rotate_teams, ball_coords_checkbox = ball_coords, accept_ball_coords = accept_ball_coords, click_points = click_points, add_to_click_queue = add_to_click_queue, clear_click_queue = clear_click_queue, home_team_end = court_inset_home_team_end))
 }
 
+mod_match_data_edit_ui <- function(id) {
+    ns <- NS(id)
+    actionButton(ns("edit_match_data_button"), "Edit match data", icon = icon("volleyball-ball"))
+}
+
+mod_match_data_edit <- function(input, output, session, rdata, editing, styling) {
+    ns <- session$ns
+    observeEvent(input$edit_match_data_button, {
+        editing$active <- "match_data"
+        match_time <- if (!is.na(rdata$dvw$meta$match$time)) {
+                          as.POSIXct(rdata$dvw$meta$match$time, origin = "1970-01-01")
+                      } else {
+                          NULL
+                      }
+        ## NB the edit and cancel buttons are global, not namespaced by ns()
+        showModal(
+            vwModalDialog(
+                title = "Edit match data", footer = tags$div(actionButton("edit_commit", label = "Update match data (or press Enter)", style = paste0("background-color:", styling$continue)), actionButton("edit_cancel", label = "Cancel (or press Esc)", style = paste0("background-color:", styling$cancel))),
+                tags$div(
+                         fluidRow(column(4, shiny::dateInput(ns("match_edit_date"), label = "Match date:", value = rdata$dvw$meta$match$date)),
+                                  column(4, textInput(ns("match_edit_time"), label = "Start time:", value = match_time, placeholder = "HH:MM:SS")),
+                                  column(4, textInput(ns("match_edit_season"), label = "Season:", value = rdata$dvw$meta$match$season))),
+                         fluidRow(column(4, textInput(ns("match_edit_league"), label = "League:", value = rdata$dvw$meta$match$league)),
+                                  column(4, textInput(ns("match_edit_phase"), label = "Phase:", value = rdata$dvw$meta$match$phase)),
+                                  column(4, shiny::selectInput(ns("match_edit_home_away"), label = "Home/away:", choices = c("", "Home", "Away"), selected = rdata$dvw$meta$match$home_away))),
+                         fluidRow(column(4, textInput(ns("match_edit_day_number"), "Day number:", value = rdata$dvw$meta$match$day_number)),
+                                  column(4, textInput(ns("match_edit_match_number"), "Match number:", value = rdata$dvw$meta$match$match_number)),
+                                  ##column(2, shiny::selectInput("match_edit_regulation", "Regulation:", choices = c("indoor sideout", "indoor rally point", "beach rally point"), selected = rdata$dvw$meta$match$regulation)),
+                                  column(4, shiny::selectInput(ns("match_edit_zones_or_cones"), "Zones or cones:", choices = c("C", "Z"), selected = rdata$dvw$meta$match$zones_or_cones), tags$span(style = "font-size:small", "Note: changing cones/zones here will only change the indicator in the file header, it will not convert a file recorded with zones into one recorded with cones, or vice-versa. Don't change this unless you know what you are doing!")))
+                     )
+            ))
+    })
+}
+
 mod_team_edit_ui <- function(id) {
     ns <- NS(id)
     actionButton(ns("edit_teams_button"), "Edit teams", icon = icon("users"))
 }
 
-mod_team_edit <- function(input, output, session, dvw, editing) {
+mod_team_edit <- function(input, output, session, rdata, editing, styling) {
     ns <- session$ns
     htdata_edit <- reactiveVal(NULL)
     vtdata_edit <- reactiveVal(NULL)
 
     observeEvent(input$edit_teams_button, {
         editing$active <- "teams"
-        htidx <- which(dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
-        vtidx <- which(dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
+        htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
+        vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
         ## NB the edit and cancel buttons are global, not namespaced by ns()
-        showModal(modalDialog(title = "Edit teams", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update teams data"), actionButton("edit_cancel", label = "Cancel")),
+        showModal(modalDialog(title = "Edit teams", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update teams data", style = paste0("background-color:", styling$continue)), actionButton("edit_cancel", label = "Cancel", style = paste0("background-color:", styling$cancel))),
                               tabsetPanel(
                                   tabPanel("Home team",
-                                           fluidRow(column(4, textInput(ns("ht_edit_name"), label = "Team name:", value = dvw$meta$teams$team[htidx])),
-                                                    column(4, textInput(ns("ht_edit_id"), label = "Team ID:", value = dvw$meta$teams$team_id[htidx])),
-                                                    column(4, textInput(ns("ht_edit_coach"), label = "Coach:", value = dvw$meta$teams$coach[htidx])),
-                                                    column(4, textInput(ns("ht_edit_assistant"), label = "Assistant:", value = dvw$meta$teams$assistant[htidx]))),
+                                           fluidRow(column(4, textInput(ns("ht_edit_name"), label = "Team name:", value = rdata$dvw$meta$teams$team[htidx])),
+                                                    column(4, textInput(ns("ht_edit_id"), label = "Team ID:", value = rdata$dvw$meta$teams$team_id[htidx])),
+                                                    column(4, textInput(ns("ht_edit_coach"), label = "Coach:", value = rdata$dvw$meta$teams$coach[htidx])),
+                                                    column(4, textInput(ns("ht_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[htidx]))),
                                            DT::dataTableOutput(ns("ht_edit_team")),
                                            wellPanel(
                                                fluidRow(column(2, textInput(ns("ht_new_id"), label = "ID:", placeholder = "ID")),
@@ -186,10 +220,10 @@ mod_team_edit <- function(input, output, session, dvw, editing) {
                                            uiOutput(ns("ht_delete_player_ui"))
                                            ),
                                   tabPanel("Visiting team",
-                                           fluidRow(column(4, textInput(ns("vt_edit_name"), label = "Team name:", value = dvw$meta$teams$team[vtidx])),
-                                                    column(4, textInput(ns("vt_edit_id"), label = "Team ID:", value = dvw$meta$teams$team_id[vtidx])),
-                                                    column(4, textInput(ns("vt_edit_coach"), label = "Coach:", value = dvw$meta$teams$coach[vtidx])),
-                                                    column(4, textInput(ns("vt_edit_assistant"), label = "Assistant:", value = dvw$meta$teams$assistant[vtidx]))),
+                                           fluidRow(column(4, textInput(ns("vt_edit_name"), label = "Team name:", value = rdata$dvw$meta$teams$team[vtidx])),
+                                                    column(4, textInput(ns("vt_edit_id"), label = "Team ID:", value = rdata$dvw$meta$teams$team_id[vtidx])),
+                                                    column(4, textInput(ns("vt_edit_coach"), label = "Coach:", value = rdata$dvw$meta$teams$coach[vtidx])),
+                                                    column(4, textInput(ns("vt_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[vtidx]))),
                                            DT::dataTableOutput(ns("vt_edit_team")),
                                            wellPanel(
                                                fluidRow(column(2, textInput(ns("vt_new_id"), label = "ID:", placeholder = "ID")),
@@ -207,7 +241,7 @@ mod_team_edit <- function(input, output, session, dvw, editing) {
     })
 
     output$ht_edit_team <- DT::renderDataTable({
-        if (is.null(htdata_edit())) htdata_edit(dvw$meta$players_h)
+        if (is.null(htdata_edit())) htdata_edit(rdata$dvw$meta$players_h)
         if (!is.null(htdata_edit())) {
             cols_to_hide <- which(!names(htdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
             cnames <- names(names_first_to_capital(htdata_edit()))
@@ -220,7 +254,7 @@ mod_team_edit <- function(input, output, session, dvw, editing) {
     ht_edit_team_proxy <- DT::dataTableProxy("ht_edit_team")
     htdata_display <- reactiveVal(NULL)
     output$ht_display_team <- DT::renderDataTable({
-        if (is.null(htdata_display())) htdata_display(dvw$meta$players_h)
+        if (is.null(htdata_display())) htdata_display(rdata$dvw$meta$players_h)
         if (!is.null(htdata_display())) {
             cols_to_hide <- which(!names(htdata_display()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
             cnames <- names(names_first_to_capital(htdata_display()))
@@ -274,7 +308,7 @@ mod_team_edit <- function(input, output, session, dvw, editing) {
         }
     })
     output$vt_edit_team <- DT::renderDataTable({
-        if (is.null(vtdata_edit())) vtdata_edit(dvw$meta$players_v)
+        if (is.null(vtdata_edit())) vtdata_edit(rdata$dvw$meta$players_v)
         if (!is.null(vtdata_edit())) {
             cols_to_hide <- which(!names(vtdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
             cnames <- names(names_first_to_capital(vtdata_edit()))
@@ -286,7 +320,7 @@ mod_team_edit <- function(input, output, session, dvw, editing) {
     vt_edit_team_proxy <- DT::dataTableProxy("vt_edit_team")
     vtdata_display <- reactiveVal(NULL)
     output$vt_display_team <- DT::renderDataTable({
-        if (is.null(vtdata_display())) vtdata_display(dvw$meta$players_v)
+        if (is.null(vtdata_display())) vtdata_display(rdata$dvw$meta$players_v)
         if (!is.null(vtdata_display())) {
             cols_to_hide <- which(!names(vtdata_display()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
             cnames <- names(names_first_to_capital(vtdata_display()))
