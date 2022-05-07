@@ -21,7 +21,7 @@ match_data_edit_modal <- function(dvw) {
                           ))
 }
 
-code_make_change <- function(editing_active, dvw, input, htdata_edit = NULL, vtdata_edit = NULL) {
+code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit = NULL, vtdata_edit = NULL) {
     removeModal()
     do_reparse <- FALSE
     if (is.null(editing_active)) {
@@ -62,41 +62,43 @@ code_make_change <- function(editing_active, dvw, input, htdata_edit = NULL, vtd
         ## currently disabled dvw$meta$match$regulation <- input$match_edit_regulation
         dvw$meta$match$zones_or_cones <- input$match_edit_zones_or_cones
         do_reparse <- TRUE
-    } ##else if (editing_active %eq% "change starting lineup") {
-    ##                if(input$ht_set_number != "" && input$ht_P1  != ""  && input$ht_P2 != "" &&
-    ##                   input$ht_P3 != "" &&  input$ht_P4 != "" && input$ht_P5 != "" &&
-    ##                   input$ht_P6 != "" && input$ht_setter != ""){
-    ##                    team = datavolley::home_team(dvw)
-    ##                    setnumber = input$ht_set_number
-    ##                    new_setter = input$ht_setter
-    ##                    new_rotation = c(input$ht_P1,input$ht_P2,input$ht_P3,input$ht_P4,input$ht_P5,input$ht_P6)
-    ##                    new_rotation_id = dvw$meta$players_h$player_id[match(new_rotation, dvw$meta$players_h$number)]
-    ##                    # Change meta data in terms of starting rotation
-    ##                    dvw$meta$players_h[,paste0("starting_position_set", setnumber)] <- as.character(match(dvw$meta$players_h$player_id, new_rotation_id))
-    ##                    ## Change libero to "*" in meta
-    ##                    ## BR not sure if this is needed, it was commented out
-    ##                    ##dvw$meta$players_h[dvw$meta$players_h$number %eq% input$ht_libero,paste0("starting_position_set", setnumber)] <- "*"
-    ##                    # Change in play rotation 
-    ##                    dvw <- dv_change_startinglineup(dvw, team, setnumber, new_rotation, new_rotation_id, new_setter)
-    ##                }
-    ##                if(input$vt_set_number != "" && input$vt_P1  != ""  && input$vt_P2 != "" &&
-    ##                   input$vt_P3 != "" &&  input$vt_P4 != "" && input$vt_P5 != "" && 
-    ##                   input$vt_P6 != "" && input$vt_setter != ""){
-    ##                    team = datavolley::visiting_team(dvw)
-    ##                    setnumber = input$vt_set_number
-    ##                    new_setter = input$vt_setter
-    ##                    new_rotation = c(input$vt_P1,input$vt_P2,input$vt_P3,input$vt_P4,input$vt_P5,input$vt_P6)
-    ##                    new_rotation_id = dvw$meta$players_v$player_id[match(new_rotation, dvw$meta$players_v$number)]
-    ##                    # Change meta data in terms of starting rotation
-    ##                    dvw$meta$players_v[,paste0("starting_position_set", setnumber)] <- as.character(match(dvw$meta$players_v$player_id, new_rotation_id))
-    ##                    ## Change libero to "*" in meta
-    ##                    ## BR not sure if this is needed, it was commented out
-    ##                    ##dvw$meta$players_v[dvw$meta$players_v$number %eq% input$vt_libero,paste0("starting_position_set", setnumber)] <- "*"
-    ##                    # Change in play rotation 
-    ##                    dvw <- dv_change_startinglineup(dvw, team, setnumber, new_rotation, new_rotation_id, new_setter)
-    ##                }
-    ##                do_reparse <- TRUE
-    ##            }
+    } else if (editing_active %eq% "change starting lineup") {
+        beach <- is_beach(dvw)
+        pseq <- if (beach) 1:2 else 1:6
+        htok <- nzchar(input$ht_P1) && nzchar(input$ht_P2)
+        if (!beach) htok <- htok && nzchar(input$ht_P3) && nzchar(input$ht_P4) && nzchar(input$ht_P5) && nzchar(input$ht_P6) && nzchar(input$ht_setter)
+        if (htok) {
+            ht <- list(lineup = as.numeric(c(input$ht_P1, input$ht_P2, if (!beach) c(input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6))), setter = NA_integer_)
+            if (!beach) ht$setter <- as.numeric(input$ht_setter)
+            ## TODO deal with libero
+        } else {
+            ## missing or incomplete home team lineup
+            ht <- list(lineup = as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]), setter = NA_integer_)
+            if (!beach) ht$setter <- as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)])[game_state$home_setter_position]
+        }
+        vtok <- nzchar(input$vt_P1) && nzchar(input$vt_P2)
+        if (!beach) vtok <- vtok && nzchar(input$vt_P3) && nzchar(input$vt_P4) && nzchar(input$vt_P5) && nzchar(input$vt_P6) && nzchar(input$vt_setter)
+        if (vtok) {
+            vt <- list(lineup = as.numeric(c(input$vt_P1, input$vt_P2, if (!beach) c(input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6))), setter = NA_integer_)
+            if (!beach) vt$setter <- as.numeric(input$vt_setter)
+            ## TODO deal with libero
+        } else {
+            ## missing or incomplete home team lineup
+            vt <- list(lineup = as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]), setter = NA_integer_)
+            if (!beach) vt$setter <- as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)])[game_state$visiting_setter_position]
+        }
+        setnum <- if (is.null(game_state$set_number) || is.na(game_state$set_number)) {
+                      ## assume is set 1, probably needs something better
+                      1L
+                  } else {
+                      game_state$set_number
+                  }
+        tryCatch({
+            dvw <- dv_set_lineups(dvw, set_number = setnum, lineups = list(ht$lineup, vt$lineup), setters = c(ht$setter, vt$setter))
+        }, error = function(e) warning(conditionMessage(e)))
+        ## TODO, show some useful message to the user that the lineup operation failed
+        do_reparse <- TRUE
+    }
     ##            if (do_reparse) {
     ##                ## reparse the dvw
     ##                dvw <- reparse_dvw(dvw, dv_read_args = dv_read_args)

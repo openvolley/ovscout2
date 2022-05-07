@@ -63,6 +63,65 @@ ov_scouter_server <- function(app_data) {
             game_state$current_team <- game_state$serving
         })
 
+        observeEvent(input$edit_lineup_button, {
+            editing$active <- "change starting lineup"
+            htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
+            vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
+            ht_setter <- get_setter(game_state, team = "*")
+            if (is.null(ht_setter) || is.na(ht_setter) || ht_setter %eq% 0L) ht_setter <- ""
+            vt_setter <- get_setter(game_state, team = "a")
+            if (is.null(vt_setter) || is.na(vt_setter) || vt_setter %eq% 0L) vt_setter <- ""
+            showModal(
+                vwModalDialog(
+                    title = "Edit starting line up", size = "l", footer = tags$div(uiOutput("edit_teams_commit_ui", inline = TRUE), actionButton("edit_cancel", label = "Cancel", style = paste0("background-color:", styling$cancel))),
+                    tabsetPanel(
+                        tabPanel("Home team",
+                                 tags$style("#ht_display_team {border: 2px solid #bfefff;}"),
+                                 DT::dataTableOutput("ht_display_team"),
+                                 wellPanel(
+                                     fluidRow(
+                                         ##column(1, textInput("ht_set_number", label = "Set", placeholder = "Set number")),
+                                         column(1, textInput("ht_P1", label = "P1", value = if (!is.null(game_state$home_p1) && !is.na(game_state$home_p1)) game_state$home_p1 else "", placeholder = "P1")),
+                                         column(1, textInput("ht_P2", label = "P2", value = if (!is.null(game_state$home_p2) && !is.na(game_state$home_p2)) game_state$home_p2 else "", placeholder = "P2")),
+                                         column(1, textInput("ht_P3", label = "P3", value = if (!is.null(game_state$home_p3) && !is.na(game_state$home_p3)) game_state$home_p3 else "", placeholder = "P3")),
+                                         column(1, textInput("ht_P4", label = "P4", value = if (!is.null(game_state$home_p4) && !is.na(game_state$home_p4)) game_state$home_p4 else "", placeholder = "P4")),
+                                         column(1, textInput("ht_P5", label = "P5", value = if (!is.null(game_state$home_p5) && !is.na(game_state$home_p5)) game_state$home_p5 else "", placeholder = "P5")),
+                                         column(1, textInput("ht_P6", label = "P6", value = if (!is.null(game_state$home_p6) && !is.na(game_state$home_p6)) game_state$home_p6 else "", placeholder = "P6"))),
+                                     fluidRow(
+                                         column(1, textInput("ht_setter", label = "Setter", value = ht_setter, placeholder = "Setter")),
+                                         column(1, textInput("ht_libero", label = "Libero", placeholder = "Libero"))
+                                     ),
+                                     style = "background: #bfefff"
+                                 )),
+                        tabPanel("Visiting team",
+                                 tags$style("#vt_display_team {border: 2px solid #bcee68;}"),
+                                 DT::dataTableOutput("vt_display_team"),
+                                 wellPanel(
+                                     fluidRow(
+                                         ##column(1, textInput("vt_set_number", label = "Set", placeholder = "Set number")),
+                                         column(1, textInput("vt_P1", label = "P1", value = if (!is.null(game_state$visiting_p1) && !is.na(game_state$visiting_p1)) game_state$visiting_p1 else "", placeholder = "P1")),
+                                         column(1, textInput("vt_P2", label = "P2", value = if (!is.null(game_state$visiting_p2) && !is.na(game_state$visiting_p2)) game_state$visiting_p2 else "", placeholder = "P2")),
+                                         column(1, textInput("vt_P3", label = "P3", value = if (!is.null(game_state$visiting_p3) && !is.na(game_state$visiting_p3)) game_state$visiting_p3 else "", placeholder = "P3")),
+                                         column(1, textInput("vt_P4", label = "P4", value = if (!is.null(game_state$visiting_p4) && !is.na(game_state$visiting_p4)) game_state$visiting_p4 else "", placeholder = "P4")),
+                                         column(1, textInput("vt_P5", label = "P5", value = if (!is.null(game_state$visiting_p5) && !is.na(game_state$visiting_p5)) game_state$visiting_p5 else "", placeholder = "P5")),
+                                         column(1, textInput("vt_P6", label = "P6", value = if (!is.null(game_state$visiting_p6) && !is.na(game_state$visiting_p6)) game_state$visiting_p6 else "", placeholder = "P6"))),
+                                     fluidRow(
+                                         column(1, textInput("vt_setter", label = "Setter", value = vt_setter, placeholder = "Setter")),
+                                         column(1, textInput("vt_libero", label = "Libero", placeholder = "Libero"))
+                                     ),
+                                     style = "background: #bcee68"
+                                 ))
+                    )
+                ))
+        })
+        output$edit_teams_commit_ui <- renderUI({
+            htok <- nzchar(input$ht_P1) && nzchar(input$ht_P2)
+            if (!app_data$is_beach) htok <- htok && nzchar(input$ht_P3) && nzchar(input$ht_P4) && nzchar(input$ht_P5) && nzchar(input$ht_P6) && nzchar(input$ht_setter)
+            vtok <- nzchar(input$vt_P1) && nzchar(input$vt_P2)
+            if (!app_data$is_beach) vtok <- vtok && nzchar(input$vt_P3) && nzchar(input$vt_P4) && nzchar(input$vt_P5) && nzchar(input$vt_P6) && nzchar(input$vt_setter)
+            if (htok && vtok) actionButton("edit_commit", label = "Update teams lineups", style = paste0("background-color:", styling$continue)) else NULL
+        })
+
         plays_do_rename <- function(z) names_first_to_capital(dplyr::rename(z, plays_col_renames))
         ## the plays display in the RHS table
         output$playslist <- DT::renderDataTable({
@@ -73,6 +132,10 @@ ov_scouter_server <- function(app_data) {
                 plh <- 200
             }
             if (!is.null(mydat)) {
+                ## make sure all cols are present, otherwise the DT proxy won't update properly when those columns are added later
+                for (cl in setdiff(c("skill", "set_number", "home_team_score", "visiting_team_score", plays_cols_to_show), c("Score", "is_skill"))) {
+                    if (!cl %in% names(mydat)) mydat[[cl]] <- rep(NA, nrow(mydat))
+                }
                 isolate({
                     last_skill_row <- which(is_skill(mydat$skill))
                     if (length(last_skill_row)) last_skill_row <- max(last_skill_row)
@@ -264,9 +327,13 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$edit_commit, {
             if (!is.null(editing$active)) {
-                changed <- code_make_change(editing$active, dvw = rdata$dvw, input = input, htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit())
+                changed <- code_make_change(editing$active, game_state = game_state, dvw = rdata$dvw, input = input, htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit())
                 rdata$dvw <- changed$dvw
-                ## if (changed$do_reparse) ## needed?
+                if (changed$do_reparse) {
+                    ## we don't need to reparse (??), but (might) need to adjust game_state, e.g. if we've changed lineups
+                    temp <- as.list(tail(rdata$dvw$plays2, 1))
+                    for (nm in intersect(c("home_setter_position", "visiting_setter_position", paste0("home_p", 1:6), paste0("visiting_p", 1:6)), names(temp))) game_state[[nm]] <- temp[[nm]]
+                }
                 editing$active <- NULL
             }
         })
@@ -306,7 +373,7 @@ ov_scouter_server <- function(app_data) {
                             ## enter
                             ## if editing, treat as update
                             if (!is.null(editing$active) && !editing$active %eq% "teams") {
-                                changed <- code_make_change(editing$active, dvw = rdata$dvw, input = input, htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit())
+                                changed <- code_make_change(editing$active, game_state = game_state, dvw = rdata$dvw, input = input, htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit())
                                 rdata$dvw <- changed$dvw
                                 ## if (changed$do_reparse) ## needed?
                                 editing$active <- NULL

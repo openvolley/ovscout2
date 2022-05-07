@@ -519,16 +519,25 @@ create_meta <- function(match, more, teams, players_h, players_v, video_file, at
     meta$result <- tibble(played = logical(), score_intermediate1 = character(), score_intermediate2 = character(), score_intermediate3 = character(), score = character(), duration = numeric(), X7 = logical(), score_home_team = numeric(), score_visiting_team = numeric())
 
     ## teams
+    if (is.character(teams)) {
+        assert_that(length(teams) == 2)
+        teams <- tibble(team_id = substr(teams, 1, 4), team = teams)
+    }
     assert_that(is.data.frame(teams), nrow(teams) == 2)
+    if (!"coach" %in% names(teams)) teams$coach <- ""
+    if (!"assistant" %in% names(teams)) teams$assistant <- ""
+    if (!"shirt_colour" %in% names(teams)) teams$shirt_colour <- c("#FF0000", "#0000FF")
     meta$teams <- tibble(team_id = teams$team_id, team = teams$team,
                          sets_won = c(0L, 0L),
-                         coach = nn_or(teams$coach, c("", "")),
-                         assistant = nn_or(teams$assistant, c("", "")),
-                         shirt_colour = nn_or(teams$shirt_colour, c("#FF0000", "#0000FF")),
+                         coach = teams$coach,
+                         assistant = teams$assistant,
+                         shirt_colour = teams$shirt_colour,
                          X7 = NA, X8 = NA, X9 = NA, X10 = NA,
                          home_away_team = c("*", "a"),
                          won_match = c(NA, NA))
     ## players
+    if (missing(players_h)) players_h <- tibble(number = integer(), firstname = character(), lastname = character())
+    if (missing(players_v)) players_v <- tibble(number = integer(), firstname = character(), lastname = character())
     meta$players_h <- make_players(players_h, "home")
     meta$players_v <- make_players(players_v, "visiting")
     meta$players_v$X3 <- meta$players_v$X3 + nrow(players_h)
@@ -547,8 +556,8 @@ create_meta <- function(match, more, teams, players_h, players_v, video_file, at
         meta$players_v$role[!meta$players_v$role %in% roles] <- "unknown"
     }
     min_n_players <- if (grepl("beach", meta$match$regulation)) 2L else 6L
-    if (nrow(meta$players_h) < min_n_players) stop("less than ", min_n_players, " players in home player list")
-    if (nrow(meta$players_v) < min_n_players) stop("less than ", min_n_players, " players in visiting player list")
+    if (nrow(meta$players_h) < min_n_players) warning("less than ", min_n_players, " players in home player list")
+    if (nrow(meta$players_v) < min_n_players) warning("less than ", min_n_players, " players in visiting player list")
 
     meta$attacks <- attacks
     meta$sets <- setter_calls
@@ -568,6 +577,9 @@ make_players <- function(players, which = "home") {
     }
     if (!"player_id" %in% names(players)) players$player_id <- make_player_id(players$lastname, players$firstname)
     if (!"role" %in% names(players)) players$role <- "unknown"
+    if (!"nickname" %in% names(players)) players$nickname <- ""
+    if (!"special_role" %in% names(players)) players$special_role <- NA_character_
+    if (!"foreign" %in% names(players)) players$foreign <- FALSE
     temp <- tibble(X1 = 0,
                    number = players$number,
                    X3 = seq_len(nrow(players)),
@@ -579,10 +591,10 @@ make_players <- function(players, which = "home") {
                    player_id = players$player_id,
                    lastname = players$lastname,
                    firstname = players$firstname,
-                   nickname = nn_or(players$nickname, ""),
-                   special_role = toupper(nn_or(players$special_role, NA_character_)),
+                   nickname = players$nickname,
+                   special_role = toupper(players$special_role),
                    role = tolower(players$role),
-                   foreign = nn_or(players$foreign, FALSE))
+                   foreign = players$foreign)
     temp$X16 <- temp$X17 <- temp$X18 <- temp$X19 <- temp$X20 <- temp$X21 <- temp$X22 <- temp$X23 <- NA
     temp$name <- paste(temp$firstname, temp$lastname)
     temp

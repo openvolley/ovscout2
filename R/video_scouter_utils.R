@@ -84,6 +84,14 @@ game_state_make_substitution <- function(game_state, team, player_out, player_in
 
 plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
     pseq <- if (is_beach(dvw)) 1:2 else 1:6
+    if (is.null(plays2) || nrow(plays2) < 1) {
+        out <- tibble(code = character(), skill = character(), home_setter_position = integer(), visiting_setter_position = integer(), home_team_score = integer(), visiting_team_score = integer(), phase = character(), set_number = integer(), video_time = numeric(), error_icon = character())
+        for (pn in pseq) {
+            out[[paste0("home_p", pn)]] <- integer()
+            out[[paste0("visiting_p", pn)]] <- integer()
+        }
+        return(out)
+    }
     out <- datavolley:::parse_code(plays2$code, meta = dvw$meta, evaluation_decoder = evaluation_decoder, file_type = if (is_beach(dvw)) "beach" else "indoor")$plays
     out$home_setter_position <- plays2$home_setter_position
     out$visiting_setter_position <- plays2$visiting_setter_position
@@ -168,9 +176,9 @@ get_setter <- function(game_state, team) {
     pseq <- 1:6 ## indoor only
     if (missing(team)) team <- game_state$current_team
     if (team == "*") {
-        as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)])[game_state$home_setter_position]
+        tryCatch(as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)])[game_state$home_setter_position], error = function(e) 0L)
     } else if (team == "a") {
-        as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)])[game_state$visiting_setter_position]
+        tryCatch(as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)])[game_state$visiting_setter_position], error = function(e) 0L)
     } else {
         0L
     }
@@ -185,11 +193,11 @@ get_players <- function(game_state, team, dvw) {
     pseq <- if (is_beach(dvw)) 1:2 else 1:6
     if (missing(team)) team <- game_state$current_team
     if (team == "*") {
-        as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)])
+        tryCatch(as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]), error = function(e) rep(NA_integer_, length(pseq)))
     } else if (team == "a") {
-        as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)])
+        tryCatch(as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]), error = function(e) rep(NA_integer_, length(pseq)))
     } else {
-        0L
+        rep(NA_integer_, length(pseq))
     }
 }
 
