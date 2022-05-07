@@ -28,7 +28,7 @@ ov_scouter_server <- function(app_data) {
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
         ## court inset showing rotation and team lists
-        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = reactive(game_state), styling = styling, with_ball_coords = FALSE)
+        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = reactive(game_state), rally_codes = rally_codes, styling = styling, with_ball_coords = FALSE)
         rotateTeams <- reactive(court_inset$rt)
         accept_ball_coords <- court_inset$accept_ball_coords ## the "accept" button
 

@@ -85,7 +85,7 @@ game_state_make_substitution <- function(game_state, team, player_out, player_in
 plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
     pseq <- if (is_beach(dvw)) 1:2 else 1:6
     if (is.null(plays2) || nrow(plays2) < 1) {
-        out <- tibble(code = character(), skill = character(), home_setter_position = integer(), visiting_setter_position = integer(), home_team_score = integer(), visiting_team_score = integer(), phase = character(), set_number = integer(), video_time = numeric(), error_icon = character())
+        out <- tibble(code = character(), skill = character(), home_setter_position = integer(), visiting_setter_position = integer(), home_team_score = integer(), visiting_team_score = integer(), phase = character(), set_number = integer(), video_time = numeric(), error_icon = character(), start_coordinate_x = numeric(), start_coordinate_y = numeric(), mid_coordinate_x = numeric(), mid_coordinate_y = numeric(), end_coordinate_x = numeric(), end_coordinate_y = numeric())
         for (pn in pseq) {
             out[[paste0("home_p", pn)]] <- integer()
             out[[paste0("visiting_p", pn)]] <- integer()
@@ -101,6 +101,9 @@ plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
   ##attack_description set_code set_description set_type start_zone end_zone end_subzone end_cone skill_subtype num_players
   ##num_players_numeric special_code timeout end_of_set substitution point home_team_score visiting_team_score
   ##home_setter_position visiting_setter_position custom_code file_line_number
+    out <- bind_cols(out, setNames(dv_index2xy(plays2$start_coordinate), c("start_coordinate_x", "start_coordinate_y")))
+    out <- bind_cols(out, setNames(dv_index2xy(plays2$mid_coordinate), c("mid_coordinate_x", "mid_coordinate_y")))
+    out <- bind_cols(out, setNames(dv_index2xy(plays2$end_coordinate), c("end_coordinate_x", "end_coordinate_y")))
     out$phase <- datavolley::play_phase(out)
     out$set_number <- plays2$set_number
     out$video_time <- plays2$video_time

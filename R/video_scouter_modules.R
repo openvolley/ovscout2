@@ -14,7 +14,7 @@ mod_courtrot2_ui <- function(id, with_ball_coords = TRUE) {
              )
 }
 
-mod_courtrot2 <- function(input, output, session, rdata, game_state, styling, with_ball_coords = TRUE) {
+mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, styling, with_ball_coords = TRUE) {
     pseq <- if (is_beach(isolate(rdata$dvw))) 1:2 else 1:6
     output$htroster <- renderUI({
         re <- names2roster(rdata$dvw$meta$players_h)
@@ -84,6 +84,22 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, styling, wi
             ##}
             p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
                 geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+
+            if (nrow(rally_codes()) > 0) {
+                ## plot just the current rally actions
+                temp_rally_plays2 <- make_plays2(rally_codes(), game_state = gs, dvw = rdata$dvw)
+                temp_rally_plays <- plays2_to_plays(temp_rally_plays2, dvw = rdata$dvw, evaluation_decoder = skill_evaluation_decoder()) ## this is the default evaluation decoder, but it doesn't matter here unless we start e.g. colouring things by evaluation
+                segxy <- bind_rows(temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y"),
+                                   temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "end_coordinate_x", y = "end_coordinate_y"),
+                                   temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception")) %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y")) %>%
+                    na.omit()
+                if (nrow(segxy) > 0) {
+                    ## court module is always plotted assuming that the home team is at the lower end
+                    ## but the coordinates will be oriented to the actual video orientation, so flip if needed
+                    if (court_inset_home_team_end() != "lower") segxy <- dv_flip_xy(segxy)
+                    p <- p + geom_path(data = segxy)
+                }
+            }
 ##            if (!is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & !is.na(rdata$dvw$plays$end_coordinate_x[ridx]) && ball_coords()) {
 ##                thisxy <- data.frame(x = as.numeric(rdata$dvw$plays[ridx, c("start_coordinate_x", "mid_coordinate_x", "end_coordinate_x")]),
 ##                                     y = as.numeric(rdata$dvw$plays[ridx, c("start_coordinate_y", "mid_coordinate_y", "end_coordinate_y")]))
