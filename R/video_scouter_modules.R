@@ -261,8 +261,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
         } else {
             NULL
         }
-    })##, server = TRUE)
-    ##ht_display_team_proxy <- DT::dataTableProxy("ht_display_team")
+    })
 
     output$vt_display_team <- DT::renderDataTable({
         this <- rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "role", "special_role")]
@@ -271,8 +270,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
         } else {
             NULL
         }
-    })##, server = TRUE)
-    ##vt_display_team_proxy <- DT::dataTableProxy("vt_display_team")
+    })
 }
 
 mod_team_edit_ui <- function(id) {
