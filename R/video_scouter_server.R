@@ -1052,5 +1052,13 @@ ov_scouter_server <- function(app_data) {
                 do_video("pause")
             }
         })
+
+        ## check courtref on startup
+        observe({
+            if (is.null(detection_ref()$court_ref)) {
+                showModal(modalDialog(title = "Define the court reference", easyClose = TRUE,
+                                      tags$div("Use the 'Court reference' button to define the court reference before scouting any actions.")))
+            }
+        })
     }
 }
