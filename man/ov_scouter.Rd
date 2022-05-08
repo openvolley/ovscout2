@@ -27,13 +27,13 @@ ov_scouter(
 
 \item{default_scouting_table}{tibble: the table of scouting defaults (skill type and evaluation)}
 
+\item{compound_table}{tibble: the table of compound codes}
+
 \item{launch_browser}{logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny]{runApp}}'s \code{launch.browser} parameter)}
 
 \item{prompt_for_files}{logical: if \code{dvw} was not specified, prompt the user to select the dvw file}
 
 \item{...}{: extra parameters passed to \code{\link[datavolley]{dv_read}} (if \code{dvw} is a provided as a string) and/or to the shiny server and UI functions}
-
-\item{compound_code}{tibble: the table of compound codes}
 }
 \description{
 Launch a Shiny app for scouting

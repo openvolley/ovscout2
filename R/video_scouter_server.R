@@ -29,6 +29,10 @@ ov_scouter_server <- function(app_data) {
         court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = reactive(game_state), rally_codes = rally_codes, styling = styling, with_ball_coords = FALSE)
         rotateTeams <- reactive(court_inset$rt)
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata)
+        detection_ref <- reactiveVal({
+            if (!is.null(app_data$court_ref)) app_data$court_ref else NULL
+        })
+        courtref <- callModule(mod_courtref, id = "courtref", rdata = rdata, app_data = app_data, detection_ref = detection_ref, styling = styling)
 
         ## court module clicking not used here yet
         ##accept_ball_coords <- court_inset$accept_ball_coords ## the "accept" button
@@ -313,15 +317,15 @@ ov_scouter_server <- function(app_data) {
         })
         vid_to_crt <- function(obj) {
             courtxy <- data.frame(x = rep(NA_real_, length(obj$x)), y = rep(NA_real_, length(obj$x)))
-            if (!is.null(app_data$court_ref)) {
-                if (length(obj$x) > 0) courtxy <- ovideo::ov_transform_points(obj$x, obj$y, ref = app_data$court_ref, direction = "to_court")
+            if (!is.null(app_data$court_ref$court_ref)) {
+                if (length(obj$x) > 0) courtxy <- ovideo::ov_transform_points(obj$x, obj$y, ref = app_data$court_ref$court_ref, direction = "to_court")
             }
             courtxy
         }
         crt_to_vid <- function(obj) {
             imagexy <- data.frame(image_x = rep(NA_real_, length(obj$x)), image_y = rep(NA_real_, length(obj$x)))
-            if (!is.null(app_data$court_ref)) {
-                if (length(obj$x) > 0) imagexy <- setNames(ovideo::ov_transform_points(obj$x, obj$y, ref = app_data$court_ref, direction = "to_image"), c("image_x", "image_y"))
+            if (!is.null(app_data$court_ref$court_ref)) {
+                if (length(obj$x) > 0) imagexy <- setNames(ovideo::ov_transform_points(obj$x, obj$y, ref = app_data$court_ref$court_ref, direction = "to_image"), c("image_x", "image_y"))
             }
             imagexy
         }
@@ -964,8 +968,8 @@ ov_scouter_server <- function(app_data) {
                                     tags$hr(),
                                     tags$p(tags$strong("Match actions")),
                                     ## TODO consider if all of these buttons should be available mid-rally or not (e.g. timeouts)
-                                    fluidRow(column(6, tags$strong(home_team(rdata$dvw), "(home)")),
-                                             column(6, tags$strong(visiting_team(rdata$dvw), "(visiting)"))),
+                                    fluidRow(column(6, tags$strong(datavolley::home_team(rdata$dvw), "(home)")),
+                                             column(6, tags$strong(datavolley::visiting_team(rdata$dvw), "(visiting)"))),
                                     fluidRow(column(2, make_fat_buttons(choices = c("Won current rally" = "*p"), input_var = "manual_code")),
                                              column(2, make_fat_buttons(choices = c(Timeout = "*T"), input_var = "manual_code")),
                                              column(2, offset = 2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "manual_code")),

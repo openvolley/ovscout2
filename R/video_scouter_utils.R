@@ -514,3 +514,11 @@ make_fat_buttons <- function(choices, selected, input_var, extra_class = c(), as
     dojs(paste0("Shiny.setInputValue(\"", input_var, "\", ", if (!is.na(selected) && as_radio) paste0("\"", choices[[selected]], "\"") else "null", ")"))
     buts
 }
+
+plotOutputWithAttribs <- function(outputId, width = "100%", height = "400px", click = NULL, dblclick = NULL, hover = NULL, brush = NULL, inline = FALSE, ...) {
+    out <- shiny::plotOutput(outputId = outputId, width = width, height = height, click = click, dblclick = dblclick, hover = hover, brush = brush, inline = inline)
+    rgs <- list(...)
+    ## add extra attributes
+    for (i in seq_along(rgs)) out$attribs[[names(rgs)[i]]] <- rgs[[i]]
+    out
+}

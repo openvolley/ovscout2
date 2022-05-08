@@ -1,42 +1,6 @@
 ov_scouter_ui <- function(app_data) {
     ## some startup stuff
     running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
-    if (app_data$with_video) {
-        video_src <- app_data$dvw$meta$video$file[1]
-        if (!fs::file_exists(as.character(video_src))) {
-            ## can't find the file, go looking for it
-            chk <- ovideo::ov_find_video_file(dvw_filename = app_data$dvw_filename, video_filename = video_src)
-            if (!is.na(chk)) video_src <- chk
-        }
-
-        have_lighttpd <- FALSE
-        video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001
-        tryCatch({
-            chk <- sys::exec_internal("lighttpd", "-version")
-            have_lighttpd <- TRUE
-        }, error = function(e) warning("could not find the lighttpd executable, install it with e.g. 'apt install lighttpd' on Ubuntu/Debian or from http://lighttpd.dtech.hu/ on Windows. Using \"servr\" video option"))
-        video_serve_method <- if (have_lighttpd) "lighttpd" else "servr"
-        if (video_serve_method == "lighttpd") {
-            ## build config file to pass to lighttpd
-            lighttpd_conf_file <- tempfile(fileext = ".conf")
-            cat("server.document-root = \"", dirname(video_src), "\"\nserver.port = \"", video_server_port, "\"\n", sep = "", file = lighttpd_conf_file, append = FALSE)
-            lighttpd_pid <- sys::exec_background("lighttpd", c("-D", "-f", lighttpd_conf_file), std_out = FALSE) ## start lighttpd not in background mode
-            lighttpd_cleanup <- function() {
-                message("cleaning up lighttpd")
-                try(tools::pskill(lighttpd_pid), silent = TRUE)
-            }
-            onStop(function() try({ lighttpd_cleanup() }, silent = TRUE))
-        } else {
-            ## start servr instance serving from the video source directory
-            blah <- servr::httd(dir = dirname(video_src), port = video_server_port, browser = FALSE, daemon = TRUE)
-            onStop(function() {
-                message("cleaning up servr")
-                servr::daemon_stop()
-            })
-        }
-        video_server_base_url <- paste0("http://localhost:", video_server_port)
-        message(paste0("video server ", video_serve_method, " on port: ", video_server_port))
-    }
     fluidPage(theme=if (running_locally) "spacelab.css" else "https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.7/spacelab/bootstrap.min.css",
               htmltools::findDependencies(shiny::selectizeInput("foo", "bar", choices = "a")), ## workaround for https://github.com/rstudio/shiny/issues/3125
               tags$script("Shiny.addCustomMessageHandler('evaljs', function(jsexpr) { eval(jsexpr) });"), ## handler for running js code directly
@@ -77,7 +41,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                        tags$button(tags$span(icon("pause-circle", style = "vertical-align:middle;")), onclick = "if (document.getElementById('main_video').paused == true) { document.getElementById('main_video').play(); } else { document.getElementById('main_video').pause(); }", title = "Pause"),
                                        #tags$button(tags$span(icon("stop-circle", style = "vertical-align:middle;")), onclick = paste0(cstr, "video_stop();"), title = "Stop"),
                                        ),
-                              if (app_data$with_video) introBox(tags$div(id = "video_holder", style = "position:relative;", tags$video(id = "main_video", style = "border: 1px solid black; width: 90%;", src = file.path(video_server_base_url, basename(video_src)), autoplay = "false")), tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 4, data.intro = "Video of the game to scout."), ##controls = "controls",
+                              if (app_data$with_video) introBox(tags$div(id = "video_holder", style = "position:relative;", tags$video(id = "main_video", style = "border: 1px solid black; width: 90%;", src = file.path(app_data$video_server_base_url, basename(app_data$video_src)), autoplay = "false")), tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 4, data.intro = "Video of the game to scout."), ##controls = "controls",
                               fluidRow(column(4, offset = 8, uiOutput("rally_state"))),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
                               fluidRow(column(8,
@@ -93,6 +57,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                               fluidRow(column(5, actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
                                               actionButton("show_shortcuts", tags$span(icon("keyboard"), "Show keyboard shortcuts"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
                                               sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1),
+                                              mod_courtref_ui(id = "courtref"),
                                               uiOutput("show_overlay_ui")
                                               ),
                                        column(7, wellPanel(mod_teamslists_ui(id = "teamslists")))

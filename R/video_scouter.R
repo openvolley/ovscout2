@@ -5,7 +5,7 @@
 #' @param court_ref data.frame or string: data.frame with the court reference (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
 #' @param scouting_options list: a named list with entries as per [ov_scouter_options()]
 #' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
-#' @param compound_code tibble: the table of compound codes
+#' @param compound_table tibble: the table of compound codes
 #' @param launch_browser logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny]{runApp}}'s \code{launch.browser} parameter)
 #' @param prompt_for_files logical: if \code{dvw} was not specified, prompt the user to select the dvw file
 #' @param ... : extra parameters passed to \code{\link[datavolley]{dv_read}} (if \code{dvw} is a provided as a string) and/or to the shiny server and UI functions
@@ -72,14 +72,17 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
             court_ref <- temp
         } else {
             crfile <- paste0(fs::path_ext_remove(video_file), "_video_info.rds")
-            if (file.exists(crfile)) tryCatch(court_ref <- readRDS(crfile)$court_ref, error = function(e) {
+            if (file.exists(crfile)) tryCatch(court_ref <- readRDS(crfile), error = function(e) {
                 warning("found video_info.rds file but could not extract court_ref component")
             })
         }
     }
     if (!is.null(court_ref)) {
-        if (is.list(court_ref) && "court_ref" %in% names(court_ref)) court_ref <- court_ref$court_ref
-        if (!is.data.frame(court_ref) || !all(c("image_x", "image_y", "court_x", "court_y") %in% names(court_ref))) {
+        if (is.data.frame(court_ref) && any(c("image_x", "image_y", "court_x", "court_y") %in% names(court_ref))) {
+            ## just the court reference has been passed, not the full video info
+            court_ref <- list(court_ref = court_ref)
+        }
+        if (!is.data.frame(court_ref$court_ref) || !all(c("image_x", "image_y", "court_x", "court_y") %in% names(court_ref$court_ref))) {
             stop("court_ref is not of the expected format")
         }
     }
@@ -90,6 +93,42 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
     app_data$serving <- "*" ## HACK for testing
     app_data$play_overlap <- 0.5 ## amount (in seconds) to rewind before restarting the video, after pausing to enter data
     app_data$evaluation_decoder <- skill_evaluation_decoder() ## to expose as a parameter, perhaps
+    if (app_data$with_video) {
+        video_src <- app_data$dvw$meta$video$file[1]
+        if (!fs::file_exists(as.character(video_src))) {
+            ## can't find the file, go looking for it
+            chk <- ovideo::ov_find_video_file(dvw_filename = app_data$dvw_filename, video_filename = video_src)
+            if (!is.na(chk)) video_src <- chk
+        }
+        app_data$video_src <- video_src
+        have_lighttpd <- FALSE
+        video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001
+        tryCatch({
+            chk <- sys::exec_internal("lighttpd", "-version")
+            have_lighttpd <- TRUE
+        }, error = function(e) warning("could not find the lighttpd executable, install it with e.g. 'apt install lighttpd' on Ubuntu/Debian or from http://lighttpd.dtech.hu/ on Windows. Using \"servr\" video option"))
+        video_serve_method <- if (have_lighttpd) "lighttpd" else "servr"
+        if (video_serve_method == "lighttpd") {
+            ## build config file to pass to lighttpd
+            lighttpd_conf_file <- tempfile(fileext = ".conf")
+            cat("server.document-root = \"", dirname(video_src), "\"\nserver.port = \"", video_server_port, "\"\n", sep = "", file = lighttpd_conf_file, append = FALSE)
+            lighttpd_pid <- sys::exec_background("lighttpd", c("-D", "-f", lighttpd_conf_file), std_out = FALSE) ## start lighttpd not in background mode
+            lighttpd_cleanup <- function() {
+                message("cleaning up lighttpd")
+                try(tools::pskill(lighttpd_pid), silent = TRUE)
+            }
+            onStop(function() try({ lighttpd_cleanup() }, silent = TRUE))
+        } else {
+            ## start servr instance serving from the video source directory
+            blah <- servr::httd(dir = dirname(video_src), port = video_server_port, browser = FALSE, daemon = TRUE)
+            onStop(function() {
+                message("cleaning up servr")
+                servr::daemon_stop()
+            })
+        }
+        app_data$video_server_base_url <- paste0("http://localhost:", video_server_port)
+        message(paste0("video server ", video_serve_method, " on port: ", video_server_port))
+    }
     this_app <- list(ui = ov_scouter_ui(app_data = app_data), server = ov_scouter_server(app_data = app_data))
     shiny::runApp(this_app, display.mode = "normal", launch.browser = launch_browser)
 }
