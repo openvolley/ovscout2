@@ -50,7 +50,6 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                                   mod_match_data_edit_ui(id = "match_data_editor"),
                                                   mod_team_edit_ui(id = "team_editor"),
                                                   mod_lineup_edit_ui(id = "lineup_editor"),
-                                                  uiOutput("switch_serving_ui", inline = TRUE),
                                                   data.step = 3, data.intro = "Click on these action buttons if you want to edit the starting lineups, edit the rosters, or edit the match metadata.")
                                               )),
                               tags$div(style = "height: 14px;"),

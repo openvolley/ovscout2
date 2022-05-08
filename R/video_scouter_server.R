@@ -26,7 +26,7 @@ ov_scouter_server <- function(app_data) {
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
         ## court inset showing rotation and team lists
-        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = reactive(game_state), rally_codes = rally_codes, styling = styling, with_ball_coords = FALSE)
+        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, styling = styling, with_ball_coords = FALSE)
         rotateTeams <- reactive(court_inset$rt)
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata)
         detection_ref <- reactiveVal({
@@ -52,20 +52,6 @@ ov_scouter_server <- function(app_data) {
         ##    ## and clear the clicked coordinates queue
         ##    court_inset$clear_click_queue()
         ##})
-
-        output$switch_serving_ui <- renderUI({
-            if (rally_state() %in% c("click or unpause the video to start", "click serve start")) {
-                actionButton("switch_serving", "Switch serving team")
-            } else {
-                ## can't switch serving team once the rally has started
-                NULL
-            }
-        })
-        observeEvent(input$switch_serving, {
-            game_state$serving <- other(game_state$serving)
-            game_state$current_team <- game_state$serving
-        })
-
 
         playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show, plays_cols_renames = plays_cols_renames)
 

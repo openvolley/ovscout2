@@ -25,17 +25,32 @@ mod_courtrot2_ui <- function(id, with_ball_coords = TRUE) {
                                        column(4, actionButton(ns("cancel_ball_coords"), "Cancel ball coordinates")),
                                        column(4, actionButton(ns("validate_ball_coords"), label = "Accept ball coordinates"))),
              fluidRow(column(12, plotOutput(ns("court_inset"), click = ns("plot_click"), height = "45vh")),),
-             fluidRow(column(2, offset = 0, actionButton(ns("rotate_home"), tags$span("Home", icon("undo")))),
-                      column(2, offset = 3, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
-                      column(2, offset = 2, actionButton(ns("rotate_visiting"), tags$span("Visiting", icon("undo")))))
+             fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", icon("undo")))),
+                      column(3, offset = 1, uiOutput(ns("switch_serving_ui"), inline = TRUE)),
+                      column(2, offset = 1, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
+                      column(2, actionButton(ns("rotate_visiting"), tags$span("Visiting", icon("undo")))))
              )
 }
 
-mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, styling, with_ball_coords = TRUE) {
+mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, rally_state, styling, with_ball_coords = TRUE) {
+    ns <- session$ns
     pseq <- if (is_beach(isolate(rdata$dvw))) 1:2 else 1:6
 
     observeEvent(input$cancel_ball_coords, {
         clear_click_queue()
+    })
+
+    output$switch_serving_ui <- renderUI({
+        if (rally_state() %in% c("click or unpause the video to start", "click serve start")) {
+            actionButton(ns("switch_serving"), "Switch serving team")
+        } else {
+            ## can't switch serving team once the rally has started
+            NULL
+        }
+    })
+    observeEvent(input$switch_serving, {
+        game_state$serving <- other(game_state$serving)
+        game_state$current_team <- game_state$serving
     })
 
     rotate_teams <- reactiveValues(home = 0L, visiting = 0L)
@@ -63,73 +78,70 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour) +
             geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour) +
             ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
-        gs <- game_state()
-        ##cat("gs: "); cat(str(reactiveValuesToList(gs)))
-        if (TRUE) {##!is.null(gs) && nrow(gs) > 0) {
-            this_pn <- NULL ##rdata$dvw$plays$player_number[ridx] ## player in the selected row
-            htrot <- tibble(number = get_players(gs, team = "*", dvw = rdata$dvw))
-            htrot <- dplyr::left_join(htrot, rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
-            ##vtrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("visiting_player_id", 1:6)]), team_id = rdata$dvw$plays$visiting_team_id[ridx])
-            ##vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "player_id")
-            vtrot <- tibble(number = get_players(gs, team = "a", dvw = rdata$dvw))
-            vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
-            plxy <- cbind(dv_xy(pseq, end = "lower"), htrot)
-##            plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("home_p", pseq)]) ## the on-court player numbers in the play-by-play data
-            ## player names and circles
-            ## home team
-            p <- p + geom_polygon(data = court_circle(cz = pseq, end = "lower"), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight)
-            ## highlighted player
-            ##if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$home_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
-            ##    p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "lower"), fill = "yellow", colour = "black")
-            ##}
-            p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
-                geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
-            ## visiting team
-            plxy <- cbind(dv_xy(pseq, end = "upper"), vtrot)
-##            plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("visiting_p", pseq)]) ## the on-court player numbers in the play-by-play data
-            p <- p + geom_polygon(data = court_circle(cz = pseq, end = "upper"), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight)
-            ##if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$visiting_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
-            ##    p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "upper"), fill = "yellow", colour = "black")
-            ##}
-            p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
-                geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+        ##cat("game_state: "); cat(str(reactiveValuesToList(game_state)))
+        this_pn <- NULL ##rdata$dvw$plays$player_number[ridx] ## player in the selected row
+        htrot <- tibble(number = get_players(game_state, team = "*", dvw = rdata$dvw))
+        htrot <- dplyr::left_join(htrot, rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
+        ##vtrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("visiting_player_id", 1:6)]), team_id = rdata$dvw$plays$visiting_team_id[ridx])
+        ##vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "player_id")
+        vtrot <- tibble(number = get_players(game_state, team = "a", dvw = rdata$dvw))
+        vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
+        plxy <- cbind(dv_xy(pseq, end = "lower"), htrot)
+        ##            plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("home_p", pseq)]) ## the on-court player numbers in the play-by-play data
+        ## player names and circles
+        ## home team
+        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "lower"), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight)
+        ## highlighted player
+        ##if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$home_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
+        ##    p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "lower"), fill = "yellow", colour = "black")
+        ##}
+        p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
+            geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+        ## visiting team
+        plxy <- cbind(dv_xy(pseq, end = "upper"), vtrot)
+        ##            plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("visiting_p", pseq)]) ## the on-court player numbers in the play-by-play data
+        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "upper"), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight)
+        ##if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$visiting_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
+        ##    p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "upper"), fill = "yellow", colour = "black")
+        ##}
+        p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
+            geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
 
-            if (nrow(rally_codes()) > 0) {
-                ## plot just the current rally actions
-                temp_rally_plays2 <- make_plays2(rally_codes(), game_state = gs, dvw = rdata$dvw)
-                temp_rally_plays <- plays2_to_plays(temp_rally_plays2, dvw = rdata$dvw, evaluation_decoder = skill_evaluation_decoder()) ## this is the default evaluation decoder, but it doesn't matter here unless we start e.g. colouring things by evaluation
-                segxy <- bind_rows(temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y"),
-                                   temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "end_coordinate_x", y = "end_coordinate_y"),
-                                   temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception")) %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y")) %>%
-                    na.omit()
-                if (nrow(segxy) > 0) {
-                    ## court module is always plotted assuming that the home team is at the lower end
-                    ## but the coordinates will be oriented to the actual video orientation, so flip if needed
-                    if (court_inset_home_team_end() != "lower") segxy <- dv_flip_xy(segxy)
-                    p <- p + geom_path(data = segxy)
-                }
+        if (nrow(rally_codes()) > 0) {
+            ## plot just the current rally actions
+            temp_rally_plays2 <- make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw)
+            temp_rally_plays <- plays2_to_plays(temp_rally_plays2, dvw = rdata$dvw, evaluation_decoder = skill_evaluation_decoder()) ## this is the default evaluation decoder, but it doesn't matter here unless we start e.g. colouring things by evaluation
+            segxy <- bind_rows(temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y"),
+                               temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "end_coordinate_x", y = "end_coordinate_y"),
+                               temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception")) %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y")) %>%
+                na.omit()
+            if (nrow(segxy) > 0) {
+                ## court module is always plotted assuming that the home team is at the lower end
+                ## but the coordinates will be oriented to the actual video orientation, so flip if needed
+                if (court_inset_home_team_end() != "lower") segxy <- dv_flip_xy(segxy)
+                p <- p + geom_path(data = segxy)
             }
-##            if (!is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & !is.na(rdata$dvw$plays$end_coordinate_x[ridx]) && ball_coords()) {
-##                thisxy <- data.frame(x = as.numeric(rdata$dvw$plays[ridx, c("start_coordinate_x", "mid_coordinate_x", "end_coordinate_x")]),
-##                                     y = as.numeric(rdata$dvw$plays[ridx, c("start_coordinate_y", "mid_coordinate_y", "end_coordinate_y")]))
-##                p <- p + geom_point(data = thisxy[1, ], shape = 16, col = "green", size = 5) +
-##                    geom_point(data = thisxy[3, ], shape = 16, col = "red", size = 5) +
-##                    geom_path(data = na.omit(thisxy), arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
-##            }
-##            if (nrow(click_points$queue) > 0) {
-##                p <- p + geom_point(data = click_points$queue, shape = 16) +
-##                    geom_path(data = click_points$queue, linetype = "dashed", colour = "black", arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
-##            }
-            ## add the serving team indicator
-            temp <- court_circle(cz = 1, r = 0.2, end = "upper")
-            temp$y <- temp$y + 0.75 ## shift to behind baseline
-            p <- p + geom_polygon(data = temp, fill = if (gs$serving %eq% "a") "white" else NA, colour = "black")
-            temp <- court_circle(cz = 1, r = 0.2, end = "lower")
-            temp$y <- temp$y - 0.75 ## shift to behind baseline
-            p <- p + geom_polygon(data = temp, fill = if (gs$serving %eq% "*") "white" else NA, colour = "black")
-            if (court_inset_home_team_end() != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
-##            if (gs$home_end != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
         }
+        ##            if (!is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & !is.na(rdata$dvw$plays$end_coordinate_x[ridx]) && ball_coords()) {
+        ##                thisxy <- data.frame(x = as.numeric(rdata$dvw$plays[ridx, c("start_coordinate_x", "mid_coordinate_x", "end_coordinate_x")]),
+        ##                                     y = as.numeric(rdata$dvw$plays[ridx, c("start_coordinate_y", "mid_coordinate_y", "end_coordinate_y")]))
+        ##                p <- p + geom_point(data = thisxy[1, ], shape = 16, col = "green", size = 5) +
+        ##                    geom_point(data = thisxy[3, ], shape = 16, col = "red", size = 5) +
+        ##                    geom_path(data = na.omit(thisxy), arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
+        ##            }
+        ##            if (nrow(click_points$queue) > 0) {
+        ##                p <- p + geom_point(data = click_points$queue, shape = 16) +
+        ##                    geom_path(data = click_points$queue, linetype = "dashed", colour = "black", arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
+        ##            }
+        ## add the serving team indicator
+        temp <- court_circle(cz = 1, r = 0.2, end = "upper")
+        temp$y <- temp$y + 0.75 ## shift to behind baseline
+        p <- p + geom_polygon(data = temp, fill = if (game_state$serving %eq% "a") "white" else NA, colour = "black")
+        temp <- court_circle(cz = 1, r = 0.2, end = "lower")
+        temp$y <- temp$y - 0.75 ## shift to behind baseline
+        p <- p + geom_polygon(data = temp, fill = if (game_state$serving %eq% "*") "white" else NA, colour = "black")
+        if (court_inset_home_team_end() != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
+        ##            if (gs$home_end != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
         p
     })
 
