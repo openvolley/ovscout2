@@ -141,7 +141,6 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         temp$y <- temp$y - 0.75 ## shift to behind baseline
         p <- p + geom_polygon(data = temp, fill = if (game_state$serving %eq% "*") "white" else NA, colour = "black")
         if (court_inset_home_team_end() != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
-        ##            if (gs$home_end != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
         p
     })
 
@@ -209,10 +208,9 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
         editing$active <- "change starting lineup"
         htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
         vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
-        gs <- game_state()
-        ht_setter <- get_setter(gs, team = "*")
+        ht_setter <- get_setter(game_state, team = "*")
         if (is.null(ht_setter) || is.na(ht_setter) || ht_setter %eq% 0L) ht_setter <- ""
-        vt_setter <- get_setter(gs, team = "a")
+        vt_setter <- get_setter(game_state, team = "a")
         if (is.null(vt_setter) || is.na(vt_setter) || vt_setter %eq% 0L) vt_setter <- ""
         showModal(
             vwModalDialog(
@@ -224,12 +222,12 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                              wellPanel(
                                  fluidRow(
                                      ##column(1, textInput(ns("ht_set_number"), label = "Set", placeholder = "Set number")),
-                                     column(1, textInput(ns("ht_P1"), label = "P1", value = if (!is.null(gs$home_p1) && !is.na(gs$home_p1)) gs$home_p1 else "", placeholder = "P1")),
-                                     column(1, textInput(ns("ht_P2"), label = "P2", value = if (!is.null(gs$home_p2) && !is.na(gs$home_p2)) gs$home_p2 else "", placeholder = "P2")),
-                                     column(1, textInput(ns("ht_P3"), label = "P3", value = if (!is.null(gs$home_p3) && !is.na(gs$home_p3)) gs$home_p3 else "", placeholder = "P3")),
-                                     column(1, textInput(ns("ht_P4"), label = "P4", value = if (!is.null(gs$home_p4) && !is.na(gs$home_p4)) gs$home_p4 else "", placeholder = "P4")),
-                                     column(1, textInput(ns("ht_P5"), label = "P5", value = if (!is.null(gs$home_p5) && !is.na(gs$home_p5)) gs$home_p5 else "", placeholder = "P5")),
-                                     column(1, textInput(ns("ht_P6"), label = "P6", value = if (!is.null(gs$home_p6) && !is.na(gs$home_p6)) gs$home_p6 else "", placeholder = "P6"))),
+                                     column(1, textInput(ns("ht_P1"), label = "P1", value = if (!is.null(game_state$home_p1) && !is.na(game_state$home_p1)) game_state$home_p1 else "", placeholder = "P1")),
+                                     column(1, textInput(ns("ht_P2"), label = "P2", value = if (!is.null(game_state$home_p2) && !is.na(game_state$home_p2)) game_state$home_p2 else "", placeholder = "P2")),
+                                     column(1, textInput(ns("ht_P3"), label = "P3", value = if (!is.null(game_state$home_p3) && !is.na(game_state$home_p3)) game_state$home_p3 else "", placeholder = "P3")),
+                                     column(1, textInput(ns("ht_P4"), label = "P4", value = if (!is.null(game_state$home_p4) && !is.na(game_state$home_p4)) game_state$home_p4 else "", placeholder = "P4")),
+                                     column(1, textInput(ns("ht_P5"), label = "P5", value = if (!is.null(game_state$home_p5) && !is.na(game_state$home_p5)) game_state$home_p5 else "", placeholder = "P5")),
+                                     column(1, textInput(ns("ht_P6"), label = "P6", value = if (!is.null(game_state$home_p6) && !is.na(game_state$home_p6)) game_state$home_p6 else "", placeholder = "P6"))),
                                  fluidRow(
                                      column(1, textInput(ns("ht_setter"), label = "Setter", value = ht_setter, placeholder = "Setter")),
                                      column(1, textInput(ns("ht_libero"), label = "Libero", placeholder = "Libero"))
@@ -242,12 +240,12 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                                  wellPanel(
                                      fluidRow(
                                          ##column(1, textInput(ns("vt_set_number"), label = "Set", placeholder = "Set number")),
-                                         column(1, textInput(ns("vt_P1"), label = "P1", value = if (!is.null(gs$visiting_p1) && !is.na(gs$visiting_p1)) gs$visiting_p1 else "", placeholder = "P1")),
-                                         column(1, textInput(ns("vt_P2"), label = "P2", value = if (!is.null(gs$visiting_p2) && !is.na(gs$visiting_p2)) gs$visiting_p2 else "", placeholder = "P2")),
-                                         column(1, textInput(ns("vt_P3"), label = "P3", value = if (!is.null(gs$visiting_p3) && !is.na(gs$visiting_p3)) gs$visiting_p3 else "", placeholder = "P3")),
-                                         column(1, textInput(ns("vt_P4"), label = "P4", value = if (!is.null(gs$visiting_p4) && !is.na(gs$visiting_p4)) gs$visiting_p4 else "", placeholder = "P4")),
-                                         column(1, textInput(ns("vt_P5"), label = "P5", value = if (!is.null(gs$visiting_p5) && !is.na(gs$visiting_p5)) gs$visiting_p5 else "", placeholder = "P5")),
-                                         column(1, textInput(ns("vt_P6"), label = "P6", value = if (!is.null(gs$visiting_p6) && !is.na(gs$visiting_p6)) gs$visiting_p6 else "", placeholder = "P6"))),
+                                         column(1, textInput(ns("vt_P1"), label = "P1", value = if (!is.null(game_state$visiting_p1) && !is.na(game_state$visiting_p1)) game_state$visiting_p1 else "", placeholder = "P1")),
+                                         column(1, textInput(ns("vt_P2"), label = "P2", value = if (!is.null(game_state$visiting_p2) && !is.na(game_state$visiting_p2)) game_state$visiting_p2 else "", placeholder = "P2")),
+                                         column(1, textInput(ns("vt_P3"), label = "P3", value = if (!is.null(game_state$visiting_p3) && !is.na(game_state$visiting_p3)) game_state$visiting_p3 else "", placeholder = "P3")),
+                                         column(1, textInput(ns("vt_P4"), label = "P4", value = if (!is.null(game_state$visiting_p4) && !is.na(game_state$visiting_p4)) game_state$visiting_p4 else "", placeholder = "P4")),
+                                         column(1, textInput(ns("vt_P5"), label = "P5", value = if (!is.null(game_state$visiting_p5) && !is.na(game_state$visiting_p5)) game_state$visiting_p5 else "", placeholder = "P5")),
+                                         column(1, textInput(ns("vt_P6"), label = "P6", value = if (!is.null(game_state$visiting_p6) && !is.na(game_state$visiting_p6)) game_state$visiting_p6 else "", placeholder = "P6"))),
                                      fluidRow(
                                          column(1, textInput(ns("vt_setter"), label = "Setter", value = vt_setter, placeholder = "Setter")),
                                          column(1, textInput(ns("vt_libero"), label = "Libero", placeholder = "Libero"))

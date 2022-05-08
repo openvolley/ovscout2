@@ -146,7 +146,7 @@ ov_scouter_server <- function(app_data) {
         ## match, team, and lineup data editing
         match_data_edit_mod <- callModule(mod_match_data_edit, id = "match_data_editor", rdata = rdata, editing = editing, styling = styling)
         team_edit_mod <- callModule(mod_team_edit, id = "team_editor", rdata = rdata, editing = editing, styling = styling)
-        lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = reactive(game_state), editing = editing, styling = styling)
+        lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, styling = styling)
 
         observeEvent(input$edit_cancel, {
             if (!is.null(editing$active) && editing$active %in% "teams") {
