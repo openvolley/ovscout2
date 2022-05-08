@@ -66,7 +66,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
     }
     ## look for the court ref data, if it hasn't been provided
     if (missing(court_ref)) {
-        temp <- NULL
+        court_ref <- NULL
         if (packageVersion("ovideo") >= "0.14.3") temp <- suppressWarnings(ovideo::ov_get_video_data(video_file))
         if (!is.null(temp)) {
             court_ref <- temp

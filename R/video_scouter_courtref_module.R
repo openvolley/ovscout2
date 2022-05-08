@@ -9,11 +9,15 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
     observeEvent(input$do_scref, {
         ## trigger the crvt data to be re-initialized each time a popup is spawned
         did_sr_popup(did_sr_popup() + 1L)
-        showModal(vwModalDialog(title = "Set up court reference", uiOutput(ns("srui")), footer = tags$div(actionButton(ns("sr_apply"), "Apply", style = paste0("background-color:", styling$continue)), actionButton(ns("sr_cancel"), "Cancel", style = paste0("background-color:", styling$cancel))), width = 100))
+        showModal(vwModalDialog(title = "Set up court reference", uiOutput(ns("srui")), footer = tags$div(uiOutput(ns("sr_apply_ui"), inline = TRUE), actionButton(ns("sr_cancel"), "Cancel", style = paste0("background-color:", styling$cancel))), width = 100))
     })
 
     observeEvent(input$sr_cancel, {
         removeModal()
+    })
+
+    output$sr_apply_ui <- renderUI({
+        if (length(na.omit(crvt$court$image_x)) == 4) actionButton(ns("sr_apply"), "Apply", style = paste0("background-color:", styling$continue)) else NULL
     })
 
     observeEvent(input$sr_apply, {
@@ -37,7 +41,8 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
                  column(4, uiOutput(ns("srui_table")),
                         tags$hr(),
                         shiny::fixedRow(column(6, textInput(ns("sr_net_height"), label = "Net height (m):", value = if (!is.null(detection_ref()) && !is.null(detection_ref()$net_height) && !is.na(detection_ref()$net_height)) detection_ref()$net_height else "", width = "10ex")),
-                                        column(6, textInput(ns("sr_video_framerate"), label = "Video frame rate:", value = if (!is.null(detection_ref()) && !is.null(detection_ref()$video_framerate) && !is.na(detection_ref()$video_framerate)) detection_ref()$video_framerate else "", width = "10ex")))
+                                        ##column(6, textInput(ns("sr_video_framerate"), label = "Video frame rate:", value = if (!is.null(detection_ref()) && !is.null(detection_ref()$video_framerate) && !is.na(detection_ref()$video_framerate)) detection_ref()$video_framerate else "", width = "10ex"))
+                                        )
                         ))
     })
 
@@ -76,7 +81,7 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
         chc <- setNames(court_refs_data$pos, court_refs_data$lab)
         def_sel <- c(1, 2, 10, 9, 6, 7, 11, 12)
         sel <- if (!is.null(what) && what %in% chc) what else chc[def_sel[n]]
-        selectInput(id, label = paste0("Reference point ", n), choices = chc, selected = sel, multiple = FALSE)
+        selectInput(ns(id), label = paste0("Reference point ", n), choices = chc, selected = sel, multiple = FALSE)
     }
 
     ## the table on the right of the UI with the ref position definitions
@@ -168,9 +173,10 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
             px <- c(input$sr_plot_click$x, input$sr_plot_click$y)
             isolate({
                 refpts <- bind_rows(mutate(crvt$court, what = "court", rownum = row_number()),
-                                    mutate(crvt$antenna, what = "antenna", rownum = row_number() + 4L))
+                                    mutate(crvt$antenna, what = "antenna", rownum = row_number() + nrow(crvt$court)))
                 if (nrow(refpts) > 0) {
                     closest <- refpts$rownum[which.min(sqrt((refpts$image_x - px[1])^2 + (refpts$image_y - px[2])^2))]
+                    if (length(closest) < 1) closest <- NA_integer_
                 }
             })
         } else {
@@ -184,7 +190,9 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
         if (is.null(start) || is.null(end)) {
             FALSE
         } else {
-            sqrt(sum(start - end)^2) > 0.0001
+            ##cat("start: ", start, "\n")
+            ##cat("end: ", end, "\n")
+            sqrt(sum(start - end)^2) > 0.005
         }
     }
 
@@ -195,23 +203,26 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
             isolate(px <- last_mouse_pos())
             if (is.null(px) || !was_drag(sr_clickdrag$mousedown, px)) {
                 ##if (is.null(px)) px <- sr_clickdrag$mousedown ## if hover is lagging use mouse down
-                ##if (DEBUG) cat("click\n")
+                ##cat("click\n")
                 ## enter new point if there is an empty slot, or ignore
                 if (is.null(crvt$court) || nrow(crvt$court) < 4) {
                     warning("empty crtvt$court??")
+                    stop("add new court row")
                 } else if (any(is.na(crvt$court$image_x))) {
                     next_pt <- min(which(is.na(crvt$court$image_x)))
                     crvt$court[next_pt, c("image_x", "image_y")] <- as.list(px)
+                    ## don't use ns here?? why on earth does that not work??
                     crvt$court$pos[next_pt] <- input[[paste0("crdd", next_pt)]]
                     ## TODO court_x and court_y here need updating
                 } else if (is.null(crvt$antenna) || nrow(crvt$antenna) < 4) {
                     warning("empty crtvt$antenna??")
+                    stop("add new antenna row")
                 } else if (any(is.na(crvt$antenna$image_x))) {
                     next_pt <- min(which(is.na(crvt$antenna$image_x)))
                     crvt$antenna[next_pt, c("image_x", "image_y")] <- as.list(px)
                 }
             } else {
-                ##if (DEBUG) cat("drag or null start/end point\n")
+                ##cat("drag or null start/end point\n")
                 ## do nothing
             }
         }
@@ -230,6 +241,7 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
     observe({
         px <- last_mouse_pos() ##c(input$sr_plot_hover$x, input$sr_plot_hover$y)
         if (!is.null(px) && !is.null(sr_clickdrag$mousedown) && was_drag(sr_clickdrag$mousedown, px)) {
+            ##cat("was drag\n")
             ## did previously click, so now dragging a point
             now_time <- R.utils::System$currentTimeMillis()
             if (is.na(last_refresh_time) || (now_time - last_refresh_time) > 300) {
@@ -239,10 +251,12 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
                                     mutate(crvt$antenna, what = "antenna", rownum = row_number()))
                 if (nrow(refpts) > 0) {
                     closest <- sr_clickdrag$closest_down
-                    if (refpts$what[closest] == "court") {
-                        crvt$court[refpts$rownum[closest], c("image_x", "image_y")] <- as.list(px)
-                    } else {
-                        crvt$antenna[refpts$rownum[closest], c("image_x", "image_y")] <- as.list(px)
+                    if (!is.na(closest)) {
+                        if (refpts$what[closest] == "court") {
+                            crvt$court[refpts$rownum[closest], c("image_x", "image_y")] <- as.list(px)
+                        } else {
+                            crvt$antenna[refpts$rownum[closest], c("image_x", "image_y")] <- as.list(px)
+                        }
                     }
                 }
             } else {

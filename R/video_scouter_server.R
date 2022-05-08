@@ -317,15 +317,15 @@ ov_scouter_server <- function(app_data) {
         })
         vid_to_crt <- function(obj) {
             courtxy <- data.frame(x = rep(NA_real_, length(obj$x)), y = rep(NA_real_, length(obj$x)))
-            if (!is.null(app_data$court_ref$court_ref)) {
-                if (length(obj$x) > 0) courtxy <- ovideo::ov_transform_points(obj$x, obj$y, ref = app_data$court_ref$court_ref, direction = "to_court")
+            if (!is.null(detection_ref()$court_ref)) {
+                if (length(obj$x) > 0) courtxy <- ovideo::ov_transform_points(obj$x, obj$y, ref = detection_ref()$court_ref, direction = "to_court")
             }
             courtxy
         }
         crt_to_vid <- function(obj) {
             imagexy <- data.frame(image_x = rep(NA_real_, length(obj$x)), image_y = rep(NA_real_, length(obj$x)))
-            if (!is.null(app_data$court_ref$court_ref)) {
-                if (length(obj$x) > 0) imagexy <- setNames(ovideo::ov_transform_points(obj$x, obj$y, ref = app_data$court_ref$court_ref, direction = "to_image"), c("image_x", "image_y"))
+            if (!is.null(detection_ref()$court_ref)) {
+                if (length(obj$x) > 0) imagexy <- setNames(ovideo::ov_transform_points(obj$x, obj$y, ref = detection_ref()$court_ref, direction = "to_image"), c("image_x", "image_y"))
             }
             imagexy
         }
