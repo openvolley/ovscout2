@@ -301,14 +301,14 @@ guess_pass_player_options <- function(game_state, dvw, system) {
     list(choices = pp, selected = plsel)
 }
 
-guess_pass_quality <- function(game_state, dvw) {
+guess_pass_quality <- function(game_state, dvw, home_end) {
     if (is_beach(dvw)) {
         ## TODO
         cat("beach, defaulting to '+' pass quality\n")
         return("+")
     }
     ## reference clicks to lower court
-    do_flip_click <- (game_state$current_team == "*" && game_state$home_end == "upper") || (game_state$current_team == "a" && game_state$home_end == "lower")
+    do_flip_click <- (game_state$current_team == "*" && home_end == "upper") || (game_state$current_team == "a" && home_end == "lower")
     thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
     ## sets use "start" coordinates but "end" zone/subzone
     esz <- paste(dv_xy2subzone(game_state$start_x, game_state$start_y), collapse = "")
@@ -397,9 +397,9 @@ guess_attack_player_options <- function(game_state, dvw, system) {
   list(choices = pp, selected = plsel)
 }
 
-guess_attack_code <- function(game_state, dvw) {
+guess_attack_code <- function(game_state, dvw, home_end) {
     atbl <- dvw$meta$attacks
-    do_flip_click <- (game_state$current_team == "*" && game_state$home_end == "upper") || (game_state$current_team == "a" && game_state$home_end == "lower")
+    do_flip_click <- (game_state$current_team == "*" && home_end == "upper") || (game_state$current_team == "a" && home_end == "lower")
     thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
     d <- sqrt((atbl$start_x - thisxy[1])^2 + (atbl$start_y - thisxy[2])^2)
     ## if setter is back row, slides are unlikely

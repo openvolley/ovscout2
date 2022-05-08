@@ -537,7 +537,7 @@ ov_scouter_server <- function(app_data) {
                 } else if (rally_state() == "second contact details") {
                     ## set uses end position for zone/subzone
                     esz <- paste(dv_xy2subzone(game_state$start_x, game_state$start_y), collapse = "")
-                    passq <- guess_pass_quality(game_state, dvw = rdata$dvw)
+                    passq <- guess_pass_quality(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end())
                     ## TODO, this better
                     rc <- rally_codes()
                     rc$eval[rc$skill %eq% "R"] <- passq
@@ -604,7 +604,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$start_t <- game_state$current_time_uuid
                     overlay_points(courtxy)
                     ## popup
-                    ac <- c(guess_attack_code(game_state, dvw = rdata$dvw), "Other attack")
+                    ac <- c(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end()), "Other attack")
                     c3_buttons <- make_fat_radio_buttons(choices = c(setNames(ac, ac), c("Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR")), input_var = "c3")
                     #ap <- get_players(game_state, dvw = rdata$dvw)
 
@@ -942,10 +942,6 @@ ov_scouter_server <- function(app_data) {
         temp$current_time_uuid <- ""
         game_state <- do.call(reactiveValues, temp)
         court_inset$home_team_end("upper") ## home team end defaults to upper
-
-        observe({
-            game_state$home_end <- court_inset$home_team_end()
-        })
 
         show_admin_modal <- function() {
             ## home player sub buttons
