@@ -839,6 +839,24 @@ ov_scouter_server <- function(app_data) {
                 ## add rally codes to scout object now
                 rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw))
                 do_rally_end_things()
+                ## check for end of set
+                scores <- c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point)
+                end_of_set <- if (app_data$is_beach) {
+                                  max(scores) >= 21 && abs(diff(scores)) >= 2
+                              } else {
+                                  ((max(scores) >= 25 && game_state$set_number < 5) || (max(scores) >= 15 && game_state$set_number == 5)) && abs(diff(scores)) >= 2
+                              }
+                if (end_of_set) {
+                    show_scout_modal(
+                        modalDialog(title = "End of set", easyClose = FALSE, footer = NULL,
+                                    paste0("Confirm end of set ", game_state$set_number, "?"),
+                                    tags$hr(),
+                                    fixedRow(column(2, actionButton("cancel", "Cancel", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
+                                             column(2, offset = 8, actionButton("end_of_set", "Confirm", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
+                                    ))
+                    do_video("pause")
+                    rally_state("confirm end of set")
+                }
             }
         })
 
@@ -886,6 +904,23 @@ ov_scouter_server <- function(app_data) {
             do_video("rew", 3)
             do_video("play")
             remove_scout_modal()
+        })
+
+        observeEvent(input$cancel, {
+            do_video("play")
+            remove_scout_modal()
+        })
+
+        observeEvent(input$end_of_set, {
+            rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
+            game_state$set_number <- game_state$set_number + 1L
+            game_state$home_score_start_of_point <- game_state$visiting_score_start_of_point <- 0L
+            remove_scout_modal()
+            ## TODO show modal for lineups
+            showModal(
+                modalDialog(title = "End of set", easyClose = TRUE,
+                            paste0("Use 'Edit lineups' to enter starting lineups for set ", game_state$set_number)
+                            ))
         })
 
         observeEvent(input$was_serve_ace, {
@@ -975,6 +1010,8 @@ ov_scouter_server <- function(app_data) {
                                     },
                                     tags$hr(),
                                     tags$p(tags$strong("Match actions")),
+                                    fluidRow(column(2, actionButton("end_of_set", "End of set", style = paste0("width:100%; height:7vh;")))),
+                                    tags$br(),
                                     ## TODO consider if all of these buttons should be available mid-rally or not (e.g. timeouts)
                                     fluidRow(column(6, tags$strong(datavolley::home_team(rdata$dvw), "(home)")),
                                              column(6, tags$strong(datavolley::visiting_team(rdata$dvw), "(visiting)"))),
