@@ -1134,5 +1134,12 @@ ov_scouter_server <- function(app_data) {
                                       tags$div("Use the 'Court reference' button to define the court reference before scouting any actions.")))
             }
         })
+
+        ## disaster recovery
+        shiny::onSessionEnded(function() {
+            tf <- tempfile(fileext = ".rds")
+            saveRDS(app_data$dvw, tf)
+            cat("working file has been saved to:", tf, "\n")
+        })
     }
 }
