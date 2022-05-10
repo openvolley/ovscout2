@@ -717,7 +717,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$end_t <- game_state$current_time_uuid
                     overlay_points(courtxy)
                     ## popup
-                    c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill" = "A#", "Attack error" = "A=", "Dig" = "D", "Dig error" = "D=", "Block fault" = "B/"), input_var = "c1")
+                    c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill" = "A#", "Attack error" = "A=", "Dig" = "D", "Dig error" = "D=", "Block kill" = "B#", "Block fault" = "B/"), input_var = "c1")
 
                     ## Identify defending players
                     dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
@@ -738,7 +738,7 @@ ov_scouter_server <- function(app_data) {
                                             tags$p(tags$strong("Attack outcome:")),
                                             do.call(fixedRow, lapply(c1_buttons[1:2], function(but) column(2, but))),
                                             tags$br(), tags$hr(), tags$div("OR", tags$strong("Defence outcome:")),
-                                            do.call(fixedRow, lapply(c1_buttons[3:5], function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(c1_buttons[3:6], function(but) column(2, but))),
                                             tags$br(), tags$p("by player"), tags$br(),
                                             do.call(fixedRow, lapply(dig_player_buttons, function(but) column(1, but))),
                                             tags$br(), tags$hr(), tags$div("WITH", tags$strong("Block touch"), "by player"), tags$br(),
@@ -781,7 +781,30 @@ ov_scouter_server <- function(app_data) {
                         Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
                         ## block fault player should be in input$c1_def_player, but we'll take input$b1_block_touch_player otherwise
                         bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
+                        if (!is.na(Aidx)) {
+                            ## adjust the attack row
+                            rc$ez[Aidx] <- esz[1]
+                            rc$esz[Aidx] <- esz[2]
+                            rc$end_x[Aidx] <- game_state$end_x
+                            rc$end_y[Aidx] <- game_state$end_y
+                        }
                         rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "/", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, default_scouting_table = app_data$default_scouting_table))) ## TODO x,y?
+                        rally_state("rally ended")
+                        game_state$point_won_by <- other(game_state$current_team) ## "current" team here is the digging team
+                    } else if (input$c1 %eq% "B#") {
+                        rc <- rally_codes()
+                        Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
+                        ## block player should be in input$c1_def_player, but we'll take input$b1_block_touch_player otherwise
+                        bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
+                        if (!is.na(Aidx)) {
+                            ## adjust the attack row
+                            rc$ez[Aidx] <- esz[1]
+                            rc$esz[Aidx] <- esz[2]
+                            rc$end_x[Aidx] <- game_state$end_x
+                            rc$end_y[Aidx] <- game_state$end_y
+                            rc$eval[Aidx] <- "/"
+                        }
+                        rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "#", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, default_scouting_table = app_data$default_scouting_table))) ## TODO x,y?
                         rally_state("rally ended")
                         game_state$point_won_by <- other(game_state$current_team) ## "current" team here is the digging team
                     } else {
