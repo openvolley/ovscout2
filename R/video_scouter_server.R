@@ -339,7 +339,7 @@ ov_scouter_server <- function(app_data) {
             ## when a time comes in, stash it under its uuid
             temp <- input$video_time
             this_uuid <- sub(".*&", "", temp)
-            if (nzchar(this_uuid)) video_times[[this_uuid]] <<- as.numeric(sub("&.+", "", temp))
+            if (nzchar(this_uuid)) video_times[[this_uuid]] <<- round(as.numeric(sub("&.+", "", temp)), 2) ## video times to 2 dec places
         })
         retrieve_video_time <- function(id) {
             if (is_uuid(id)) {
