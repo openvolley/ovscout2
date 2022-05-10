@@ -134,12 +134,7 @@ code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target 
     ## abbreviated parameter names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
     if (missing(tempo) || tempo %eq% "~" || is.na(tempo)) tempo <- tryCatch(default_scouting_table$tempo[default_scouting_table$skill == skill], error = function(e) "~")
     if (missing(eval) || eval %eq% "~" || is.na(eval)) eval <- tryCatch(default_scouting_table$evaluation_code[default_scouting_table$skill == skill], error = function(e) "~")
-    if (nchar(esz) == 2) {
-        ez <- substr(esz, 1, 1)
-        esz <- substr(esz, 2, 2)
-    } else {
-        esz <- if (nchar(esz) > 0) substr(esz, 1, 1) else "~" ## first char only
-    }
+    if ((missing(x_type) || x_type %eq% "~" || is.na(x_type)) && skill %eq% "A") x_type <- "H" ## default to hard hit
     if (is.null(pnum) || is.na(pnum) || pnum %eq% "Unknown") pnum <- 0L
     as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = combo, target = target, sz = sz, ez = ez, esz = esz, x_type = x_type, num_p = num_p, special = special, custom = custom), as.character), list(t = t, start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y)))
 }
