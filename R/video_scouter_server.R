@@ -592,7 +592,11 @@ ov_scouter_server <- function(app_data) {
                             rally_state("rally ended")
                         } else {
                             game_state$current_team <- other(game_state$current_team)
-                            rally_state("click second contact")
+                            if (!isTRUE(app_data$options$transition_sets)) {
+                                rally_state("click third contact")
+                            } else {
+                                rally_state("click second contact")
+                            }
                         }
                     }
                     remove_scout_modal()
@@ -663,7 +667,11 @@ ov_scouter_server <- function(app_data) {
                             rally_state("rally ended")
                         } else {
                             game_state$current_team <- other(game_state$current_team)
-                            rally_state("click second contact")
+                            if (!isTRUE(app_data$options$transition_sets)) {
+                                rally_state("click third contact")
+                            } else {
+                                rally_state("click second contact")
+                            }
                         }
                     } else {
                         if (input$c3 == "F") {
