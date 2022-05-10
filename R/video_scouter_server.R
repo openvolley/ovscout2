@@ -1029,9 +1029,11 @@ ov_scouter_server <- function(app_data) {
             vt_sub_in <- make_fat_radio_buttons(choices = vt_other, selected = NA, input_var = "vt_sub_in")
 
             showModal(vwModalDialog(title = "Miscellaneous", footer = NULL,
-                                    if (!is.null(rdata$dvw$plays2)) {
-                                        tags$div(tags$p(tags$strong("File operations")), downloadButton("save_file_button", "Save file"))
-                                    },
+                                    fluidRow(column(2, if (!is.null(rdata$dvw$plays2)) {
+                                                           tags$div(tags$p(tags$strong("File operations")), downloadButton("save_file_button", "Save file"))
+                                                       })##,
+                                             ##column(2, shinyFiles::shinySaveButton("auto_save_file", label = "Auto save", title = "Save file as", filetype = "dvw"), tags$p(style = "font-size: small", "Auto save will automatically save a copy of the file after each rally"))
+                                             ),
                                     tags$hr(),
                                     tags$p(tags$strong("Match actions")),
                                     fluidRow(column(2, actionButton("end_of_set", "End of set", style = paste0("width:100%; height:7vh;")))),
@@ -1126,6 +1128,19 @@ ov_scouter_server <- function(app_data) {
                 do_video("pause")
             }
         })
+
+##        ## auto save
+##        shinyFiles::shinyFileSave(input, id = "auto_save_file", roots = c(root = '/'))
+##        observe({
+##            ## input$auto_save_file will have components
+##            ##List of 4
+##            ## $ name: chr "temp.dvw"
+##            ## $ type: Named list()
+##            ## $ path:List of 2
+##            ##  ..$ : chr ""
+##            ##  ..$ : chr "tmp"
+##            ## $ root: chr "root"            
+##        })
 
         ## check courtref on startup
         observe({
