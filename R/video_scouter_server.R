@@ -182,12 +182,22 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
+        lineups_are_valid <- reactive({
+            ok <- TRUE
+            for (pp in seq_len(if (app_data$is_beach) 2L else 6L)) ok <- ok && !is.null(game_state[[paste0("home_p", pp)]]) && !is.null(game_state[[paste0("visiting_p", pp)]])
+            if (!app_data$is_beach) ok <- ok && !is.null(game_state$home_setter_position) && !is.null(game_state$visiting_setter_position)
+            ok
+        })
+
         observeEvent(input$pause_trigger, deal_with_pause())
         deal_with_pause <- function() {
             ## don't allow unpause if we have a scouting modal shown
             if (isTRUE(scout_modal_active())) {
                 ## but do allow pause, if somehow it isn't already
                 if (!video_state$paused) do_video("pause")
+            } else if (!lineups_are_valid()) {
+                ## don't allow unpause if the lineups are not valid, else it'll crash
+                showModal(modalDialog(title = "Lineups needed", easyClose = TRUE, paste0("Use 'Edit lineups' to enter starting lineups for set ", game_state$set_number)))
             } else {
                 if (video_state$paused) {
                     ## we are paused
