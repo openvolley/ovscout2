@@ -19,10 +19,15 @@ get_player_serve_type <- function(px, serving_player_num, game_state, opts) {
 make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
     pseq <- seq_len(if (dv_is_beach(dvw)) 2L else 6L)
     if (is.data.frame(rally_codes)) {
-        codes <- codes_from_rc_rows(rally_codes)
-        start_coord <- dv_xy2index(as.numeric(rally_codes$start_x), as.numeric(rally_codes$start_y))
-        end_coord <- dv_xy2index(as.numeric(rally_codes$end_x), as.numeric(rally_codes$end_y))
-        vt <- rally_codes$t
+        if (nrow(rally_codes) > 0) {
+            codes <- codes_from_rc_rows(rally_codes)
+            start_coord <- dv_xy2index(as.numeric(rally_codes$start_x), as.numeric(rally_codes$start_y))
+            end_coord <- dv_xy2index(as.numeric(rally_codes$end_x), as.numeric(rally_codes$end_y))
+            vt <- rally_codes$t
+        } else {
+            codes <- character()
+            start_coord <- end_coord <- vt <- numeric()
+        }
     } else {
         ## rally_codes are just char, which means that these aren't skill codes, they are auto codes (position codes or similar)
         codes <- rally_codes
