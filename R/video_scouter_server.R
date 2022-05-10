@@ -438,6 +438,7 @@ ov_scouter_server <- function(app_data) {
                     ## TODO possibly also guess foot fault, although that will be confusing because the (legal) serve contact might be inside the baseline
                     ## we pre-select either the passer, or the error type, depending on whether we thought it was an error or not
                     serve_outcome_buttons <- make_fat_radio_buttons(choices = c("Serve error" = "=", "Serve error (in net)" = "=N", "Serve error (foot fault)" = "=Z", "Serve error (long)" = "=O", "Serve error (out left)" = "=L", "Serve error (out right)" = "=R", pass_pl_opts$choices), selected = if (!is.na(guess_was_err)) guess_was_err else pass_pl_opts$selected, input_var = "serve_outcome")
+                    serve_ace_button <- make_fat_radio_buttons(choices = c("Reception error (serve ace)" = "S#"), selected = NA, input_var = "was_serve_ace")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Serve type:")),
                                             do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),
@@ -450,7 +451,7 @@ ov_scouter_server <- function(app_data) {
                                             tags$br(),
                                             tags$p(tags$strong("Select passer:")),
                                             do.call(fixedRow, lapply(serve_outcome_buttons[7:length(serve_outcome_buttons)], function(but) column(1, but))),
-                                            fixedRow(column(2, actionButton("was_serve_ace", "Reception error (serve ace)", style = paste0("width:100%; height:7vh;")))),
+                                            fixedRow(column(2, serve_ace_button)),
                                             tags$hr(),
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
                                                      column(2, offset = 8, actionButton("assign_serve_outcome", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
@@ -969,14 +970,11 @@ ov_scouter_server <- function(app_data) {
                             ))
         })
 
-        observeEvent(input$was_serve_ace, {
-            rally_state("serve ace")
-            loop_trigger(loop_trigger() + 1L)
-        })
-
         observeEvent(input$assign_serve_outcome, {
             if (grepl("^=", input$serve_outcome)) {
                 rally_state("serve error")
+            } else if (!is.null(input$was_serve_ace) && input$was_serve_ace %eq% "S#") {
+                rally_state("serve ace")
             } else {
                 rally_state("enter serve outcome")
             }
