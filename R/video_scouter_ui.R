@@ -38,7 +38,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
               fluidRow(column(9,
                               tags$div(#tags$button(tags$span(icon("step-backward", style = "vertical-align:middle;")), onclick = paste0(cstr, "video_prev();"), title = "Previous"),
                                        #tags$button(tags$span(icon("step-forward", style = "vertical-align:middle;")), onclick = paste0(cstr, "video_next();"), title = "Next"),
-                                       tags$button(tags$span(icon("pause-circle", style = "vertical-align:middle;")), onclick = "if (document.getElementById('main_video').paused == true) { document.getElementById('main_video').play(); } else { document.getElementById('main_video').pause(); }", title = "Pause"),
+                                       tags$button(tags$span(icon("pause-circle", style = "vertical-align:middle;")), onclick = "Shiny.setInputValue('pause_trigger', new Date().getTime());", title = "Pause"),
                                        #tags$button(tags$span(icon("stop-circle", style = "vertical-align:middle;")), onclick = paste0(cstr, "video_stop();"), title = "Stop"),
                                        ),
                               if (app_data$with_video) introBox(tags$div(id = "video_holder", style = "position:relative;", tags$video(id = "main_video", style = "border: 1px solid black; width: 90%;", src = file.path(app_data$video_server_base_url, basename(app_data$video_src)), autoplay = "false")), tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 4, data.intro = "Video of the game to scout."), ##controls = "controls",

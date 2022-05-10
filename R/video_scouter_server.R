@@ -170,6 +170,33 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
+        observeEvent(input$pause_trigger, deal_with_pause())
+        deal_with_pause <- function() {
+            ## don't allow unpause if we have a scouting modal shown
+            if (isTRUE(scout_modal_active())) {
+                ## but do allow pause, if somehow it isn't already
+                if (!video_state$paused) do_video("pause")
+            } else {
+                if (video_state$paused) {
+                    ## we are paused
+                    if (is.null(editing$active)) {
+                        ## just unpause
+                        do_video("pause")
+                    } else if (editing$active %eq% "admin") {
+                        ## otherwise, and only if we have the admin modal showing, dismiss it and unpause
+                        editing$active <- NULL
+                        removeModal()
+                        do_video("pause")
+                    }
+                } else {
+                    ## not paused, so pause and show admin modal
+                    do_video("pause")
+                    editing$active <- "admin"
+                    show_admin_modal()
+                }
+            }
+        }
+
         observeEvent(input$controlkey, {
             ## keys that might not get detected by keypress but do by keydown?
             if (!is.null(input$controlkey)) {
@@ -221,29 +248,7 @@ ov_scouter_server <- function(app_data) {
                             dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
                         } else if (ky %in% utf8ToInt("qQ0")) {
                             ## video pause/unpause
-                            ## don't allow unpause if we have a scouting modal shown
-                            if (isTRUE(scout_modal_active())) {
-                                ## but do allow pause, if somehow it isn't already
-                                if (!video_state$paused) do_video("pause")
-                            } else {
-                                if (video_state$paused) {
-                                    ## we are paused
-                                    if (is.null(editing$active)) {
-                                        ## just unpause
-                                        do_video("pause")
-                                    } else if (editing$active %eq% "admin") {
-                                        ## otherwise, and only if we have the admin modal showing, dismiss it and unpause
-                                        editing$active <- NULL
-                                        removeModal()
-                                        do_video("pause")
-                                    }
-                                } else {
-                                    ## not paused, so pause and show admin modal
-                                    do_video("pause")
-                                    editing$active <- "admin"
-                                    show_admin_modal()
-                                }
-                            }
+                            deal_with_pause()
                         } else if (ky %in% utf8ToInt("nm13jhl;46$^b,79")) {
                             if (is.null(editing$active)) {
                                 ## video forward/backward nav
