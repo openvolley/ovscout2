@@ -27,7 +27,19 @@ ov_scouter_server <- function(app_data) {
 
         ## court inset showing rotation and team lists
         court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, styling = styling, with_ball_coords = FALSE)
-        rotateTeams <- reactive(court_inset$rt)
+        ## force a team rotation, TODO
+##        rotate_teams <- reactive(court_inset$rt)
+##        observe({
+##            rtn <- rotate_teams()
+##            if (rtn$home > 0) {
+##                home_force_rotate()
+##                rtn$home <- 0L
+##            }
+##            if (rtn$visiting > 0) {
+##                visiting_force_rotate()
+##                rtn$visiting <- 0L
+##            }
+##        })
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata)
         detection_ref <- reactiveVal({
             if (!is.null(app_data$court_ref)) app_data$court_ref else NULL
