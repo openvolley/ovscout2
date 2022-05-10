@@ -1164,8 +1164,9 @@ ov_scouter_server <- function(app_data) {
 
         ## disaster recovery
         shiny::onSessionEnded(function() {
+            dvw <- isolate(rdata$dvw)
             tf <- tempfile(fileext = ".rds")
-            saveRDS(app_data$dvw, tf)
+            saveRDS(dvw, tf)
             cat("working file has been saved to:", tf, "\n")
         })
     }
