@@ -234,7 +234,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
         passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
         libs <- if (beach) c() else dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
 
-        # Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
+        ## Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
         passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception",
                                                            setter_position = passing_rot,
                                                            zone = passing_zone, libs = libs, home_visiting = "visiting")
@@ -264,7 +264,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
         passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
         libs <- if (beach) c() else dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"]
 
-        # Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
+        ## Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
         passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception",
                                                            setter_position = passing_rot,
                                                            zone = passing_zone, libs = libs, home_visiting = "home")
@@ -273,8 +273,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
         passing_responsibility_prior <- setNames(rep(0, length(pseq) + 1L), c(paste0("home_p", pseq),"libero"))
         passing_responsibility_prior[passing_responsibility] <- 1
 
-        # Update the probability with the history of the game
-
+        ## Update the probability with the history of the game
         passing_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Reception",
                                          .data$home_setter_position %eq% as.character(passing_rot),
                                          .data$end_zone %eq% passing_zone,
@@ -416,11 +415,12 @@ guess_attack_player_options <- function(game_state, dvw, system) {
 }
 
 guess_attack_code <- function(game_state, dvw, home_end) {
-    atbl <- dvw$meta$attacks
+    atbl <- dvw$meta$attacks %>% dplyr::filter(!.data$attack_code %in% c("PP", "P2", "PR"))
     do_flip_click <- (game_state$current_team == "*" && home_end == "upper") || (game_state$current_team == "a" && home_end == "lower")
     thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
     d <- sqrt((atbl$start_x - thisxy[1])^2 + (atbl$start_y - thisxy[2])^2)
     ## if setter is back row, slides are unlikely
+    ## TODO what happens with beach?
     if (get_setter_pos(game_state) %in% c(5, 6, 1)) {
         d[grepl("Slide ", atbl$description)] <- d[grepl("Slide ", atbl$description)] + 0.5 ## penalty. Hard-coding "Slide" is not great, could also look for type = "N" but some scouts use this for non-slides. TODO FIX
         ## also back-row right side is less likely than front-row right side if setter is back row
@@ -455,7 +455,7 @@ guess_dig_player_options <- function(game_state, dvw, system) {
         defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
         libs <- if (beach) c() else dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
 
-                                        # Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+        ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
         dig_responsibility <- player_responsibility_fn(system = system, skill = "Dig",
                                                        setter_position = setter_rot,
                                                        zone = defending_zone, libs = libs, home_visiting = "visiting", opp_attack_start_zone = attacking_zone)
@@ -486,7 +486,7 @@ guess_dig_player_options <- function(game_state, dvw, system) {
         defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
         libs <- if (beach) c() else dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"]
 
-                                        # Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+        ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
         dig_responsibility <- player_responsibility_fn(system = system, skill = "Dig",
                                                        setter_position = setter_rot,
                                                        zone = defending_zone, libs = libs, home_visiting = "home", opp_attack_start_zone = attacking_zone)
