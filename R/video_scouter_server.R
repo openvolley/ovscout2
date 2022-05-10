@@ -1172,10 +1172,14 @@ ov_scouter_server <- function(app_data) {
 
         ## disaster recovery
         shiny::onSessionEnded(function() {
-            dvw <- isolate(rdata$dvw)
-            tf <- tempfile(fileext = ".rds")
-            saveRDS(dvw, tf)
-            cat("working file has been saved to:", tf, "\n")
+            tryCatch({
+                dvw <- isolate(rdata$dvw)
+                tf <- tempfile(fileext = ".rds")
+                saveRDS(dvw, tf)
+                message("working file has been saved to:", tf)
+            }, error = function(e) {
+                message("could not save working file on exit (error message was: ", conditionMessage(e))
+            })
         })
     }
 }
