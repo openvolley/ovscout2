@@ -268,6 +268,16 @@ ov_scouter_server <- function(app_data) {
                         } else if (ky %in% utf8ToInt("qQ0")) {
                             ## video pause/unpause
                             deal_with_pause()
+                        } else if (ky %in% utf8ToInt("gG#")) {
+                            ## video go to currently-selected event
+                            vt <- game_state$video_time
+                            if (is.null(vt) || is.na(vt)) {
+                                vt <- max(rdata$dvw$plays$video_time, na.rm = TRUE)
+                            }
+                            if (!is.null(vt) && !is.na(vt)) {
+                                cat("jumping to video time: ", vt, "\n")
+                                do_video("set_time", vt)
+                            }
                         } else if (ky %in% utf8ToInt("nm13jhl;46$^b,79")) {
                             if (is.null(editing$active)) {
                                 ## video forward/backward nav
