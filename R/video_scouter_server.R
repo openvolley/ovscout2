@@ -444,30 +444,30 @@ ov_scouter_server <- function(app_data) {
                     }
                     ## TODO possibly also guess foot fault, although that will be confusing because the (legal) serve contact might be inside the baseline
                     ## we pre-select either the passer, or the error type, depending on whether we thought it was an error or not
-                    serve_outcome_buttons <- make_fat_radio_buttons(choices = c("Serve error" = "=", "Serve error (in net)" = "=N", "Serve error (foot fault)" = "=Z", "Serve error (long)" = "=O", "Serve error (out left)" = "=L", "Serve error (out right)" = "=R", pass_pl_opts$choices), selected = if (!is.na(guess_was_err)) guess_was_err else pass_pl_opts$selected, input_var = "serve_outcome")
-                    serve_ace_button <- make_fat_radio_buttons(choices = c("Reception error (serve ace)" = "S#"), selected = NA, input_var = "was_serve_ace")
+                    serve_outcome_initial_buttons <- make_fat_radio_buttons(choices = c("Serve error" = "=", "Reception error (serve ace)" = "S#", "Reception in play" = "R~"), input_var = "serve_initial_outcome", selected = if (!is.na(guess_was_err)) "=" else "R~")
+                    serve_error_type_buttons <- make_fat_radio_buttons(choices = c("In net" = "=N", "Foot fault/referee call" = "=Z", "Out long" = "=O", "Out left" = "=L", "Out right" = "=R"), selected = if (!is.na(guess_was_err)) guess_was_err else NA, input_var = "serve_error_type", as_radio = "blankable")
+                    passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "pass_player")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
-                                            tags$p(tags$strong("Serve type:")),
-                                            do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),
-                                            tags$hr(),
-                                            tags$div("AND"),
-                                            tags$br(),
-                                            do.call(fixedRow, lapply(serve_outcome_buttons[1:6], function(but) column(2, but))),
-                                            tags$br(),
-                                            tags$div("OR"),
-                                            tags$br(),
-                                            tags$p(tags$strong("Select passer:")),
-                                            do.call(fixedRow, lapply(serve_outcome_buttons[7:length(serve_outcome_buttons)], function(but) column(1, but))),
-                                            fixedRow(column(2, serve_ace_button)),
-                                            tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
-                                                     column(2, offset = 8, actionButton("assign_serve_outcome", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
-                                            ))
+                                                   tags$p(tags$strong("Serve type:")),
+                                                   do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),
+                                                   tags$hr(),
+                                                   tags$div("AND"),
+                                                   tags$br(),
+                                                   do.call(fixedRow, lapply(serve_outcome_initial_buttons, function(but) column(2, but))),
+                                                   tags$hr(),
+                                                   tags$div(id = "serve_error_type_ui", style = if (is.na(guess_was_err)) "display:none;", tags$p(tags$strong("Error type:")),
+                                                            do.call(fixedRow, lapply(serve_error_type_buttons, function(but) column(2, but)))),
+                                                   tags$div(id = "passers_ui", style = if (!is.na(guess_was_err)) "display:none;", tags$p(tags$strong("Select passer:")),
+                                                            do.call(fixedRow, lapply(passer_buttons, function(but) column(1, but)))),
+                                                   tags$hr(),
+                                                   fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
+                                                            column(2, offset = 8, actionButton("assign_serve_outcome", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
+                                                   ))
                 } else if (rally_state() == "enter serve outcome") {
                     sp <- if (!is.null(input$serve_preselect_player)) input$serve_preselect_player else if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     game_state$current_team <- other(game_state$serving)
                     st <- if (!is.null(input$serve_type)) input$serve_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
-                    pp <- if (!is.null(input$serve_outcome) && !is.na(input$serve_outcome) && !grepl("^=", input$serve_outcome)) input$serve_outcome else 0L
+                    pp <- if (!is.null(input$pass_player)) input$pass_player else 0L
                     remove_scout_modal()
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
                     esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
@@ -484,8 +484,7 @@ ov_scouter_server <- function(app_data) {
                     do_video("rew", app_data$play_overlap); do_video("play")
                 } else if (rally_state() == "serve ace") {
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
-                    ## it is possible to select a serve error type and then press the 'Ace' button, in which case we won't have a receiver selected, TO FIX
-                    pp <- if (!is.null(input$serve_outcome) && !is.na(input$serve_outcome) && !grepl("^=", input$serve_outcome)) input$serve_outcome else 0L
+                    pp <- if (!is.null(input$pass_player)) input$pass_player else 0L
                     st <- if (!is.null(input$serve_type)) input$serve_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
                     remove_scout_modal()
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
@@ -505,7 +504,7 @@ ov_scouter_server <- function(app_data) {
                     do_video("play")
                 } else if (rally_state() == "serve error") {
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
-                    serve_err_type <- if (!is.null(input$serve_outcome) && grepl("^=", input$serve_outcome)) input$serve_outcome else "="
+                    serve_err_type <- if (!is.null(input$serve_error_type)) input$serve_error_type else "="
                     st <- if (!is.null(input$serve_type)) input$serve_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
                     remove_scout_modal()
                     special_code <- substr(serve_err_type, 2, 2)
@@ -914,6 +913,19 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
+        observe({
+            if (is.null(input$serve_initial_outcome)) {
+                js_hide2("serve_error_type_ui")
+                js_hide2("passers_ui")
+            } else if (input$serve_initial_outcome %eq% "=") {
+                js_show2("serve_error_type_ui")
+                js_hide2("passers_ui")
+            } else {
+                js_hide2("serve_error_type_ui")
+                js_show2("passers_ui")
+            }
+        })
+
         do_rally_end_things <- function() {
             ## update game_state
             do_rot <- game_state$point_won_by != game_state$serving
@@ -978,12 +990,10 @@ ov_scouter_server <- function(app_data) {
         })
 
         observeEvent(input$assign_serve_outcome, {
-            if (!is.null(input$serve_outcome) && grepl("^=", input$serve_outcome)) {
-                rally_state("serve error")
-            } else if (!is.null(input$was_serve_ace) && input$was_serve_ace %eq% "S#") {
-                rally_state("serve ace")
+            if (is.null(input$serve_initial_outcome)) {
+                ## wtf? should not happen
             } else {
-                rally_state("enter serve outcome")
+                if (input$serve_initial_outcome %eq% "=") rally_state("serve error") else if (input$serve_initial_outcome %eq% "S#") rally_state("serve ace") else rally_state("enter serve outcome")
             }
             loop_trigger(loop_trigger() + 1L)
         })
