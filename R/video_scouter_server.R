@@ -746,7 +746,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$end_t <- game_state$current_time_uuid
                     overlay_points(courtxy)
                     ## popup
-                    c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill" = "A#", "Attack error" = "A=", "Dig" = "D", "Dig error" = "D=", "Block kill" = "B#", "Block fault" = "B/"), input_var = "c1")
+                    c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"), input_var = "c1")
 
                     ## Identify defending players
                     dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
