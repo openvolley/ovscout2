@@ -21,12 +21,17 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
                 if (!cl %in% names(mydat)) mydat[[cl]] <- rep(NA, nrow(mydat))
             }
             isolate({
-                last_skill_row <- which(is_skill(mydat$skill))
-                if (length(last_skill_row)) last_skill_row <- max(last_skill_row)
                 sel <- list(mode = "single")
-                if (length(last_skill_row) > 0) {
+                ##last_skill_row <- which(is_skill(mydat$skill))
+                ##if (length(last_skill_row)) last_skill_row <- max(last_skill_row)
+                ##if (length(last_skill_row) > 0) {
+                ##    sel$target <- "row"
+                ##    sel$selected <- last_skill_row
+                ##}
+                ## select last row on startup, no matter what it is
+                if (nrow(mydat) > 0) {
                     sel$target <- "row"
-                    sel$selected <- last_skill_row
+                    sel$selected <- nrow(mydat)
                 }
             })
             mydat$is_skill <- is_skill(mydat$skill)

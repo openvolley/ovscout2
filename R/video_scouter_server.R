@@ -1050,6 +1050,9 @@ ov_scouter_server <- function(app_data) {
         temp$current_time_uuid <- ""
         game_state <- do.call(reactiveValues, temp)
         court_inset$home_team_end("upper") ## home team end defaults to upper
+        ## seek to video time on startup
+        temp_vt <- na.omit(app_data$dvw$plays2$video_time)
+        if (length(temp_vt) > 0) do_video("set_time", max(temp_vt))
 
         show_admin_modal <- function() {
             ## home player sub buttons
