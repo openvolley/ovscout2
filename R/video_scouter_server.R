@@ -435,7 +435,7 @@ ov_scouter_server <- function(app_data) {
                     if (game_state$end_x < 0.5) {
                         ## out left or right
                         guess_was_err <- if ((game_state$serving %eq% "*" && court_inset$home_team_end() %eq% "lower") || (game_state$serving %eq% "a" && court_inset$home_team_end() %eq% "upper")) "=L" else "=R"
-                    } else if (game_state$end_x > 6.5) {
+                    } else if (game_state$end_x > 3.5) {
                         ## out left or right
                         guess_was_err <- if ((game_state$serving %eq% "*" && court_inset$home_team_end() %eq% "lower") || (game_state$serving %eq% "a" && court_inset$home_team_end() %eq% "upper")) "=R" else "=L"
                     } else if (game_state$end_y < 0.5 || game_state$end_y > 6.5) {
