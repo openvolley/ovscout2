@@ -11,9 +11,6 @@ ov_scouter_server <- function(app_data) {
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "home_setter_position", "visiting_setter_position", "Score", "is_skill")
         plays_cols_renames <- c(Set = "set_number", hs = "home_setter_position", as = "visiting_setter_position")
 
-        ## this is temporary stupidity
-        app_data$dvw$plays <- plays2_to_plays(app_data$dvw$plays2, dvw = app_data$dvw, evaluation_decoder = app_data$evaluation_decoder)
-
         if (is.null(app_data$dvw$meta$match$regulation)) stop("dvw does not have regulation information")
         app_data$is_beach <- is_beach(app_data$dvw)
 
