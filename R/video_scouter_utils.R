@@ -415,7 +415,7 @@ guess_attack_player_options <- function(game_state, dvw, system) {
 }
 
 guess_attack_code <- function(game_state, dvw, home_end) {
-    atbl <- dvw$meta$attacks %>% dplyr::filter(!.data$attack_code %in% c("PP", "P2", "PR"))
+    atbl <- dvw$meta$attacks %>% dplyr::filter(!.data$code %in% c("PP", "P2", "PR"))
     do_flip_click <- (game_state$current_team == "*" && home_end == "upper") || (game_state$current_team == "a" && home_end == "lower")
     thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
     d <- sqrt((atbl$start_x - thisxy[1])^2 + (atbl$start_y - thisxy[2])^2)
