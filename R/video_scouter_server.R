@@ -829,7 +829,7 @@ ov_scouter_server <- function(app_data) {
                         }
                         rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "#", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, default_scouting_table = app_data$default_scouting_table))) ## TODO x,y?
                         rally_state("rally ended")
-                        game_state$point_won_by <- other(game_state$current_team) ## "current" team here is the digging team
+                        game_state$point_won_by <- game_state$current_team ## "current" team here is the digging/blocking team
                     } else {
                         ## D or D=
                         digp <- input$c1_def_player
@@ -971,7 +971,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         observeEvent(input$assign_serve_outcome, {
-            if (grepl("^=", input$serve_outcome)) {
+            if (!is.null(input$serve_outcome) && grepl("^=", input$serve_outcome)) {
                 rally_state("serve error")
             } else if (!is.null(input$was_serve_ace) && input$was_serve_ace %eq% "S#") {
                 rally_state("serve ace")
@@ -1159,7 +1159,7 @@ ov_scouter_server <- function(app_data) {
 ##            ## $ path:List of 2
 ##            ##  ..$ : chr ""
 ##            ##  ..$ : chr "tmp"
-##            ## $ root: chr "root"            
+##            ## $ root: chr "root"
 ##        })
 
         ## check courtref on startup
