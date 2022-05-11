@@ -8,7 +8,10 @@ ov_scouter_options(
   nblockers = TRUE,
   default_nblockers = NA,
   transition_sets = FALSE,
-  team_system = "SHM3"
+  team_system = "SHM3",
+  setter_dump_code = "PP",
+  second_ball_attack_code = "P2",
+  overpass_attack_code = "PR"
 )
 }
 \arguments{
@@ -22,6 +25,12 @@ ov_scouter_options(
 \itemize{
 \item "SHM3" - a setter-hitter-middle rotation, with 3 passers (the libero and two outside hitters)
 }}
+
+\item{setter_dump_code}{string: the attack combination code for a setter dump}
+
+\item{second_ball_attack_code}{string: the attack combination code for a second-ball attack}
+
+\item{overpass_attack_code}{string: the attack combination code for an attack on an overpass}
 }
 \value{
 A named list

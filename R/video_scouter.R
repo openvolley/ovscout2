@@ -88,6 +88,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
     }
     opts <- ov_scouter_options()
     for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
+
     ## finally the shiny app
     app_data <- c(list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = !is.na(video_file), court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, ui_header = tags$div()), other_args)
     app_data$serving <- "*" ## HACK for testing
@@ -152,18 +153,21 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
 #' @param transition_sets logical: scout sets in transition? If `FALSE`, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted
 #' @param team_system string: the assumed system that teams are using to assign e.g. passing and hitting responsibilities
 #' * "SHM3" - a setter-hitter-middle rotation, with 3 passers (the libero and two outside hitters)
+#' @param setter_dump_code string: the attack combination code for a setter dump
+#' @param second_ball_attack_code string: the attack combination code for a second-ball attack
+#' @param overpass_attack_code string: the attack combination code for an attack on an overpass
 #'
 #' @return A named list
 #'
 #' @export
-ov_scouter_options <- function(nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, team_system = "SHM3") {
+ov_scouter_options <- function(nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR") {
     skill_tempo_map <- tribble(~skill, ~tempo_code, ~tempo,
                                "Serve", "Q", "Jump serve",
                                "Serve", "M", "Jump-float serve",
                                "Serve", "H", "Float serve",
                                "Serve", "T", "Topspin serve")
     ## or (some) beach conventions are T=jump-float, H=standing; VM use H=float far from the service line and T=float from the service line
-    list(nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, team_system = team_system, skill_tempo_map = skill_tempo_map)
+    list(nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code)
 }
 
 

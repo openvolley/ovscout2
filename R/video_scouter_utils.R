@@ -414,8 +414,11 @@ guess_attack_player_options <- function(game_state, dvw, system) {
     list(choices = pp, selected = plsel)
 }
 
-guess_attack_code <- function(game_state, dvw, home_end) {
-    atbl <- dvw$meta$attacks %>% dplyr::filter(!.data$code %in% c("PP", "P2", "PR"))
+guess_attack_code <- function(game_state, dvw, home_end, opts) {
+    exclude_codes <- if (!missing(opts) && !is.null(opts$setter_dump_code)) opts$setter_dump_code else "PP"
+    exclude_codes <- c(exclude_codes, if (!missing(opts) && !is.null(opts$second_ball_attack_code)) opts$second_ball_attack_code else "P2")
+    exclude_codes <- c(exclude_codes, if (!missing(opts) && !is.null(opts$overpass_attack_code)) opts$overpass_attack_code else "PR")
+    atbl <- dvw$meta$attacks %>% dplyr::filter(!.data$code %in% exclude_codes)
     do_flip_click <- (game_state$current_team == "*" && home_end == "upper") || (game_state$current_team == "a" && home_end == "lower")
     thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
     d <- sqrt((atbl$start_x - thisxy[1])^2 + (atbl$start_y - thisxy[2])^2)

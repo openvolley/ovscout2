@@ -594,9 +594,10 @@ ov_scouter_server <- function(app_data) {
                         } else if (input$c2 %in% c("PP", "P2")) {
                             ## setter dump or second ball attack
                             sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
-                            ## NOTE we have hard-coded PP, P2 here, TODO fix to allow other codes to be used
+                            ## although we use PP and P2 in the R code here, we can use different combo codes in the dvw, following app_data$options$setter_dump_code and app_data$options$second_ball_attack_code
                             trg <- if (input$c2 == "PP") "S" else "~"
-                            rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = input$c2, target = trg, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
+                            cmb <- if (input$c2 == "PP") app_data$options$setter_dump_code else app_data$options$second_ball_attack_code
+                            rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = cmb, target = trg, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
                             rally_state("click attack end point")
                             game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                         } else if (input$c2 == "F") {
@@ -610,7 +611,7 @@ ov_scouter_server <- function(app_data) {
                     } else if (input$c2 %eq% "aPR") {
                         ## opposition overpass attack
                         op <- if (!is.null(input$c2_opp_player)) input$c2_opp_player else 0L
-                        rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = "PR", sz = esz[1], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
+                        rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = app_data$options$overpass_attack_code, sz = esz[1], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
                         rally_state("click attack end point")
                     } else if (input$c2 %in% c("aD", "aD=")) {
                         ## opposition dig on overpass
@@ -641,7 +642,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$start_t <- game_state$current_time_uuid
                     overlay_points(courtxy)
                     ## popup
-                    ac <- c(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end()), "Other attack")
+                    ac <- c(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end(), opts = app_data$options), "Other attack")
                     c3_buttons <- make_fat_radio_buttons(choices = c(setNames(ac, ac), c("Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR")), input_var = "c3")
                     #ap <- get_players(game_state, dvw = rdata$dvw)
 
@@ -685,7 +686,7 @@ ov_scouter_server <- function(app_data) {
                     if (input$c3 %eq% "aPR") {
                         ## opposition overpass attack
                         op <- if (!is.null(input$c3_opp_player)) input$c3_opp_player else 0L
-                        rally_codes(bind_rows(rally_codes(), code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = "PR", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
+                        rally_codes(bind_rows(rally_codes(), code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = app_data$options$overpass_attack_code, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, default_scouting_table = app_data$default_scouting_table)))
                         rally_state("click attack end point")
                     } else if (input$c3 %in% c("aD", "aD=")) {
                         ## opposition dig on overpass
