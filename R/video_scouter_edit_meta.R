@@ -78,6 +78,8 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         }, error = function(e) warning(conditionMessage(e)))
         ## TODO, show some useful message to the user that the lineup operation failed
         do_reparse <- TRUE
+    } else {
+        warning("I don't know what to do with editing_active: ", editing_active)
     }
     ##            if (do_reparse) {
     ##                ## reparse the dvw
