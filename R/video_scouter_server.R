@@ -55,7 +55,7 @@ ov_scouter_server <- function(app_data) {
         ## court module clicking not used here yet
         ##accept_ball_coords <- court_inset$accept_ball_coords ## the "accept" button
         ##observe({
-        ##    if (nrow(court_inset$click_points$queue) > 1) {## && !is.null(playslist_current_row()) && !is.na(playslist_current_row())) {
+        ##    if (nrow(court_inset$click_points$queue) > 1) {## && !is.null(playslist_mod$current_row()) && !is.na(playslist_mod$current_row())) {
         ##        js_show2("courtrot-validate_ball_coords")
         ##        js_show2("courtrot-cancel_ball_coords")
         ##    } else {
@@ -176,17 +176,51 @@ ov_scouter_server <- function(app_data) {
         })
 
         observeEvent(input$edit_commit, {
+            do_edit_commit()
+        })
+
+        do_edit_commit <- function() {
             if (!is.null(editing$active)) {
-                changed <- code_make_change(editing$active, game_state = game_state, dvw = rdata$dvw, input = input, htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit())
-                rdata$dvw <- changed$dvw
-                if (changed$do_reparse) {
-                    ## we don't need to reparse (??), but (might) need to adjust game_state, e.g. if we've changed lineups
-                    temp <- as.list(tail(rdata$dvw$plays2, 1))
-                    for (nm in intersect(c("home_setter_position", "visiting_setter_position", paste0("home_p", 1:6), paste0("visiting_p", 1:6)), names(temp))) game_state[[nm]] <- temp[[nm]]
+                if (editing$active %in% c("edit", "insert above", "insert below")) {
+                    ## user has changed EITHER input$code_entry or used the code_entry_guide
+                    if (nzchar(input$code_entry)) {
+                        newcode <- input$code_entry
+                        if (!grepl("^>", newcode)) {
+                            ## TODO deal better with non-skill codes
+                            ## this won't yet handle timeouts, subs, etc
+                            newcode <- sub("~+$", "", ov_code_interpret(input$code_entry))
+                        }
+                    } else {
+                        ## build code from code_entry_guide elements
+                        newcode1 <- lapply(seq_len(nrow(code_bits_tbl)), function(bi) {
+                            val <- input[[paste0("code_entry_", code_bits_tbl$bit[bi])]]
+                            if (is.null(val)) val <- ""
+                            wid <- code_bits_tbl$width[bi]
+                            if (nchar(val) < wid) val <- str_pad(val, wid, side = "right", pad = "~")
+                            val
+                        })
+                        newcode <- sub("~+$", "", paste(newcode1, collapse = ""))## trim trailing ~'s
+                    }
+                    if (editing$active %eq% "insert below" && !is.null(newcode)) {
+                        ## add code to rally_codes
+                        rally_codes(bind_rows(rally_codes(), code_trow(code = newcode, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
+                    } else if (editing$active %in% c("edit", "insert above")) {
+                        ## not handled yet
+                    }
+                } else {
+                    changed <- code_make_change(editing$active, game_state = game_state, dvw = rdata$dvw, input = input, htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit())
+                    rdata$dvw <- changed$dvw
+                    if (changed$do_reparse) {
+                        ## we don't need to reparse (??), but (might) need to adjust game_state, e.g. if we've changed lineups
+                        temp <- as.list(tail(rdata$dvw$plays2, 1))
+                        for (nm in intersect(c("home_setter_position", "visiting_setter_position", paste0("home_p", 1:6), paste0("visiting_p", 1:6)), names(temp))) game_state[[nm]] <- temp[[nm]]
+                    }
                 }
                 editing$active <- NULL
+                removeModal()
+                do_video("pause")
             }
-        })
+        }
 
         lineups_are_valid <- reactive({
             ok <- TRUE
@@ -260,14 +294,7 @@ ov_scouter_server <- function(app_data) {
                             ## enter
                             ## if editing, treat as update
                             if (!is.null(editing$active) && !editing$active %eq% "teams") {
-                                changed <- code_make_change(editing$active, game_state = game_state, dvw = rdata$dvw, input = input, htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit())
-                                rdata$dvw <- changed$dvw
-                                if (changed$do_reparse) {
-                                    ## we don't need to reparse (??), but (might) need to adjust game_state, e.g. if we've changed lineups
-                                    temp <- as.list(tail(rdata$dvw$plays2, 1))
-                                    for (nm in intersect(c("home_setter_position", "visiting_setter_position", paste0("home_p", 1:6), paste0("visiting_p", 1:6)), names(temp))) game_state[[nm]] <- temp[[nm]]
-                                }
-                                editing$active <- NULL
+                                do_edit_commit()
                             }
                             ## but not for team editing, because pressing enter in the DT fires this too
                         } else if (ky %in% c(90, 122)) {
@@ -424,7 +451,7 @@ ov_scouter_server <- function(app_data) {
                     st <- if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
                     ## time probably won't have resolved yet, so add it after next click
-                    rally_codes(code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table))
+                    rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
                     rally_state("click serve end")
                 } else if (rally_state() == "click serve end") {
                     do_video("pause")
@@ -618,6 +645,7 @@ ov_scouter_server <- function(app_data) {
                 if (nrow(rally_codes())) {
                     cat("rally codes:\n")
                     print_rally_codes(rally_codes())
+                    ##cat(str(rally_codes()))
                 }
                 cat("rally state: ", rally_state(), "\n")
             }
@@ -1085,6 +1113,8 @@ ov_scouter_server <- function(app_data) {
                                     tags$hr(),
                                     tags$p(tags$strong("Match actions")),
                                     fluidRow(column(2, actionButton("undo", "Undo last rally action", style = paste0("width:100%; height:7vh; background-color:", styling$undo))),
+                                             ## only partially implemented
+                                             ##column(2, actionButton("enter_code", "Enter manual code", style = paste0("width:100%; height:7vh;"))),
                                              column(2, actionButton("end_of_set", "End of set", style = paste0("width:100%; height:7vh;")))),
                                     tags$br(),
                                     ## TODO consider if all of these buttons should be available mid-rally or not (e.g. timeouts)
@@ -1146,6 +1176,67 @@ ov_scouter_server <- function(app_data) {
                 do_video("set_time", new_vt)
             }
         }
+
+        ## for manual/direct code entry
+        observeEvent(input$enter_code, {
+           insert_data_row("below")
+        })
+
+        insert_data_row <- function(where) {
+            if (missing(where)) where <- "above"
+            where <- tolower(where)
+            if (!where %in% c("above", "below")) where <- "above" ## default
+            ridx <- playslist_mod$current_row()
+            if (!is.null(ridx)) {
+                ##if (where == "above" && ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
+                ## otherwise (if inserting below) use the current row (ridx) as the template
+                editing$active <- paste0("insert ", where)
+                showModal(modalDialog(title = paste0("Insert new code ", where, " current row"), size = "l", footer = tags$div(actionButton("edit_commit", label = "Insert code (or press Enter)"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
+                                      "Enter new code either in the top text box or in the individual boxes (but not both)",
+                                      textInput("code_entry", label = "Code:", value = ""),
+                                      "or",
+                                      build_code_entry_guide("insert")##, rdata$dvw$plays[ridx, ])
+                                      ))
+                focus_in_code_entry("code_entry")
+            }
+        }
+
+        build_code_entry_guide <- function(mode, thisrow) {
+            mode <- match.arg(mode, c("edit", "insert"))
+            bitstbl <- code_bits_tbl
+            if (mode %eq% "edit" && is_skill(thisrow$skill)) {
+                ## only with skill, not timeout/sub/etc
+                thiscode <- thisrow$code
+                bitstbl$value <- vapply(seq_len(nrow(bitstbl)), function(z) substr(thiscode, bitstbl$start[z], bitstbl$end[z]), FUN.VALUE = "", USE.NAMES = FALSE)
+            } else {
+                bitstbl$value <- ""
+            }
+            bitstbl$value <- gsub("~", "", bitstbl$value)
+            cbitInput <- function (bitname, value = "", width = 2, helper = "") {
+                tags$div(style = paste0("display:inline-block; vertical-align:top;"), tags$input(id = paste0("code_entry_", bitname), type = "text", value = value, size = width, maxlength = width, class = "input-small"),
+                         ##HTML(paste0("<input id=\"code_entry_", bitname, "\" type=\"text\" value=\"", value, "\" size=\"", width, "\" maxlength=\"", width, "\" class=\"input-small\"", if (bitname == "end_zone") " autofocus=\"autofocus\"", " />")),
+                         tags$div(class = "code_entry_guide", helper))
+            }
+            tags$div(style = "padding: 8px;", do.call(shiny::fixedRow, lapply(seq_len(nrow(bitstbl)), function(z) {
+                this_skill <- bitstbl$value[bitstbl$bit %eq% "skill"]
+                this_ev <- bitstbl$value[bitstbl$bit %eq% "eval"]
+                cbitInput(bitstbl$bit[z], value = bitstbl$value[z], width = bitstbl$width[z], helper = if (is.function(bitstbl$helper[[z]])) uiOutput(paste0("code_entry_helper_", bitstbl$bit[z], "_ui")) else HTML(bitstbl$helper[[z]]))
+            })))
+        }
+        ## the helpers that are defined as functions in code_bits_tbl are dynamic, they depend on skill/evaluation
+        ## ADD HANDLERS HERE
+        output$code_entry_helper_skill_type_ui <- renderUI({
+            HTML(skill_type_helper(input$code_entry_skill, input$code_entry_eval))
+        })
+        output$code_entry_helper_num_players_ui <- renderUI({
+            HTML(num_players_helper(input$code_entry_skill, input$code_entry_eval))
+        })
+        output$code_entry_helper_special_ui <- renderUI({
+            HTML(special_helper(input$code_entry_skill, input$code_entry_eval))
+        })
+        output$code_entry_helper_end_zone_ui <- renderUI({
+            HTML(end_zone_helper(input$code_entry_skill, input$code_entry_eval, dvw = rdata$dvw))
+        })
 
         output$save_file_button <- downloadHandler(
             filename = reactive(
