@@ -377,7 +377,6 @@ guess_attack_player_options <- function(game_state, dvw, system) {
                                                              setter_position = setter_rot,
                                                              zone = attacking_zone, libs = NULL, home_visiting = "home", serving = game_state$serving %eq% "*")
 
-        attacking_responsibility <- NA
         attacking_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("home_p", pseq)))
         if (!is.na(attacking_responsibility)) attacking_responsibility_prior[attacking_responsibility] <- 1
 
