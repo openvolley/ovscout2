@@ -150,13 +150,13 @@ print_rally_codes <- function(rc) {
 }
 codes_from_rc_rows <- function(rc) sub("~+$", "", paste0(rc$team, rc$pnum, rc$skill, rc$tempo, rc$eval, rc$combo, rc$target, rc$sz, rc$ez, rc$esz, rc$x_type, rc$num_p, rc$special, rc$custom))
 
-code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, end_x = NA_real_, end_y = NA_real_, rally_state, default_scouting_table) {
+code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, end_x = NA_real_, end_y = NA_real_, rally_state, current_team, default_scouting_table) {
     ## abbreviated parameter names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
     if (missing(tempo) || tempo %eq% "~" || is.na(tempo)) tempo <- tryCatch(default_scouting_table$tempo[default_scouting_table$skill == skill], error = function(e) "~")
     if (missing(eval) || eval %eq% "~" || is.na(eval)) eval <- tryCatch(default_scouting_table$evaluation_code[default_scouting_table$skill == skill], error = function(e) "~")
     if ((missing(x_type) || x_type %eq% "~" || is.na(x_type)) && skill %eq% "A") x_type <- "H" ## default to hard hit
     if (is.null(pnum) || is.na(pnum) || pnum %eq% "Unknown") pnum <- 0L
-    as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = combo, target = target, sz = sz, ez = ez, esz = esz, x_type = x_type, num_p = num_p, special = special, custom = custom), as.character), list(t = t, start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y, rally_state = rally_state)))
+    as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = combo, target = target, sz = sz, ez = ez, esz = esz, x_type = x_type, num_p = num_p, special = special, custom = custom), as.character), list(t = t, start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y, rally_state = rally_state, current_team = current_team)))
 }
 
 update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, t, start_x, start_y, end_x, end_y) {
@@ -189,7 +189,8 @@ update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target
               start_y = if (!missing(start_y)) start_y else trow$start_y,
               end_x = if (!missing(end_x)) end_x else trow$end_x,
               end_y = if (!missing(end_y)) end_y else trow$end_y,
-              rally_state = trow$rally_state)
+              rally_state = trow$rally_state,
+              current_team = trow$current_team)
 }
 
 get_setter_pos <- function(game_state, team) {
