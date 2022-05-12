@@ -133,12 +133,12 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
     ## initialize the plays and plays2 components
     ## if we've started with an empty dvw and done dv_set_lineups, then we'll have an empty tibble for $plays but something in $plays2
     ## but if we are continuing a partially-scouted file, then we'll have something in plays but not plays2
-    if ((is.null(app_data$dvw$plays) || nrow(app_data$dvw$plays) < 1)) {
+    if ((is.null(app_data$dvw[["plays"]]) || nrow(app_data$dvw[["plays"]]) < 1)) {
         app_data$dvw$plays <- plays2_to_plays(app_data$dvw$plays2, dvw = app_data$dvw, evaluation_decoder = app_data$evaluation_decoder)
     } else if (is.null(app_data$dvw$plays2) || nrow(app_data$dvw$plays2) < 1) {
         app_data$dvw$plays <- app_data$dvw$plays[!app_data$dvw$plays$skill %eq% "Technical timeout", ]
         app_data$dvw <- preprocess_dvw(app_data$dvw)
-        app_data$dvw$plays2 <- plays_to_plays2(app_data$dvw$plays)
+        app_data$dvw$plays2 <- plays_to_plays2(app_data$dvw[["plays"]])
     } else {
         stop("both the plays and plays2 components of x are non-empty, so I'm not sure which to use")
     }
