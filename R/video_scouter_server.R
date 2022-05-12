@@ -6,7 +6,7 @@ ov_scouter_server <- function(app_data) {
                         h_court_highlight = "darkblue",
                         v_court_colour = "#bcee68", ## darkolivegreen2
                         v_court_highlight = "darkgreen",
-                        continue = "#10C424", cancel = "#D41024")
+                        continue = "#10C424", cancel = "#D41024", undo = "#EB6927")
 
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "home_setter_position", "visiting_setter_position", "Score", "is_skill")
         plays_cols_renames <- c(Set = "set_number", hs = "home_setter_position", as = "visiting_setter_position")
@@ -278,6 +278,9 @@ ov_scouter_server <- function(app_data) {
                                 cat("jumping to video time: ", vt, "\n")
                                 do_video("set_time", vt)
                             }
+                        } else if (ky %in% utf8ToInt("uU")) {
+                            ## undo
+                            do_undo()
                         } else if (ky %in% utf8ToInt("nm13jhl;46$^b,79")) {
                             if (is.null(editing$active)) {
                                 ## video forward/backward nav
@@ -609,30 +612,32 @@ ov_scouter_server <- function(app_data) {
                 }
                 cat("rally state: ", rally_state(), "\n")
             }
-            if (rally_state() == "rally ended") {
-                ## add rally codes to scout object now
-                rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw))
-                do_rally_end_things()
-                ## check for end of set
-                scores <- c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point)
-                end_of_set <- if (app_data$is_beach) {
-                                  max(scores) >= 21 && abs(diff(scores)) >= 2
-                              } else {
-                                  ((max(scores) >= 25 && game_state$set_number < 5) || (max(scores) >= 15 && game_state$set_number == 5)) && abs(diff(scores)) >= 2
-                              }
-                if (end_of_set) {
-                    show_scout_modal(
-                        modalDialog(title = "End of set", easyClose = FALSE, footer = NULL,
-                                    paste0("Confirm end of set ", game_state$set_number, "?"),
-                                    tags$hr(),
-                                    fixedRow(column(2, actionButton("cancel", "Cancel", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
-                                             column(2, offset = 8, actionButton("end_of_set", "Confirm", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
-                                    ))
-                    do_video("pause")
-                    rally_state("confirm end of set")
-                }
-            }
         })
+
+
+        rally_ended <- function() {##if (rally_state() == "rally ended") {
+            ## add rally codes to scout object now
+            rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw))
+            do_rally_end_things()
+            ## check for end of set
+            scores <- c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point)
+            end_of_set <- if (app_data$is_beach) {
+                              max(scores) >= 21 && abs(diff(scores)) >= 2
+                          } else {
+                              ((max(scores) >= 25 && game_state$set_number < 5) || (max(scores) >= 15 && game_state$set_number == 5)) && abs(diff(scores)) >= 2
+                          }
+            if (end_of_set) {
+                show_scout_modal(
+                    modalDialog(title = "End of set", easyClose = FALSE, footer = NULL,
+                                paste0("Confirm end of set ", game_state$set_number, "?"),
+                                tags$hr(),
+                                fixedRow(column(2, actionButton("cancel", "Cancel", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
+                                         column(2, offset = 8, actionButton("end_of_set", "Confirm", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
+                                ))
+                do_video("pause")
+                rally_state("confirm end of set")
+            }
+        }
 
         observe({
             if (is.null(input$serve_initial_outcome)) {
@@ -678,7 +683,7 @@ ov_scouter_server <- function(app_data) {
             rally_state("click serve start")
         }
 
-        ## convert the rally codes into plays2 rows, and build plays from plays2
+        ## for the playslist table, convert the rally codes into plays2 rows, and build plays from plays2
         observe({
             temp_rally_plays2 <- if (nrow(rally_codes()) > 0) make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw) else NULL
             ##            cat(str(temp_rally_plays2))
@@ -729,8 +734,8 @@ ov_scouter_server <- function(app_data) {
                         rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, eval = "=", ez = esz[1], esz = esz[2], special = if (nzchar(special_code)) special_code else "~", t = retrieve_video_time(game_state$start_t), end_x = game_state$end_x, end_y = game_state$end_y)
                     }
                     rally_codes(rc)
-                    rally_state("rally ended")
                     game_state$point_won_by <- other(game_state$serving)
+                    rally_ended()
                     do_video("play")
                 } else if (input$serve_initial_outcome %eq% "S#") {
                     ## serve ace
@@ -751,7 +756,7 @@ ov_scouter_server <- function(app_data) {
 
                     game_state$current_team <- game_state$serving
                     game_state$point_won_by <- game_state$serving
-                    rally_state("rally ended")
+                    rally_ended()
                     do_video("play")
                 } else {
                     ## reception in play
@@ -803,9 +808,9 @@ ov_scouter_server <- function(app_data) {
                     rc$eval[Aidx] <- eval
                     rally_codes(rc)
                 }
-                rally_state("rally ended")
                 ## "current" team here is the digging team
                 game_state$point_won_by <- if (eval == "#") other(game_state$current_team) else game_state$current_team
+                rally_ended()
             } else if (input$c1 %eq% "B/") {
                 rc <- rally_codes()
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
@@ -819,8 +824,8 @@ ov_scouter_server <- function(app_data) {
                     rc$end_y[Aidx] <- game_state$end_y
                 }
                 rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "/", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, rally_state = rally_state(), default_scouting_table = app_data$default_scouting_table))) ## TODO x,y?
-                rally_state("rally ended")
                 game_state$point_won_by <- other(game_state$current_team) ## "current" team here is the digging team
+                rally_ended()
             } else if (input$c1 %eq% "B#") {
                 rc <- rally_codes()
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
@@ -835,8 +840,8 @@ ov_scouter_server <- function(app_data) {
                     rc$eval[Aidx] <- "/"
                 }
                 rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "#", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, rally_state = rally_state(), default_scouting_table = app_data$default_scouting_table))) ## TODO x,y?
-                rally_state("rally ended")
                 game_state$point_won_by <- game_state$current_team ## "current" team here is the digging/blocking team
+                rally_ended()
             } else {
                 ## D or D=
                 digp <- input$c1_def_player
@@ -865,8 +870,8 @@ ov_scouter_server <- function(app_data) {
                 ## TODO CHECK is the dig start zone the same as the attack start zone, or its end zone?
                 rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "D", eval = eval, tempo = tempo, sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), default_scouting_table = app_data$default_scouting_table)))
                 if (input$c1 == "D=") {
-                    rally_state("rally ended")
                     game_state$point_won_by <- other(game_state$current_team)
+                    rally_ended()
                 } else {
                     if (!isTRUE(app_data$options$transition_sets)) {
                         rally_state("click third contact")
@@ -902,8 +907,8 @@ ov_scouter_server <- function(app_data) {
                 } else if (input$c2 == "E=") {
                     ## set error
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "E", eval = "=", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), default_scouting_table = app_data$default_scouting_table)))
-                    rally_state("rally ended")
                     game_state$point_won_by <- other(game_state$current_team)
+                    rally_ended()
                 } else if (input$c2 %in% c("PP", "P2")) {
                     ## setter dump or second ball attack
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
@@ -932,7 +937,7 @@ ov_scouter_server <- function(app_data) {
                 rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "D", eval = if (input$c2 %eq% "aD=") "=" else "~", sz = esz[1], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), default_scouting_table = app_data$default_scouting_table)))
                 if (input$c2 %eq% "aD=") {
                     game_state$point_won_by <- game_state$current_team
-                    rally_state("rally ended")
+                    rally_ended()
                 } else {
                     game_state$current_team <- other(game_state$current_team)
                     if (!isTRUE(app_data$options$transition_sets)) {
@@ -963,7 +968,7 @@ ov_scouter_server <- function(app_data) {
                 rally_codes(bind_rows(rally_codes(), code_trow(team = other(game_state$current_team), pnum = op, skill = "D", eval = if (input$c3 %eq% "aD=") "=" else "~", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), default_scouting_table = app_data$default_scouting_table)))
                 if (input$c3 %eq% "aD=") {
                     game_state$point_won_by <- game_state$current_team
-                    rally_state("rally ended")
+                    rally_ended()
                 } else {
                     game_state$current_team <- other(game_state$current_team)
                     if (!isTRUE(app_data$options$transition_sets)) {
@@ -1070,7 +1075,8 @@ ov_scouter_server <- function(app_data) {
                                              ),
                                     tags$hr(),
                                     tags$p(tags$strong("Match actions")),
-                                    fluidRow(column(2, actionButton("end_of_set", "End of set", style = paste0("width:100%; height:7vh;")))),
+                                    fluidRow(column(2, actionButton("undo", "Undo last rally action", style = paste0("width:100%; height:7vh; background-color:", styling$undo))),
+                                             column(2, actionButton("end_of_set", "End of set", style = paste0("width:100%; height:7vh;")))),
                                     tags$br(),
                                     ## TODO consider if all of these buttons should be available mid-rally or not (e.g. timeouts)
                                     fluidRow(column(6, tags$strong(datavolley::home_team(rdata$dvw), "(home)")),
@@ -1100,6 +1106,35 @@ ov_scouter_server <- function(app_data) {
             removeModal()
             do_video("pause")
         })
+        observeEvent(input$undo, {
+            do_undo()
+            removeModal()
+            do_video("pause")
+        })
+
+        do_undo <- function() {
+            rc <- rally_codes()
+            if (nrow(rc) > 0) {
+                last_rally_state <- tail(rc$rally_state, 1)
+                rc <- head(rc, -1)
+                rally_codes(rc)
+                ## reset the rally_state back to what it was for the last-existing code
+                rally_state(last_rally_state)
+            } else {
+                ## undo the last code in plays2
+                ## this is trickier
+                ## if it's lineups, remove all lineups
+                ## otherwise if it's a point end, do we remove that plus the prior action?
+                ## and need to figure out what rally state to reset to, which if we're continuing scouting of a partial file, we won't have
+                ## TODO
+            }
+            if (nrow(rally_codes()) > 0 && !all(is.na(rally_codes()$t))) {
+                ## set time to last action minus play_overlap
+                new_vt <- max(rally_codes()$t, na.rm = TRUE) - app_data$play_overlap
+                do_video("set_time", new_vt)
+            }
+        }
+
         output$save_file_button <- downloadHandler(
             filename = reactive(
                 if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename)) basename(rdata$dvw$meta$filename) else "myfile.dvw"
