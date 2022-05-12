@@ -142,24 +142,41 @@ zpn <- function(n) sprintf("%02d", as.numeric(n))
 other <- function(tm) { oth <- rep(NA_character_, length(tm)); oth[tm %eq% "*"] <- "a"; oth[tm %eq% "a"] <- "*"; oth }
 ##other <- function(tm) c("a", "*")[as.numeric(factor(tm, levels = c("*", "a")))]
 
-empty_rally_codes <- tibble(code = character(), t = numeric(), start_x = numeric(), start_y = numeric(), end_x = numeric(), end_y = numeric())
+empty_rally_codes <- tibble(team = character(), pnum = character(), skill = character(), tempo = character(), eval = character(), combo = character(), target = character(), sz = character(), ez = character(), esz = character(), x_type = character(), num_p = character(), special = character(), custom = character(), code = character(), t = numeric(), start_x = numeric(), start_y = numeric(), end_x = numeric(), end_y = numeric(), rally_state = character(), current_team = character())
+
 print_rally_codes <- function(rc) {
     tr <- function(z) tryCatch(round(z, 1), error = function(e) z)
     rc$code <- codes_from_rc_rows(rc)
     do.call(cat, c(lapply(seq_len(nrow(rc)), function(i) paste0(rc$code[i], ", t=", tr(rc$t[i]), ", start x=", tr(rc$start_x[i]), ", y=", tr(rc$start_y[i]), ", end x=", tr(rc$end_x[i]), ", y=", tr(rc$end_y[i]))), list(sep = "\n")))
 }
-codes_from_rc_rows <- function(rc) sub("~+$", "", paste0(rc$team, rc$pnum, rc$skill, rc$tempo, rc$eval, rc$combo, rc$target, rc$sz, rc$ez, rc$esz, rc$x_type, rc$num_p, rc$special, rc$custom))
-
-code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, end_x = NA_real_, end_y = NA_real_, rally_state, current_team, default_scouting_table) {
-    ## abbreviated parameter names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
-    if (missing(tempo) || tempo %eq% "~" || is.na(tempo)) tempo <- tryCatch(default_scouting_table$tempo[default_scouting_table$skill == skill], error = function(e) "~")
-    if (missing(eval) || eval %eq% "~" || is.na(eval)) eval <- tryCatch(default_scouting_table$evaluation_code[default_scouting_table$skill == skill], error = function(e) "~")
-    if ((missing(x_type) || x_type %eq% "~" || is.na(x_type)) && skill %eq% "A") x_type <- "H" ## default to hard hit
-    if (is.null(pnum) || is.na(pnum) || pnum %eq% "Unknown") pnum <- 0L
-    as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = combo, target = target, sz = sz, ez = ez, esz = esz, x_type = x_type, num_p = num_p, special = special, custom = custom), as.character), list(t = t, start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y, rally_state = rally_state, current_team = current_team)))
+codes_from_rc_rows <- function(rc) {
+    if (!"code" %in% names(rc)) rc$code <- NA_character_
+    out <- rc$code
+    idx <- is.na(rc$code) | !nzchar(rc$code) ## not-already-provided codes
+    if (any(idx)) {
+        rc <- rc[idx, ]
+        out[idx] <- sub("~+$", "", paste0(rc$team, rc$pnum, rc$skill, rc$tempo, rc$eval, rc$combo, rc$target, rc$sz, rc$ez, rc$esz, rc$x_type, rc$num_p, rc$special, rc$custom))
+    }
+    out
 }
 
-update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, t, start_x, start_y, end_x, end_y) {
+## the code parm here can be used to provide a direct scout code, useful if e.g. the tibble row isn't a scouted skill
+code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, end_x = NA_real_, end_y = NA_real_, code = NA_character_, rally_state, current_team, default_scouting_table) {
+    ## abbreviated parameter names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
+    ## providing 'code' is a special case
+    if (!is.na(code)) {
+        NAc <- NA_character_
+        tibble(team = NAc, pnum = NAc, skill = NAc, tempo = NAc, eval = NAc, combo = NAc, target = NAc, sz = NAc, ez = NAc, esz = NAc, x_type = NAc, num_p = NAc, special = NAc, custom = NAc, code = code, t = t, start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y, rally_state = rally_state, current_team = current_team)
+    } else {
+        if (missing(tempo) || tempo %eq% "~" || is.na(tempo)) tempo <- tryCatch(default_scouting_table$tempo[default_scouting_table$skill == skill], error = function(e) "~")
+        if (missing(eval) || eval %eq% "~" || is.na(eval)) eval <- tryCatch(default_scouting_table$evaluation_code[default_scouting_table$skill == skill], error = function(e) "~")
+        if ((missing(x_type) || x_type %eq% "~" || is.na(x_type)) && skill %eq% "A") x_type <- "H" ## default to hard hit
+        if (is.null(pnum) || is.na(pnum) || pnum %eq% "Unknown") pnum <- 0L
+        as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = combo, target = target, sz = sz, ez = ez, esz = esz, x_type = x_type, num_p = num_p, special = special, custom = custom), as.character), list(code = code, t = t, start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y, rally_state = rally_state, current_team = current_team)))
+    }
+}
+
+update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, code, t, start_x, start_y, end_x, end_y) {
     new_ez <- if (!missing(ez)) ez else trow$ez
     new_esz <- trow$esz
     if (!missing(esz)) {
@@ -184,6 +201,7 @@ update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target
               num_p = if (!missing(num_p)) num_p else trow$num_p,
               special = if (!missing(special)) special else trow$special,
               custom = if (!missing(custom)) custom else trow$custom,
+              code = if (!missing(code)) code else trow$code,
               t = if (!missing(t)) t else trow$t,
               start_x = if (!missing(start_x)) start_x else trow$start_x,
               start_y = if (!missing(start_y)) start_y else trow$start_y,
@@ -324,7 +342,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
 guess_pass_quality <- function(game_state, dvw, home_end) {
     if (is_beach(dvw)) {
         ## TODO
-        cat("beach, defaulting to '+' pass quality\n")
+        message("beach, defaulting to '+' pass quality")
         return("+")
     }
     ## reference clicks to lower court
@@ -395,7 +413,6 @@ guess_attack_player_options <- function(game_state, dvw, system) {
             attacking_responsibility_posterior[attacking_history$name] <- attacking_responsibility_prior[attacking_history$name] + attacking_history$n_attacks
             attacking_responsibility_posterior <-  attacking_responsibility_posterior / sum(attacking_responsibility_posterior)
         }
-        cat(str(attacking_responsibility_posterior))
         poc <- names(sort(attacking_responsibility_posterior, decreasing = TRUE))
     } else if (game_state$current_team %eq% "a") {
         attacking_team <- game_state$current_team
@@ -430,11 +447,8 @@ guess_attack_player_options <- function(game_state, dvw, system) {
     } else {
         return(list(choices = numeric(), selected = c()))
     }
-    cat(str(poc))
     pp <- as.numeric(reactiveValuesToList(game_state)[poc])
-    cat(str(pp))
     plsel <- as.numeric(reactiveValuesToList(game_state)[poc[1]])
-    cat(str(plsel))
     list(choices = pp, selected = plsel)
 }
 
