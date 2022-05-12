@@ -260,9 +260,8 @@ guess_pass_player_options <- function(game_state, dvw, system) {
                                                            setter_position = passing_rot,
                                                            zone = passing_zone, libs = libs, home_visiting = "visiting")
 
-
         passing_responsibility_prior <- setNames(rep(0, length(pseq) + 1L), c(paste0("visiting_p", pseq), "libero"))
-        passing_responsibility_prior[passing_responsibility] <- 1
+        if (!is.na(passing_responsibility)) passing_responsibility_prior[passing_responsibility] <- 1
 
         ## Update the probability with the history of the game
         passing_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Reception",
@@ -292,7 +291,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
 
 
         passing_responsibility_prior <- setNames(rep(0, length(pseq) + 1L), c(paste0("home_p", pseq),"libero"))
-        passing_responsibility_prior[passing_responsibility] <- 1
+        if (!is.na(passing_responsibility)) passing_responsibility_prior[passing_responsibility] <- 1
 
         ## Update the probability with the history of the game
         passing_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Reception",
@@ -376,11 +375,11 @@ guess_attack_player_options <- function(game_state, dvw, system) {
         ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
         attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack",
                                                              setter_position = setter_rot,
-                                                             zone = attacking_zone, libs = NULL, home_visiting = "home")
+                                                             zone = attacking_zone, libs = NULL, home_visiting = "home", serving = game_state$serving %eq% "*")
 
-
+        attacking_responsibility <- NA
         attacking_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("home_p", pseq)))
-        attacking_responsibility_prior[attacking_responsibility] <- 1
+        if (!is.na(attacking_responsibility)) attacking_responsibility_prior[attacking_responsibility] <- 1
 
         ## Update the probability with the history of the game
         attacking_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Attack",
@@ -396,6 +395,7 @@ guess_attack_player_options <- function(game_state, dvw, system) {
             attacking_responsibility_posterior[attacking_history$name] <- attacking_responsibility_prior[attacking_history$name] + attacking_history$n_attacks
             attacking_responsibility_posterior <-  attacking_responsibility_posterior / sum(attacking_responsibility_posterior)
         }
+        cat(str(attacking_responsibility_posterior))
         poc <- names(sort(attacking_responsibility_posterior, decreasing = TRUE))
     } else if (game_state$current_team %eq% "a") {
         attacking_team <- game_state$current_team
@@ -405,11 +405,11 @@ guess_attack_player_options <- function(game_state, dvw, system) {
         ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
         attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack",
                                                              setter_position = setter_rot,
-                                                             zone = attacking_zone, libs = NULL, home_visiting = "visiting")
+                                                             zone = attacking_zone, libs = NULL, home_visiting = "visiting", serving = game_state$serving %eq% "a")
 
 
         attacking_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("visiting_p", pseq)))
-        attacking_responsibility_prior[attacking_responsibility] <- 1
+        if (!is.na(attacking_responsibility)) attacking_responsibility_prior[attacking_responsibility] <- 1
 
         ## Update the probability with the history of the game
         attacking_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Attack",
@@ -430,8 +430,11 @@ guess_attack_player_options <- function(game_state, dvw, system) {
     } else {
         return(list(choices = numeric(), selected = c()))
     }
+    cat(str(poc))
     pp <- as.numeric(reactiveValuesToList(game_state)[poc])
+    cat(str(pp))
     plsel <- as.numeric(reactiveValuesToList(game_state)[poc[1]])
+    cat(str(plsel))
     list(choices = pp, selected = plsel)
 }
 
@@ -482,11 +485,11 @@ guess_dig_player_options <- function(game_state, dvw, system) {
         ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
         dig_responsibility <- player_responsibility_fn(system = system, skill = "Dig",
                                                        setter_position = setter_rot,
-                                                       zone = defending_zone, libs = libs, home_visiting = "visiting", opp_attack_start_zone = attacking_zone)
+                                                       zone = defending_zone, libs = libs, home_visiting = "visiting", opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% "a")
 
 
         dig_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("visiting_p", pseq)))
-        dig_responsibility_prior[dig_responsibility] <- 1
+        if (!is.na(dig_responsibility)) dig_responsibility_prior[dig_responsibility] <- 1
 
         ## Update the probability with the history of the game
         digging_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Dig",
@@ -513,11 +516,11 @@ guess_dig_player_options <- function(game_state, dvw, system) {
         ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
         dig_responsibility <- player_responsibility_fn(system = system, skill = "Dig",
                                                        setter_position = setter_rot,
-                                                       zone = defending_zone, libs = libs, home_visiting = "home", opp_attack_start_zone = attacking_zone)
+                                                       zone = defending_zone, libs = libs, home_visiting = "home", opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% "*")
 
 
         dig_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("visiting_p", pseq)))
-        dig_responsibility_prior[dig_responsibility] <- 1
+        if (!is.na(dig_responsibility)) dig_responsibility_prior[dig_responsibility] <- 1
 
         ## Update the probability with the history of the game
         digging_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Dig",
