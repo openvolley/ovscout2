@@ -108,7 +108,8 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
         mydat$set_number <- as.factor(mydat$set_number)
         mydat$Score <- paste(mydat$home_team_score, mydat$visiting_team_score, sep = "-")
         DT::replaceData(playslist_proxy, data = mydat[, plays_cols_to_show, drop = FALSE], rownames = FALSE, clearSelection = "none")
+        playslist_current_row(nrow(mydat))
     }
 
-    list(scroll_playslist = scroll_playslist)
+    list(scroll_playslist = scroll_playslist, current_row = playslist_current_row)
 }
