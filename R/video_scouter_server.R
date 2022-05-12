@@ -24,19 +24,28 @@ ov_scouter_server <- function(app_data) {
 
         ## court inset showing rotation and team lists
         court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, styling = styling, with_ball_coords = FALSE)
-        ## force a team rotation, TODO
-##        rotate_teams <- reactive(court_inset$rt)
-##        observe({
-##            rtn <- rotate_teams()
-##            if (rtn$home > 0) {
-##                home_force_rotate()
-##                rtn$home <- 0L
-##            }
-##            if (rtn$visiting > 0) {
-##                visiting_force_rotate()
-##                rtn$visiting <- 0L
-##            }
-##        })
+        ## force a team rotation
+        rotate_teams <- reactive(court_inset$rt)
+        observe({
+            rtn <- rotate_teams()
+            poscode <- c()
+            if (rtn$home > 0) {
+                game_state$home_setter_position <- rotpos(game_state$home_setter_position, n = length(pseq))
+                temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]))
+                for (i in pseq) game_state[[paste0("home_p", i)]] <- temp[i]
+                poscode <- c(poscode, paste0("*z", game_state$home_setter_position))
+                rtn$home <- 0L
+            }
+            if (rtn$visiting > 0) {
+                game_state$visiting_setter_position <- rotpos(game_state$visiting_setter_position, n = length(pseq))
+                temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
+                for (i in pseq) game_state[[paste0("visiting_p", i)]] <- temp[i]
+                poscode <- c(poscode, paste0("az", game_state$visiting_setter_position))
+                rtn$visiting <- 0L
+            }
+            if (length(poscode)) rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw)))
+        })
+
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata)
         detection_ref <- reactiveVal({
             if (!is.null(app_data$court_ref)) app_data$court_ref else NULL
@@ -617,7 +626,7 @@ ov_scouter_server <- function(app_data) {
 
         rally_ended <- function() {##if (rally_state() == "rally ended") {
             ## add rally codes to scout object now
-            rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw))
+            rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw)))
             do_rally_end_things()
             ## check for end of set
             scores <- c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point)
@@ -672,7 +681,7 @@ ov_scouter_server <- function(app_data) {
                     for (i in pseq) game_state[[paste0("visiting_p", i)]] <- temp[i]
                     poscode <- paste0("az", game_state$visiting_setter_position)
                 }
-                rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw))
+                rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw)))
             }
             ## reset for next rally
             game_state$serving <- game_state$current_team <- game_state$point_won_by
@@ -688,7 +697,7 @@ ov_scouter_server <- function(app_data) {
             temp_rally_plays2 <- if (nrow(rally_codes()) > 0) make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw) else NULL
             ##            cat(str(temp_rally_plays2))
             ##            cat(str(rdata$dvw$plays2))
-            rdata$dvw$plays <- plays2_to_plays(bind_rows(rdata$dvw$plays2, temp_rally_plays2), dvw = rdata$dvw, evaluation_decoder = app_data$evaluation_decoder)
+            rdata$dvw$plays <- plays2_to_plays(rp2(bind_rows(rdata$dvw$plays2, temp_rally_plays2)), dvw = rdata$dvw, evaluation_decoder = app_data$evaluation_decoder)
             playslist_mod$scroll_playslist(nrow(rdata$dvw$plays))
         })
 
@@ -704,7 +713,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         observeEvent(input$end_of_set, {
-            rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
+            rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
             game_state$set_number <- game_state$set_number + 1L
             game_state$home_score_start_of_point <- game_state$visiting_score_start_of_point <- 0L
             remove_scout_modal()
@@ -1163,15 +1172,15 @@ ov_scouter_server <- function(app_data) {
             ok <- TRUE
             if (!is.null(input$manual_code)) {
                 if (input$manual_code %in% c("*T", "aT")) {
-                    rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(input$manual_code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
+                    rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(input$manual_code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
                 } else if (input$manual_code %in% c("*p", "ap")) {
                     game_state$point_won_by <- substr(input$manual_code, 1, 1)
                     if (length(rally_codes()) > 0) {
                         ## add any already-entered rally codes
-                        rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
+                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
                     }
                     ## and then the point-won-by code
-                    rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(character(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw))
+                    rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(character(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw)))
                     do_rally_end_things()
                 } else if (input$manual_code %in% c("*C", "aC")) {
                     ## substitution
@@ -1184,7 +1193,7 @@ ov_scouter_server <- function(app_data) {
                     }
                     if (length(p_out) == 1 && length(p_in) == 1) {
                         game_state <- game_state_make_substitution(game_state, team = substr(input$manual_code, 1, 1), player_out = p_out, player_in = p_in, dvw = rdata$dvw)
-                        rdata$dvw$plays2 <- bind_rows(rdata$dvw$plays2, make_plays2(paste0(substr(input$manual_code, 1, 1), "C", p_out, ".", p_in), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw))
+                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0(substr(input$manual_code, 1, 1), "C", p_out, ".", p_in), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
                     } else {
                         ## players in/out not selected, ignore
                         ok <- FALSE

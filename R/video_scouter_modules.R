@@ -25,10 +25,10 @@ mod_courtrot2_ui <- function(id, with_ball_coords = TRUE) {
                                        column(4, actionButton(ns("cancel_ball_coords"), "Cancel ball coordinates")),
                                        column(4, actionButton(ns("validate_ball_coords"), label = "Accept ball coordinates"))),
              fluidRow(column(12, plotOutput(ns("court_inset"), click = ns("plot_click"), height = "45vh")),),
-             fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", icon("undo")))),
+             fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", icon("rotate-right")))),
                       column(3, offset = 1, uiOutput(ns("switch_serving_ui"), inline = TRUE)),
                       column(2, offset = 1, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
-                      column(2, actionButton(ns("rotate_visiting"), tags$span("Visiting", icon("undo")))))
+                      column(2, actionButton(ns("rotate_visiting"), tags$span("Visiting", icon("rotate-right")))))
              )
 }
 

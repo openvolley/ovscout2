@@ -67,6 +67,26 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
     bind_cols(out, as.data.frame(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
 }
 
+## rationalize plays2 rows
+rp2 <- function(p2) {
+    ## strip out redundant codes
+    ## if we have multiple az or *z codes (setter locations) without other intervening codes then just take the last of each
+    ok <- rep(TRUE, nrow(p2))
+    home_sl <- FALSE; visiting_sl <- FALSE
+    is_home_sl <- grepl("^\\*z", p2$code)
+    is_visiting_sl <- grepl("^az", p2$code)
+    for (i in rev(seq_len(nrow(p2)))) {
+        if (!is_visiting_sl[i] && !is_home_sl[i]) {
+            home_sl <- visiting_sl <- FALSE
+        } else if (is_home_sl[i]) {
+            if (!home_sl) home_sl <- TRUE else ok[i] <- FALSE
+        } else if (is_visiting_sl[i]) {
+            if (!visiting_sl) visiting_sl <- TRUE else ok[i] <- FALSE
+        }
+    }
+    p2[ok, ]
+}
+
 game_state_make_substitution <- function(game_state, team, player_out, player_in, dvw) {
     team <- match.arg(team, c("*", "a"))
     pseq <- seq_len(if (dv_is_beach(dvw)) 2L else 6L)
