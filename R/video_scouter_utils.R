@@ -249,15 +249,15 @@ get_liberos <- function(game_state, team, dvw) {
                 dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"]
             } else {
                 out <- c(game_state$ht_lib1, game_state$ht_lib2)
-                ## note that an empty string "" means no libero used
-                out[!is.na(out) & nzchar(out)]
+                ## note that -1 means no libero used
+                out[!is.na(out) & out >= 0]
             }
         } else if (team == "a") {
             if (!all(paste0("vt_lib", 1:2) %in% names(game_state)) || (is.na(game_state$vt_lib1) && is.na(game_state$vt_lib2))) {
                 dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
             } else {
                 out <- c(game_state$vt_lib1, game_state$vt_lib2)
-                out[!is.na(out) & nzchar(out)]
+                out[!is.na(out) & out >= 0]
             }
         } else {
             c()

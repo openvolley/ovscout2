@@ -51,7 +51,8 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
             ht <- list(lineup = as.numeric(c(input[[le_ns("ht_P1")]], input[[le_ns("ht_P2")]], if (!beach) c(input[[le_ns("ht_P3")]], input[[le_ns("ht_P4")]], input[[le_ns("ht_P5")]], input[[le_ns("ht_P6")]]))), setter = NA_integer_)
             if (!beach) {
                 ht$setter <- as.numeric(input[[le_ns("ht_setter")]])
-                ht$liberos <- as.numeric(c(input[[le_ns("ht_libero1")]], input[[le_ns("ht_libero2")]]))
+                ht$liberos <- c(if (!nzchar(input[[le_ns("ht_libero1")]])) -1L else as.integer(input[[le_ns("ht_libero1")]]),
+                                if (!nzchar(input[[le_ns("ht_libero2")]])) -1L else as.integer(input[[le_ns("ht_libero2")]]))
             }
         } else {
             ## missing or incomplete home team lineup
@@ -67,7 +68,8 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
             vt <- list(lineup = as.numeric(c(input[[le_ns("vt_P1")]], input[[le_ns("vt_P2")]], if (!beach) c(input[[le_ns("vt_P3")]], input[[le_ns("vt_P4")]], input[[le_ns("vt_P5")]], input[[le_ns("vt_P6")]]))), setter = NA_integer_)
             if (!beach) {
                 vt$setter <- as.numeric(input[[le_ns("vt_setter")]])
-                vt$liberos <- as.numeric(c(input[[le_ns("vt_libero1")]], input[[le_ns("vt_libero2")]]))
+                vt$liberos <- c(if (!nzchar(input[[le_ns("vt_libero1")]])) -1L else as.integer(input[[le_ns("vt_libero1")]]),
+                                if (!nzchar(input[[le_ns("vt_libero2")]])) -1L else as.integer(input[[le_ns("vt_libero2")]]))
             }
         } else {
             ## missing or incomplete home team lineup
