@@ -117,12 +117,12 @@ mod_playslist_old <- function(input, output, session, rdata, plays_cols_to_show,
 
 
 
-mod_playslist_ui <- function(id, height = "40vh") {
+mod_playslist_ui <- function(id, height = "40vh", styling) {
     ns <- NS(id)
     tagList(
         tags$head(tags$style(paste0(".pl2_fixhdr thead th { position: -webkit-sticky; position: sticky; top: 0; z-index: 2; background-color: #CCC;}",
                            ".pl2-tc {height:", height, "; overflow:hidden} .pl2-tc-inner { overflow-x:hidden; overflow-y:auto; height:100% }",
-                           ".", ns("selected"), " {background-color:#FF8000;}"))),
+                           ".", ns("selected"), " {background-color:", if (!missing(styling) && !is.null(styling$playslist_highlight)) styling$playslist_highlight else "orange", ";}"))),
         tags$div(class = "pl2-tc", tags$div(class = "pl2-tc-inner", id = ns("tbl"), uiOutput(ns("pl"))))
     )
 }

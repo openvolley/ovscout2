@@ -94,7 +94,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             ## setter
             ht_setter <- get_setter(game_state, team = "*")
             if (!is.null(ht_setter) && sum(ht_setter %eq% plxy$number) == 1) {
-                p <- p + geom_polygon(data = court_circle(cz = which(ht_setter %eq% plxy$number), end = "lower"), fill = "yellow", colour = "black")
+                p <- p + geom_polygon(data = court_circle(cz = which(ht_setter %eq% plxy$number), end = "lower"), fill = styling$setter_colour, colour = "black")
             }
             ## liberos
             libs <- get_liberos(game_state, team = "*", dvw = rdata$dvw)
@@ -103,7 +103,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                     dplyr::left_join(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
                 libxy$pos <- c(5, 7)[seq_len(nrow(libxy))]
                 libxy <- cbind(dv_xy(libxy$pos, end = "lower"), libxy) %>% mutate(x = x - 1)
-                p <- p + geom_polygon(data = court_circle(libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = "orange", colour = "black") +
+                p <- p + geom_polygon(data = court_circle(libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black") +
                     geom_text(data = libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
                     geom_text(data = libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
             }
@@ -117,7 +117,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             ## setter
             vt_setter <- get_setter(game_state, team = "a")
             if (!is.null(vt_setter) && sum(vt_setter %eq% plxy$number) == 1) {
-                p <- p + geom_polygon(data = court_circle(cz = which(vt_setter %eq% plxy$number), end = "upper"), fill = "yellow", colour = "black")
+                p <- p + geom_polygon(data = court_circle(cz = which(vt_setter %eq% plxy$number), end = "upper"), fill = styling$setter_colour, colour = "black")
             }
             ## liberos
             libs <- get_liberos(game_state, team = "a", dvw = rdata$dvw)
@@ -126,7 +126,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                     dplyr::left_join(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
                 libxy$pos <- c(1, 9)[seq_len(nrow(libxy))]
                 libxy <- cbind(dv_xy(libxy$pos, end = "upper"), libxy) %>% mutate(x = x - 1)
-                p <- p + geom_polygon(data = court_circle(libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = "orange", colour = "black") +
+                p <- p + geom_polygon(data = court_circle(libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black") +
                     geom_text(data = libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
                     geom_text(data = libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
             }

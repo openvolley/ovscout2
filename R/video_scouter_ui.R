@@ -64,7 +64,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                               ),
                        column(3,
                               introBox(wellPanel(mod_courtrot2_ui(id = "courtrot", with_ball_coords = FALSE)), data.step = 2, data.intro = "Team rosters and oncourt rotation."),
-                              introBox(mod_playslist_ui("playslist"), data.step = 1, data.intro = "List of events. Existing events can be edited or deleted. New events can be added. They will appear here."),
+                              introBox(mod_playslist_ui("playslist", styling = app_data$styling), data.step = 1, data.intro = "List of events. Existing events can be edited or deleted. New events can be added. They will appear here."),
                               uiOutput("error_message"))
                        )
               )
