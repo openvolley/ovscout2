@@ -82,12 +82,8 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour) +
             geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour) +
             ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
-        ##cat("game_state: "); cat(str(reactiveValuesToList(game_state)))
-        this_pn <- NULL ##rdata$dvw$plays$player_number[ridx] ## player in the selected row
         htrot <- tibble(number = get_players(game_state, team = "*", dvw = rdata$dvw))
         htrot <- dplyr::left_join(htrot, rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
-        ##vtrot <- tibble(player_id = as.character(rdata$dvw$plays[ridx, paste0("visiting_player_id", 1:6)]), team_id = rdata$dvw$plays$visiting_team_id[ridx])
-        ##vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "player_id")
         vtrot <- tibble(number = get_players(game_state, team = "a", dvw = rdata$dvw))
         vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
         plxy <- cbind(dv_xy(pseq, end = "lower"), htrot)
@@ -153,13 +149,6 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                 p <- p + geom_path(data = segxy)
             }
         }
-        ##            if (!is.na(rdata$dvw$plays$start_coordinate_x[ridx]) & !is.na(rdata$dvw$plays$end_coordinate_x[ridx]) && ball_coords()) {
-        ##                thisxy <- data.frame(x = as.numeric(rdata$dvw$plays[ridx, c("start_coordinate_x", "mid_coordinate_x", "end_coordinate_x")]),
-        ##                                     y = as.numeric(rdata$dvw$plays[ridx, c("start_coordinate_y", "mid_coordinate_y", "end_coordinate_y")]))
-        ##                p <- p + geom_point(data = thisxy[1, ], shape = 16, col = "green", size = 5) +
-        ##                    geom_point(data = thisxy[3, ], shape = 16, col = "red", size = 5) +
-        ##                    geom_path(data = na.omit(thisxy), arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
-        ##            }
         ##            if (nrow(click_points$queue) > 0) {
         ##                p <- p + geom_point(data = click_points$queue, shape = 16) +
         ##                    geom_path(data = click_points$queue, linetype = "dashed", colour = "black", arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
@@ -175,7 +164,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
 
         if (court_inset_home_team_end() != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
 
-        ## add the score on the left side
+        ## add the score on the right side
         scxy <- tibble(score = c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point),
                        x = c(-0.5, -0.5),
                        y = c(3, 4)
