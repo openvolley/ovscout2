@@ -1,8 +1,8 @@
-mod_playslist_ui <- function(id) {
+mod_playslist_ui_old <- function(id) {
     ns <- NS(id)
     DT::dataTableOutput(ns("playslist"), width = "98%")
 }
-mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, plays_cols_renames, height = "40vh") {
+mod_playslist_old <- function(input, output, session, rdata, plays_cols_to_show, plays_cols_renames, height = "40vh") {
     ns <- session$ns
 
     reactive_scrolling <- FALSE ## testing, not sure it helps. In principle if multiple scroll requests get lined up before the first has actually been initiated, then it'll skip to just the last
@@ -112,4 +112,88 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
     }
 
     list(scroll_playslist = scroll_playslist, current_row = playslist_current_row)
+}
+
+
+
+
+mod_playslist_ui <- function(id, height = "40vh") {
+    ns <- NS(id)
+    tagList(
+        tags$head(tags$style(paste0(".pl2_fixhdr thead th { position: -webkit-sticky; position: sticky; top: 0; z-index: 2; background-color: #CCC;}",
+                           ".pl2-tc {height:", height, "; overflow:hidden} .pl2-tc-inner { overflow-x:hidden; overflow-y:auto; height:100% }",
+                           ".", ns("selected"), " {background-color:#FF8000;}"))),
+        tags$div(class = "pl2-tc", tags$div(class = "pl2-tc-inner", id = ns("tbl"), uiOutput(ns("pl"))))
+    )
+}
+mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, plays_cols_renames, height = "40vh") {
+    ns <- session$ns
+    plays_do_rename <- function(z) names_first_to_capital(dplyr::rename(z, plays_cols_renames))
+    isolate(mydat <- rdata$dvw$plays)
+    my_selected_row <- reactiveVal(NULL)
+
+    update <- function(dat, selected = "keep", scroll = TRUE, initial = FALSE) {
+        if (identical(selected, "keep")) {
+            selected <- my_selected_row()
+        } else if (identical(selected, "last") && !is.null(dat)) {
+            selected <- nrow(dat)
+        }
+        if (!is.numeric(selected)) selected <- NULL
+        if (!is.null(dat)) {
+            ## make sure all cols are present, otherwise the DT proxy won't update properly when those columns are added later
+            for (cl in setdiff(c("skill", "set_number", "home_team_score", "visiting_team_score", plays_cols_to_show), c("Score", "is_skill"))) {
+                if (!cl %in% names(dat)) dat[[cl]] <- rep(NA, nrow(dat))
+            }
+            ##dat$is_skill <- is_skill(dat$skill)
+            plays_cols_to_show <- setdiff(plays_cols_to_show, "is_skill")
+            dat$set_number <- as.factor(dat$set_number)
+            dat$Score <- paste(dat$home_team_score, dat$visiting_team_score, sep = "-")
+            ##cols_to_hide <- which(plays_cols_to_show %in% c("is_skill")) - 1L ## 0-based because no row names
+            cnames <- names(plays_do_rename(dat[1, plays_cols_to_show, drop = FALSE]))
+            cnames[plays_cols_to_show == "error_icon"] <- ""
+            dat <- setNames(as.data.frame(dat[, plays_cols_to_show, drop = FALSE]), cnames)
+
+            html <- shiny::renderTable(dat)()
+            ## inject our pl2_fixhdr class name
+            html <- sub("(class[[:space:]]*=[[:space:]]*['\"][^'\"]*)(['\"])", "\\1 pl2_fixhdr\\2", html)
+            if (!is.null(selected)) {
+                my_selected_row(selected)
+                ## add the 'selected' class to the appropriate row
+                temp <- stringr::str_locate_all(html, "<tr> <td")[[1]]
+                if (nrow(temp) >= selected) {
+                    html <- paste0(substr(html, 1, temp[selected, 1] + 2), " class=\"", ns("selected"), "\"", substr(html, temp[selected, 1] + 2, nchar(html)))
+                }
+            } else {
+                my_selected_row(NULL)
+            }
+            output$pl <- renderUI(shiny::HTML(html))
+            if (!is.null(selected) && scroll) {
+                ## this ain't great, needs work
+                dojs(paste0("setTimeout(() => {console.log('initial scroll'); var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); $('#", ns("tbl"), "').scrollTop(rows[", selected - 1L, "].offsetTop - 4 * rows[0].offsetHeight);}, ", if (initial) 1000 else 200, ")"))
+            }
+        } else {
+            output$pl <- renderUI(NULL)
+        }
+    }
+    do_select <- function(i) {
+        if (is.numeric(i)) dojs(paste0("var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); rows.forEach(row => { row.classList.remove('", ns("selected"), "')}); rows[", i - 1L, "].classList.add('", ns("selected"), "');"))
+    }
+    select <- function(i, scroll = TRUE) {
+        my_selected_row(i)
+        do_select(i)
+        if (scroll) scroll_to(i)
+    }
+    scroll_to <- function(i) {
+        ## i is zero based in js, but 1-based when passed in
+        if (is.numeric(i)) dojs(paste0("var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); $('#", ns("tbl"), "').scrollTop(rows[", i - 1L, "].offsetTop - 4 * rows[0].offsetHeight);"))
+    }
+    ## initialize
+    update(mydat, selected = "last", initial = TRUE)
+    observe({
+        ## replace playslist data when dvw$plays changes
+        update(rdata$dvw$plays, selected = "last")
+    })
+
+    ## select is a shortcut for select and then scroll to it
+    list(scroll_playslist = scroll_to, current_row = my_selected_row, select = select, update = update)
 }
