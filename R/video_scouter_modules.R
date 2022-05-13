@@ -37,7 +37,8 @@ mod_courtrot2_ui <- function(id, with_ball_coords = TRUE) {
 
 mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, rally_state, styling, with_ball_coords = TRUE) {
     ns <- session$ns
-    pseq <- if (is_beach(isolate(rdata$dvw))) 1:2 else 1:6
+    beach <- is_beach(isolate(rdata$dvw))
+    pseq <- if (beach) 1:2 else 1:6
 
     observeEvent(input$cancel_ball_coords, {
         clear_click_queue()
@@ -90,23 +91,50 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         vtrot <- tibble(number = get_players(game_state, team = "a", dvw = rdata$dvw))
         vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
         plxy <- cbind(dv_xy(pseq, end = "lower"), htrot)
-        ##            plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("home_p", pseq)]) ## the on-court player numbers in the play-by-play data
         ## player names and circles
         ## home team
         p <- p + geom_polygon(data = court_circle(cz = pseq, end = "lower"), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight)
-        ## highlighted player
-        ##if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$home_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
-        ##    p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "lower"), fill = "yellow", colour = "black")
-        ##}
+        if (!beach) {
+            ## setter
+            ht_setter <- get_setter(game_state, team = "*")
+            if (!is.null(ht_setter) && sum(ht_setter %eq% plxy$number) == 1) {
+                p <- p + geom_polygon(data = court_circle(cz = which(ht_setter %eq% plxy$number), end = "lower"), fill = "yellow", colour = "black")
+            }
+            ## liberos
+            libs <- get_liberos(game_state, team = "*", dvw = rdata$dvw)
+            if (length(libs)) {
+                libxy <- tibble(number = libs) %>%
+                    dplyr::left_join(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
+                libxy$pos <- c(5, 7)[seq_len(nrow(libxy))]
+                libxy <- cbind(dv_xy(libxy$pos, end = "lower"), libxy) %>% mutate(x = x - 1)
+                p <- p + geom_polygon(data = court_circle(libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = "orange", colour = "black") +
+                    geom_text(data = libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
+                    geom_text(data = libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+            }
+        }
         p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
             geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
         ## visiting team
         plxy <- cbind(dv_xy(pseq, end = "upper"), vtrot)
-        ##            plxy$court_num <- unlist(rdata$dvw$plays[ridx, paste0("visiting_p", pseq)]) ## the on-court player numbers in the play-by-play data
         p <- p + geom_polygon(data = court_circle(cz = pseq, end = "upper"), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight)
-        ##if (rdata$dvw$plays$team[ridx] %eq% rdata$dvw$plays$visiting_team[ridx] && sum(this_pn %eq% plxy$court_num) == 1) {
-        ##    p <- p + geom_polygon(data = court_circle(cz = which(this_pn %eq% plxy$court_num), end = "upper"), fill = "yellow", colour = "black")
-        ##}
+        if (!beach) {
+            ## setter
+            vt_setter <- get_setter(game_state, team = "a")
+            if (!is.null(vt_setter) && sum(vt_setter %eq% plxy$number) == 1) {
+                p <- p + geom_polygon(data = court_circle(cz = which(vt_setter %eq% plxy$number), end = "upper"), fill = "yellow", colour = "black")
+            }
+            ## liberos
+            libs <- get_liberos(game_state, team = "a", dvw = rdata$dvw)
+            if (length(libs)) {
+                libxy <- tibble(number = libs) %>%
+                    dplyr::left_join(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
+                libxy$pos <- c(1, 9)[seq_len(nrow(libxy))]
+                libxy <- cbind(dv_xy(libxy$pos, end = "upper"), libxy) %>% mutate(x = x - 1)
+                p <- p + geom_polygon(data = court_circle(libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = "orange", colour = "black") +
+                    geom_text(data = libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
+                    geom_text(data = libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+            }
+        }
         p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
             geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
 
