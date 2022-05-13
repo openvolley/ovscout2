@@ -217,11 +217,14 @@ mod_lineup_edit_ui <- function(id) {
     actionButton(ns("edit_lineup_button"), "Edit lineups", icon = icon("arrows-alt-h"))
 }
 
-mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, styling) {
+mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, video_state, styling) {
     ns <- session$ns
     beach <- is_beach(isolate(rdata$dvw))
     observeEvent(input$edit_lineup_button, {
         editing$active <- "change starting lineup"
+        ## pause video
+        dojs("document.getElementById('main_video').pause();")
+        video_state$paused <- TRUE
         htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
         vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
         ht_setter <- get_setter(game_state, team = "*")

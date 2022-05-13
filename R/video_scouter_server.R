@@ -121,6 +121,21 @@ ov_scouter_server <- function(app_data) {
             getel <- paste0("document.getElementById('", id, "')")
             myargs <- list(...)
             if (what == "pause") {
+                ##if (video_state$paused) {
+                ##    dojs(paste0(getel, ".play();"))
+                ##    video_state$paused <- FALSE
+                ##    if (rally_state() == "click or unpause the video to start") rally_state("click serve start")
+                ##} else {
+                    dojs(paste0(getel, ".pause();"))
+                    video_state$paused <- TRUE
+                ##}
+                ##NULL
+            } else if (what == "play") {
+                dojs(paste0(getel, ".play();"))
+                video_state$paused <- FALSE
+                if (rally_state() == "click or unpause the video to start") rally_state("click serve start")
+            } else if (what == "toggle_pause") {
+                ## careful using this, because there are situations where we don't want to allow unpausing - see deal_with_pause()
                 if (video_state$paused) {
                     dojs(paste0(getel, ".play();"))
                     video_state$paused <- FALSE
@@ -130,12 +145,6 @@ ov_scouter_server <- function(app_data) {
                     video_state$paused <- TRUE
                 }
                 NULL
-            } else if (what == "play") {
-                dojs(paste0(getel, ".play();"))
-                video_state$paused <- FALSE
-            } else if (what == "toggle_pause") {
-                ## careful using this, because it doesn't update video_state$paused
-                dojs(paste0("if (", getel, ".paused == true) { ", getel, ".play(); } else { ", getel, ".pause(); }"))
             } else if (what == "get_time") {
                 dojs(paste0("Shiny.setInputValue('video_time', ", getel, ".currentTime)"))
             } else if (what == "get_time_fid") {
@@ -164,7 +173,7 @@ ov_scouter_server <- function(app_data) {
         ## match, team, and lineup data editing
         match_data_edit_mod <- callModule(mod_match_data_edit, id = "match_data_editor", rdata = rdata, editing = editing, styling = styling)
         team_edit_mod <- callModule(mod_team_edit, id = "team_editor", rdata = rdata, editing = editing, styling = styling)
-        lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, styling = styling)
+        lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, video_state = video_state, styling = styling)
 
         observeEvent(input$edit_cancel, {
             if (!is.null(editing$active) && editing$active %in% "teams") {
@@ -219,14 +228,15 @@ ov_scouter_server <- function(app_data) {
                 }
                 editing$active <- NULL
                 removeModal()
-                do_video("pause")
+                do_video("play")
             }
         }
 
         lineups_are_valid <- reactive({
             ok <- TRUE
-            for (pp in seq_len(if (app_data$is_beach) 2L else 6L)) ok <- ok && !is.null(game_state[[paste0("home_p", pp)]]) && !is.null(game_state[[paste0("visiting_p", pp)]])
-            if (!app_data$is_beach) ok <- ok && !is.null(game_state$home_setter_position) && !is.null(game_state$visiting_setter_position)
+            notnn <- function(z) !is.null(z) && !is.na(z)
+            for (pp in seq_len(if (app_data$is_beach) 2L else 6L)) ok <- ok && notnn(game_state[[paste0("home_p", pp)]]) && notnn(game_state[[paste0("visiting_p", pp)]])
+            if (!app_data$is_beach) ok <- ok && notnn(game_state$home_setter_position) && notnn(game_state$visiting_setter_position)
             ok
         })
 
@@ -235,21 +245,23 @@ ov_scouter_server <- function(app_data) {
             ## don't allow unpause if we have a scouting modal shown
             if (isTRUE(scout_modal_active())) {
                 ## but do allow pause, if somehow it isn't already
-                if (!video_state$paused) do_video("pause")
+                do_video("pause")
             } else if (!lineups_are_valid()) {
                 ## don't allow unpause if the lineups are not valid, else it'll crash
-                showModal(modalDialog(title = "Lineups needed", easyClose = TRUE, paste0("Use 'Edit lineups' to enter starting lineups for set ", game_state$set_number)))
+                if (video_state$paused) {
+                    showModal(modalDialog(title = "Lineups needed", easyClose = TRUE, paste0("Use 'Edit lineups' to enter starting lineups for set ", game_state$set_number)))
+                }
             } else {
                 if (video_state$paused) {
                     ## we are paused
                     if (is.null(editing$active)) {
                         ## just unpause
-                        do_video("pause")
+                        do_video("play")
                     } else if (editing$active %eq% "admin") {
                         ## otherwise, and only if we have the admin modal showing, dismiss it and unpause
                         editing$active <- NULL
                         removeModal()
-                        do_video("pause")
+                        do_video("play")
                     }
                 } else {
                     ## not paused, so pause and show admin modal
@@ -289,7 +301,7 @@ ov_scouter_server <- function(app_data) {
                                 do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
                                 editing$active <- NULL
                                 removeModal()
-                                if (do_unpause) do_video("pause")
+                                if (do_unpause) do_video("play")
                             }
                         } else if (ky %eq% 13) {
                             ## enter
@@ -1135,12 +1147,12 @@ ov_scouter_server <- function(app_data) {
             ## dismiss the admin modal and unpause the video
             editing$active <- NULL
             removeModal()
-            do_video("pause")
+            do_video("play")
         })
         observeEvent(input$undo, {
             do_undo()
             removeModal()
-            do_video("pause")
+            do_video("play")
         })
 
         do_undo <- function() {
@@ -1263,7 +1275,7 @@ ov_scouter_server <- function(app_data) {
             if (ok) {
                 editing$active <- NULL
                 removeModal()
-                do_video("pause")
+                do_video("play")
             }
         })
 
