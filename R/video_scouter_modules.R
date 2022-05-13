@@ -231,6 +231,8 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
         if (is.null(ht_setter) || is.na(ht_setter) || ht_setter %eq% 0L) ht_setter <- ""
         vt_setter <- get_setter(game_state, team = "a")
         if (is.null(vt_setter) || is.na(vt_setter) || vt_setter %eq% 0L) vt_setter <- ""
+        ht_libs <- get_liberos(game_state = game_state, team = "*", dvw = rdata$dvw)
+        vt_libs <- get_liberos(game_state = game_state, team = "a", dvw = rdata$dvw)
         showModal(
             vwModalDialog(
                 title = "Edit starting line up", size = "l", footer = tags$div(uiOutput(ns("edit_lineup_commit_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", style = paste0("background-color:", styling$cancel))),
@@ -249,7 +251,8 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                                      column(1, textInput(ns("ht_P6"), label = "P6", value = if (!is.null(game_state$home_p6) && !is.na(game_state$home_p6)) game_state$home_p6 else "", placeholder = "P6"))),
                                  fluidRow(
                                      column(1, textInput(ns("ht_setter"), label = "Setter", value = ht_setter, placeholder = "Setter")),
-                                     column(1, textInput(ns("ht_libero"), label = "Libero", placeholder = "Libero"))
+                                     column(1, textInput(ns("ht_libero1"), label = "Libero 1", value = if (length(ht_libs) > 0) ht_libs[1], placeholder = "Libero 1")),
+                                     column(1, textInput(ns("ht_libero2"), label = "Libero 2", value = if (length(ht_libs) > 1) ht_libs[2], placeholder = "Libero 2"))
                                  ),
                                  style = paste0("background: ", styling$h_court_colour)
                              )),
@@ -267,7 +270,8 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                                          column(1, textInput(ns("vt_P6"), label = "P6", value = if (!is.null(game_state$visiting_p6) && !is.na(game_state$visiting_p6)) game_state$visiting_p6 else "", placeholder = "P6"))),
                                      fluidRow(
                                          column(1, textInput(ns("vt_setter"), label = "Setter", value = vt_setter, placeholder = "Setter")),
-                                         column(1, textInput(ns("vt_libero"), label = "Libero", placeholder = "Libero"))
+                                         column(1, textInput(ns("vt_libero1"), label = "Libero 1", value = if (length(vt_libs) > 0) vt_libs[1], placeholder = "Libero 1")),
+                                         column(1, textInput(ns("vt_libero2"), label = "Libero 2", value = if (length(vt_libs) > 1) vt_libs[2], placeholder = "Libero 2"))
                                      ),
                                      style = paste0("background: ", styling$v_court_colour)
                                  ))

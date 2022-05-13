@@ -49,24 +49,39 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         if (!beach) htok <- htok && nzchar(input[[le_ns("ht_P3")]]) && nzchar(input[[le_ns("ht_P4")]]) && nzchar(input[[le_ns("ht_P5")]]) && nzchar(input[[le_ns("ht_P6")]]) && nzchar(input[[le_ns("ht_setter")]])
         if (htok) {
             ht <- list(lineup = as.numeric(c(input[[le_ns("ht_P1")]], input[[le_ns("ht_P2")]], if (!beach) c(input[[le_ns("ht_P3")]], input[[le_ns("ht_P4")]], input[[le_ns("ht_P5")]], input[[le_ns("ht_P6")]]))), setter = NA_integer_)
-            if (!beach) ht$setter <- as.numeric(input[[le_ns("ht_setter")]])
-            ## TODO deal with libero
+            if (!beach) {
+                ht$setter <- as.numeric(input[[le_ns("ht_setter")]])
+                ht$liberos <- as.numeric(c(input[[le_ns("ht_libero1")]], input[[le_ns("ht_libero2")]]))
+            }
         } else {
             ## missing or incomplete home team lineup
             ht <- list(lineup = as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]), setter = NA_integer_)
-            if (!beach) ht$setter <- as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)])[game_state$home_setter_position]
+            if (!beach) {
+                ht$setter <- as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)])[game_state$home_setter_position]
+                ht$liberos <- c(NA_integer_, NA_integer_)
+            }
         }
         vtok <- nzchar(input[[le_ns("vt_P1")]]) && nzchar(input[[le_ns("vt_P2")]])
         if (!beach) vtok <- vtok && nzchar(input[[le_ns("vt_P3")]]) && nzchar(input[[le_ns("vt_P4")]]) && nzchar(input[[le_ns("vt_P5")]]) && nzchar(input[[le_ns("vt_P6")]]) && nzchar(input[[le_ns("vt_setter")]])
         if (vtok) {
             vt <- list(lineup = as.numeric(c(input[[le_ns("vt_P1")]], input[[le_ns("vt_P2")]], if (!beach) c(input[[le_ns("vt_P3")]], input[[le_ns("vt_P4")]], input[[le_ns("vt_P5")]], input[[le_ns("vt_P6")]]))), setter = NA_integer_)
-            if (!beach) vt$setter <- as.numeric(input[[le_ns("vt_setter")]])
-            ## TODO deal with libero
+            if (!beach) {
+                vt$setter <- as.numeric(input[[le_ns("vt_setter")]])
+                vt$liberos <- as.numeric(c(input[[le_ns("vt_libero1")]], input[[le_ns("vt_libero2")]]))
+            }
         } else {
             ## missing or incomplete home team lineup
             vt <- list(lineup = as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]), setter = NA_integer_)
-            if (!beach) vt$setter <- as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)])[game_state$visiting_setter_position]
+            if (!beach) {
+                vt$setter <- as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)])[game_state$visiting_setter_position]
+                vt$liberos <- c(NA_integer_, NA_integer_)
+            }
         }
+        ## the liberos go into game_state
+        game_state$ht_lib1 <- if (length(ht$liberos) > 0) ht$liberos[1] else NA_integer_
+        game_state$ht_lib2 <- if (length(ht$liberos) > 1) ht$liberos[2] else NA_integer_
+        game_state$vt_lib1 <- if (length(vt$liberos) > 0) vt$liberos[1] else NA_integer_
+        game_state$vt_lib2 <- if (length(vt$liberos) > 1) vt$liberos[2] else NA_integer_
         setnum <- if (is.null(game_state$set_number) || is.na(game_state$set_number)) {
                       ## assume is set 1, probably needs something better
                       1L

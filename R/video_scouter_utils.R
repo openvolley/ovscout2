@@ -64,7 +64,9 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
                   visiting_score_start_of_point = game_state$visiting_score_start_of_point,
                   serving = game_state$serving)
     out <- bind_cols(out, as.data.frame(reactiveValuesToList(game_state)[paste0("home_p", pseq)]))
-    bind_cols(out, as.data.frame(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
+    out <- bind_cols(out, as.data.frame(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
+    for (lib in c(paste0("ht_lib", 1:2), paste0("vt_lib", 1:2))) out[[lib]] <- if (!lib %in% names(game_state)) NA_integer_ else game_state[[lib]]
+    out
 }
 
 ## rationalize plays2 rows
@@ -237,7 +239,30 @@ get_setter <- function(game_state, team) {
 
 get_liberos <- function(game_state, team, dvw) {
     if (missing(team)) team <- game_state$current_team
-    if (is_beach(dvw)) c() else if (team == "*") dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"] else if (team == "a") dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"] else c()
+    if (is_beach(dvw)) {
+        c()
+    } else {
+        ## liberos can be specified in game_state, which should be the actual liberos (possibly changing from set to set)
+        ## if those aren't specified, we take the liberos from the player lists
+        if (team == "*") {
+            if (!all(paste0("ht_lib", 1:2) %in% names(game_state)) || (is.na(game_state$ht_lib1) && is.na(game_state$ht_lib2))) {
+                dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"]
+            } else {
+                out <- c(game_state$ht_lib1, game_state$ht_lib2)
+                ## note that an empty string "" means no libero used
+                out[!is.na(out) & nzchar(out)]
+            }
+        } else if (team == "a") {
+            if (!all(paste0("vt_lib", 1:2) %in% names(game_state)) || (is.na(game_state$vt_lib1) && is.na(game_state$vt_lib2))) {
+                dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
+            } else {
+                out <- c(game_state$vt_lib1, game_state$vt_lib2)
+                out[!is.na(out) & nzchar(out)]
+            }
+        } else {
+            c()
+        }
+    }
 }
 
 get_players <- function(game_state, team, dvw) {
@@ -279,7 +304,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
         passing_team <- "a"
         passing_rot <- game_state$visiting_setter_position
         passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
-        libs <- if (beach) c() else dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
+        libs <- get_liberos(game_state, team = "a", dvw = dvw)
 
         ## Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
         passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception",
@@ -308,7 +333,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
         passing_team <- "*"
         passing_rot <- game_state$home_setter_position
         passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
-        libs <- if (beach) c() else dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"]
+        libs <- get_liberos(game_state, team = "*", dvw = dvw)
 
         ## Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
         passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception",
@@ -501,7 +526,7 @@ guess_dig_player_options <- function(game_state, dvw, system) {
         setter_rot <- game_state$visiting_setter_position
         attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
         defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
-        libs <- if (beach) c() else dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
+        libs <- get_liberos(game_state, team = "a", dvw = dvw)
 
         ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
         dig_responsibility <- player_responsibility_fn(system = system, skill = "Dig",
@@ -532,7 +557,7 @@ guess_dig_player_options <- function(game_state, dvw, system) {
         setter_rot <- game_state$home_setter_position
         attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
         defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
-        libs <- if (beach) c() else dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"]
+        libs <- get_liberos(game_state, team = "*", dvw = dvw)
 
         ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
         dig_responsibility <- player_responsibility_fn(system = system, skill = "Dig",

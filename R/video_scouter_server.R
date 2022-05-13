@@ -1085,6 +1085,11 @@ ov_scouter_server <- function(app_data) {
         temp$current_team <- temp$serving
         temp$start_x <- temp$start_y <- temp$end_x <- temp$end_y <- NA_real_
         temp$current_time_uuid <- ""
+        ## liberos
+        if (!"ht_lib1" %in% names(temp)) temp$ht_lib1 <- NA_character_
+        if (!"ht_lib2" %in% names(temp)) temp$ht_lib2 <- NA_character_
+        if (!"vt_lib1" %in% names(temp)) temp$vt_lib1 <- NA_character_
+        if (!"vt_lib2" %in% names(temp)) temp$vt_lib2 <- NA_character_
         game_state <- do.call(reactiveValues, temp)
         court_inset$home_team_end("upper") ## home team end defaults to upper
         ## seek to video time on startup
@@ -1336,6 +1341,11 @@ ov_scouter_server <- function(app_data) {
                                       tags$div("Use the 'Court reference' button to define the court reference before scouting any actions.")))
             }
         })
+
+##        observe({
+##            cat("game_state:\n")
+##            cat(str(reactiveValuesToList(game_state)))
+##        })
 
         ## disaster recovery
         shiny::onSessionEnded(function() {
