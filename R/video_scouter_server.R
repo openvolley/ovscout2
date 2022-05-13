@@ -185,10 +185,12 @@ ov_scouter_server <- function(app_data) {
                     ## user has changed EITHER input$code_entry or used the code_entry_guide
                     if (nzchar(input$code_entry)) {
                         newcode <- input$code_entry
-                        if (!grepl("^>", newcode)) {
-                            ## TODO deal better with non-skill codes
-                            ## this won't yet handle timeouts, subs, etc
-                            newcode <- sub("~+$", "", ov_code_interpret(input$code_entry))
+                        if (grepl("^[a\\*]?[[:digit:]][[:digit:]][SREABDF]", newcode)) {
+                            ## this is a skill code
+                            ## we are ignoring these, at least for now
+                            ##newcode <- sub("~+$", "", ov_code_interpret(input$code_entry))
+                            warning("ignoring skill code: ", newcode)
+                            newcode <- NULL
                         }
                     } else {
                         ## build code from code_entry_guide elements
@@ -202,8 +204,7 @@ ov_scouter_server <- function(app_data) {
                         newcode <- sub("~+$", "", paste(newcode1, collapse = ""))## trim trailing ~'s
                     }
                     if (editing$active %eq% "insert below" && !is.null(newcode)) {
-                        ## add code to rally_codes
-                        rally_codes(bind_rows(rally_codes(), code_trow(code = newcode, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
+                        handle_manual_code(newcode)
                     } else if (editing$active %in% c("edit", "insert above")) {
                         ## not handled yet
                     }
@@ -1102,7 +1103,7 @@ ov_scouter_server <- function(app_data) {
                                     tags$p(tags$strong("Match actions")),
                                     fluidRow(column(2, actionButton("undo", "Undo last rally action", style = paste0("width:100%; height:7vh; background-color:", styling$undo))),
                                              ## only partially implemented
-                                             ##column(2, actionButton("enter_code", "Enter manual code", style = paste0("width:100%; height:7vh;"))),
+                                             column(2, actionButton("enter_code", "Enter scout code", style = paste0("width:100%; height:7vh;")), tags$span(style = "font-size:small;", "Only non-skill codes are supported")),
                                              column(2, actionButton("end_of_set", "End of set", style = paste0("width:100%; height:7vh;")))),
                                     tags$br(),
                                     ## TODO consider if all of these buttons should be available mid-rally or not (e.g. timeouts)
@@ -1179,14 +1180,18 @@ ov_scouter_server <- function(app_data) {
                 ##if (where == "above" && ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
                 ## otherwise (if inserting below) use the current row (ridx) as the template
                 editing$active <- paste0("insert ", where)
-                showModal(modalDialog(title = paste0("Insert new code ", where, " current row"), size = "l", footer = tags$div(actionButton("edit_commit", label = "Insert code (or press Enter)"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
-                                      "Enter new code either in the top text box or in the individual boxes (but not both)",
-                                      textInput("code_entry", label = "Code:", value = ""),
-                                      "or",
-                                      build_code_entry_guide("insert")##, rdata$dvw$plays[ridx, ])
-                                      ))
-                focus_in_code_entry("code_entry")
+                show_manual_code_modal(editing$active)
             }
+        }
+
+        ## op "edit" will also need the row number passed to build_code_entry, not yet implemented
+        show_manual_code_modal <- function(op, entry_guide = FALSE) {
+            op <- match.arg(op, c("insert below", "insert above", "edit"))
+            showModal(modalDialog(title = if (grepl("insert", op)) paste0("Insert new code ", sub("insert ", "", op), " current row") else "Edit code", size = "l", footer = tags$div(actionButton("edit_commit", label = paste0(if (grepl("insert", op)) "Insert" else "Update", " code (or press Enter)")), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
+                                  if (entry_guide) "Enter code either in the top text box or in the individual boxes (but not both)",
+                                  textInput("code_entry", label = "Code:", value = ""), if (entry_guide) "or", if (entry_guide) build_code_entry_guide(sub(" .*", "", op))
+                                  ))
+            focus_in_code_entry("code_entry")
         }
 
         build_code_entry_guide <- function(mode, thisrow) {
@@ -1251,37 +1256,7 @@ ov_scouter_server <- function(app_data) {
         )
 
         observeEvent(input$manual_code, {
-            ok <- TRUE
-            if (!is.null(input$manual_code)) {
-                if (input$manual_code %in% c("*T", "aT")) {
-                    rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(input$manual_code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
-                } else if (input$manual_code %in% c("*p", "ap")) {
-                    game_state$point_won_by <- substr(input$manual_code, 1, 1)
-                    if (length(rally_codes()) > 0) {
-                        ## add any already-entered rally codes
-                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
-                    }
-                    ## and then the point-won-by code
-                    rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(character(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw)))
-                    do_rally_end_things()
-                } else if (input$manual_code %in% c("*C", "aC")) {
-                    ## substitution
-                    if (input$manual_code %eq% "*C") {
-                        p_out <- as.numeric(input$ht_sub_out)
-                        p_in <- as.numeric(input$ht_sub_in)
-                    } else {
-                        p_out <- as.numeric(input$vt_sub_out)
-                        p_in <- as.numeric(input$vt_sub_in)
-                    }
-                    if (length(p_out) == 1 && length(p_in) == 1) {
-                        game_state <- game_state_make_substitution(game_state, team = substr(input$manual_code, 1, 1), player_out = p_out, player_in = p_in, dvw = rdata$dvw)
-                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0(substr(input$manual_code, 1, 1), "C", p_out, ".", p_in), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
-                    } else {
-                        ## players in/out not selected, ignore
-                        ok <- FALSE
-                    }
-                }
-            }
+            ok <- handle_manual_code(input$manual_code)
             if (ok) {
                 editing$active <- NULL
                 removeModal()
@@ -1289,6 +1264,43 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
+        handle_manual_code <- function(code) {
+            ok <- TRUE
+            if (!is.null(code)) {
+                if (grepl("^>", code)) {
+                    ## comment, or perhaps >Lup
+                    rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
+                } else if (code %in% c("*T", "aT")) {
+                    rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
+                } else if (code %in% c("*p", "ap")) {
+                    game_state$point_won_by <- substr(code, 1, 1)
+                    if (length(rally_codes()) > 0) {
+                        ## add any already-entered rally codes
+                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
+                    }
+                    ## and then the point-won-by code
+                    rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(character(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw)))
+                    do_rally_end_things()
+                } else if (code %in% c("*C", "aC")) {
+                    ## substitution
+                    if (code %eq% "*C") {
+                        p_out <- as.numeric(input$ht_sub_out)
+                        p_in <- as.numeric(input$ht_sub_in)
+                    } else {
+                        p_out <- as.numeric(input$vt_sub_out)
+                        p_in <- as.numeric(input$vt_sub_in)
+                    }
+                    if (length(p_out) == 1 && length(p_in) == 1) {
+                        game_state <- game_state_make_substitution(game_state, team = substr(code, 1, 1), player_out = p_out, player_in = p_in, dvw = rdata$dvw)
+                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0(substr(code, 1, 1), "C", p_out, ".", p_in), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
+                    } else {
+                        ## players in/out not selected, ignore
+                        ok <- FALSE
+                    }
+                }
+            }
+            ok
+        }
 ##        ## auto save
 ##        shinyFiles::shinyFileSave(input, id = "auto_save_file", roots = c(root = '/'))
 ##        observe({
