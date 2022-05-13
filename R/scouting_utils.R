@@ -84,10 +84,12 @@ dv_set_lineups <- function(x, set_number, lineups, setter_positions, setters) {
     ## update the starting positions of all players
     x <- set_lineup(x, set_number = set_number, team = "*", lineup = lineups[[1]])
     x <- set_lineup(x, set_number = set_number, team = "a", lineup = lineups[[2]])
+    ht_libs <- c(tail(lineups[[1]], -6), rep(NA_integer_, 8 - length(lineups[[1]])))
+    vt_libs <- c(tail(lineups[[2]], -6), rep(NA_integer_, 8 - length(lineups[[2]])))
     ## insert the start-of-set codes and lineups in the plays data
     ## e.g. "*P04>LUp"          "*z3>LUp"
     lineup_codes <- c(sprintf("*P%02d>Lup", setters[1]), paste0("*z", setter_positions[1], ">Lup"), sprintf("aP%02d>Lup", setters[2]), paste0("az", setter_positions[2], ">Lup"))
-    add_to_plays2(x, codes = lineup_codes, set_number = set_number, home_setter_position = setter_positions[1], visiting_setter_position = setter_positions[2], home_lineup = lineups[[1]], visiting_lineup = lineups[[2]], scores = c(0L, 0L), serving = NA_character_)
+    add_to_plays2(x, codes = lineup_codes, set_number = set_number, home_setter_position = setter_positions[1], visiting_setter_position = setter_positions[2], home_lineup = lineups[[1]][1:6], visiting_lineup = lineups[[2]][1:6], scores = c(0L, 0L), serving = NA_character_, home_liberos = ht_libs, visiting_liberos = vt_libs)
 }
 
 #' Enter scout codes from the console
@@ -603,7 +605,7 @@ make_player_id <- function(lastname, firstname) toupper(paste0(substr(lastname, 
 
 ## add rows to x$plays2
 ## if any of the set_number, home_setter_position, or following params are provided, they override what is provided in x$game_state. If all are provided, don't need to provide x
-add_to_plays2 <- function(x, codes, video_time, set_number, home_setter_position, visiting_setter_position, home_lineup, visiting_lineup, scores = c(0L, 0L), serving = NA_character_) {
+add_to_plays2 <- function(x, codes, video_time, set_number, home_setter_position, visiting_setter_position, home_lineup, visiting_lineup, scores = c(0L, 0L), serving = NA_character_, home_liberos = c(NA_integer_, NA_integer_), visiting_liberos = c(NA_integer_, NA_integer_)) {
     pseq <- seq_len(if (dv_is_beach(x)) 2L else 6L)
     if (missing(set_number)) set_number <- x$game_state$set_number
     if (missing(home_setter_position)) home_setter_position <- x$game_state$home_setter_position
@@ -630,6 +632,10 @@ add_to_plays2 <- function(x, codes, video_time, set_number, home_setter_position
     assert_that(length(visiting_lineup) == 6)
     out <- bind_cols(out, setNames(as.data.frame(as.list(home_lineup)), paste0("home_p", 1:6))) ## cols 15-20
     out <- bind_cols(out, setNames(as.data.frame(as.list(visiting_lineup)), paste0("visiting_p", 1:6))) ## cols 21-26
+    out$ht_lib1 <- home_liberos[1]
+    out$ht_lib2 <- home_liberos[2]
+    out$vt_lib1 <- visiting_liberos[1]
+    out$vt_lib2 <- visiting_liberos[2]
     x$plays2 <- bind_rows(x$plays2, out)
     x
 }
@@ -706,7 +712,8 @@ plays_to_plays2 <- function(p) {
     p2 <- mutate(p, serving = case_when(.data$serving_team == .data$home_team ~ "*", .data$serving_team == .data$visiting_team ~ "a"))##, X4 = NA, X14 = NA)
     as_tibble(dplyr::select(p2, "code", "point_phase", "attack_phase", ##"X4",
                             "start_coordinate", "mid_coordinate", "end_coordinate", "time", "set_number", "home_setter_position", "visiting_setter_position", "video_file_number", "video_time", ##"X14",
-                            "home_score_start_of_point", "visiting_score_start_of_point", "serving", "home_p1", "home_p2", "home_p3", "home_p4", "home_p5", "home_p6", "visiting_p1", "visiting_p2", "visiting_p3", "visiting_p4", "visiting_p5", "visiting_p6"))
+                            "home_score_start_of_point", "visiting_score_start_of_point", "serving", "home_p1", "home_p2", "home_p3", "home_p4", "home_p5", "home_p6", "visiting_p1", "visiting_p2", "visiting_p3", "visiting_p4", "visiting_p5", "visiting_p6")) %>%
+        mutate(ht_lib1 = NA_integer_, ht_lib2 = NA_integer_, vt_lib1 = NA_integer_, vt_lib2 = NA_integer_)
 }
 
 ## parse just the skill rows, giving the team, player number, skill and type, and evaluation code
