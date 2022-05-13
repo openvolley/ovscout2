@@ -77,36 +77,65 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     ## the court plot itself
     court_inset_home_team_end <- reactiveVal("lower")
     ball_coords <- if (with_ball_coords) reactive({input$ballcoordsCI}) else reactive(FALSE)
-    output$court_inset <- renderPlot({
-        p <- ggplot(data = data.frame(x = c(-0.25, 4.25, 4.25, -0.25), y = c(-0.25, -0.25, 7.25, 7.25)), mapping = aes_string("x", "y")) +
-            geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour) +
-            geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour) +
-            ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
+
+    ## go to some effort to reduce redraws of the court plot
+    plot_data <- reactive({
         htrot <- tibble(number = get_players(game_state, team = "*", dvw = rdata$dvw))
         htrot <- dplyr::left_join(htrot, rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
         vtrot <- tibble(number = get_players(game_state, team = "a", dvw = rdata$dvw))
         vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
+        ht_setter <- get_setter(game_state, team = "*")
+        ht_libxy <- vt_libxy <- NULL
+        libs <- get_liberos(game_state, team = "*", dvw = rdata$dvw)
+        if (length(libs)) {
+            ht_libxy <- tibble(number = libs) %>%
+                dplyr::left_join(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
+            ht_libxy$pos <- c(5, 7)[seq_len(nrow(ht_libxy))]
+            ht_libxy <- cbind(dv_xy(ht_libxy$pos, end = "lower"), ht_libxy) %>% mutate(x = case_when(court_inset_home_team_end() != "lower" ~ .data$x - 1,
+                                                                                                     court_inset_home_team_end() == "lower" ~ .data$x + 3))
+        }
+        vt_setter <- get_setter(game_state, team = "a")
+        libs <- get_liberos(game_state, team = "a", dvw = rdata$dvw)
+        if (length(libs)) {
+            vt_libxy <- tibble(number = libs) %>%
+                dplyr::left_join(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
+            vt_libxy$pos <- c(1, 9)[seq_len(nrow(vt_libxy))]
+            vt_libxy <- cbind(dv_xy(vt_libxy$pos, end = "upper"), vt_libxy) %>% mutate(x = case_when(court_inset_home_team_end() != "lower" ~ .data$x - 1,
+                                                                                                     court_inset_home_team_end() == "lower" ~ .data$x + 3))
+        }
+        list(htrot = htrot, vtrot = vtrot, ht_setter = ht_setter, vt_setter = vt_setter, ht_libxy = ht_libxy, vt_libxy = vt_libxy, serving = game_state$serving, home_score_start_of_point = game_state$home_score_start_of_point, visiting_score_start_of_point = game_state$visiting_score_start_of_point)
+    })
+    ## keep track of the digest of the plot_data() object so that we can trigger downstream actions when it has actually changed
+    plot_data_digest <- reactiveVal("")
+    observe({
+        plot_data_digest(digest::digest(plot_data()))
+    })
+
+    ## generate the ggplot object of the court with players, this doesn't change within a rally
+    base_plot <- reactive({
+        p <- ggplot(data = data.frame(x = c(-0.25, 4.25, 4.25, -0.25), y = c(-0.25, -0.25, 7.25, 7.25)), mapping = aes_string("x", "y")) +
+            geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour) +
+            geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour) +
+            ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
+        px <- isolate(plot_data()) ## don't redraw on every invalidation of plot_data(), because the actual data might not have changed
+        blah <- plot_data_digest() ## trigger on this
+        htrot <- px$htrot
+        vtrot <- px$vtrot
         plxy <- cbind(dv_xy(pseq, end = "lower"), htrot)
         ## player names and circles
         ## home team
         p <- p + geom_polygon(data = court_circle(cz = pseq, end = "lower"), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight)
         if (!beach) {
             ## setter
-            ht_setter <- get_setter(game_state, team = "*")
+            ht_setter <- px$ht_setter
             if (!is.null(ht_setter) && sum(ht_setter %eq% plxy$number) == 1) {
                 p <- p + geom_polygon(data = court_circle(cz = which(ht_setter %eq% plxy$number), end = "lower"), fill = styling$setter_colour, colour = "black")
             }
             ## liberos
-            libs <- get_liberos(game_state, team = "*", dvw = rdata$dvw)
-            if (length(libs)) {
-                libxy <- tibble(number = libs) %>%
-                    dplyr::left_join(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
-                libxy$pos <- c(5, 7)[seq_len(nrow(libxy))]
-                libxy <- cbind(dv_xy(libxy$pos, end = "lower"), libxy) %>% mutate(x = case_when(court_inset_home_team_end() != "lower" ~ .data$x - 1,
-                                                                                                court_inset_home_team_end() == "lower" ~ .data$x + 3))
-                p <- p + geom_polygon(data = court_circle(libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black") +
-                    geom_text(data = libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
-                    geom_text(data = libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+            if (!is.null(px$ht_libxy)) {
+                p <- p + geom_polygon(data = court_circle(px$ht_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black") +
+                    geom_text(data = px$ht_libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
+                    geom_text(data = px$ht_libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
             }
         }
         p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
@@ -116,28 +145,42 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         p <- p + geom_polygon(data = court_circle(cz = pseq, end = "upper"), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight)
         if (!beach) {
             ## setter
-            vt_setter <- get_setter(game_state, team = "a")
+            vt_setter <- px$vt_setter
             if (!is.null(vt_setter) && sum(vt_setter %eq% plxy$number) == 1) {
                 p <- p + geom_polygon(data = court_circle(cz = which(vt_setter %eq% plxy$number), end = "upper"), fill = styling$setter_colour, colour = "black")
             }
             ## liberos
-            libs <- get_liberos(game_state, team = "a", dvw = rdata$dvw)
-            if (length(libs)) {
-                libxy <- tibble(number = libs) %>%
-                    dplyr::left_join(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
-                libxy$pos <- c(1, 9)[seq_len(nrow(libxy))]
-                libxy <- cbind(dv_xy(libxy$pos, end = "upper"), libxy) %>% mutate(x = case_when(court_inset_home_team_end() != "lower" ~ .data$x - 1,
-                                                                                                court_inset_home_team_end() == "lower" ~ .data$x + 3))
-                p <- p + geom_polygon(data = court_circle(libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black") +
-                    geom_text(data = libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
-                    geom_text(data = libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+            if (!is.null(px$vt_libxy)) {
+                p <- p + geom_polygon(data = court_circle(px$vt_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black") +
+                    geom_text(data = px$vt_libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
+                    geom_text(data = px$vt_libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
             }
         }
         p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
             geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
 
+        ## add the serving team indicator
+        temp <- court_circle(cz = 1, r = 0.2, end = "upper")
+        temp$y <- temp$y + 0.75 ## shift to behind baseline
+        p <- p + geom_polygon(data = temp, fill = if (px$serving %eq% "a") "white" else NA, colour = "black")
+        temp <- court_circle(cz = 1, r = 0.2, end = "lower")
+        temp$y <- temp$y - 0.75 ## shift to behind baseline
+        p <- p + geom_polygon(data = temp, fill = if (px$serving %eq% "*") "white" else NA, colour = "black")
+
+        ## add the score on the right side
+        scxy <- tibble(score = c(px$home_score_start_of_point, px$visiting_score_start_of_point),
+                       x = c(-0.5, -0.5),
+                       y = c(3, 4)
+                       )
+        scxy <- scxy %>% mutate(x = case_when(court_inset_home_team_end() != "lower" ~ .data$x,
+                                              court_inset_home_team_end() == "lower" ~ .data$x + 5))
+        p + geom_text(data = scxy, aes_string("x", "y", label = "score"), size = 6, fontface = "bold", vjust = 0)
+    })
+
+    output$court_inset <- renderPlot({
+        p <- base_plot()
         if (nrow(rally_codes()) > 0) {
-            ## plot just the current rally actions
+            ## plot the current rally actions
             temp_rally_plays2 <- make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw)
             temp_rally_plays <- plays2_to_plays(temp_rally_plays2, dvw = rdata$dvw, evaluation_decoder = skill_evaluation_decoder()) ## this is the default evaluation decoder, but it doesn't matter here unless we start e.g. colouring things by evaluation
             segxy <- bind_rows(temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y"),
@@ -155,27 +198,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         ##                p <- p + geom_point(data = click_points$queue, shape = 16) +
         ##                    geom_path(data = click_points$queue, linetype = "dashed", colour = "black", arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
         ##            }
-        ## add the serving team indicator
-        temp <- court_circle(cz = 1, r = 0.2, end = "upper")
-        temp$y <- temp$y + 0.75 ## shift to behind baseline
-        p <- p + geom_polygon(data = temp, fill = if (game_state$serving %eq% "a") "white" else NA, colour = "black")
-        temp <- court_circle(cz = 1, r = 0.2, end = "lower")
-        temp$y <- temp$y - 0.75 ## shift to behind baseline
-        p <- p + geom_polygon(data = temp, fill = if (game_state$serving %eq% "*") "white" else NA, colour = "black")
-
-
         if (court_inset_home_team_end() != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
-
-        ## add the score on the right side
-        scxy <- tibble(score = c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point),
-                       x = c(-0.5, -0.5),
-                       y = c(3, 4)
-                       )
-        scxy <- scxy %>% mutate(x = case_when(court_inset_home_team_end() != "lower" ~ .data$x,
-                                              court_inset_home_team_end() == "lower" ~ .data$x + 5))
-
-        p <- p + geom_text(data = scxy, aes_string("x", "y", label = "score"), size = 6, fontface = "bold", vjust = 0)
-
         p
     })
 
