@@ -28,10 +28,10 @@ mod_courtrot2_ui <- function(id, with_ball_coords = TRUE) {
                                        column(4, actionButton(ns("cancel_ball_coords"), "Cancel ball coordinates")),
                                        column(4, actionButton(ns("validate_ball_coords"), label = "Accept ball coordinates"))),
              fluidRow(column(12, plotOutput(ns("court_inset"), click = ns("plot_click"), height = "45vh")),),
-             fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", icon("rotate-right")))),
+             fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", icon("redo")))),
                       column(3, offset = 1, uiOutput(ns("switch_serving_ui"), inline = TRUE)),
                       column(2, offset = 1, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
-                      column(2, actionButton(ns("rotate_visiting"), tags$span("Visiting", icon("rotate-right")))))
+                      column(2, actionButton(ns("rotate_visiting"), tags$span("Visiting", icon("redo")))))
              )
 }
 
@@ -468,31 +468,32 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
 
 }
 
-mod_teamscores_ui <- function(id) {
-    ns <- NS(id)
-    tags$div(style = "border-radius: 4px; padding: 1px",
-             fluidRow(column(5, id = "hnscore", uiOutput(ns("hnaming"))),
-                      column(1, id = "hscore", uiOutput(ns("hscoring"))),
-                      column(1, id = "vscore", uiOutput(ns("vscoring"))),
-                      column(5, id = "vnscore", uiOutput(ns("vnaming")))
-                      )
-    )
-}
-
-mod_teamscores <- function(input, output, session, game_state, rdata) {
-
-    output$hnaming <- renderUI({
-        tags$div(tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]))
-    })
-    output$hscoring <- renderUI({
-        hs <- game_state$home_score_start_of_point
-        tags$div(tags$span(hs))
-    })
-    output$vscoring <- renderUI({
-        vs <- game_state$visiting_score_start_of_point
-        tags$div(tags$span(vs))
-    })
-    output$vnaming <- renderUI({
-        tags$div(tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]))
-    })
-}
+## NB, not used
+##mod_teamscores_ui <- function(id) {
+##    ns <- NS(id)
+##    tags$div(style = "border-radius: 4px; padding: 1px",
+##             fluidRow(column(5, id = "hnscore", uiOutput(ns("hnaming"))),
+##                      column(1, id = "hscore", uiOutput(ns("hscoring"))),
+##                      column(1, id = "vscore", uiOutput(ns("vscoring"))),
+##                      column(5, id = "vnscore", uiOutput(ns("vnaming")))
+##                      )
+##    )
+##}
+##
+##mod_teamscores <- function(input, output, session, game_state, rdata) {
+##
+##    output$hnaming <- renderUI({
+##        tags$div(tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]))
+##    })
+##    output$hscoring <- renderUI({
+##        hs <- game_state$home_score_start_of_point
+##        tags$div(tags$span(hs))
+##    })
+##    output$vscoring <- renderUI({
+##        vs <- game_state$visiting_score_start_of_point
+##        tags$div(tags$span(vs))
+##    })
+##    output$vnaming <- renderUI({
+##        tags$div(tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]))
+##    })
+##}
