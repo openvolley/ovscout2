@@ -73,6 +73,8 @@ ov_scouter_server <- function(app_data) {
 
         playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show, plays_cols_renames = plays_cols_renames)
 
+        tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata)
+
         video_state <- reactiveValues(paused = TRUE) ## starts paused
         editing <- reactiveValues(active = NULL)
 
