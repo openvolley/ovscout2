@@ -729,8 +729,8 @@ ov_scouter_server <- function(app_data) {
         })
 
         observeEvent(input$end_of_set, {
-            rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
             game_state$set_number <- game_state$set_number + 1L
+            rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
             game_state$home_score_start_of_point <- game_state$visiting_score_start_of_point <- 0L
             remove_scout_modal()
             ## TODO show modal for lineups
