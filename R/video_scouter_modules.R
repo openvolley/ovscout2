@@ -9,11 +9,14 @@ mod_teamslists_ui <- function(id) {
 mod_teamslists <- function(input, output, session, rdata) {
     output$htroster <- renderUI({
         re <- names2roster(rdata$dvw$meta$players_h)
-        do.call(tags$div, c(list(tags$strong("Home team"), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+        htn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]
+        do.call(tags$div, c(list(tags$strong(htn), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+
     })
     output$vtroster <- renderUI({
         re <- names2roster(rdata$dvw$meta$players_v)
-        do.call(tags$div, c(list(tags$strong("Visiting team"), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+        vtn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]
+        do.call(tags$div, c(list(tags$strong(vtn), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
     })
 }
 
@@ -450,4 +453,24 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
 
     list(htdata_edit = htdata_edit, vtdata_edit = vtdata_edit)
 
+}
+
+mod_teamscores_ui <- function(id) {
+    ns <- NS(id)
+    tags$div(style = "border-radius: 4px; padding: 1px",
+             fluidRow(column(6, id = "hscore", uiOutput(ns("hscoring"))),
+                      column(6, id = "vscore", uiOutput(ns("vscoring"))))
+    )
+}
+
+mod_teamscores <- function(input, output, session, game_state, rdata) {
+
+    output$hscoring <- renderUI({
+        hs <- game_state$home_score_start_of_point
+        tags$div(tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]), tags$br(),tags$span(hs))
+    })
+    output$vscoring <- renderUI({
+        vs <- game_state$visiting_score_start_of_point
+        tags$div(tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]), tags$br(),tags$span(vs))
+    })
 }
