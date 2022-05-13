@@ -1092,6 +1092,8 @@ ov_scouter_server <- function(app_data) {
             vt_other <- setdiff(vt_other, get_liberos(game_state, team = "a", dvw = rdata$dvw))
             vt_sub_out <- make_fat_radio_buttons(choices = vt_on, selected = NA, input_var = "vt_sub_out")
             vt_sub_in <- make_fat_radio_buttons(choices = vt_other, selected = NA, input_var = "vt_sub_in")
+            ht_can_sub <- length(ht_sub_in) > 0
+            vt_can_sub <- length(vt_sub_in) > 0
 
             showModal(vwModalDialog(title = "Miscellaneous", footer = NULL,
                                     fluidRow(column(2, if (!is.null(rdata$dvw$plays2)) {
@@ -1113,17 +1115,18 @@ ov_scouter_server <- function(app_data) {
                                              column(2, make_fat_buttons(choices = c(Timeout = "*T"), input_var = "manual_code")),
                                              column(2, offset = 2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "manual_code")),
                                              column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "manual_code"))),
-                                    fluidRow(column(6, tags$p("Player out"),
-                                                    do.call(fixedRow, lapply(ht_sub_out, function(but) column(2, but))),
-                                                    tags$p("Player in"),
-                                                    do.call(fixedRow, lapply(ht_sub_in, function(but) column(if (length(ht_other) <= 6) 2 else 1, but)))),
-                                             column(6, tags$p("Player out"),
-                                                    do.call(fixedRow, lapply(vt_sub_out, function(but) column(2, but))),
-                                                    tags$p("Player in"),
-                                                    do.call(fixedRow, lapply(vt_sub_in, function(but) column(if (length(vt_other) <= 6) 2 else 1, but))))
+                                    tags$br(),
+                                    fluidRow(column(6, if (ht_can_sub) tags$div(tags$p(tags$strong("Substitution"), "Player out"),
+                                                                                do.call(fixedRow, lapply(ht_sub_out, function(but) column(2, but))),
+                                                                                tags$p("Player in"),
+                                                                                do.call(fixedRow, lapply(ht_sub_in, function(but) column(if (length(ht_other) <= 6) 2 else 1, but))))),
+                                             column(6, if (vt_can_sub) tags$div(tags$p(tags$strong("Substitution"), "Player out"),
+                                                                                do.call(fixedRow, lapply(vt_sub_out, function(but) column(2, but))),
+                                                                                tags$p("Player in"),
+                                                                                do.call(fixedRow, lapply(vt_sub_in, function(but) column(if (length(vt_other) <= 6) 2 else 1, but)))))
                                              ),
-                                    fluidRow(column(2, offset = 4, make_fat_buttons(choices = c("Make substitution" = "*C"), input_var = "manual_code")),
-                                             column(2, offset = 4, make_fat_buttons(choices = c("Make substitution" = "aC"), input_var = "manual_code"))),
+                                    fluidRow(column(2, offset = 4, if (ht_can_sub) make_fat_buttons(choices = c("Make substitution" = "*C"), input_var = "manual_code")),
+                                             column(2, offset = 4, if (vt_can_sub) make_fat_buttons(choices = c("Make substitution" = "aC"), input_var = "manual_code"))),
                                     tags$hr(),
                                     fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Return to scouting", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
                                     ))
