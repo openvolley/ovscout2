@@ -153,7 +153,7 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
             cnames[plays_cols_to_show == "error_icon"] <- ""
             dat <- setNames(as.data.frame(dat[, plays_cols_to_show, drop = FALSE]), cnames)
 
-            html <- shiny::renderTable(dat)()
+            html <- shiny::renderTable(dat, na = "")()
             ## inject our pl2_fixhdr class name
             html <- sub("(class[[:space:]]*=[[:space:]]*['\"][^'\"]*)(['\"])", "\\1 pl2_fixhdr\\2", html)
             if (!is.null(selected)) {
