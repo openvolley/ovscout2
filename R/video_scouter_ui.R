@@ -43,7 +43,6 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                        ),
                               if (app_data$with_video) introBox(tags$div(id = "video_holder", style = "position:relative;", tags$video(id = "main_video", style = "border: 1px solid black; width: 90%;", src = file.path(app_data$video_server_base_url, basename(app_data$video_src)), autoplay = "false")), tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 4, data.intro = "Video of the game to scout."), ##controls = "controls",
                               fluidRow(column(4, offset = 8, uiOutput("rally_state"))),
-                              #fluidRow(column(4, offset = 4, wellPanel(mod_teamscores_ui(id = "tsc")))),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
                               fluidRow(column(8,
                                               ## some elements commented out for now - BR

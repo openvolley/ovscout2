@@ -73,8 +73,6 @@ ov_scouter_server <- function(app_data) {
 
         playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show, plays_cols_renames = plays_cols_renames)
 
-        tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata)
-
         video_state <- reactiveValues(paused = TRUE) ## starts paused
         editing <- reactiveValues(active = NULL)
 
@@ -313,7 +311,7 @@ ov_scouter_server <- function(app_data) {
                                 vt <- max(rdata$dvw$plays$video_time, na.rm = TRUE)
                             }
                             if (!is.null(vt) && !is.na(vt)) {
-                                cat("jumping to video time: ", vt, "\n")
+                                if (debug > 1) cat("jumping to video time: ", vt, "\n")
                                 do_video("set_time", vt)
                             }
                         } else if (ky %in% utf8ToInt("uU")) {
@@ -359,8 +357,6 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
-
-        gg_tight <- list(theme(legend.position = "none", panel.background = element_rect(fill = "transparent", colour = NA), plot.background = element_rect(fill = "transparent", color = NA), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.spacing = unit(0, "null"), plot.margin = rep(unit(0, "null"), 4), axis.ticks = element_blank(), axis.ticks.length = unit(0, "null"), axis.text.x = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank(), axis.title.y = element_blank()), scale_x_continuous(limits = c(0, 1), expand = c(0, 0)), scale_y_continuous(limits = c(0, 1), expand = c(0, 0)))
         overlay_points <- reactiveVal(NULL)
         observe({
             output$video_overlay <- renderPlot({
@@ -390,7 +386,6 @@ ov_scouter_server <- function(app_data) {
             }
             imagexy
         }
-        flash_screen <- function() dojs("$('#video_overlay_img').css('background-color', '#FFFF0080'); setTimeout(function() { $('#video_overlay_img').css('background-color', ''); }, 50);")
 
         loop_trigger <- reactiveVal(0L)
         observeEvent(input$video_click, {
@@ -564,16 +559,10 @@ ov_scouter_server <- function(app_data) {
                     ## popup
                     ac <- c(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end(), opts = app_data$options), "Other attack")
                     c3_buttons <- make_fat_radio_buttons(choices = c(setNames(ac, ac), c("Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR")), input_var = "c3")
-                    #ap <- get_players(game_state, dvw = rdata$dvw)
-
                     attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
-
                     ap <- attack_pl_opts$choices
-
-                    ## TODO default selection better based on rotation
                     names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
                     ap <- c(ap, Unknown = "Unknown")
-
                     attacker_buttons <- make_fat_radio_buttons(choices = ap, selected = attack_pl_opts$selected, input_var = "c3_player")
                     if (isTRUE(app_data$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3), selected = if (!is.null(app_data$options$default_nblockers)) app_data$options$default_nblockers, input_var = "nblockers")
                     ## attack error, blocked, replay will be scouted on next entry
@@ -616,10 +605,6 @@ ov_scouter_server <- function(app_data) {
                     digp <- dig_pl_opts$choices
                     names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
                     digp <- c(digp, Unknown = "Unknown")
-
-                    # digp <- c(get_players(game_state, dvw = rdata$dvw), get_liberos(game_state, dvw = rdata$dvw)) ## TODO better based on rotation
-                    # names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
-                    # digp <- c(digp, Unknown = "Unknown")
                     dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "c1_def_player")
                     blockp <- get_players(game_state, team = game_state$current_team, dvw = rdata$dvw)
                     if (length(blockp) == 6) blockp <- blockp[2:4] ## front-row
@@ -654,7 +639,7 @@ ov_scouter_server <- function(app_data) {
         })
 
 
-        rally_ended <- function() {##if (rally_state() == "rally ended") {
+        rally_ended <- function() {
             ## add rally codes to scout object now
             rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw)))
             do_rally_end_things()
@@ -1052,9 +1037,10 @@ ov_scouter_server <- function(app_data) {
         })
 
         output$rally_state <- renderUI({
-            tags$div(id = "rallystate", ##style = if (!is.null(input$vo_voffset) && as.numeric(input$vo_voffset) > 0) paste0("margin-top: ", input$vo_offset - 50, "px") else "",
-                     tags$strong("Rally state: "), rally_state())
+            tags$div(id = "rallystate", tags$strong("Rally state: "), rally_state())
         })
+
+        ## handle the pre-selection of serve player and type
         observeEvent(rally_state(), {
             if (rally_state() == "click serve start") {
                 ## show the serve player and tempo pre-select buttons
