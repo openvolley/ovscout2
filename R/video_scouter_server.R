@@ -2,12 +2,6 @@ ov_scouter_server <- function(app_data) {
     function(input, output, session) {
         debug <- 1L
 
-        styling <- list(h_court_colour = "#bfefff", ## lightblue1
-                        h_court_highlight = "darkblue",
-                        v_court_colour = "#bcee68", ## darkolivegreen2
-                        v_court_highlight = "darkgreen",
-                        continue = "#10C424", cancel = "#D41024", undo = "#EB6927")
-
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "home_setter_position", "visiting_setter_position", "Score", "is_skill")
         plays_cols_renames <- c(Set = "set_number", hs = "home_setter_position", as = "visiting_setter_position")
 
@@ -23,7 +17,7 @@ ov_scouter_server <- function(app_data) {
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
         ## court inset showing rotation and team lists
-        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, styling = styling, with_ball_coords = FALSE)
+        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, styling = app_data$styling, with_ball_coords = FALSE)
         ## force a team rotation
         rotate_teams <- reactive(court_inset$rt)
         observe({
@@ -50,7 +44,7 @@ ov_scouter_server <- function(app_data) {
         detection_ref <- reactiveVal({
             if (!is.null(app_data$court_ref)) app_data$court_ref else NULL
         })
-        courtref <- callModule(mod_courtref, id = "courtref", rdata = rdata, app_data = app_data, detection_ref = detection_ref, styling = styling)
+        courtref <- callModule(mod_courtref, id = "courtref", rdata = rdata, app_data = app_data, detection_ref = detection_ref, styling = app_data$styling)
 
         ## court module clicking not used here yet
         ##accept_ball_coords <- court_inset$accept_ball_coords ## the "accept" button
@@ -171,9 +165,9 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## match, team, and lineup data editing
-        match_data_edit_mod <- callModule(mod_match_data_edit, id = "match_data_editor", rdata = rdata, editing = editing, styling = styling)
-        team_edit_mod <- callModule(mod_team_edit, id = "team_editor", rdata = rdata, editing = editing, styling = styling)
-        lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, video_state = video_state, styling = styling)
+        match_data_edit_mod <- callModule(mod_match_data_edit, id = "match_data_editor", rdata = rdata, editing = editing, styling = app_data$styling)
+        team_edit_mod <- callModule(mod_team_edit, id = "team_editor", rdata = rdata, editing = editing, styling = app_data$styling)
+        lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, video_state = video_state, styling = app_data$styling)
 
         observeEvent(input$edit_cancel, {
             if (!is.null(editing$active) && editing$active %in% "teams") {
@@ -509,8 +503,8 @@ ov_scouter_server <- function(app_data) {
                                                    tags$div(id = "passers_ui", style = if (!is.na(guess_was_err)) "display:none;", tags$p(tags$strong("Select passer:")),
                                                             do.call(fixedRow, lapply(passer_buttons, function(but) column(1, but)))),
                                                    tags$hr(),
-                                                   fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
-                                                            column(2, offset = 8, actionButton("assign_serve_outcome", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
+                                                   fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
+                                                            column(2, offset = 8, actionButton("assign_serve_outcome", "Continue", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
                                                    ))
                 } else if (rally_state() == "click second contact") {
                     ## set (play continues), setter dump, set error, P2 attack, or freeball over (by the receiving team)
@@ -557,8 +551,8 @@ ov_scouter_server <- function(app_data) {
                                             tags$br(),
                                             do.call(fixedRow, lapply(opp_buttons, function(but) column(1, but))),
                                             tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
-                                                     column(2, offset = 8, actionButton("assign_c2", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
+                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
+                                                     column(2, offset = 8, actionButton("assign_c2", "Continue", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
                                             ))
                 } else if (rally_state() == "click third contact") {
                     ## attack, freeball over (by the setting team)
@@ -597,8 +591,8 @@ ov_scouter_server <- function(app_data) {
                                             tags$br(), tags$p("by player"), tags$br(),
                                             do.call(fixedRow, lapply(opp_player_buttons, function(but) column(1, but))),
                                             tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
-                                                     column(2, offset = 8, actionButton("assign_c3", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
+                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
+                                                     column(2, offset = 8, actionButton("assign_c3", "Continue", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
                                             ))
                 } else if (rally_state() == "click attack end point") {
                     ## dig, dig error (attack kill), attack error, blocked, blocked for replay, block touch (attack kill)
@@ -634,8 +628,8 @@ ov_scouter_server <- function(app_data) {
                                             tags$br(), tags$hr(), tags$div("WITH", tags$strong("Block touch"), "by player"), tags$br(),
                                             do.call(fixedRow, lapply(block_player_buttons, function(but) column(2, but))),
                                             tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
-                                                     column(2, offset = 8, actionButton("assign_c1", "Continue", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
+                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
+                                                     column(2, offset = 8, actionButton("assign_c1", "Continue", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
                                             ))
                 } else {
                     stop("unknown rally state: ", rally_state())
@@ -668,8 +662,8 @@ ov_scouter_server <- function(app_data) {
                     modalDialog(title = "End of set", easyClose = FALSE, footer = NULL,
                                 paste0("Confirm end of set ", game_state$set_number, "?"),
                                 tags$hr(),
-                                fixedRow(column(2, actionButton("cancel", "Cancel", style = paste0("width:100%; height:7vh; background-color:", styling$cancel))),
-                                         column(2, offset = 8, actionButton("end_of_set", "Confirm", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
+                                fixedRow(column(2, actionButton("cancel", "Cancel", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
+                                         column(2, offset = 8, actionButton("end_of_set", "Confirm", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
                                 ))
                 do_video("pause")
                 rally_state("confirm end of set")
@@ -1120,7 +1114,7 @@ ov_scouter_server <- function(app_data) {
                                              ),
                                     tags$hr(),
                                     tags$p(tags$strong("Match actions")),
-                                    fluidRow(column(2, actionButton("undo", "Undo last rally action", style = paste0("width:100%; height:7vh; background-color:", styling$undo))),
+                                    fluidRow(column(2, actionButton("undo", "Undo last rally action", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$undo))),
                                              ## only partially implemented
                                              column(2, actionButton("enter_code", "Enter scout code", style = paste0("width:100%; height:7vh;")), tags$span(style = "font-size:small;", "Only non-skill codes are supported")),
                                              column(2, actionButton("end_of_set", "End of set", style = paste0("width:100%; height:7vh;")))),
@@ -1145,7 +1139,7 @@ ov_scouter_server <- function(app_data) {
                                     fluidRow(column(2, offset = 4, if (ht_can_sub) make_fat_buttons(choices = c("Make substitution" = "*C"), input_var = "manual_code")),
                                              column(2, offset = 4, if (vt_can_sub) make_fat_buttons(choices = c("Make substitution" = "aC"), input_var = "manual_code"))),
                                     tags$hr(),
-                                    fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Return to scouting", style = paste0("width:100%; height:7vh; background-color:", styling$continue))))
+                                    fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Return to scouting", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
                                     ))
         }
         observeEvent(input$admin_dismiss, {

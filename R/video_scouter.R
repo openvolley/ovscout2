@@ -142,6 +142,16 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
     } else {
         stop("both the plays and plays2 components of x are non-empty, so I'm not sure which to use")
     }
+    ## styling
+    ## note that colours here need to be hex strings or names, but names must be recognized both by R and as CSS colour names
+    app_data$styling <- list(h_court_colour = "#BFEFFF", ## lightblue1
+                             h_court_highlight = "darkblue",
+                             v_court_colour = "#BCEE68", ## darkolivegreen2
+                             v_court_highlight = "darkgreen",
+                             continue = "#10C424", cancel = "#D41024", undo = "#EB6927",
+                             libero_colour = "grey90", setter_colour = "yellow",
+                             playslist_highlight = "orange")
+
     this_app <- list(ui = ov_scouter_ui(app_data = app_data), server = ov_scouter_server(app_data = app_data))
     shiny::runApp(this_app, display.mode = "normal", launch.browser = launch_browser)
 }
