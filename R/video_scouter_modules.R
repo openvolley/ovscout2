@@ -102,7 +102,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                 libxy <- tibble(number = libs) %>%
                     dplyr::left_join(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
                 libxy$pos <- c(5, 7)[seq_len(nrow(libxy))]
-                libxy <- cbind(dv_xy(libxy$pos, end = "lower"), libxy) %>% mutate(x = x - 1)
+                libxy <- cbind(dv_xy(libxy$pos, end = "lower"), libxy) %>% mutate(x = .data$x - 1)
                 p <- p + geom_polygon(data = court_circle(libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black") +
                     geom_text(data = libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
                     geom_text(data = libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
@@ -125,7 +125,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                 libxy <- tibble(number = libs) %>%
                     dplyr::left_join(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
                 libxy$pos <- c(1, 9)[seq_len(nrow(libxy))]
-                libxy <- cbind(dv_xy(libxy$pos, end = "upper"), libxy) %>% mutate(x = x - 1)
+                libxy <- cbind(dv_xy(libxy$pos, end = "upper"), libxy) %>% mutate(x = .data$x - 1)
                 p <- p + geom_polygon(data = court_circle(libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black") +
                     geom_text(data = libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
                     geom_text(data = libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
@@ -169,8 +169,8 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                        x = c(-0.5, -0.5),
                        y = c(3, 4)
                        )
-        scxy <- scxy %>% mutate(x = case_when(court_inset_home_team_end() != "lower" ~ x,
-                                              court_inset_home_team_end() == "lower" ~ x + 5))
+        scxy <- scxy %>% mutate(x = case_when(court_inset_home_team_end() != "lower" ~ .data$x,
+                                              court_inset_home_team_end() == "lower" ~ .data$x + 5))
 
         p <- p + geom_text(data = scxy, aes_string("x", "y", label = "score"), size = 6, fontface = "bold", vjust = 0)
 
