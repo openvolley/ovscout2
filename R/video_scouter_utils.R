@@ -70,18 +70,25 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
 ## rationalize plays2 rows
 rp2 <- function(p2) {
     ## strip out redundant codes
-    ## if we have multiple az or *z codes (setter locations) without other intervening codes then just take the last of each
+    ## if we have multiple az or *z codes (setter locations) without other intervening codes (other than *P or aP, which designate the setter on court) then just take the last of each
     ok <- rep(TRUE, nrow(p2))
-    home_sl <- FALSE; visiting_sl <- FALSE
+    home_sl <- FALSE; visiting_sl <- FALSE; home_snum <- FALSE; visiting_snum <- FALSE
     is_home_sl <- grepl("^\\*z", p2$code)
     is_visiting_sl <- grepl("^az", p2$code)
+    is_home_snum <- grepl("^\\*P", p2$code)
+    is_visiting_snum <- grepl("^aP", p2$code)
+    ## go backwards through codes. For each block of these codes, keep the last of each that we see (which will be the first that we encounter going backwards)
     for (i in rev(seq_len(nrow(p2)))) {
-        if (!is_visiting_sl[i] && !is_home_sl[i]) {
-            home_sl <- visiting_sl <- FALSE
+        if (!is_visiting_sl[i] && !is_home_sl[i] && !is_home_snum[i] && !is_visiting_snum[i]) {
+            home_sl <- visiting_sl <- home_snum <- visiting_snum <- FALSE
         } else if (is_home_sl[i]) {
             if (!home_sl) home_sl <- TRUE else ok[i] <- FALSE
         } else if (is_visiting_sl[i]) {
             if (!visiting_sl) visiting_sl <- TRUE else ok[i] <- FALSE
+        } else if (is_home_snum[i]) {
+            if (!home_snum) home_snum <- TRUE else ok[i] <- FALSE
+        } else if (is_visiting_snum[i]) {
+            if (!visiting_snum) visiting_snum <- TRUE else ok[i] <- FALSE
         }
     }
     p2[ok, ]
