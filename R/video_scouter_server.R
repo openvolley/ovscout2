@@ -956,8 +956,11 @@ ov_scouter_server <- function(app_data) {
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
                     ## although we use PP and P2 in the R code here, we can use different combo codes in the dvw, following app_data$options$setter_dump_code and app_data$options$second_ball_attack_code
                     trg <- if (input$c2 == "PP") "S" else "~"
+                    ## update target in the preceding set row, if there was one
+                    ##if (tail(rc$skill, 1) == "E") rc$target[nrow(rc)] <- trg
+                    ## these only seem to be populated when setter calls are used TODO
                     cmb <- if (input$c2 == "PP") app_data$options$setter_dump_code else app_data$options$second_ball_attack_code
-                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = cmb, target = trg, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
+                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = cmb, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
                     rally_state("click attack end point")
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                 } else if (input$c2 == "F") {
@@ -1041,10 +1044,13 @@ ov_scouter_server <- function(app_data) {
                     }
                     if (nchar(tempo) != 1) tempo <- "~"
                     if (nchar(targ) != 1 || targ %eq% "-") targ <- "~"
+                    ## update target in the preceding set row, if there was one
+                    ##if (tail(rc$skill, 1) == "E") rc$target[nrow(rc)] <- targ
+                    ## these only seem to be populated when setter calls are used TODO
                     nb <- input$nblockers
                     if (is.null(nb) || !nb %in% 0:3) nb <- "~"
                     ##if (nchar(input$c3) == 2) {
-                    rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$current_team, pnum = ap, skill = "A", tempo = tempo, combo = ac, target = targ, sz = sz, num_p = nb, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
+                    rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$current_team, pnum = ap, skill = "A", tempo = tempo, combo = ac, sz = sz, num_p = nb, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
                     rally_state("click attack end point")
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                 }
