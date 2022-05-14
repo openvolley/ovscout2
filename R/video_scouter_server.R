@@ -309,28 +309,34 @@ ov_scouter_server <- function(app_data) {
                             ## temporarily hide the modal, so the video can be seen
                             dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
                         } else if (ky %in% utf8ToInt("qQ0")) {
-                            ## video pause/unpause
-                            deal_with_pause()
-                        } else if (ky %in% utf8ToInt("gG#")) {
-                            ## video go to currently-selected event
-                            vt <- game_state$video_time
-                            if (is.null(vt) || is.na(vt)) {
-                                vt <- max(rdata$dvw$plays$video_time, na.rm = TRUE)
+                            ## only accept this if we are not editing, or it's the admin modal being shown
+                            if (is.null(editing$active) || editing$active %eq% "admin") {
+                                ## video pause/unpause
+                                deal_with_pause()
                             }
-                            if (!is.null(vt) && !is.na(vt)) {
-                                if (debug > 1) cat("jumping to video time: ", vt, "\n")
-                                do_video("set_time", vt)
-                            }
-                        } else if (ky %in% utf8ToInt("uU")) {
-                            ## undo
-                            do_undo()
-                        } else if (ky %in% utf8ToInt("nm13jhl;46$^b,79")) {
-                            if (is.null(editing$active)) {
-                                ## video forward/backward nav
-                                ## same as for other ovscout interface, although the fine control is not needed here?
-                                vidcmd <- if (ky %in% utf8ToInt("1nhj4$b7")) "rew" else "ff"
-                                dur <- if (ky %in% utf8ToInt("h$;^")) 10 else if (ky %in% utf8ToInt("nm13")) 0.1 else if (ky %in% utf8ToInt("b7,9")) 1/30 else 2
-                                do_video(vidcmd, dur)
+                        } else if (is.null(editing$active)) {
+                            ## none of these should be allowed to happen if we are e.g. editing lineups or teams
+                            if (ky %in% utf8ToInt("gG#")) {
+                                ## video go to currently-selected event
+                                vt <- game_state$video_time
+                                if (is.null(vt) || is.na(vt)) {
+                                    vt <- max(rdata$dvw$plays$video_time, na.rm = TRUE)
+                                }
+                                if (!is.null(vt) && !is.na(vt)) {
+                                    if (debug > 1) cat("jumping to video time: ", vt, "\n")
+                                    do_video("set_time", vt)
+                                }
+                            } else if (ky %in% utf8ToInt("uU")) {
+                                ## undo
+                                do_undo()
+                            } else if (ky %in% utf8ToInt("nm13jhl;46$^b,79")) {
+                                if (is.null(editing$active)) {
+                                    ## video forward/backward nav
+                                    ## same as for other ovscout interface, although the fine control is not needed here?
+                                    vidcmd <- if (ky %in% utf8ToInt("1nhj4$b7")) "rew" else "ff"
+                                    dur <- if (ky %in% utf8ToInt("h$;^")) 10 else if (ky %in% utf8ToInt("nm13")) 0.1 else if (ky %in% utf8ToInt("b7,9")) 1/30 else 2
+                                    do_video(vidcmd, dur)
+                                }
                             }
                         }
                     }
