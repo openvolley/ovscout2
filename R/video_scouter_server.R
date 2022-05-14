@@ -998,7 +998,6 @@ ov_scouter_server <- function(app_data) {
             ## set uses end position for zone/subzone
             esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
             passq <- guess_pass_quality(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end())
-            ## TODO, this better
             rc <- rally_codes()
             rc$eval[rc$skill %eq% "R"] <- passq
             ## find corresponding serve evaluation code
