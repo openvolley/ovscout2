@@ -168,13 +168,15 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         p <- p + geom_polygon(data = temp, fill = if (px$serving %eq% "*") "white" else NA, colour = "black")
 
         ## add the score on the right side
-        scxy <- tibble(score = c(px$home_score_start_of_point, px$visiting_score_start_of_point),
-                       x = c(-0.5, -0.5),
-                       y = c(3, 4)
-                       )
-        scxy <- scxy %>% mutate(x = case_when(court_inset_home_team_end() != "lower" ~ .data$x,
-                                              court_inset_home_team_end() == "lower" ~ .data$x + 5))
-        p + geom_text(data = scxy, aes_string("x", "y", label = "score"), size = 6, fontface = "bold", vjust = 0)
+        if (!is.null(px$home_score_start_of_point) && !is.null(px$visiting_score_start_of_point)) {
+            scxy <- tibble(score = c(px$home_score_start_of_point, px$visiting_score_start_of_point),
+                           x = c(-0.5, -0.5),
+                           y = c(3, 4)
+                           )
+            scxy <- scxy %>% mutate(x = case_when(court_inset_home_team_end() != "lower" ~ .data$x,
+                                                  court_inset_home_team_end() == "lower" ~ .data$x + 5))
+            p + geom_text(data = scxy, aes_string("x", "y", label = "score"), size = 6, fontface = "bold", vjust = 0)
+        }
     })
 
     output$court_inset <- renderPlot({
