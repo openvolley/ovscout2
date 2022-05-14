@@ -749,6 +749,8 @@ ov_scouter_server <- function(app_data) {
             game_state$set_number <- game_state$set_number + 1L
             rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
             game_state$home_score_start_of_point <- game_state$visiting_score_start_of_point <- 0L
+            ## update match metadata
+            rdata$dvw <- update_meta(rdata$dvw)
             remove_scout_modal()
             ## TODO show modal for lineups
             showModal(
@@ -1267,7 +1269,7 @@ ov_scouter_server <- function(app_data) {
                 if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename)) basename(rdata$dvw$meta$filename) else "myfile.dvw"
             ),
             content = function(file) {
-                tryCatch(dv_write2(rdata$dvw, file = file),
+                tryCatch(dv_write2(update_meta(rdata$dvw), file = file),
                          error = function(e) {
                              rds_ok <- FALSE
                              if (!nzchar(Sys.getenv("SHINY_PORT"))) {
