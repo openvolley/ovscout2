@@ -447,8 +447,13 @@ ov_scouter_server <- function(app_data) {
                 courtxy <- vid_to_crt(input$video_click)
                 ##court_inset$add_to_click_queue(courtxy)
                 if (rally_state() == "click or unpause the video to start") {
-                    do_video("play")
-                    rally_state("click serve start")
+                    if (!lineups_are_valid()) {
+                        ## don't allow unpause if the lineups are not valid, else it'll crash
+                        showModal(modalDialog(title = "Lineups needed", easyClose = TRUE, paste0("Use 'Edit lineups' to enter starting lineups for set ", game_state$set_number)))
+                    } else {
+                        do_video("play")
+                        rally_state("click serve start")
+                    }
                 } else if (rally_state() == "click serve start") {
                     ## click was the serve position
                     game_state$start_x <- courtxy$x[1]
