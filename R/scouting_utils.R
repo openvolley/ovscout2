@@ -301,6 +301,10 @@ update_meta <- function(x, set_ended = FALSE) {
     }
     ## update all set results, excluding durations
     set_start_rows <- which(grepl(">Lup", x$plays2$code) & !grepl(">Lup", dplyr::lag(x$plays2$code)))
+    if (nrow(x$meta$result) < length(set_start_rows)) {
+        temp <- length(set_start_rows) - nrow(x$meta$result)
+        x$meta$result <- bind_rows(x$meta$result, tibble(played = rep(NA, temp), score_intermediate1 = rep(NA_character_, temp), score_intermediate2 = rep(NA_character_, temp), score_intermediate3 = rep(NA_character_, temp), score = rep(NA_character_, temp), duration = rep(NA_real_, temp), X7 = rep(NA, temp), score_home_team = rep(NA_real_, temp), score_visiting_team = rep(NA_real_, temp)))
+    }
     x$meta$result$played[seq_along(set_start_rows)] <- TRUE
     set_end_rows <- grep("^\\*\\*[[:digit:]]set", x$plays2$code)
     if (length(set_start_rows) == (length(set_end_rows) + 1) && length(set_start_rows) > 1 && all(set_end_rows > head(set_start_rows, -1))) {
@@ -386,8 +390,7 @@ is_end_of_set <- function(x) {
 ## write the scouted match to a file, using the plays2 data instead of the plays
 ## then it is possible to read that file back in, which will populate the full plays data.frame without having to duplicate the code needed to do this
 dv_write2 <- function(x, file, text_encoding = "UTF-8") {
-    plays_saved <- x$plays
-    x$plays <- tibble()
+    x[["plays"]] <- tibble()
     ## write without the plays part
     dv_write(x, file = file, text_encoding = text_encoding)
     ## now the plays but from plays2
