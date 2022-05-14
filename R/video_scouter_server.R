@@ -2,8 +2,8 @@ ov_scouter_server <- function(app_data) {
     function(input, output, session) {
         debug <- 1L
 
-        plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "home_setter_position", "visiting_setter_position", "Score", "is_skill")
-        plays_cols_renames <- c(Set = "set_number", hs = "home_setter_position", as = "visiting_setter_position")
+        plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "Score") ##"home_setter_position", "visiting_setter_position", "is_skill"
+        plays_cols_renames <- c(Set = "set_number")##, hs = "home_setter_position", as = "visiting_setter_position")
 
         if (is.null(app_data$dvw$meta$match$regulation)) stop("dvw does not have regulation information")
         app_data$is_beach <- is_beach(app_data$dvw)
@@ -750,7 +750,7 @@ ov_scouter_server <- function(app_data) {
             rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
             game_state$home_score_start_of_point <- game_state$visiting_score_start_of_point <- 0L
             ## update match metadata
-            rdata$dvw <- update_meta(rdata$dvw)
+            rdata$dvw <- update_meta(rp2(rdata$dvw))
             remove_scout_modal()
             ## TODO show modal for lineups
             showModal(
@@ -1269,7 +1269,7 @@ ov_scouter_server <- function(app_data) {
                 if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename)) basename(rdata$dvw$meta$filename) else "myfile.dvw"
             ),
             content = function(file) {
-                tryCatch(dv_write2(update_meta(rdata$dvw), file = file),
+                tryCatch(dv_write2(update_meta(rp2(rdata$dvw)), file = file),
                          error = function(e) {
                              rds_ok <- FALSE
                              if (!nzchar(Sys.getenv("SHINY_PORT"))) {
