@@ -291,15 +291,8 @@ update_meta <- function(x, set_ended = FALSE) {
         if (nrow(x$meta$result) < x$game_state$set_number) {
             x$meta$result <- bind_rows(x$meta$result, x$meta$result[0, ][rep(1, x$game_state$set_number - nrow(x$meta$result)), ]) ## add all-NA row(s)
         }
-        set_start_rows <- which(grepl(">Lup", x$plays2$code) & !grepl(">Lup", dplyr::lag(x$plays2$code)))
-        if (length(set_start_rows) == x$game_state$set_number) {
-            ## duration
-            ## only do this for the set just finished, because this could be edited (or clock times edited) later
-            set_start_end_time <- range(x$plays2$time[seq(tail(set_start_rows, 1), nrow(x$plays2))], na.rm = TRUE)
-            x$meta$result$duration[x$game_state$set_number] <- as.numeric(difftime(set_start_end_time[2], set_start_end_time[1], units = "min"))
-        }
     }
-    ## update all set results, excluding durations
+    ## update all set results, including durations
     set_start_rows <- which(grepl(">Lup", x$plays2$code) & !grepl(">Lup", dplyr::lag(x$plays2$code)))
     if (nrow(x$meta$result) < length(set_start_rows)) {
         temp <- length(set_start_rows) - nrow(x$meta$result)
@@ -322,6 +315,9 @@ update_meta <- function(x, set_ended = FALSE) {
             x$meta$result$score[si] <- paste0(scores[1], "-", scores[2])
             x$meta$result$score_home_team[si] <- scores[1]
             x$meta$result$score_visiting_team[si] <- scores[2]
+            ## duration
+            set_start_end_time <- range(set_plays2$video_time, na.rm = TRUE)
+            x$meta$result$duration[si] <- round(diff(set_start_end_time) / 60)
             ## sets won
             if (is_beach) {
                 if (max(scores) >= 21 && abs(diff(scores)) >= 2) {
