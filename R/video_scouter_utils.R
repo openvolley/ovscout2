@@ -71,6 +71,12 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
 
 ## rationalize plays2 rows
 rp2 <- function(p2) {
+    ## input can either be a whole dvw object, or just the plays2 component thereof
+    was_dvw <- is.list(p2) && "plays2" %in% names(p2)
+    if (was_dvw) {
+        dvw <- p2
+        p2 <- dvw$plays2
+    }
     ## strip out redundant codes
     ## if we have multiple az or *z codes (setter locations) without other intervening codes (other than *P or aP, which designate the setter on court) then just take the last of each
     ok <- rep(TRUE, nrow(p2))
@@ -93,7 +99,15 @@ rp2 <- function(p2) {
             if (!visiting_snum) visiting_snum <- TRUE else ok[i] <- FALSE
         }
     }
-    p2[ok, ]
+    ## similarly, can't have repeated **1set etc codes
+    notok <- grepl("^\\*\\*[[:digit:]]set$", p2$code) & duplicated(p2$code, fromLast = TRUE) ## fromLast => keep the first of each
+    p2 <- p2[ok & !notok, ]
+    if (was_dvw) {
+        dvw$plays2 <- p2
+        dvw
+    } else {
+        p2
+    }
 }
 
 game_state_make_substitution <- function(game_state, team, player_out, player_in, dvw) {
