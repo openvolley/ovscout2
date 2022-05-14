@@ -720,3 +720,15 @@ plotOutputWithAttribs <- function(outputId, width = "100%", height = "400px", cl
 flash_screen <- function() dojs("$('#video_overlay_img').css('background-color', '#FFFF0080'); setTimeout(function() { $('#video_overlay_img').css('background-color', ''); }, 50);")
 
 gg_tight <- list(theme(legend.position = "none", panel.background = element_rect(fill = "transparent", colour = NA), plot.background = element_rect(fill = "transparent", color = NA), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.spacing = unit(0, "null"), plot.margin = rep(unit(0, "null"), 4), axis.ticks = element_blank(), axis.ticks.length = unit(0, "null"), axis.text.x = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank(), axis.title.y = element_blank()), scale_x_continuous(limits = c(0, 1), expand = c(0, 0)), scale_y_continuous(limits = c(0, 1), expand = c(0, 0)))
+
+infer_mid_coords <- function(game_state, start_x, start_y, end_x, end_y) {
+    if (!missing(game_state)) {
+        if (missing(start_x)) start_x <- game_state$start_x
+        if (missing(start_y)) start_y <- game_state$start_y
+        if (missing(end_x)) end_x <- game_state$end_x
+        if (missing(end_y)) end_y <- game_state$end_y
+    }
+    ## assume that ball has either bounced off the block as if it were a perpendicular surface (for A!), or not deviated from the block (for block touches, not used for this yet)
+    mid_x <- start_x + (end_x - start_x) * abs(start_y - 3.5) / (abs(start_y - 3.5) + abs(end_y - 3.5))
+    c(mid_x, 3.5)
+}

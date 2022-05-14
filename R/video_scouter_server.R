@@ -895,12 +895,14 @@ ov_scouter_server <- function(app_data) {
                 ## TODO if we already have a block skill here, don't add a new one, just update the existing one ... though there should never already be block skill here
                 ## block fault player should be in input$c1_def_player, but we'll take input$b1_block_touch_player otherwise
                 bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
-                ## TODO mid coord
+                mid_xy <- infer_mid_coords(game_state = game_state)
                 if (!is.na(Aidx)) {
                     ## adjust the attack row
                     rc$eval[Aidx] <- "!"
                     rc$ez[Aidx] <- esz[1]
                     rc$esz[Aidx] <- esz[2]
+                    rc$mid_x[Aidx] <- mid_xy[1]
+                    rc$mid_y[Aidx] <- mid_xy[2]
                     rc$end_x[Aidx] <- game_state$end_x
                     rc$end_y[Aidx] <- game_state$end_y
                 }
