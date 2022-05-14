@@ -100,7 +100,7 @@ rp2 <- function(p2) {
         }
     }
     ## similarly, can't have repeated **1set etc codes
-    notok <- grepl("^\\*\\*[[:digit:]]set$", p2$code) & duplicated(p2$code, fromLast = TRUE) ## fromLast => keep the first of each
+    notok <- grepl("^\\*\\*[[:digit:]]set$", p2$code) & duplicated(p2$code, fromLast = TRUE) ## fromLast => keep the last of each
     p2 <- p2[ok & !notok, ]
     if (was_dvw) {
         dvw$plays2 <- p2
