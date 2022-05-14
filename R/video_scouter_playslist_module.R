@@ -160,7 +160,7 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
                 my_selected_row(selected)
                 ## add the 'selected' class to the appropriate row
                 temp <- stringr::str_locate_all(html, "<tr> <td")[[1]]
-                if (nrow(temp) >= selected) {
+                if (nrow(temp) >= selected && nrow(temp) > 0) {
                     html <- paste0(substr(html, 1, temp[selected, 1] + 2), " class=\"", ns("selected"), "\"", substr(html, temp[selected, 1] + 2, nchar(html)))
                 }
             } else {
