@@ -22,16 +22,17 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
         if (nrow(rally_codes) > 0) {
             codes <- codes_from_rc_rows(rally_codes)
             start_coord <- dv_xy2index(as.numeric(rally_codes$start_x), as.numeric(rally_codes$start_y))
+            mid_coord <- dv_xy2index(as.numeric(rally_codes$mid_x), as.numeric(rally_codes$mid_y))
             end_coord <- dv_xy2index(as.numeric(rally_codes$end_x), as.numeric(rally_codes$end_y))
             vt <- rally_codes$t
         } else {
             codes <- character()
-            start_coord <- end_coord <- vt <- numeric()
+            start_coord <- mid_coord <- end_coord <- vt <- numeric()
         }
     } else {
         ## rally_codes are just char, which means that these aren't skill codes, they are auto codes (position codes or similar)
         codes <- rally_codes
-        start_coord <- end_coord <- NA_integer_
+        start_coord <- mid_coord <- end_coord <- NA_integer_
         vt <- NA_real_
     }
     if (rally_ended) {
@@ -45,6 +46,7 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
             ## we've added entries to code, so we need to add dummy (NA) coord and video time values as well
             n_extra <- length(codes) - nrow(rally_codes)
             start_coord <- c(start_coord, rep(NA_integer_, n_extra))
+            mid_coord <- c(mid_coord, rep(NA_integer_, n_extra))
             end_coord <- c(end_coord, rep(NA_integer_, n_extra))
             vt <- c(vt, rep(NA_real_, n_extra))
         }
@@ -55,7 +57,7 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
                   point_phase = NA_character_, ## col 2
                   attack_phase = NA_character_, ## col 3
 ##                  X4 = NA, ## col 4
-                  start_coordinate = start_coord, mid_coordinate = NA_integer_, end_coordinate = end_coord, ## cols 5-7
+                  start_coordinate = start_coord, mid_coordinate = mid_coord, end_coordinate = end_coord, ## cols 5-7
                   time = time_but_utc(), ## col 8
                   set_number = game_state$set_number, home_setter_position = game_state$home_setter_position, visiting_setter_position = game_state$visiting_setter_position, ## cols 9-11, NB these 3 not used directly in dv_read
                   video_file_number = NA, video_time = vt, ## cols 12-13
@@ -165,12 +167,12 @@ zpn <- function(n) sprintf("%02d", as.numeric(n))
 other <- function(tm) { oth <- rep(NA_character_, length(tm)); oth[tm %eq% "*"] <- "a"; oth[tm %eq% "a"] <- "*"; oth }
 ##other <- function(tm) c("a", "*")[as.numeric(factor(tm, levels = c("*", "a")))]
 
-empty_rally_codes <- tibble(team = character(), pnum = character(), skill = character(), tempo = character(), eval = character(), combo = character(), target = character(), sz = character(), ez = character(), esz = character(), x_type = character(), num_p = character(), special = character(), custom = character(), code = character(), t = numeric(), start_x = numeric(), start_y = numeric(), end_x = numeric(), end_y = numeric(), rally_state = character(), current_team = character())
+empty_rally_codes <- tibble(team = character(), pnum = character(), skill = character(), tempo = character(), eval = character(), combo = character(), target = character(), sz = character(), ez = character(), esz = character(), x_type = character(), num_p = character(), special = character(), custom = character(), code = character(), t = numeric(), start_x = numeric(), start_y = numeric(), mid_x = numeric(), mid_y = numeric(), end_x = numeric(), end_y = numeric(),rally_state = character(), current_team = character())
 
 print_rally_codes <- function(rc) {
     tr <- function(z) tryCatch(round(z, 1), error = function(e) z)
     rc$code <- codes_from_rc_rows(rc)
-    do.call(cat, c(lapply(seq_len(nrow(rc)), function(i) paste0(rc$code[i], ", t=", tr(rc$t[i]), ", start x=", tr(rc$start_x[i]), ", y=", tr(rc$start_y[i]), ", end x=", tr(rc$end_x[i]), ", y=", tr(rc$end_y[i]))), list(sep = "\n")))
+    do.call(cat, c(lapply(seq_len(nrow(rc)), function(i) paste0(rc$code[i], ", t=", tr(rc$t[i]), ", start x=", tr(rc$start_x[i]), ", y=", tr(rc$start_y[i]), ", mid x=", tr(rc$mid_x[i]), ", y=", tr(rc$mid_y[i]), ", end x=", tr(rc$end_x[i]), ", y=", tr(rc$end_y[i]))), list(sep = "\n")))
 }
 codes_from_rc_rows <- function(rc) {
     if (!"code" %in% names(rc)) rc$code <- NA_character_
@@ -184,22 +186,22 @@ codes_from_rc_rows <- function(rc) {
 }
 
 ## the code parm here can be used to provide a direct scout code, useful if e.g. the tibble row isn't a scouted skill
-code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, end_x = NA_real_, end_y = NA_real_, code = NA_character_, rally_state, current_team, default_scouting_table) {
+code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, mid_x = NA_real_, mid_y = NA_real_, end_x = NA_real_, end_y = NA_real_, code = NA_character_, rally_state, current_team, default_scouting_table) {
     ## abbreviated parameter names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
     ## providing 'code' is a special case
     if (!is.na(code)) {
         NAc <- NA_character_
-        tibble(team = NAc, pnum = NAc, skill = NAc, tempo = NAc, eval = NAc, combo = NAc, target = NAc, sz = NAc, ez = NAc, esz = NAc, x_type = NAc, num_p = NAc, special = NAc, custom = NAc, code = code, t = t, start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y, rally_state = rally_state, current_team = current_team)
+        tibble(team = NAc, pnum = NAc, skill = NAc, tempo = NAc, eval = NAc, combo = NAc, target = NAc, sz = NAc, ez = NAc, esz = NAc, x_type = NAc, num_p = NAc, special = NAc, custom = NAc, code = code, t = t, start_x = start_x, start_y = start_y, mid_x = mid_x, mid_y = mid_y, end_x = end_x, end_y = end_y, rally_state = rally_state, current_team = current_team)
     } else {
         if (missing(tempo) || tempo %eq% "~" || is.na(tempo)) tempo <- tryCatch(default_scouting_table$tempo[default_scouting_table$skill == skill], error = function(e) "~")
         if (missing(eval) || eval %eq% "~" || is.na(eval)) eval <- tryCatch(default_scouting_table$evaluation_code[default_scouting_table$skill == skill], error = function(e) "~")
         if ((missing(x_type) || x_type %eq% "~" || is.na(x_type)) && skill %eq% "A") x_type <- "H" ## default to hard hit
         if (is.null(pnum) || is.na(pnum) || pnum %eq% "Unknown") pnum <- 0L
-        as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = combo, target = target, sz = sz, ez = ez, esz = esz, x_type = x_type, num_p = num_p, special = special, custom = custom), as.character), list(code = code, t = t, start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y, rally_state = rally_state, current_team = current_team)))
+        as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = combo, target = target, sz = sz, ez = ez, esz = esz, x_type = x_type, num_p = num_p, special = special, custom = custom), as.character), list(code = code, t = t, start_x = start_x, start_y = start_y, mid_x = mid_x, mid_y = mid_y, end_x = end_x, end_y = end_y, rally_state = rally_state, current_team = current_team)))
     }
 }
 
-update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, code, t, start_x, start_y, end_x, end_y) {
+update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, code, t, start_x, start_y, mid_x, mid_y, end_x, end_y) {
     new_ez <- if (!missing(ez)) ez else trow$ez
     new_esz <- trow$esz
     if (!missing(esz)) {
@@ -228,6 +230,8 @@ update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target
               t = if (!missing(t)) t else trow$t,
               start_x = if (!missing(start_x)) start_x else trow$start_x,
               start_y = if (!missing(start_y)) start_y else trow$start_y,
+              mid_x = if (!missing(mid_x)) mid_x else trow$mid_x,
+              mid_y = if (!missing(mid_y)) mid_y else trow$mid_y,
               end_x = if (!missing(end_x)) end_x else trow$end_x,
               end_y = if (!missing(end_y)) end_y else trow$end_y,
               rally_state = trow$rally_state,
