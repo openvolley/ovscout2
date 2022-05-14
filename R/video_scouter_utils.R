@@ -322,7 +322,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
         passing_team <- "a"
         passing_rot <- game_state$visiting_setter_position
         passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
-        libs <- get_liberos(game_state, team = "a", dvw = dvw)
+        libs <- get_liberos(game_state, team = passing_team, dvw = dvw)
 
         ## Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
         passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception",
@@ -336,7 +336,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
         passing_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Reception",
                                          .data$visiting_setter_position %eq% as.character(passing_rot),
                                          .data$end_zone %eq% passing_zone,
-                                         .data$team %eq% "a")
+                                         .data$team %eq% passing_team)
 
         passing_responsibility_posterior <- passing_responsibility_prior
         if(nrow(passing_history)>0){
@@ -351,7 +351,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
         passing_team <- "*"
         passing_rot <- game_state$home_setter_position
         passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
-        libs <- get_liberos(game_state, team = "*", dvw = dvw)
+        libs <- get_liberos(game_state, team = passing_team, dvw = dvw)
 
         ## Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
         passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception",
@@ -366,7 +366,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
         passing_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Reception",
                                          .data$home_setter_position %eq% as.character(passing_rot),
                                          .data$end_zone %eq% passing_zone,
-                                         .data$team %eq% "*")
+                                         .data$team %eq% passing_team)
 
         passing_responsibility_posterior <- passing_responsibility_prior
         if(nrow(passing_history)>0){
@@ -444,7 +444,7 @@ guess_attack_player_options <- function(game_state, dvw, system) {
         ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
         attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack",
                                                              setter_position = setter_rot,
-                                                             zone = attacking_zone, libs = NULL, home_visiting = "home", serving = game_state$serving %eq% "*")
+                                                             zone = attacking_zone, libs = NULL, home_visiting = "home", serving = game_state$serving %eq% attacking_team)
 
         attacking_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("home_p", pseq)))
         if (!is.na(attacking_responsibility)) attacking_responsibility_prior[attacking_responsibility] <- 1
@@ -453,7 +453,7 @@ guess_attack_player_options <- function(game_state, dvw, system) {
         attacking_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Attack",
                                            .data$home_setter_position %eq% as.character(setter_rot),
                                            .data$start_zone %eq% attacking_zone,
-                                           .data$team %eq% "*")
+                                           .data$team %eq% attacking_team)
 
         attacking_responsibility_posterior <- attacking_responsibility_prior
         if (nrow(attacking_history) > 0) {
@@ -472,7 +472,7 @@ guess_attack_player_options <- function(game_state, dvw, system) {
         ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
         attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack",
                                                              setter_position = setter_rot,
-                                                             zone = attacking_zone, libs = NULL, home_visiting = "visiting", serving = game_state$serving %eq% "a")
+                                                             zone = attacking_zone, libs = NULL, home_visiting = "visiting", serving = game_state$serving %eq% attacking_team)
 
 
         attacking_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("visiting_p", pseq)))
@@ -482,7 +482,7 @@ guess_attack_player_options <- function(game_state, dvw, system) {
         attacking_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Attack",
                                            .data$visiting_setter_position %eq% as.character(setter_rot),
                                            .data$start_zone %eq% attacking_zone,
-                                           .data$team %eq% "a")
+                                           .data$team %eq% attacking_team)
 
         attacking_responsibility_posterior <- attacking_responsibility_prior
         if (nrow(attacking_history) > 0) {
@@ -544,13 +544,13 @@ guess_dig_player_options <- function(game_state, dvw, system) {
         setter_rot <- game_state$visiting_setter_position
         attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
         defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
-        libs <- get_liberos(game_state, team = "a", dvw = dvw)
-        if (game_state$serving %eq% "a") libs <- rev(libs) ## rev here so that if we have two liberos, the second is preferred in breakpoint phase
+        libs <- get_liberos(game_state, team = defending_team, dvw = dvw)
+        if (game_state$serving %eq% defending_team) libs <- rev(libs) ## rev here so that if we have two liberos, the second is preferred in breakpoint phase
 
         ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
         dig_responsibility <- player_responsibility_fn(system = system, skill = "Dig",
                                                        setter_position = setter_rot,
-                                                       zone = defending_zone, libs = libs, home_visiting = "visiting", opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% "a")
+                                                       zone = defending_zone, libs = libs, home_visiting = "visiting", opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% defending_team)
 
 
         dig_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("visiting_p", pseq)))
@@ -561,7 +561,7 @@ guess_dig_player_options <- function(game_state, dvw, system) {
                                          .data$visiting_setter_position %eq% as.character(setter_rot),
                                          .data$start_zone %eq% attacking_zone,
                                          .data$end_zone %eq% defending_zone,
-                                         .data$team %eq% "a")
+                                         .data$team %eq% defending_team)
 
         dig_responsibility_posterior <- dig_responsibility_prior
         if(nrow(digging_history)>0){
@@ -576,13 +576,13 @@ guess_dig_player_options <- function(game_state, dvw, system) {
         setter_rot <- game_state$home_setter_position
         attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
         defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
-        libs <- get_liberos(game_state, team = "*", dvw = dvw)
-        if (game_state$serving %eq% "*") libs <- rev(libs) ## rev here so that if we have two liberos, the second is preferred in breakpoint phase
+        libs <- get_liberos(game_state, team = defending_team, dvw = dvw)
+        if (game_state$serving %eq% defending_team) libs <- rev(libs) ## rev here so that if we have two liberos, the second is preferred in breakpoint phase
 
         ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
         dig_responsibility <- player_responsibility_fn(system = system, skill = "Dig",
                                                        setter_position = setter_rot,
-                                                       zone = defending_zone, libs = libs, home_visiting = "home", opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% "*")
+                                                       zone = defending_zone, libs = libs, home_visiting = "home", opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% defending_team)
 
 
         dig_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("visiting_p", pseq)))
@@ -593,7 +593,87 @@ guess_dig_player_options <- function(game_state, dvw, system) {
                                          .data$visiting_setter_position %eq% as.character(setter_rot),
                                          .data$start_zone %eq% attacking_zone,
                                          .data$end_zone %eq% defending_zone,
-                                         .data$team %eq% "*")
+                                         .data$team %eq% defending_team)
+
+        dig_responsibility_posterior <- dig_responsibility_prior
+        if(nrow(digging_history)>0){
+            digging_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(digging_history, "team", "player_number", paste0("home_p", pseq)), cols = paste0("home_p", pseq)), .data$value %eq% .data$player_number), .data$name), n_digs = dplyr::n()))
+            dig_responsibility_posterior[digging_history$name] <- dig_responsibility_prior[digging_history$name] + digging_history$n_digs
+            dig_responsibility_posterior <-  dig_responsibility_posterior / sum(dig_responsibility_posterior)
+        }
+        plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
+        poc <- paste0("home_p", pseq)
+    } else {
+        return(list(choices = numeric(), selected = c()))
+    }
+    pp <- c(as.numeric(reactiveValuesToList(game_state)[poc]), libs)
+    plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(reactiveValuesToList(game_state)[plsel_tmp[1]])
+    list(choices = pp, selected = plsel)
+}
+
+guess_cover_player_options <- function(game_state, dvw, system) {
+    beach <- is_beach(dvw)
+    pseq <- seq_len(if (beach) 2L else 6L)
+    if (beach) {
+        warning("guess_cover_player_options for beach not yet tested")
+    }
+    if (game_state$current_team %eq% "*") {
+        ## current (defending) team is "*", so attacking team is "a"
+        attacking_team <- other(game_state$current_team)
+        setter_rot <- game_state$visiting_setter_position
+        attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
+        defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
+        libs <- get_liberos(game_state, team = attacking_team, dvw = dvw)
+        if (game_state$serving %eq% attacking_team) libs <- rev(libs) ## rev here so that if we have two liberos, the second is preferred in breakpoint phase
+
+        ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+        dig_responsibility <- player_responsibility_fn(system = system, skill = "Cover",
+                                                       setter_position = setter_rot,
+                                                       zone = defending_zone, libs = libs, home_visiting = "visiting", opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% attacking_team)
+
+
+        dig_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("visiting_p", pseq)))
+        if (!is.na(dig_responsibility)) dig_responsibility_prior[dig_responsibility] <- 1
+
+        ## Update the probability with the history of the game
+        digging_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Dig" & lag(.data$skill) %eq% "Block" & !.data$team %eq% lag(.data$team), ## just cover digs
+                                         .data$visiting_setter_position %eq% as.character(setter_rot),
+                                         .data$start_zone %eq% attacking_zone,
+                                         .data$end_zone %eq% defending_zone,
+                                         .data$team %eq% attacking_team)
+
+        dig_responsibility_posterior <- dig_responsibility_prior
+        if(nrow(digging_history)>0){
+            digging_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(digging_history, "team", "player_number", paste0("visiting_p", pseq)), cols = paste0("visiting_p", pseq)), .data$value %eq% .data$player_number), .data$name), n_digs = dplyr::n()))
+            dig_responsibility_posterior[digging_history$name] <- dig_responsibility_prior[digging_history$name] + digging_history$n_digs
+            dig_responsibility_posterior <-  dig_responsibility_posterior / sum(dig_responsibility_posterior)
+        }
+        plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
+        poc <- paste0("visiting_p", pseq)
+    } else if (game_state$current_team %eq% "a") {
+        ## current (defending) team is "a", so attacking team is "*"
+        attacking_team <- other(game_state$current_team)
+        setter_rot <- game_state$home_setter_position
+        attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
+        defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
+        libs <- get_liberos(game_state, team = attacking_team, dvw = dvw)
+        if (game_state$serving %eq% attacking_team) libs <- rev(libs) ## rev here so that if we have two liberos, the second is preferred in breakpoint phase
+
+        ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+        dig_responsibility <- player_responsibility_fn(system = system, skill = "Cover",
+                                                       setter_position = setter_rot,
+                                                       zone = defending_zone, libs = libs, home_visiting = "home", opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% attacking_team)
+
+
+        dig_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("visiting_p", pseq)))
+        if (!is.na(dig_responsibility)) dig_responsibility_prior[dig_responsibility] <- 1
+
+        ## Update the probability with the history of the game
+        digging_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Dig" & lag(.data$skill) %eq% "Block" & !.data$team %eq% lag(.data$team), ## just cover digs
+                                         .data$visiting_setter_position %eq% as.character(setter_rot),
+                                         .data$start_zone %eq% attacking_zone,
+                                         .data$end_zone %eq% defending_zone,
+                                         .data$team %eq% attacking_team)
 
         dig_responsibility_posterior <- dig_responsibility_prior
         if(nrow(digging_history)>0){

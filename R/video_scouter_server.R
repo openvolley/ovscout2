@@ -917,11 +917,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$point_won_by <- other(game_state$current_team)
                     rally_ended()
                 } else {
-                    if (!isTRUE(app_data$options$transition_sets)) {
-                        rally_state("click third contact")
-                    } else {
-                        rally_state("click second contact")
-                    }
+                    rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
                 }
             }
             remove_scout_modal()
@@ -987,11 +983,7 @@ ov_scouter_server <- function(app_data) {
                     rally_ended()
                 } else {
                     game_state$current_team <- other(game_state$current_team)
-                    if (!isTRUE(app_data$options$transition_sets)) {
-                        rally_state("click third contact")
-                    } else {
-                        rally_state("click second contact")
-                    }
+                    rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
                 }
             }
             remove_scout_modal()
@@ -1018,11 +1010,7 @@ ov_scouter_server <- function(app_data) {
                     rally_ended()
                 } else {
                     game_state$current_team <- other(game_state$current_team)
-                    if (!isTRUE(app_data$options$transition_sets)) {
-                        rally_state("click third contact")
-                    } else {
-                        rally_state("click second contact")
-                    }
+                    rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
                 }
             } else {
                 if (input$c3 == "F") {
