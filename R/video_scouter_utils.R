@@ -189,6 +189,7 @@ codes_from_rc_rows <- function(rc) {
 code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, mid_x = NA_real_, mid_y = NA_real_, end_x = NA_real_, end_y = NA_real_, code = NA_character_, rally_state, current_team, default_scouting_table) {
     ## abbreviated parameter names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
     ## providing 'code' is a special case
+    na2t <- function(z, width = 1) if (is.na(z)) { if (width == 1) "~" else paste0(rep("~", width), collapse = "") } else z
     if (!is.na(code)) {
         NAc <- NA_character_
         tibble(team = NAc, pnum = NAc, skill = NAc, tempo = NAc, eval = NAc, combo = NAc, target = NAc, sz = NAc, ez = NAc, esz = NAc, x_type = NAc, num_p = NAc, special = NAc, custom = NAc, code = code, t = t, start_x = start_x, start_y = start_y, mid_x = mid_x, mid_y = mid_y, end_x = end_x, end_y = end_y, rally_state = rally_state, current_team = current_team)
@@ -197,7 +198,7 @@ code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target 
         if (missing(eval) || eval %eq% "~" || is.na(eval)) eval <- tryCatch(default_scouting_table$evaluation_code[default_scouting_table$skill == skill], error = function(e) "~")
         if ((missing(x_type) || x_type %eq% "~" || is.na(x_type)) && skill %eq% "A") x_type <- "H" ## default to hard hit
         if (is.null(pnum) || is.na(pnum) || pnum %eq% "Unknown") pnum <- 0L
-        as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = combo, target = target, sz = sz, ez = ez, esz = esz, x_type = x_type, num_p = num_p, special = special, custom = custom), as.character), list(code = code, t = t, start_x = start_x, start_y = start_y, mid_x = mid_x, mid_y = mid_y, end_x = end_x, end_y = end_y, rally_state = rally_state, current_team = current_team)))
+        as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = na2t(combo, 2), target = na2t(target), sz = na2t(sz), ez = na2t(ez), esz = na2t(esz), x_type = na2t(x_type), num_p = na2t(num_p), special = na2t(special), custom = if (is.na(custom)) "" else custom), as.character), list(code = code, t = t, start_x = start_x, start_y = start_y, mid_x = mid_x, mid_y = mid_y, end_x = end_x, end_y = end_y, rally_state = rally_state, current_team = current_team)))
     }
 }
 
