@@ -6,13 +6,16 @@ mod_courtref_ui <- function(id) {
 mod_courtref <- function(input, output, session, rdata, app_data, detection_ref, styling) {
     ns <- session$ns
     did_sr_popup <- reactiveVal(0L)
+    active <- reactiveVal(FALSE)
     observeEvent(input$do_scref, {
         ## trigger the crvt data to be re-initialized each time a popup is spawned
         did_sr_popup(did_sr_popup() + 1L)
+        active(TRUE)
         showModal(vwModalDialog(title = "Set up court reference", uiOutput(ns("srui")), footer = tags$div(uiOutput(ns("sr_apply_ui"), inline = TRUE), actionButton(ns("sr_cancel"), "Cancel", style = paste0("background-color:", styling$cancel))), width = 100))
     })
 
     observeEvent(input$sr_cancel, {
+        active(FALSE)
         removeModal()
     })
 
@@ -264,4 +267,5 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
             }
         }
     })
+    list(active = active)
 }

@@ -20,28 +20,39 @@
 #'
 #' @export
 ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
-    if (identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = scoreboard, scouting_options = scouting_options, default_scouting_table = default_scouting_table, compound_table = compound_table, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
+    if (!missing(dvw) && identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = scoreboard, scouting_options = scouting_options, default_scouting_table = default_scouting_table, compound_table = compound_table, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     dots <- list(...)
     dv_read_args <- dots[names(dots) %in% names(formals(datavolley::dv_read))] ## passed to dv_read
     other_args <- dots[!names(dots) %in% names(formals(datavolley::dv_read))] ## passed to the server and UI
-    if ((missing(dvw) || is.null(dvw)) && prompt_for_files) {
-        if (.Platform$OS.type == "windows") {
-            fchoosefun <- utils::choose.files
+    fchoose <- function(caption) {
+        if (requireNamespace("rstudioapi", quietly = TRUE)) {
+            fchoosefun <- rstudioapi::selectFile
         } else {
-            if (!interactive()) {
-                ## file.choose won't work non-interactively (e.g. started via Rscript)
-                if (!requireNamespace("tcltk", quietly = TRUE)) {
-                    stop("the tcltk package is required")
-                }
-                fchoosefun <- tcltk::tk_choose.files
+            if (.Platform$OS.type == "windows") {
+                fchoosefun <- function(caption) utils::choose.files(caption = caption, multi = FALSE)
             } else {
-                cat("Choose dvw file.\n"); flush.console()
-                fchoosefun <- function(...) file.choose()
+                if (!interactive()) {
+                    ## file.choose won't work non-interactively (e.g. started via Rscript)
+                    if (!requireNamespace("tcltk", quietly = TRUE)) {
+                        stop("the tcltk package is required")
+                    }
+                    fchoosefun <- tcltk::tk_choose.files
+                } else {
+                    cat(caption, "\n"); flush.console()
+                    fchoosefun <- function(...) file.choose()
+                }
             }
         }
-        dvw <- fchoosefun(caption = "Choose dvw file", multi = FALSE, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
+        fchoosefun(caption = caption)
+    }
+    if ((missing(dvw) || is.null(dvw))) {
+        if (prompt_for_files) {
+            dvw <- fchoose(caption = "Choose dvw file")##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
+        } else {
+            dvw <- dv_create(teams = c("Home team", "Visiting team"))
+        }
     }
     if (is.string(dvw)) {
         dvw_filename <- dvw
@@ -60,17 +71,30 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
 
     ## deal with video_file parm
     if (is.null(dvw$meta$video)) dvw$meta$video <- tibble(camera = character(), file = character())
-    if (!is.null(video_file) && !is.na(video_file)) {
-        dvw$meta$video <- tibble(camera = "Camera0", file = fs::path_real(video_file))
+
+    if (!missing(video_file) && !is.null(video_file) && !is.na(video_file) && nchar(video_file)) {
+        tryCatch({
+            dvw$meta$video <- tibble(camera = "Camera0", file = fs::path_real(video_file))
+        }, error = function(e) stop("the provided video_file (", video_file, ") does not exist"))
     }
-    ## TODO allow file chooser to find video file
     if (nrow(dvw$meta$video) > 1) {
-        stop("multiple video files have been specified in the dvw file metadata, can't handle this yet")
-    } else if (nrow(dvw$meta$video) < 1) {
+        warning("multiple video files have been specified in the dvw file metadata, using only the first one")
+        dvw$meta$video <- dvw$meta$video[1, ]
+    }
+    ## has any of that resulted in a video file?
+    if (!(nrow(dvw$meta$video) == 1 && file.exists(dvw$meta$video$file))) {
+        if (prompt_for_files) {
+            ## allow file chooser to find video file
+            video_file <- fchoose(caption = "Choose video file")##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
+            if (length(video_file) == 1) dvw$meta$video <- tibble(camera = "Camera0", file = video_file)
+        }
+    }
+    if (nrow(dvw$meta$video) < 1) {
         stop("no video files specified, either in the dvw file or via the video_file parameter")
     } else {
         if (!file.exists(dvw$meta$video$file)) stop("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
     }
+
     ## look for the court ref data, if it hasn't been provided
     if (missing(court_ref)) {
         court_ref <- NULL

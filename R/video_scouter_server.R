@@ -298,6 +298,7 @@ ov_scouter_server <- function(app_data) {
                             } else if (is.null(editing$active) || !editing$active %in% "teams") {
                                 do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
                                 editing$active <- NULL
+                                courtref$active(FALSE)
                                 removeModal()
                                 if (do_unpause) do_video("play")
                             }
@@ -318,8 +319,8 @@ ov_scouter_server <- function(app_data) {
                                 ## video pause/unpause
                                 deal_with_pause()
                             }
-                        } else if (is.null(editing$active)) {
-                            ## none of these should be allowed to happen if we are e.g. editing lineups or teams
+                        } else if (is.null(editing$active) && !courtref$active()) {
+                            ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
                             if (ky %in% utf8ToInt("gG#")) {
                                 ## video go to currently-selected event
                                 vt <- game_state$video_time
