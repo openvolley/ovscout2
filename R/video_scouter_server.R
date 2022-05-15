@@ -1407,9 +1407,15 @@ ov_scouter_server <- function(app_data) {
         })
 
         output$save_file_button <- downloadHandler(
-            filename = reactive(
-                if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename)) basename(rdata$dvw$meta$filename) else "myfile.dvw"
-            ),
+            filename = function() {
+                if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename) && nchar(rdata$dvw$meta$filename)) {
+                    basename(rdata$dvw$meta$filename)
+                } else if (!is.null(rdata$dvw$meta$video) && nrow(rdata$dvw$meta$video) > 0 && length(na.omit(rdata$dvw$meta$video$file)) > 0 && nchar(na.omit(rdata$dvw$meta$video$file)[1])) {
+                    paste0(basename(fs::path_ext_remove(na.omit(rdata$dvw$meta$video$file)[1])), ".dvw")
+                } else {
+                    "myfile.dvw"
+                }
+            },
             content = function(file) {
                 tryCatch(dv_write2(update_meta(rp2(rdata$dvw)), file = file),
                          error = function(e) {
