@@ -517,75 +517,42 @@ guess_cover_player_options <- function(game_state, dvw, system) {
     if (beach) {
         warning("guess_cover_player_options for beach not yet tested")
     }
-    if (game_state$current_team %eq% "*") {
-        ## current (defending) team is "*", so attacking team is "a"
-        attacking_team <- other(game_state$current_team)
-        setter_rot <- game_state$visiting_setter_position
-        attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
-        defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
-        libs <- get_liberos(game_state, team = attacking_team, dvw = dvw)
-        if (game_state$serving %eq% attacking_team) libs <- rev(libs) ## rev here so that if we have two liberos, the second is preferred in breakpoint phase
+    if (!game_state$current_team %in% c("*", "a")) return(list(choices = numeric(), selected = c()))
+    attacking_team <- other(game_state$current_team)
+    ## e.g. if current (defending) team is "*", attacking team is "a"
+    home_visiting <- if (game_state$current_team %eq% "*") "visiting" else "home"
+    setter_rot <- game_state[[paste0(home_visiting, "_setter_position")]]
+    attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
+    defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
+    libs <- get_liberos(game_state, team = attacking_team, dvw = dvw)
+    if (game_state$serving %eq% attacking_team) libs <- rev(libs) ## rev here so that if we have two liberos, the second is preferred in breakpoint phase
 
-        ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
-        dig_responsibility <- player_responsibility_fn(system = system, skill = "Cover",
-                                                       setter_position = setter_rot,
-                                                       zone = defending_zone, libs = libs, home_visiting = "visiting", opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% attacking_team)
+    ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+    dig_responsibility <- player_responsibility_fn(system = system, skill = "Cover", setter_position = setter_rot, zone = defending_zone, libs = libs,
+                                                   home_visiting = home_visiting, opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% attacking_team)
 
+    dig_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0(home_visiting, "_p", pseq)))
+    if (!is.na(dig_responsibility)) dig_responsibility_prior[dig_responsibility] <- 1
 
-        dig_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("visiting_p", pseq)))
-        if (!is.na(dig_responsibility)) dig_responsibility_prior[dig_responsibility] <- 1
+    ## Update the probability with the history of the game
+    digging_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Dig" & lag(.data$skill) %eq% "Block" & !.data$team %eq% lag(.data$team), ## just cover digs
+                                     .data[[paste0(home_visiting, "_setter_position")]] %eq% as.character(setter_rot),
+                                     .data$start_zone %eq% attacking_zone,
+                                     .data$end_zone %eq% defending_zone,
+                                     .data$team %eq% attacking_team)
 
-        ## Update the probability with the history of the game
-        digging_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Dig" & lag(.data$skill) %eq% "Block" & !.data$team %eq% lag(.data$team), ## just cover digs
-                                         .data$visiting_setter_position %eq% as.character(setter_rot),
-                                         .data$start_zone %eq% attacking_zone,
-                                         .data$end_zone %eq% defending_zone,
-                                         .data$team %eq% attacking_team)
-
-        dig_responsibility_posterior <- dig_responsibility_prior
-        if(nrow(digging_history)>0){
-            digging_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(digging_history, "team", "player_number", paste0("visiting_p", pseq)), cols = paste0("visiting_p", pseq)), .data$value %eq% .data$player_number), .data$name), n_digs = dplyr::n()))
-            dig_responsibility_posterior[digging_history$name] <- dig_responsibility_prior[digging_history$name] + digging_history$n_digs
-            dig_responsibility_posterior <-  dig_responsibility_posterior / sum(dig_responsibility_posterior)
-        }
-        plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
-        poc <- paste0("visiting_p", pseq)
-    } else if (game_state$current_team %eq% "a") {
-        ## current (defending) team is "a", so attacking team is "*"
-        attacking_team <- other(game_state$current_team)
-        setter_rot <- game_state$home_setter_position
-        attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
-        defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
-        libs <- get_liberos(game_state, team = attacking_team, dvw = dvw)
-        if (game_state$serving %eq% attacking_team) libs <- rev(libs) ## rev here so that if we have two liberos, the second is preferred in breakpoint phase
-
-        ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
-        dig_responsibility <- player_responsibility_fn(system = system, skill = "Cover",
-                                                       setter_position = setter_rot,
-                                                       zone = defending_zone, libs = libs, home_visiting = "home", opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% attacking_team)
-
-
-        dig_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("visiting_p", pseq)))
-        if (!is.na(dig_responsibility)) dig_responsibility_prior[dig_responsibility] <- 1
-
-        ## Update the probability with the history of the game
-        digging_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Dig" & lag(.data$skill) %eq% "Block" & !.data$team %eq% lag(.data$team), ## just cover digs
-                                         .data$visiting_setter_position %eq% as.character(setter_rot),
-                                         .data$start_zone %eq% attacking_zone,
-                                         .data$end_zone %eq% defending_zone,
-                                         .data$team %eq% attacking_team)
-
-        dig_responsibility_posterior <- dig_responsibility_prior
-        if(nrow(digging_history)>0){
-            digging_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(digging_history, "team", "player_number", paste0("home_p", pseq)), cols = paste0("home_p", pseq)), .data$value %eq% .data$player_number), .data$name), n_digs = dplyr::n()))
-            dig_responsibility_posterior[digging_history$name] <- dig_responsibility_prior[digging_history$name] + digging_history$n_digs
-            dig_responsibility_posterior <-  dig_responsibility_posterior / sum(dig_responsibility_posterior)
-        }
-        plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
-        poc <- paste0("home_p", pseq)
-    } else {
-        return(list(choices = numeric(), selected = c()))
+    dig_responsibility_posterior <- dig_responsibility_prior
+    if (nrow(digging_history) > 0) {
+        digging_history <- dplyr::select(digging_history, "team", "player_number", paste0(home_visiting, "_p", pseq)) %>%
+            tidyr::pivot_longer(cols = paste0(home_visiting, "_p", pseq)) %>%
+            dplyr::filter(.data$value %eq% .data$player_number) %>%
+            dplyr::group_by(.data$name) %>%
+            dplyr::summarise(n_digs = dplyr::n()) %>% dplyr::ungroup()
+        dig_responsibility_posterior[digging_history$name] <- dig_responsibility_prior[digging_history$name] + digging_history$n_digs
+        dig_responsibility_posterior <-  dig_responsibility_posterior / sum(dig_responsibility_posterior)
     }
+    plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
+    poc <- paste0(home_visiting, "_p", pseq)
     pp <- c(as.numeric(reactiveValuesToList(game_state)[poc]), libs)
     plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(reactiveValuesToList(game_state)[plsel_tmp[1]])
     list(choices = pp, selected = plsel)
