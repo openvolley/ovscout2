@@ -1,9 +1,11 @@
 mod_teamslists_ui <- function(id) {
     ns <- NS(id)
-    tags$div(style = "border-radius: 4px; padding: 4px",
-             fluidRow(column(6, id = "hroster", uiOutput(ns("htroster"))),
-                      column(6, id = "vroster", uiOutput(ns("vtroster"))))
-             )
+    tagList(tags$head(tags$style("#hroster {padding-left: 0px; padding-right: 0px; background-color: #bfefff; padding: 12px;} #vroster {padding-left: 0px; padding-right: 0px; background-color: #bcee68; padding: 12px;}")),
+            tags$div(style = "border-radius: 4px; padding: 4px",
+                     fluidRow(column(6, id = "hroster", uiOutput(ns("htroster"))),
+                              column(6, id = "vroster", uiOutput(ns("vtroster"))))
+                     )
+            )
 }
 
 mod_teamslists <- function(input, output, session, rdata) {
