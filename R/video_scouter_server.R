@@ -583,6 +583,7 @@ ov_scouter_server <- function(app_data) {
                     names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
                     ap <- c(ap, Unknown = "Unknown")
                     attacker_buttons <- make_fat_radio_buttons(choices = ap, selected = attack_pl_opts$selected, input_var = "c3_player")
+                    ## do we want to support "hole" block?
                     if (isTRUE(app_data$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3), selected = if (!is.null(app_data$options$default_nblockers)) app_data$options$default_nblockers, input_var = "nblockers")
                     ## attack error, blocked, replay will be scouted on next entry
                     ## TODO other special codes ?
@@ -1009,8 +1010,17 @@ ov_scouter_server <- function(app_data) {
                     if (!is.na(Aidx)) rc$eval[Aidx] <- "-"
                     eval <- "+"
                 }
+                ## dig location
                 ## TODO CHECK is the dig start zone the same as the attack start zone, or its end zone?
-                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "D", eval = eval, tempo = tempo, sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
+                dx <- game_state$end_x
+                dy <- game_state$end_y
+                dz <- esz[1]
+                if (!is.null(input$c1_block_touch_player) && app_data$options$attack_end %eq% "intended") {
+                    ## if we are scouting intended attack directions, and there was a block touch, then don't use a dig location
+                    dx <- dy <- NA_real_
+                    dz <- "~"
+                }
+                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "D", eval = eval, tempo = tempo, sz = dz, t = end_t, start_x = dx, start_y = dy, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
                 if (input$c1 == "D=") {
                     game_state$point_won_by <- other(game_state$current_team)
                     rally_ended()

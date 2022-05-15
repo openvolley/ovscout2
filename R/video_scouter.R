@@ -88,7 +88,6 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
     }
     opts <- ov_scouter_options()
     for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
-
     ## finally the shiny app
     app_data <- c(list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = !is.na(video_file), court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, ui_header = tags$div()), other_args)
     app_data$serving <- "*" ## HACK for testing
@@ -158,6 +157,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
 
 #' Scouting options
 #'
+#' @param attack_end string: "actual" or "intended" the end coordinate of an attack is the actual end location, or the intended one. The actual might differ from the intended if there is a block touch. If "actual", and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing)
 #' @param nblockers logical: scout the number of blockers on each attack?
 #' @param default_nblockers integer: if `nblockers` is TRUE, what number of blockers should we default to? If `NA`, no default
 #' @param transition_sets logical: scout sets in transition? If `FALSE`, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted
@@ -170,14 +170,22 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
 #' @return A named list
 #'
 #' @export
-ov_scouter_options <- function(nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR") {
+ov_scouter_options <- function(attack_end = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR") {
+    attack_end <- match.arg(attack_end, c("actual", "intended"))
+    assert_that(is.flag(nblockers), !is.na(nblockers))
+    if (!is.na(default_nblockers)) assert_that(default_nblockers %in% 1:3)
+    assert_that(is.flag(transition_sets), !is.na(transition_sets))
+    team_system <- match.arg(team_system, c("SHM3"))
+    assert_that(is.string(setter_dump_code))
+    assert_that(is.string(second_ball_attack_code))
+    assert_that(is.string(overpass_attack_code))
     skill_tempo_map <- tribble(~skill, ~tempo_code, ~tempo,
                                "Serve", "Q", "Jump serve",
                                "Serve", "M", "Jump-float serve",
                                "Serve", "H", "Float serve",
                                "Serve", "T", "Topspin serve")
     ## or (some) beach conventions are T=jump-float, H=standing; VM use H=float far from the service line and T=float from the service line
-    list(nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code)
+    list(attack_end = attack_end, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code)
 }
 
 
