@@ -311,8 +311,8 @@ ov_scouter_server <- function(app_data) {
                             ## but not for team editing, because pressing enter in the DT fires this too
                         } else if (ky %in% c(90, 122)) {
                             ## z
-                            ## temporarily hide the modal, so the video can be seen
-                            dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
+                            ## temporarily hide the admin modal, so the video can be seen
+                            if (editing$active %eq% "admin") dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
                         } else if (ky %in% utf8ToInt("qQ0")) {
                             ## only accept this if we are not editing, or it's the admin modal being shown
                             if (is.null(editing$active) || editing$active %eq% "admin") {
