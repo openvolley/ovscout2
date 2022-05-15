@@ -3,6 +3,7 @@
 #' @param dvw string or datavolley: either the path to a dvw file (which will be read by \code{\link[datavolley]{dv_read}}) or a datavolley object (e.g. as returned by [dv_create()]. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}
 #' @param video_file string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. Provide `video_file = NA` to run the app without a video file
 #' @param court_ref data.frame or string: data.frame with the court reference (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
+#' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
 #' @param scouting_options list: a named list with entries as per [ov_scouter_options()]
 #' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
 #' @param compound_table tibble: the table of compound codes
@@ -13,7 +14,7 @@
 #' @seealso \code{\link[datavolley]{dv_read}}
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     dots <- list(...)
@@ -93,6 +94,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scouting_options = ov_scouter
     app_data$serving <- "*" ## HACK for testing
     app_data$play_overlap <- 0.5 ## amount (in seconds) to rewind before restarting the video, after pausing to enter data
     app_data$evaluation_decoder <- skill_evaluation_decoder() ## to expose as a parameter, perhaps
+    app_data$scoreboard <- isTRUE(scoreboard)
     if (app_data$with_video) {
         video_src <- app_data$dvw$meta$video$file[1]
         if (!fs::file_exists(as.character(video_src))) {

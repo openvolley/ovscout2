@@ -521,32 +521,34 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
 
 }
 
-## NB, not used
-##mod_teamscores_ui <- function(id) {
-##    ns <- NS(id)
-##    tags$div(style = "border-radius: 4px; padding: 1px",
-##             fluidRow(column(5, id = "hnscore", uiOutput(ns("hnaming"))),
-##                      column(1, id = "hscore", uiOutput(ns("hscoring"))),
-##                      column(1, id = "vscore", uiOutput(ns("vscoring"))),
-##                      column(5, id = "vnscore", uiOutput(ns("vnaming")))
-##                      )
-##    )
-##}
-##
-##mod_teamscores <- function(input, output, session, game_state, rdata) {
-##
-##    output$hnaming <- renderUI({
-##        tags$div(tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]))
-##    })
-##    output$hscoring <- renderUI({
-##        hs <- game_state$home_score_start_of_point
-##        tags$div(tags$span(hs))
-##    })
-##    output$vscoring <- renderUI({
-##        vs <- game_state$visiting_score_start_of_point
-##        tags$div(tags$span(vs))
-##    })
-##    output$vnaming <- renderUI({
-##        tags$div(tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]))
-##    })
-##}
+mod_teamscores_ui <- function(id, styling) {
+    ns <- NS(id)
+    tagList(tags$head(tags$style(paste0("@font-face { font-family:'DSEG14'; src: url('fonts/DSEG14Modern-Regular.woff2') format('woff2'), url('fonts/DSEG14Modern-Regular.woff') format('woff'); } .scoreboard { background-color:#00000080; border-radius:4px; padding:1px; font-family:'DSEG14', sans-serif;} #hscore, #vscore { padding: 2px; text-align: center; font-size:24px; } #hnscore { padding: 2px; text-align: left; font-size:16px;} #vnscore { padding: 2px; text-align: right; font-size:16px;} #tsc_outer {position:absolute; right:14px; width:20vw; -webkit-transform: translateZ(10);}"))),
+            fluidRow(class = "scoreboard",
+                     column(6, style = paste0("background-color:", styling$h_court_colour),
+                            fixedRow(column(10, id = "hnscore", uiOutput(ns("hnaming"))),
+                                     column(2, id = "hscore", uiOutput(ns("hscoring"))))),
+                     column(6, style = paste0("background-color:", styling$v_court_colour),
+                            fixedRow(column(2, id = "vscore", uiOutput(ns("vscoring"))),
+                                     column(10, id = "vnscore", uiOutput(ns("vnaming")))))
+                     )
+            )
+}
+
+mod_teamscores <- function(input, output, session, game_state, rdata) {
+    ns <- session$ns
+    output$hnaming <- renderUI({
+        tags$div(tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]))
+    })
+    output$hscoring <- renderUI({
+        hs <- game_state$home_score_start_of_point
+        tags$div(tags$span(hs))
+    })
+    output$vscoring <- renderUI({
+        vs <- game_state$visiting_score_start_of_point
+        tags$div(tags$span(vs))
+    })
+    output$vnaming <- renderUI({
+        tags$div(tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]))
+    })
+}

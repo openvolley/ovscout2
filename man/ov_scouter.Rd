@@ -8,6 +8,7 @@ ov_scouter(
   dvw,
   video_file,
   court_ref,
+  scoreboard = TRUE,
   scouting_options = ov_scouter_options(),
   default_scouting_table = ov_default_scouting_table(),
   compound_table = ov_default_compound_table(),
@@ -22,6 +23,8 @@ ov_scouter(
 \item{video_file}{string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. Provide \code{video_file = NA} to run the app without a video file}
 
 \item{court_ref}{data.frame or string: data.frame with the court reference (as returned by \code{\link[ovideo:ov_shiny_court_ref]{ovideo::ov_shiny_court_ref()}}) or the path to the rds file containing the output from this}
+
+\item{scoreboard}{logical: if \code{TRUE}, show a scoreboard in the top-right of the video pane}
 
 \item{scouting_options}{list: a named list with entries as per \code{\link[=ov_scouter_options]{ov_scouter_options()}}}
 

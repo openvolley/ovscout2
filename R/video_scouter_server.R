@@ -2,6 +2,8 @@ ov_scouter_server <- function(app_data) {
     function(input, output, session) {
         debug <- 1L
 
+        shiny::addResourcePath("fonts", system.file("extdata/fonts", package = "ovscout"))
+
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "Score") ##"home_setter_position", "visiting_setter_position", "is_skill"
         plays_cols_renames <- c(Set = "set_number")##, hs = "home_setter_position", as = "visiting_setter_position")
 
@@ -45,7 +47,9 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(app_data$court_ref)) app_data$court_ref else NULL
         })
         courtref <- callModule(mod_courtref, id = "courtref", rdata = rdata, app_data = app_data, detection_ref = detection_ref, styling = app_data$styling)
-
+        if (app_data$scoreboard) {
+            tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata)
+        }
         ## court module clicking not used here yet
         ##accept_ball_coords <- court_inset$accept_ball_coords ## the "accept" button
         ##observe({
