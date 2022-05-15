@@ -610,7 +610,7 @@ ov_scouter_server <- function(app_data) {
                     ## or block touch and play continues
                     ## allow attack kill with no dig error?
                     do_video("pause")
-                    ## click was the dig or attack kill or error position, or the freeball start position
+                    ## click was the dig or attack kill or error position
                     game_state$end_x <- courtxy$x[1]
                     game_state$end_y <- courtxy$y[1]
                     game_state$end_t <- game_state$current_time_uuid
@@ -654,6 +654,35 @@ ov_scouter_server <- function(app_data) {
                                             tags$hr(),
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
                                                      column(2, offset = 8, actionButton("assign_c1", "Continue", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
+                                            ))
+                } else if (rally_state() == "click freeball end point") {
+                    ## freeball dig, freeball dig error, freeball error (in theory could be blocked, blocked for replay, block touch (freeball kill))
+                    do_video("pause")
+                    ## click was the dig or freeball end
+                    game_state$end_x <- courtxy$x[1]
+                    game_state$end_y <- courtxy$y[1]
+                    game_state$end_t <- game_state$current_time_uuid
+                    overlay_points(courtxy)
+                    ## popup
+                    ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
+                    f1_buttons <- make_fat_radio_buttons(choices = c("Freeball over error" = "F=", "Freeball dig" = "FD", "Freeball dig error" = "FD="), selected = "FD", input_var = "f1")
+                    ## Identify defending players
+                    ## TODO use dedicated freeball-dig guessing?
+                    dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
+                    digp <- dig_pl_opts$choices
+                    names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
+                    digp <- c(digp, Unknown = "Unknown")
+                    dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "f1_def_player")
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
+                                            tags$p(tags$strong("Freeball outcome:")),
+                                            do.call(fixedRow, lapply(f1_buttons, function(but) column(2, but))),
+                                            tags$br(), tags$hr(),
+                                            ## freeball dig players (defending team)
+                                            tags$div(id = "f1_digp_ui", tags$p(tags$strong("by player")),
+                                                     do.call(fixedRow, lapply(dig_player_buttons, function(but) column(1, but)))),
+                                            tags$br(), tags$hr(),
+                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
+                                                     column(2, offset = 8, actionButton("assign_f1", "Continue", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
                                             ))
                 } else {
                     stop("unknown rally state: ", rally_state())
@@ -957,7 +986,7 @@ ov_scouter_server <- function(app_data) {
                 rally_ended()
             } else {
                 ## D or D=
-                digp <- input$c1_def_player
+                digp <- if (!is.null(input$c1_def_player)) input$c1_def_player else 0L
                 end_t <- retrieve_video_time(game_state$end_t)
                 rc <- rally_codes()
                 ## was the previous skill an attack, or one previous to that an attack with a block in between
@@ -983,6 +1012,49 @@ ov_scouter_server <- function(app_data) {
                 ## TODO CHECK is the dig start zone the same as the attack start zone, or its end zone?
                 rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "D", eval = eval, tempo = tempo, sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
                 if (input$c1 == "D=") {
+                    game_state$point_won_by <- other(game_state$current_team)
+                    rally_ended()
+                } else {
+                    rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
+                }
+            }
+            remove_scout_modal()
+            if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
+            do_video("play")
+        })
+
+        observeEvent(input$assign_f1, {
+            ## possible values for input$f1 are currently: F=, FD, FD=
+            esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
+            rc <- rally_codes()
+            Fidx <- if (rc$skill[nrow(rc)] == "F") nrow(rc) else NA_integer_
+            if (input$f1 %eq% "F=") {
+                ## find the freeball, should be the previous skill
+                if (!is.na(Fidx)) {
+                    rc$ez[Fidx] <- esz[1]
+                    rc$esz[Fidx] <- esz[2]
+                    rc$end_x[Fidx] <- game_state$end_x
+                    rc$end_y[Fidx] <- game_state$end_y
+                    rc$eval[Fidx] <- "="
+                    rally_codes(rc)
+                }
+                ## "current" team here is the digging team
+                game_state$point_won_by <- game_state$current_team
+                rally_ended()
+            } else {
+                ## FD or FD=
+                digp <- if (!is.null(input$f1_def_player)) input$f1_def_player else 0L
+                eval <- app_data$default_scouting_table$evaluation_code[app_data$default_scouting_table$skill == "F"]
+                end_t <- retrieve_video_time(game_state$end_t)
+                if (!is.na(Fidx)) {
+                    rc$ez[Fidx] <- esz[1]
+                    rc$esz[Fidx] <- esz[2]
+                    rc$end_x[Fidx] <- game_state$end_x
+                    rc$end_y[Fidx] <- game_state$end_y
+                    rc$eval[Fidx] <- if (input$f1 %eq% "FD") "-" else "+"
+                }
+                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "F", eval = eval, sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
+                if (input$f1 == "FD=") {
                     game_state$point_won_by <- other(game_state$current_team)
                     rally_ended()
                 } else {
@@ -1035,7 +1107,7 @@ ov_scouter_server <- function(app_data) {
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "F", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
                     ## TODO add end pos to this on next contact
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
-                    rally_state("click attack end point") ## TODO don't use that popup, have a dedicated one
+                    rally_state("click freeball end point")
                 }
             } else if (input$c2 %eq% "aPR") {
                 ## opposition overpass attack
@@ -1086,7 +1158,7 @@ ov_scouter_server <- function(app_data) {
                     rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$current_team, pnum = if (!is.null(input$c3_player)) input$c3_player else 0L, skill = "F", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
                     ## TODO add end pos to this on next contact
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
-                    rally_state("click attack end point") ## TODO don't use that popup, have a dedicated one
+                    rally_state("click freeball end point")
                 } else {
                     ## only an attack code or "Other attack" for the time being
                     ap <- if (!is.null(input$c3_player)) input$c3_player else 0L
