@@ -576,7 +576,8 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(courtxy)
                     ## popup
                     ac <- c(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end(), opts = app_data$options), "Other attack")
-                    c3_buttons <- make_fat_radio_buttons(choices = c(setNames(ac, ac), c("Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR")), input_var = "c3")
+                    ac <- c(setNames(ac, ac), "Freeball over" = "F")
+                    c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR")), input_var = "c3")
                     attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
                     ap <- attack_pl_opts$choices
                     names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
@@ -585,14 +586,13 @@ ov_scouter_server <- function(app_data) {
                     if (isTRUE(app_data$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3), selected = if (!is.null(app_data$options$default_nblockers)) app_data$options$default_nblockers, input_var = "nblockers")
                     ## attack error, blocked, replay will be scouted on next entry
                     ## TODO other special codes ?
-                    ## TODO "F" freeball
                     opp <- c(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw), get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw))
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
                     opp_player_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c3_opp_player")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack:")),
-                                            do.call(fixedRow, lapply(c3_buttons[seq_along(ac)], function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(c3_buttons[seq_along(ac)], function(but) column(1, but))),
                                             tags$br(), tags$p("by player"), tags$br(),
                                             do.call(fixedRow, lapply(attacker_buttons, function(but) column(1, but))),
                                             if (isTRUE(app_data$options$nblockers)) tags$div(tags$br(), "with", tags$br()),
@@ -1060,7 +1060,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         observeEvent(input$assign_c3, {
-            ## possible values for input$c3 are: an attack code, Freeball
+            ## possible values for input$c3 are: an attack code, Other attack, or "F" Freeball
             ##    "Opp. dig" = "aD", "Opp. overpass attack" = "aPR"
             start_t <- retrieve_video_time(game_state$start_t)
             sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
@@ -1083,7 +1083,7 @@ ov_scouter_server <- function(app_data) {
             } else {
                 if (input$c3 == "F") {
                     ## freeball over
-                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = if (!is.null(input$c3_player)) input$c3_player else 0L, skill = "F", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
+                    rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$current_team, pnum = if (!is.null(input$c3_player)) input$c3_player else 0L, skill = "F", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
                     ## TODO add end pos to this on next contact
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                     rally_state("click attack end point") ## TODO don't use that popup, have a dedicated one
