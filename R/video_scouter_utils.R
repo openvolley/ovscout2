@@ -318,74 +318,41 @@ player_nums_to <- function(nums, team, dvw, to = "number lastname") {
 guess_pass_player_options <- function(game_state, dvw, system) {
     beach <- is_beach(dvw)
     pseq <- seq_len(if (beach) 2L else 6L)
-    if (game_state$serving %eq% "*") {
-        passing_team <- "a"
-        passing_rot <- game_state$visiting_setter_position
-        passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
-        libs <- get_liberos(game_state, team = passing_team, dvw = dvw)
+    if (!game_state$serving %in% c("*", "a")) return(list(choices = numeric(), selected = c()))
 
-        ## Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
-        passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception",
-                                                           setter_position = passing_rot,
-                                                           zone = passing_zone, libs = libs, home_visiting = "visiting")
+    passing_team <- other(game_state$serving)
+    home_visiting <- if (game_state$serving %eq% "*") "visiting" else "home"
+    passing_rot <- game_state[[paste0(home_visiting, "_setter_position")]]
+    passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
+    libs <- get_liberos(game_state, team = passing_team, dvw = dvw)
 
-        passing_responsibility_prior <- setNames(rep(0, length(pseq) + 1L), c(paste0("visiting_p", pseq), "libero"))
-        if (!is.na(passing_responsibility)) passing_responsibility_prior[passing_responsibility] <- 1
+    ## Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
+    passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception", setter_position = passing_rot, zone = passing_zone, libs = libs, home_visiting = home_visiting)
 
-        ## Update the probability with the history of the game
-        passing_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Reception",
-                                         .data$visiting_setter_position %eq% as.character(passing_rot),
-                                         .data$end_zone %eq% passing_zone,
-                                         .data$team %eq% passing_team)
+    passing_responsibility_prior <- setNames(rep(0, length(pseq) + 1L), c(paste0(home_visiting, "_p", pseq), "libero"))
+    if (!is.na(passing_responsibility)) passing_responsibility_prior[passing_responsibility] <- 1
 
-        passing_responsibility_posterior <- passing_responsibility_prior
-        if(nrow(passing_history)>0){
-          passing_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(passing_history, "team", "player_number", paste0("visiting_p", pseq)), cols = paste0("visiting_p", pseq)), .data$value %eq% .data$player_number), .data$name), n_reception = dplyr::n()))
-          passing_responsibility_posterior[passing_history$name] <- passing_responsibility_prior[passing_history$name] + passing_history$n_reception
-          passing_responsibility_posterior <-  passing_responsibility_posterior / sum(passing_responsibility_posterior)
-        }
-        plsel_tmp <- names(sort(passing_responsibility_posterior, decreasing = TRUE))
+    ## Update the probability with the history of the game
+    passing_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Reception",
+                                     .data[[paste0(home_visiting, "_setter_position")]] %eq% as.character(passing_rot),
+                                     .data$end_zone %eq% passing_zone,
+                                     .data$team %eq% passing_team)
 
-        poc <- paste0("visiting_p", pseq) ## players on court
-    } else if (game_state$serving %eq% "a") {
-        passing_team <- "*"
-        passing_rot <- game_state$home_setter_position
-        passing_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
-        libs <- get_liberos(game_state, team = passing_team, dvw = dvw)
-
-        ## Define the prior probability of passing given rotation, passing zone, etc... Defined as a simple mean of beta().
-        passing_responsibility <- player_responsibility_fn(system = system, skill = "Reception",
-                                                           setter_position = passing_rot,
-                                                           zone = passing_zone, libs = libs, home_visiting = "home")
-
-
-        passing_responsibility_prior <- setNames(rep(0, length(pseq) + 1L), c(paste0("home_p", pseq),"libero"))
-        if (!is.na(passing_responsibility)) passing_responsibility_prior[passing_responsibility] <- 1
-
-        ## Update the probability with the history of the game
-        passing_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Reception",
-                                         .data$home_setter_position %eq% as.character(passing_rot),
-                                         .data$end_zone %eq% passing_zone,
-                                         .data$team %eq% passing_team)
-
-        passing_responsibility_posterior <- passing_responsibility_prior
-        if(nrow(passing_history)>0){
-          passing_history <- dplyr::ungroup(dplyr::summarise(dplyr::group_by(dplyr::filter(tidyr::pivot_longer(dplyr::select(passing_history, "team", "player_number",
-                                                                                                                             paste0("home_p", pseq)), cols = paste0("home_p", pseq)),
-                                                                                           .data$value %eq% .data$player_number), .data$name), n_reception = dplyr::n()))
-          passing_responsibility_posterior[passing_history$name] <- passing_responsibility_prior[passing_history$name] + passing_history$n_reception
-          passing_responsibility_posterior <-  passing_responsibility_posterior / sum(passing_responsibility_posterior)
-        }
-        plsel_tmp <- names(sort(passing_responsibility_posterior, decreasing = TRUE))
-
-        poc <- paste0("home_p", pseq) ## players on court
-    } else {
-        return(list(choices = numeric(), selected = c()))
+    passing_responsibility_posterior <- passing_responsibility_prior
+    if(nrow(passing_history) > 0) {
+        passing_history <- dplyr::select(passing_history, "team", "player_number", paste0(home_visiting, "_p", pseq)) %>%
+            tidyr::pivot_longer(cols = paste0(home_visiting, "_p", pseq)) %>%
+            dplyr::filter(.data$value %eq% .data$player_number) %>%
+            dplyr::group_by(.data$name) %>%
+            dplyr::summarise(n_reception = dplyr::n()) %>% dplyr::ungroup()
+        passing_responsibility_posterior[passing_history$name] <- passing_responsibility_prior[passing_history$name] + passing_history$n_reception
+        passing_responsibility_posterior <-  passing_responsibility_posterior / sum(passing_responsibility_posterior)
     }
+    plsel_tmp <- names(sort(passing_responsibility_posterior, decreasing = TRUE))
+    poc <- paste0(home_visiting, "_p", pseq) ## players on court
+
     pp <- c(as.numeric(reactiveValuesToList(game_state)[poc]), libs)
     plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(reactiveValuesToList(game_state)[plsel_tmp[1]])
-    ## passing player guess based on reception xy c(game_state$end_x, game_state$end_y), rotation, and assumed passing system
-    ## for now, either the first libero or last player in pp
     list(choices = pp, selected = plsel)
 }
 
