@@ -38,6 +38,7 @@ Imports:
     uuid
 Suggests:
     covr,
+    rstudioapi,
     tcltk,
     testthat
 Remotes: openvolley/datavolley, openvolley/ovdata, openvolley/ovideo

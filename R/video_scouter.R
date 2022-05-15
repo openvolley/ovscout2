@@ -28,7 +28,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
     other_args <- dots[!names(dots) %in% names(formals(datavolley::dv_read))] ## passed to the server and UI
     fchoose <- function(caption) {
         if (requireNamespace("rstudioapi", quietly = TRUE)) {
-            fchoosefun <- rstudioapi::selectFile
+            fchoosefun <- function(caption) rstudioapi::selectFile(caption = caption)
         } else {
             if (.Platform$OS.type == "windows") {
                 fchoosefun <- function(caption) utils::choose.files(caption = caption, multi = FALSE)
@@ -41,7 +41,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
                     fchoosefun <- tcltk::tk_choose.files
                 } else {
                     cat(caption, "\n"); flush.console()
-                    fchoosefun <- function(...) file.choose()
+                    fchoosefun <- function(caption) file.choose()
                 }
             }
         }
@@ -49,10 +49,17 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
     }
     if ((missing(dvw) || is.null(dvw))) {
         if (prompt_for_files) {
-            dvw <- fchoose(caption = "Choose dvw file")##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
+            dvw <- tryCatch({
+                fchoose(caption = "Choose dvw file")##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
+            }, error = function(e) NULL)
+            if (!is.null(dvw) && (is.character(dvw) && all(!nzchar(dvw) | is.na(dvw)))) dvw <- NULL
         } else {
-            dvw <- dv_create(teams = c("Home team", "Visiting team"))
+            dvw <- NULL
         }
+    }
+    if (is.null(dvw)) {
+        ## default to an empty one
+        dvw <- dv_create(teams = c("Home team", "Visiting team"))
     }
     if (is.string(dvw)) {
         dvw_filename <- dvw
@@ -61,7 +68,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
         dvw <- do.call(datavolley::dv_read, dv_read_args)
     } else if (is.null(dvw)) {
         ## dummy, no file. Maybe just tagging a video
-        stop("dvw is null")
+        stop("no dvw file")
     } else {
         if (!inherits(dvw, "datavolley")) stop("dvw should be a datavolley object or the path to a .dvw file")
         dvw_filename <- dvw$meta$filename
