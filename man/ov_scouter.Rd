@@ -18,7 +18,8 @@ ov_scouter(
 )
 }
 \arguments{
-\item{dvw}{string or datavolley: either the path to a dvw file (which will be read by \code{\link[datavolley]{dv_read}}) or a datavolley object (e.g. as returned by \code{\link[=dv_create]{dv_create()}}. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}}
+\item{dvw}{string or datavolley: either the path to a dvw file (which will be read by \code{\link[datavolley]{dv_read}}) or a datavolley object (e.g. as returned by \code{\link[=dv_create]{dv_create()}}. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}.
+If \code{dvw} is "demo", the app will be started with a demonstration data set}
 
 \item{video_file}{string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. Provide \code{video_file = NA} to run the app without a video file}
 
@@ -40,6 +41,12 @@ ov_scouter(
 }
 \description{
 Launch a Shiny app for scouting
+}
+\examples{
+\dontrun{
+  ov_scouter("demo")
+}
+
 }
 \seealso{
 \code{\link[datavolley]{dv_read}}

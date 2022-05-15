@@ -24,6 +24,7 @@ Imports:
     jpeg,
     htmltools,
     lubridate,
+    ovdata,
     ovideo (>= 0.17.0),
     R.utils,
     rintrojs,
@@ -39,5 +40,5 @@ Suggests:
     covr,
     tcltk,
     testthat
-Remotes: openvolley/datavolley, openvolley/ovideo
+Remotes: openvolley/datavolley, openvolley/ovdata, openvolley/ovideo
 RoxygenNote: 7.1.2

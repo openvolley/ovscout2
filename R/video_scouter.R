@@ -1,6 +1,7 @@
 #' Launch a Shiny app for scouting
 #'
-#' @param dvw string or datavolley: either the path to a dvw file (which will be read by \code{\link[datavolley]{dv_read}}) or a datavolley object (e.g. as returned by [dv_create()]. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}
+#' @param dvw string or datavolley: either the path to a dvw file (which will be read by \code{\link[datavolley]{dv_read}}) or a datavolley object (e.g. as returned by [dv_create()]. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}.
+#' If `dvw` is "demo", the app will be started with a demonstration data set
 #' @param video_file string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. Provide `video_file = NA` to run the app without a video file
 #' @param court_ref data.frame or string: data.frame with the court reference (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
 #' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
@@ -12,9 +13,14 @@
 #' @param ... : extra parameters passed to \code{\link[datavolley]{dv_read}} (if \code{dvw} is a provided as a string) and/or to the shiny server and UI functions
 #'
 #' @seealso \code{\link[datavolley]{dv_read}}
+#' @examples
+#' \dontrun{
+#'   ov_scouter("demo")
+#' }
 #'
 #' @export
 ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+    if (identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = scoreboard, scouting_options = scouting_options, default_scouting_table = default_scouting_table, compound_table = compound_table, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     dots <- list(...)
@@ -190,6 +196,24 @@ ov_scouter_options <- function(attack_end = "actual", nblockers = TRUE, default_
     list(attack_end = attack_end, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code)
 }
 
+
+ov_scouter_demo <- function(...) {
+    video_file <- ovdata::ovdata_example_video("190301_kats_beds")
+    x0 <- ovdata::ovdata_example("190301_kats_beds-clip", as = "parsed")
+
+    ## the court reference for the example video, generated via ovideo::ov_shiny_court_ref
+    court_ref <- data.frame(image_x = c(0.05397063, 0.95402573, 0.75039756, 0.28921230),
+                            image_y = c(0.02129301, 0.02294600, 0.52049712, 0.51884413),
+                            court_x = c(0.5, 3.5, 3.5, 0.5),
+                            court_y = c(0.5, 0.5, 6.5, 6.5))
+
+    ## use the team list and match info from the already-scouted file
+    x <- dv_create(teams = x0$meta$teams, match = x0$meta$match, players_h = x0$meta$players_h, players_v = x0$meta$players_v)
+    ## enter the team lineups for set 1, with liberos
+    x <- dv_set_lineups(x, set_number = 1, lineups = list(c(as.numeric(x0$plays[4, paste0("home_p", 1:6)]), 14), c(as.numeric(x0$plays[4, paste0("visiting_p", 1:6)]), 13)), setter_positions = c(x0$plays$home_setter_position[4], x0$plays$visiting_setter_position[4]))
+
+    ov_scouter(x, video_file = video_file, court_ref = court_ref, ...)
+}
 
 ## TODO
 ## - if on first serve of the set, the click is at the wrong end according to game_state$home_end and game_state$serving == "*", then either auto-flip the court or pause and check with user
