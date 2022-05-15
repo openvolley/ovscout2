@@ -403,67 +403,32 @@ guess_attack_player_options <- function(game_state, dvw, system) {
         return(list(choices = pp, selected = plsel))
     }
     ## else for indoor
-    if (game_state$current_team %eq% "*") {
-        attacking_team <- game_state$current_team
-        setter_rot <- game_state$home_setter_position
-        attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
+    if (!game_state$current_team %in% c("*", "a")) return(list(choices = numeric(), selected = c()))
+    attacking_team <- game_state$current_team
+    home_visiting <- if (game_state$current_team %eq% "*") "home" else "visiting"
+    setter_rot <- game_state[[paste0(home_visiting, "_setter_position")]]
+    attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
+    ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+    attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack", setter_position = setter_rot, zone = attacking_zone, libs = NULL, home_visiting = home_visiting, serving = game_state$serving %eq% attacking_team)
 
-        ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
-        attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack",
-                                                             setter_position = setter_rot,
-                                                             zone = attacking_zone, libs = NULL, home_visiting = "home", serving = game_state$serving %eq% attacking_team)
+    attacking_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0(home_visiting, "_p", pseq)))
+    if (!is.na(attacking_responsibility)) attacking_responsibility_prior[attacking_responsibility] <- 1
 
-        attacking_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("home_p", pseq)))
-        if (!is.na(attacking_responsibility)) attacking_responsibility_prior[attacking_responsibility] <- 1
+    ## Update the probability with the history of the game
+    attacking_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Attack",
+                                       .data[[paste0(home_visiting, "_setter_position")]] %eq% as.character(setter_rot),
+                                       .data$start_zone %eq% attacking_zone,
+                                       .data$team %eq% attacking_team)
 
-        ## Update the probability with the history of the game
-        attacking_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Attack",
-                                           .data$home_setter_position %eq% as.character(setter_rot),
-                                           .data$start_zone %eq% attacking_zone,
-                                           .data$team %eq% attacking_team)
-
-        attacking_responsibility_posterior <- attacking_responsibility_prior
-        if (nrow(attacking_history) > 0) {
-            attacking_history <- dplyr::select(attacking_history, "team", "player_number", paste0("home_p", pseq)) %>% tidyr::pivot_longer(cols = paste0("home_p", pseq)) %>%
-                dplyr::filter(.data$value %eq% .data$player_number) %>%
-                dplyr::group_by(.data$name) %>% dplyr::summarize(n_attacks = dplyr::n()) %>% dplyr::ungroup()
-            attacking_responsibility_posterior[attacking_history$name] <- attacking_responsibility_prior[attacking_history$name] + attacking_history$n_attacks
-            attacking_responsibility_posterior <-  attacking_responsibility_posterior / sum(attacking_responsibility_posterior)
-        }
-        poc <- names(sort(attacking_responsibility_posterior, decreasing = TRUE))
-    } else if (game_state$current_team %eq% "a") {
-        attacking_team <- game_state$current_team
-        setter_rot <- game_state$visiting_setter_position
-        attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
-
-        ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
-        attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack",
-                                                             setter_position = setter_rot,
-                                                             zone = attacking_zone, libs = NULL, home_visiting = "visiting", serving = game_state$serving %eq% attacking_team)
-
-
-        attacking_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0("visiting_p", pseq)))
-        if (!is.na(attacking_responsibility)) attacking_responsibility_prior[attacking_responsibility] <- 1
-
-        ## Update the probability with the history of the game
-        attacking_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Attack",
-                                           .data$visiting_setter_position %eq% as.character(setter_rot),
-                                           .data$start_zone %eq% attacking_zone,
-                                           .data$team %eq% attacking_team)
-
-        attacking_responsibility_posterior <- attacking_responsibility_prior
-        if (nrow(attacking_history) > 0) {
-            attacking_history <- dplyr::select(attacking_history, "team", "player_number", paste0("visiting_p", pseq)) %>%
-                tidyr::pivot_longer(cols = paste0("visiting_p", pseq)) %>%
-                dplyr::filter(.data$value %eq% .data$player_number) %>%
-                dplyr::group_by(.data$name) %>% dplyr::summarise(n_attacks = dplyr::n()) %>% dplyr::ungroup()
-            attacking_responsibility_posterior[attacking_history$name] <- attacking_responsibility_prior[attacking_history$name] + attacking_history$n_attacks
-            attacking_responsibility_posterior <-  attacking_responsibility_posterior / sum(attacking_responsibility_posterior)
-        }
-        poc <- names(sort(attacking_responsibility_posterior, decreasing = TRUE))
-    } else {
-        return(list(choices = numeric(), selected = c()))
+    attacking_responsibility_posterior <- attacking_responsibility_prior
+    if (nrow(attacking_history) > 0) {
+        attacking_history <- dplyr::select(attacking_history, "team", "player_number", paste0(home_visiting, "_p", pseq)) %>% tidyr::pivot_longer(cols = paste0(home_visiting, "_p", pseq)) %>%
+            dplyr::filter(.data$value %eq% .data$player_number) %>%
+            dplyr::group_by(.data$name) %>% dplyr::summarize(n_attacks = dplyr::n()) %>% dplyr::ungroup()
+        attacking_responsibility_posterior[attacking_history$name] <- attacking_responsibility_prior[attacking_history$name] + attacking_history$n_attacks
+        attacking_responsibility_posterior <-  attacking_responsibility_posterior / sum(attacking_responsibility_posterior)
     }
+    poc <- names(sort(attacking_responsibility_posterior, decreasing = TRUE))
     pp <- as.numeric(reactiveValuesToList(game_state)[poc])
     plsel <- as.numeric(reactiveValuesToList(game_state)[poc[1]])
     list(choices = pp, selected = plsel)
