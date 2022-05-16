@@ -88,7 +88,7 @@ dv_set_lineups <- function(x, set_number, lineups, setter_positions, setters) {
     vt_libs <- c(tail(lineups[[2]], -6), rep(NA_integer_, 8 - length(lineups[[2]])))
     ## insert the start-of-set codes and lineups in the plays data
     ## e.g. "*P04>LUp"          "*z3>LUp"
-    lineup_codes <- c(sprintf("*P%02d>Lup", setters[1]), paste0("*z", setter_positions[1], ">Lup"), sprintf("aP%02d>Lup", setters[2]), paste0("az", setter_positions[2], ">Lup"))
+    lineup_codes <- c(sprintf("*P%02d>LUp", setters[1]), paste0("*z", setter_positions[1], ">LUp"), sprintf("aP%02d>LUp", setters[2]), paste0("az", setter_positions[2], ">LUp"))
     add_to_plays2(x, codes = lineup_codes, set_number = set_number, home_setter_position = setter_positions[1], visiting_setter_position = setter_positions[2], home_lineup = lineups[[1]][1:6], visiting_lineup = lineups[[2]][1:6], scores = c(0L, 0L), serving = NA_character_, home_liberos = ht_libs, visiting_liberos = vt_libs)
 }
 
@@ -293,7 +293,7 @@ update_meta <- function(x, set_ended = FALSE) {
         }
     }
     ## update all set results, including durations
-    set_start_rows <- which(grepl(">Lup", x$plays2$code) & !grepl(">Lup", dplyr::lag(x$plays2$code)))
+    set_start_rows <- which(grepl(">LUp", x$plays2$code, ignore.case = TRUE) & (!grepl(">LUp", dplyr::lag(x$plays2$code), ignore.case = TRUE) | seq_along(x$plays2$code) == 1))
     if (nrow(x$meta$result) < length(set_start_rows)) {
         temp <- length(set_start_rows) - nrow(x$meta$result)
         x$meta$result <- bind_rows(x$meta$result, tibble(played = rep(NA, temp), score_intermediate1 = rep(NA_character_, temp), score_intermediate2 = rep(NA_character_, temp), score_intermediate3 = rep(NA_character_, temp), score = rep(NA_character_, temp), duration = rep(NA_real_, temp), X7 = rep(NA, temp), score_home_team = rep(NA_real_, temp), score_visiting_team = rep(NA_real_, temp)))
@@ -345,8 +345,8 @@ update_meta <- function(x, set_ended = FALSE) {
     ## starting lineups and subs
     ## this can be done even for sets that haven't been completed
     for (si in seq_len(max(x$plays2$set_number, na.rm = TRUE))) {
-        ## use the final >Lup row for starting lineup
-        final_lup_row <- which(x$plays2$set_number == si & grepl(">Lup", x$plays2$code))
+        ## use the final >LUp row for starting lineup
+        final_lup_row <- which(x$plays2$set_number == si & grepl(">LUp", x$plays2$code, ignore.case = TRUE))
         if (length(final_lup_row) > 0) final_lup_row <- max(final_lup_row)
         if (length(final_lup_row) == 1) {
             home_starting_lineup <- as.numeric(x$plays2[final_lup_row, paste0("home_p", pseq)])
@@ -355,7 +355,7 @@ update_meta <- function(x, set_ended = FALSE) {
                 if (length(pl_row) == 1) x$meta$players_h[[paste0("starting_position_set", si)]][pl_row] <- as.character(j)
             }
             ## subs
-            all_home_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set_number == si & !grepl(">Lup", x$plays2$code)), paste0("home_p", pseq)]))))
+            all_home_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set_number == si & !grepl(">LUp", x$plays2$code, ignore.case = TRUE)), paste0("home_p", pseq)]))))
             home_subs <- setdiff(all_home_pl, home_starting_lineup)
             x$meta$players_h[[paste0("starting_position_set", si)]][x$meta$players_h$number %in% home_subs] <- "*"
             ## visiting team
@@ -365,7 +365,7 @@ update_meta <- function(x, set_ended = FALSE) {
                 if (length(pl_row) == 1) x$meta$players_v[[paste0("starting_position_set", si)]][pl_row] <- as.character(j)
             }
             ## subs
-            all_visiting_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set_number == si & !grepl(">Lup", x$plays2$code)), paste0("visiting_p", pseq)]))))
+            all_visiting_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set_number == si & !grepl(">LUp", x$plays2$code, ignore.case = TRUE)), paste0("visiting_p", pseq)]))))
             visiting_subs <- setdiff(all_visiting_pl, visiting_starting_lineup)
             x$meta$players_v[[paste0("starting_position_set", si)]][x$meta$players_v$number %in% visiting_subs] <- "*"
         }

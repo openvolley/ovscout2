@@ -1466,7 +1466,7 @@ ov_scouter_server <- function(app_data) {
             ok <- TRUE
             if (!is.null(code)) {
                 if (grepl("^>", code)) {
-                    ## comment, or perhaps >Lup
+                    ## comment, or perhaps >LUp
                     rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
                 } else if (code %in% c("*T", "aT")) {
                     rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
