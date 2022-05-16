@@ -525,32 +525,61 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
 
 mod_teamscores_ui <- function(id, styling) {
     ns <- NS(id)
-    tagList(tags$head(tags$style(paste0("@font-face { font-family:'DSEG14'; src: url('fonts/DSEG14Modern-Regular.woff2') format('woff2'), url('fonts/DSEG14Modern-Regular.woff') format('woff'); } .scoreboard { background-color:#00000080; border-radius:4px; padding:1px; } #hscore, #vscore { padding: 2px; text-align: center; font-family:'DSEG14', sans-serif; font-size:24px; } #hnscore { padding: 2px; text-align: left; font-size:16px;} #vnscore { padding: 2px; text-align: right; font-size:16px;} #tsc_outer {position:absolute; right:14px; width:20vw; -webkit-transform: translateZ(10);}"))),
+    tagList(tags$head(tags$style(paste0("@font-face { font-family:'DSEG14'; src: url('fonts/DSEG14Modern-Regular.woff2') format('woff2'), url('fonts/DSEG14Modern-Regular.woff') format('woff'); } .scoreboard { background-color:#00000080; border-radius:4px; padding:1px; } .ptscorenum, .setscorenum { padding: 2px; text-align: center; font-family:'DSEG14', sans-serif; } .ptscorenum { font-size:24px; } .setscorenum { font-size:17px; } #hnscore { padding: 2px; text-align: left; font-size:16px;} #vnscore { padding: 2px; text-align: right; font-size:16px;} #tsc_outer {position:absolute; right:14px; width:20vw; -webkit-transform: translateZ(10);}"))),
             fluidRow(class = "scoreboard",
                      column(6, style = paste0("background-color:", styling$h_court_colour),
                             fixedRow(column(10, id = "hnscore", uiOutput(ns("hnaming"))),
-                                     column(2, id = "hscore", uiOutput(ns("hscoring"))))),
+                                     column(2, class = "setscorenum", uiOutput(ns("hsetscoring")))),
+                            fixedRow(column(2, offset = 10, class = "ptscorenum", uiOutput(ns("hscoring"))))),
                      column(6, style = paste0("background-color:", styling$v_court_colour),
-                            fixedRow(column(2, id = "vscore", uiOutput(ns("vscoring"))),
-                                     column(10, id = "vnscore", uiOutput(ns("vnaming")))))
+                            fixedRow(column(2, class = "setscorenum", uiOutput(ns("vsetscoring"))),
+                                     column(10, id = "vnscore", uiOutput(ns("vnaming")))),
+                            fixedRow(column(2, class = "ptscorenum", uiOutput(ns("vscoring"))))
+                            )
                      )
             )
 }
 
 mod_teamscores <- function(input, output, session, game_state, rdata) {
     ns <- session$ns
+    ss <- reactive({
+        sets_won <- c(0L, 0L) ## sets won by home, visiting teams
+        set_end_rows <- grep("^\\*\\*[[:digit:]]set", rdata$dvw$plays2$code)
+        for (si in seq_along(set_end_rows)) {
+            set_plays2 <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == si)
+            temp <- do.call(rbind, stringr::str_match_all(set_plays2$code, "^[a\\*]p([[:digit:]]+):([[:digit:]]+)"))
+            scores <- c(max(as.numeric(temp[, 2]), na.rm = TRUE), max(as.numeric(temp[, 3]), na.rm = TRUE))
+            if (is_beach(rdata$dvw)) {
+                if (max(scores) >= 21 && abs(diff(scores)) >= 2) {
+                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
+                }
+            } else {
+                if ((si < 5 && max(scores) >= 25 && abs(diff(scores)) >= 2) || max(scores) >= 15 && abs(diff(scores)) >= 2) {
+                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
+                }
+            }
+        }
+        sets_won
+    })
+
     output$hnaming <- renderUI({
-        tags$div(tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]))
+        tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"])
     })
     output$hscoring <- renderUI({
         hs <- game_state$home_score_start_of_point
-        tags$div(tags$span(hs))
+        tags$span(hs)
+    })
+    output$hsetscoring <- renderUI({
+        if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[1]) else NULL
     })
     output$vscoring <- renderUI({
         vs <- game_state$visiting_score_start_of_point
-        tags$div(tags$span(vs))
+        tags$span(vs)
+    })
+    output$vsetscoring <- renderUI({
+        if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[2]) else NULL
     })
     output$vnaming <- renderUI({
-        tags$div(tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]))
+        tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"])
     })
 }
