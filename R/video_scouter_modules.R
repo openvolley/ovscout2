@@ -528,13 +528,13 @@ mod_teamscores_ui <- function(id, styling) {
     tagList(tags$head(tags$style(paste0("@font-face { font-family:'DSEG14'; src: url('fonts/DSEG14Modern-Regular.woff2') format('woff2'), url('fonts/DSEG14Modern-Regular.woff') format('woff'); } .scoreboard { background-color:#00000080; border-radius:4px; padding:1px; } .ptscorenum, .setscorenum { padding: 2px; text-align: center; font-family:'DSEG14', sans-serif; } .ptscorenum { font-size:24px; } .setscorenum { font-size:17px; } #hnscore { padding: 2px; text-align: left; font-size:16px;} #vnscore { padding: 2px; text-align: right; font-size:16px;} #tsc_outer {position:absolute; right:14px; width:20vw; -webkit-transform: translateZ(10);}"))),
             fluidRow(class = "scoreboard",
                      column(6, style = paste0("background-color:", styling$h_court_colour),
-                            fixedRow(column(10, id = "hnscore", uiOutput(ns("hnaming"))),
-                                     column(2, class = "setscorenum", uiOutput(ns("hsetscoring")))),
-                            fixedRow(column(2, offset = 10, class = "ptscorenum", uiOutput(ns("hscoring"))))),
+                            fixedRow(column(9, id = "hnscore", uiOutput(ns("hnaming"))),
+                                     column(3, class = "setscorenum", uiOutput(ns("hsetscoring")))),
+                            fixedRow(column(3, offset = 9, class = "ptscorenum", uiOutput(ns("hscoring"))))),
                      column(6, style = paste0("background-color:", styling$v_court_colour),
-                            fixedRow(column(2, class = "setscorenum", uiOutput(ns("vsetscoring"))),
-                                     column(10, id = "vnscore", uiOutput(ns("vnaming")))),
-                            fixedRow(column(2, class = "ptscorenum", uiOutput(ns("vscoring"))))
+                            fixedRow(column(3, class = "setscorenum", uiOutput(ns("vsetscoring"))),
+                                     column(9, id = "vnscore", uiOutput(ns("vnaming")))),
+                            fixedRow(column(3, class = "ptscorenum", uiOutput(ns("vscoring"))))
                             )
                      )
             )
@@ -567,14 +567,14 @@ mod_teamscores <- function(input, output, session, game_state, rdata) {
     })
     output$hscoring <- renderUI({
         hs <- game_state$home_score_start_of_point
-        tags$span(hs)
+        if (!is.na(hs)) tags$span(hs) else NULL
     })
     output$hsetscoring <- renderUI({
         if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[1]) else NULL
     })
     output$vscoring <- renderUI({
         vs <- game_state$visiting_score_start_of_point
-        tags$span(vs)
+        if (!is.na(vs)) tags$span(vs) else NULL
     })
     output$vsetscoring <- renderUI({
         if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[2]) else NULL
