@@ -183,11 +183,14 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
     ## styling
     ## note that colours here need to be hex strings or names, but names must be recognized both by R and as CSS colour names
     app_data$styling <- list(h_court_colour = "#BFEFFF", ## lightblue1
-                             h_court_highlight = "darkblue",
+                             h_court_highlight = "#43AFD3",
                              v_court_colour = "#BCEE68", ## darkolivegreen2
-                             v_court_highlight = "darkgreen",
-                             continue = "#10C424", cancel = "#D41024", undo = "#EB6927",
-                             libero_colour = "grey90", setter_colour = "yellow",
+                             v_court_highlight = "#5D8022",
+                             continue = "#10C424", continue_light = "#60FC71",
+                             cancel = "#D41024", cancel_light = "#DF5463",
+                             undo = "#EB6927", undo_light = "#F9AC50",
+                             libero = "yellow", libero_light = "#FFFF70", libero_dark = "#FFCD4C",
+                             setter = "grey90",
                              playslist_highlight = "orange")
 
     this_app <- list(ui = ov_scouter_ui(app_data = app_data), server = ov_scouter_server(app_data = app_data))

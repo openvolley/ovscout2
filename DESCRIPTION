@@ -30,6 +30,7 @@ Imports:
     rintrojs,
     servr (>= 0.15.1),
     shiny,
+    shinythemes,
     shinyTime,
     stringr,
     sys,

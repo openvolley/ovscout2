@@ -119,15 +119,9 @@ ov_scouter_server <- function(app_data) {
             getel <- paste0("document.getElementById('", id, "')")
             myargs <- list(...)
             if (what == "pause") {
-                ##if (video_state$paused) {
-                ##    dojs(paste0(getel, ".play();"))
-                ##    video_state$paused <- FALSE
-                ##    if (rally_state() == "click or unpause the video to start") rally_state("click serve start")
-                ##} else {
-                    dojs(paste0(getel, ".pause();"))
-                    video_state$paused <- TRUE
-                ##}
-                ##NULL
+                dojs(paste0(getel, ".pause();"))
+                video_state$paused <- TRUE
+                NULL
             } else if (what == "play") {
                 dojs(paste0(getel, ".play();"))
                 video_state$paused <- FALSE
@@ -223,19 +217,48 @@ ov_scouter_server <- function(app_data) {
                         temp <- as.list(tail(rdata$dvw$plays2, 1))
                         for (nm in intersect(c("home_setter_position", "visiting_setter_position", paste0("home_p", 1:6), paste0("visiting_p", 1:6)), names(temp))) game_state[[nm]] <- temp[[nm]]
                     }
+                    ## need to ensure that lineups, rosters etc are valid before restarting, especially if we have started with an incomplete dvw
+                    ## will happen in deal_with_pause below
                 }
                 editing$active <- NULL
                 removeModal()
-                do_video("play")
+                deal_with_pause()
             }
         }
 
-        lineups_are_valid <- reactive({
-            ok <- TRUE
+        meta_is_valid <- reactiveVal(TRUE)
+        observe({
             notnn <- function(z) !is.null(z) && !is.na(z)
-            for (pp in seq_len(if (app_data$is_beach) 2L else 6L)) ok <- ok && notnn(game_state[[paste0("home_p", pp)]]) && notnn(game_state[[paste0("visiting_p", pp)]])
-            if (!app_data$is_beach) ok <- ok && notnn(game_state$home_setter_position) && notnn(game_state$visiting_setter_position)
-            ok
+            ## check rosters
+            ## TODO better
+            rosters_ok <- !is.null(rdata$dvw$meta$players_h) && length(na.omit(rdata$dvw$meta$players_h$number)) >= length(pseq) &&
+                !is.null(rdata$dvw$meta$players_v) && length(na.omit(rdata$dvw$meta$players_v$number)) >= length(pseq)
+            ## check lineups
+            lineups_ok <- TRUE
+            for (pp in pseq) lineups_ok <- lineups_ok && notnn(game_state[[paste0("home_p", pp)]]) && notnn(game_state[[paste0("visiting_p", pp)]])
+            if (!app_data$is_beach) lineups_ok <- lineups_ok && notnn(game_state$home_setter_position) && notnn(game_state$visiting_setter_position)
+
+            ## check courtref
+            courtref_ok <- !is.null(detection_ref()$court_ref)
+            ok <- lineups_ok && rosters_ok && courtref_ok
+            cat("meta ok: ", ok, "\n")
+            meta_is_valid(ok)
+            output$problem_ui <- renderUI({
+                if (!ok) {
+                    tags$div(class = "alert alert-danger",
+                             tags$h2("Information needed"),
+                             tags$ul(
+                                      if (!courtref_ok) tags$li("Use the 'Court reference' button to define the court reference."),
+                                      if (!rosters_ok) tags$li("Use the 'Edit teams' button to enter the team rosters."),
+                                      if (!lineups_ok) tags$li(paste0("Use the 'Edit lineups' to enter starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), "."))
+                                  ),
+                             tags$hr(),
+                             tags$p("Scouting cannot start until this information has been entered.")
+                             )
+                } else {
+                    NULL
+                }
+            })
         })
 
         observeEvent(input$pause_trigger, deal_with_pause())
@@ -244,12 +267,8 @@ ov_scouter_server <- function(app_data) {
             if (isTRUE(scout_modal_active())) {
                 ## but do allow pause, if somehow it isn't already
                 do_video("pause")
-            } else if (!lineups_are_valid()) {
+            } else if (meta_is_valid()) {
                 ## don't allow unpause if the lineups are not valid, else it'll crash
-                if (video_state$paused) {
-                    showModal(modalDialog(title = "Lineups needed", easyClose = TRUE, paste0("Use 'Edit lineups' to enter starting lineups for set ", game_state$set_number)))
-                }
-            } else {
                 if (video_state$paused) {
                     ## we are paused
                     if (is.null(editing$active)) {
@@ -452,10 +471,7 @@ ov_scouter_server <- function(app_data) {
                 courtxy <- vid_to_crt(input$video_click)
                 ##court_inset$add_to_click_queue(courtxy)
                 if (rally_state() == "click or unpause the video to start") {
-                    if (!lineups_are_valid()) {
-                        ## don't allow unpause if the lineups are not valid, else it'll crash
-                        showModal(modalDialog(title = "Lineups needed", easyClose = TRUE, paste0("Use 'Edit lineups' to enter starting lineups for set ", game_state$set_number)))
-                    } else {
+                    if (meta_is_valid()) {
                         do_video("play")
                         rally_state("click serve start")
                     }
@@ -519,8 +535,8 @@ ov_scouter_server <- function(app_data) {
                                                    tags$div(id = "passers_ui", style = if (!is.na(guess_was_err)) "display:none;", tags$p(tags$strong("Select passer:")),
                                                             do.call(fixedRow, lapply(passer_buttons, function(but) column(1, but)))),
                                                    tags$hr(),
-                                                   fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
-                                                            column(2, offset = 8, actionButton("assign_serve_outcome", "Continue", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
+                                                   fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
+                                                            column(2, offset = 8, actionButton("assign_serve_outcome", "Continue", class = "continue fatradio")))
                                                    ))
                 } else if (rally_state() == "click second contact") {
                     ## set (play continues), setter dump, set error, P2 attack, or freeball over (by the receiving team)
@@ -567,8 +583,8 @@ ov_scouter_server <- function(app_data) {
                                             tags$br(),
                                             do.call(fixedRow, lapply(opp_buttons, function(but) column(1, but))),
                                             tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
-                                                     column(2, offset = 8, actionButton("assign_c2", "Continue", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
+                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
+                                                     column(2, offset = 8, actionButton("assign_c2", "Continue", class = "continue fatradio")))
                                             ))
                 } else if (rally_state() == "click third contact") {
                     ## attack, freeball over (by the setting team)
@@ -608,8 +624,8 @@ ov_scouter_server <- function(app_data) {
                                             tags$br(), tags$p("by player"), tags$br(),
                                             do.call(fixedRow, lapply(opp_player_buttons, function(but) column(1, but))),
                                             tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
-                                                     column(2, offset = 8, actionButton("assign_c3", "Continue", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
+                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
+                                                     column(2, offset = 8, actionButton("assign_c3", "Continue", class = "continue fatradio")))
                                             ))
                 } else if (rally_state() == "click attack end point") {
                     ## dig, dig error (attack kill), attack error, blocked, blocked for replay, block touch (attack kill)
@@ -658,8 +674,8 @@ ov_scouter_server <- function(app_data) {
                                             tags$br(), tags$hr(), tags$div("WITH", tags$strong("Block touch"), "by player"), tags$br(),
                                             do.call(fixedRow, lapply(block_player_buttons, function(but) column(2, but))),
                                             tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
-                                                     column(2, offset = 8, actionButton("assign_c1", "Continue", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
+                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
+                                                     column(2, offset = 8, actionButton("assign_c1", "Continue", class = "continue fatradio")))
                                             ))
                 } else if (rally_state() == "click freeball end point") {
                     ## freeball dig, freeball dig error, freeball error (in theory could be blocked, blocked for replay, block touch (freeball kill))
@@ -687,8 +703,8 @@ ov_scouter_server <- function(app_data) {
                                             tags$div(id = "f1_digp_ui", tags$p(tags$strong("by player")),
                                                      do.call(fixedRow, lapply(dig_player_buttons, function(but) column(1, but)))),
                                             tags$br(), tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
-                                                     column(2, offset = 8, actionButton("assign_f1", "Continue", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
+                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
+                                                     column(2, offset = 8, actionButton("assign_f1", "Continue", class = "continue fatradio")))
                                             ))
                 } else {
                     stop("unknown rally state: ", rally_state())
@@ -721,8 +737,8 @@ ov_scouter_server <- function(app_data) {
                     modalDialog(title = "End of set", easyClose = FALSE, footer = NULL,
                                 paste0("Confirm end of set ", game_state$set_number, "?"),
                                 tags$hr(),
-                                fixedRow(column(2, actionButton("cancel", "Cancel", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$cancel))),
-                                         column(2, offset = 8, actionButton("end_of_set", "Confirm", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
+                                fixedRow(column(2, actionButton("cancel", "Cancel", class = "cancel fatradio")),
+                                         column(2, offset = 8, actionButton("end_of_set", "Confirm", class = "continue fatradio")))
                                 ))
                 do_video("pause")
                 rally_state("confirm end of set")
@@ -1276,10 +1292,10 @@ ov_scouter_server <- function(app_data) {
                                              ),
                                     tags$hr(),
                                     tags$p(tags$strong("Match actions")),
-                                    fluidRow(column(2, actionButton("undo", "Undo last rally action", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$undo))),
+                                    fluidRow(column(2, actionButton("undo", "Undo last rally action", class = "undo fatradio")),
                                              ## only partially implemented
-                                             column(2, actionButton("enter_code", "Enter scout code", style = paste0("width:100%; height:7vh;")), tags$span(style = "font-size:small;", "Only non-skill codes are supported")),
-                                             column(2, actionButton("end_of_set", "End of set", style = paste0("width:100%; height:7vh;")))),
+                                             column(2, actionButton("enter_code", "Enter scout code", class = "fatradio"), tags$span(style = "font-size:small;", "Only non-skill codes are supported")),
+                                             column(2, actionButton("end_of_set", "End of set", class = "fatradio"))),
                                     tags$br(),
                                     ## TODO consider if all of these buttons should be available mid-rally or not (e.g. timeouts)
                                     fluidRow(column(6, tags$strong(datavolley::home_team(rdata$dvw), "(home)")),
@@ -1301,7 +1317,7 @@ ov_scouter_server <- function(app_data) {
                                     fluidRow(column(2, offset = 4, if (ht_can_sub) make_fat_buttons(choices = c("Make substitution" = "*C"), input_var = "manual_code")),
                                              column(2, offset = 4, if (vt_can_sub) make_fat_buttons(choices = c("Make substitution" = "aC"), input_var = "manual_code"))),
                                     tags$hr(),
-                                    fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Return to scouting", style = paste0("width:100%; height:7vh; background-color:", app_data$styling$continue))))
+                                    fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Return to scouting", class = "continue fatradio")))
                                     ))
         }
         observeEvent(input$admin_dismiss, {
@@ -1495,14 +1511,6 @@ ov_scouter_server <- function(app_data) {
 ##            ##  ..$ : chr "tmp"
 ##            ## $ root: chr "root"
 ##        })
-
-        ## check courtref on startup
-        observe({
-            if (is.null(detection_ref()$court_ref)) {
-                showModal(modalDialog(title = "Define the court reference", easyClose = TRUE,
-                                      tags$div("Use the 'Court reference' button to define the court reference before scouting any actions.")))
-            }
-        })
 
 ##        observe({
 ##            cat("game_state:\n")

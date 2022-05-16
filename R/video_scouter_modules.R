@@ -131,11 +131,11 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             ## setter
             ht_setter <- px$ht_setter
             if (!is.null(ht_setter) && sum(ht_setter %eq% plxy$number) == 1) {
-                p <- p + geom_polygon(data = court_circle(cz = which(ht_setter %eq% plxy$number), end = "lower"), fill = styling$setter_colour, colour = "black")
+                p <- p + geom_polygon(data = court_circle(cz = which(ht_setter %eq% plxy$number), end = "lower"), fill = styling$h_court_highlight, colour = "black")
             }
             ## liberos
             if (!is.null(px$ht_libxy)) {
-                p <- p + geom_polygon(data = court_circle(px$ht_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black") +
+                p <- p + geom_polygon(data = court_circle(px$ht_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero, colour = "black") +
                     geom_text(data = px$ht_libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
                     geom_text(data = px$ht_libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
             }
@@ -149,11 +149,11 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             ## setter
             vt_setter <- px$vt_setter
             if (!is.null(vt_setter) && sum(vt_setter %eq% plxy$number) == 1) {
-                p <- p + geom_polygon(data = court_circle(cz = which(vt_setter %eq% plxy$number), end = "upper"), fill = styling$setter_colour, colour = "black")
+                p <- p + geom_polygon(data = court_circle(cz = which(vt_setter %eq% plxy$number), end = "upper"), fill = styling$v_court_highlight, colour = "black")
             }
             ## liberos
             if (!is.null(px$vt_libxy)) {
-                p <- p + geom_polygon(data = court_circle(px$vt_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black") +
+                p <- p + geom_polygon(data = court_circle(px$vt_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero, colour = "black") +
                     geom_text(data = px$vt_libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
                     geom_text(data = px$vt_libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
             }
@@ -243,7 +243,7 @@ mod_match_data_edit <- function(input, output, session, rdata, editing, styling)
         ## NB the edit and cancel buttons are global, not namespaced by ns()
         showModal(
             vwModalDialog(
-                title = "Edit match data", footer = tags$div(actionButton("edit_commit", label = "Update match data (or press Enter)", style = paste0("background-color:", styling$continue)), actionButton("edit_cancel", label = "Cancel (or press Esc)", style = paste0("background-color:", styling$cancel))),
+                title = "Edit match data", footer = tags$div(actionButton("edit_commit", label = "Update match data (or press Enter)", class = "continue"), actionButton("edit_cancel", label = "Cancel (or press Esc)", class = "cancel")),
                 tags$div(
                          fluidRow(column(4, shiny::dateInput(ns("match_edit_date"), label = "Match date:", value = rdata$dvw$meta$match$date)),
                                   column(4, textInput(ns("match_edit_time"), label = "Start time:", value = match_time, placeholder = "HH:MM:SS")),
@@ -283,7 +283,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
         vt_libs <- get_liberos(game_state = game_state, team = "a", dvw = rdata$dvw)
         showModal(
             vwModalDialog(
-                title = "Edit starting line up", size = "l", footer = tags$div(uiOutput(ns("edit_lineup_commit_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", style = paste0("background-color:", styling$cancel))),
+                title = "Edit starting line up", size = "l", footer = tags$div(uiOutput(ns("edit_lineup_commit_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", class = "cancel")),
                 tabsetPanel(
                     tabPanel("Home team",
                              tags$style(paste0("#ht_display_team {border: 2px solid ", styling$h_court_colour, ";}")),
@@ -332,7 +332,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
         if (!beach) htok <- htok && nzchar(input$ht_P3) && nzchar(input$ht_P4) && nzchar(input$ht_P5) && nzchar(input$ht_P6) && nzchar(input$ht_setter)
         vtok <- nzchar(input$vt_P1) && nzchar(input$vt_P2)
         if (!beach) vtok <- vtok && nzchar(input$vt_P3) && nzchar(input$vt_P4) && nzchar(input$vt_P5) && nzchar(input$vt_P6) && nzchar(input$vt_setter)
-        if (htok && vtok) actionButton("edit_commit", label = "Update teams lineups", style = paste0("background-color:", styling$continue)) else NULL
+        if (htok && vtok) actionButton("edit_commit", label = "Update teams lineups", class = "continue") else NULL
     })
 
     output$ht_display_team <- DT::renderDataTable({
@@ -369,7 +369,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
         vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
         ## NB the edit and cancel buttons are global, not namespaced by ns()
-        showModal(modalDialog(title = "Edit teams", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update teams data", style = paste0("background-color:", styling$continue)), actionButton("edit_cancel", label = "Cancel", style = paste0("background-color:", styling$cancel))),
+        showModal(modalDialog(title = "Edit teams", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update teams data", class = "continue"), actionButton("edit_cancel", label = "Cancel", class = "cancel")),
                               tabsetPanel(
                                   tabPanel("Home team",
                                            fluidRow(column(4, textInput(ns("ht_edit_name"), label = "Team name:", value = rdata$dvw$meta$teams$team[htidx])),
@@ -525,7 +525,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
 
 mod_teamscores_ui <- function(id, styling) {
     ns <- NS(id)
-    tagList(tags$head(tags$style(paste0("@font-face { font-family:'DSEG14'; src: url('fonts/DSEG14Modern-Regular.woff2') format('woff2'), url('fonts/DSEG14Modern-Regular.woff') format('woff'); } .scoreboard { background-color:#00000080; border-radius:4px; padding:1px; font-family:'DSEG14', sans-serif;} #hscore, #vscore { padding: 2px; text-align: center; font-size:24px; } #hnscore { padding: 2px; text-align: left; font-size:16px;} #vnscore { padding: 2px; text-align: right; font-size:16px;} #tsc_outer {position:absolute; right:14px; width:20vw; -webkit-transform: translateZ(10);}"))),
+    tagList(tags$head(tags$style(paste0("@font-face { font-family:'DSEG14'; src: url('fonts/DSEG14Modern-Regular.woff2') format('woff2'), url('fonts/DSEG14Modern-Regular.woff') format('woff'); } .scoreboard { background-color:#00000080; border-radius:4px; padding:1px; } #hscore, #vscore { padding: 2px; text-align: center; font-family:'DSEG14', sans-serif; font-size:24px; } #hnscore { padding: 2px; text-align: left; font-size:16px;} #vnscore { padding: 2px; text-align: right; font-size:16px;} #tsc_outer {position:absolute; right:14px; width:20vw; -webkit-transform: translateZ(10);}"))),
             fluidRow(class = "scoreboard",
                      column(6, style = paste0("background-color:", styling$h_court_colour),
                             fixedRow(column(10, id = "hnscore", uiOutput(ns("hnaming"))),

@@ -11,7 +11,7 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
         ## trigger the crvt data to be re-initialized each time a popup is spawned
         did_sr_popup(did_sr_popup() + 1L)
         active(TRUE)
-        showModal(vwModalDialog(title = "Set up court reference", uiOutput(ns("srui")), footer = tags$div(uiOutput(ns("sr_apply_ui"), inline = TRUE), actionButton(ns("sr_cancel"), "Cancel", style = paste0("background-color:", styling$cancel))), width = 100))
+        showModal(vwModalDialog(title = "Set up court reference", uiOutput(ns("srui")), footer = fluidRow(column(1, offset = 10, actionButton(ns("sr_cancel"), "Cancel", class = "fatradio cancel")), column(1, uiOutput(ns("sr_apply_ui"), inline = TRUE))), width = 100))
     })
 
     observeEvent(input$sr_cancel, {
@@ -20,7 +20,7 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
     })
 
     output$sr_apply_ui <- renderUI({
-        if (length(na.omit(crvt$court$image_x)) == 4) actionButton(ns("sr_apply"), "Apply", style = paste0("background-color:", styling$continue)) else NULL
+        if (length(na.omit(crvt$court$image_x)) == 4) actionButton(ns("sr_apply"), "Apply", class = "fatradio continue") else NULL
     })
 
     observeEvent(input$sr_apply, {

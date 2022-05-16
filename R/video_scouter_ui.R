@@ -1,14 +1,15 @@
 ov_scouter_ui <- function(app_data) {
     ## some startup stuff
     running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
-    fluidPage(##theme = if (running_locally) shinythemes::shinytheme("spacelab") else "https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.7/spacelab/bootstrap.min.css",
+    fluidPage(theme = if (running_locally) shinythemes::shinytheme("lumen") else "https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.7/lumen/bootstrap.min.css",
               htmltools::findDependencies(shiny::selectizeInput("foo", "bar", choices = "a")), ## workaround for https://github.com/rstudio/shiny/issues/3125
               tags$script("Shiny.addCustomMessageHandler('evaljs', function(jsexpr) { eval(jsexpr) });"), ## handler for running js code directly
               rintrojs::introjsUI(),
               tags$head(tags$style("body{font-size:15px} .well{padding:15px;} .myhidden {display:none;} table {font-size: small;} h2, h3, h4 {font-weight: bold;} .shiny-notification { height: 100px; width: 400px; position:fixed; top: calc(50% - 50px); left: calc(50% - 200px); } .code_entry_guide {color:#31708f; background-color:#d9edf7;border-color:#bce8f1;padding:4px;font-size:70%;} .sub_entry_guide {color:#31708f; background-color:#d9edf7;border-color:#bce8f1;padding:4px;font-size:40%;} .lineup_entry_guide {color:#31708f; background-color:#d9edf7;border-color:#bce8f1;padding:4px;font-size:40%;} .clet {color: red;} .iconbut { font-size: 150%; } #rallystate { position: absolute; font-size: large; color: yellow; margin-top: -50px; background-color: #0000C080; }"),
-                        tags$style("#headerblock {border-radius:14px; padding:10px; margin-bottom:5px; min-height:120px; color:black; border: 1px solid #000766; background:#000766; background: linear-gradient(90deg, rgba(0,7,102,1) 0%, rgba(255,255,255,1) 65%, rgba(255,255,255,1) 100%);} #headerblock h1, #headerblock h2, #headerblock h3, #headerblock h4 {color:#fff;}"),
-                        tags$style(".libero {background-color:yellow;} .fatradio {width:100%; height:7vh;} .fatradio:focus, .fatradio:hover {background-color:#FFFFFF;}"),
-                        tags$style("#video_overlay, #video_overlay_img { -webkit-backface-visibility: hidden; -webkit-transform: translateZ(0); }"), ## stop chrome putting the overlay underneath the video
+                        tags$style("#headerblock {border-radius:14px; padding:10px; margin-bottom:5px; min-height:120px; color:black; border: 1px solid #000766; background:#000766; background: linear-gradient(90deg, rgba(0,7,102,1) 0%, rgba(255,255,255,1) 65%, rgba(255,255,255,1) 100%);} #headerblock h1, #headerblock h2, #headerblock h3, #headerblock h4 {color:#fff;} .btn, .btn:hover, .btn.active { border-width:1px; }"),
+                        tags$style(paste0(".libero {background-color:", app_data$styling$libero, "; border-color:", app_data$styling$libero_light, "} .libero.active {background-color:", app_data$styling$libero_dark, "; border-color:", app_data$styling$libero, "} .libero.active:hover, .libero:hover {background-color:", app_data$styling$libero_light, "; border-color:", app_data$styling$libero, "} .fatradio {width:100%; height:7vh;}")),## .fatradio:focus, .fatradio:hover {background-color:#FFFFFF;}")),
+                        tags$style("#video_overlay, #video_overlay_img { -webkit-backface-visibility: hidden; -webkit-transform: translateZ(0); } #problem_ui {position:absolute; left:25%; width:50%; top:10%; -webkit-transform: translateZ(10);}"), ## stop chrome putting the overlay underneath the video
+                        tags$style(paste0(".undo {background-color:", app_data$styling$undo, "; border-color:", app_data$styling$undo_light, "} .undo:hover {background-color:", app_data$styling$undo_light, "; border-color:", app_data$styling$undo, "} .continue {background-color:", app_data$styling$continue, "; border-color:", app_data$styling$continue_light, "} .continue:hover {background-color:", app_data$styling$continue_light, "; border-color:", app_data$styling$continue, "} .cancel {background-color:", app_data$styling$cancel, "; border-color:", app_data$styling$cancel_light, "} .cancel:hover {background-color:", app_data$styling$cancel_light, "; border-color:", app_data$styling$cancel, "}")),
                         if (!is.null(app_data$css)) tags$style(app_data$css),
                         ##key press handling
                         tags$script("$(document).on('keypress', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.setInputValue('cmd', e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
@@ -43,12 +44,14 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                        ),
                               if (app_data$with_video) introBox(tags$div(id = "video_holder", style = "position:relative;",
                                                                          if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc", styling = app_data$styling)),
+                                                                         uiOutput("problem_ui"),
                                                                          tags$video(id = "main_video", style = "border: 1px solid black; width: 100%;", src = file.path(app_data$video_server_base_url, basename(app_data$video_src)), autoplay = "false")), tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 4, data.intro = "Video of the game to scout."), ##controls = "controls",
                               fluidRow(column(4, offset = 8, uiOutput("rally_state"))),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
                               fluidRow(column(8,
                                               ## some elements commented out for now - BR
                                               introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
+                                                  mod_courtref_ui(id = "courtref"),
                                                   mod_match_data_edit_ui(id = "match_data_editor"),
                                                   mod_team_edit_ui(id = "team_editor"),
                                                   mod_lineup_edit_ui(id = "lineup_editor"),
@@ -58,7 +61,6 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                               fluidRow(column(5, actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
                                               actionButton("show_shortcuts", tags$span(icon("keyboard"), "Show keyboard shortcuts"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
                                               sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1),
-                                              mod_courtref_ui(id = "courtref"),
                                               uiOutput("show_overlay_ui")
                                               ),
                                        column(7, wellPanel(mod_teamslists_ui(id = "teamslists")))
