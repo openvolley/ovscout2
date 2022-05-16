@@ -329,9 +329,9 @@ ov_scouter_server <- function(app_data) {
                             }
                             ## but not for team editing, because pressing enter in the DT fires this too
                         } else if (ky %in% c(90, 122)) {
-                            ## z
-                            ## temporarily hide the admin modal, so the video can be seen
-                            if (editing$active %eq% "admin") dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
+                            ## "z", temporarily hide the modal, so the video can be seen
+                            ## but only for the admin modal or the ones that pop up during the rally, not the editing modals for lineups etc
+                            if (is.null(editing$active) || editing$active %eq% c("admin")) dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
                         } else if (ky %in% utf8ToInt("qQ0")) {
                             ## only accept this if we are not editing, or it's the admin modal being shown
                             if (is.null(editing$active) || editing$active %eq% "admin") {
@@ -639,7 +639,7 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(courtxy)
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
-                    c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (without dig error)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"), input_var = "c1") ## defaults to attack kill without dig error
+                    c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (play continues)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"), input_var = "c1") ## defaults to attack kill without dig error
                     ## TODO smarter guessing of that
                     ## Identify defending players
                     dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
