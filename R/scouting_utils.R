@@ -319,6 +319,9 @@ update_meta <- function(x, set_ended = FALSE) {
             set_start_end_time <- range(set_plays2$video_time, na.rm = TRUE)
             x$meta$result$duration[si] <- round(diff(set_start_end_time) / 60)
             ## sets won
+            ## need scores at end of points
+            temp <- do.call(rbind, stringr::str_match_all(set_plays2$code, "^[a\\*]p([[:digit:]]+):([[:digit:]]+)"))
+            scores <- c(max(as.numeric(temp[, 2]), na.rm = TRUE), max(as.numeric(temp[, 3]), na.rm = TRUE))
             if (is_beach) {
                 if (max(scores) >= 21 && abs(diff(scores)) >= 2) {
                     sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
