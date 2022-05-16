@@ -88,6 +88,17 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
         warning("multiple video files have been specified in the dvw file metadata, using only the first one")
         dvw$meta$video <- dvw$meta$video[1, ]
     }
+
+    ## if the dvw file came from somebody/somewhere else, we might have the video but the absolute path in the dvw will be wrong
+    if (length(dvw$meta$video$file) == 1) {
+        chk <- dvw$meta$video$file
+        if (!fs::file_exists(as.character(chk))) {
+            ## can't find the file, go looking for it
+            chk <- tryCatch(ovideo::ov_find_video_file(dvw_filename = dvw_filename, video_filename = chk), error = function(e) NA_character_)
+            if (!is.na(chk)) dvw$meta$video$file <- chk
+        }
+    }
+
     ## has any of that resulted in a video file?
     if (!(nrow(dvw$meta$video) == 1 && file.exists(dvw$meta$video$file))) {
         if (prompt_for_files) {
@@ -96,6 +107,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
             if (length(video_file) == 1) dvw$meta$video <- tibble(camera = "Camera0", file = video_file)
         }
     }
+
     if (nrow(dvw$meta$video) < 1) {
         stop("no video files specified, either in the dvw file or via the video_file parameter")
     } else {
@@ -105,11 +117,11 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
     ## look for the court ref data, if it hasn't been provided
     if (missing(court_ref)) {
         court_ref <- NULL
-        if (packageVersion("ovideo") >= "0.14.3") temp <- suppressWarnings(ovideo::ov_get_video_data(video_file))
+        if (packageVersion("ovideo") >= "0.14.3") temp <- suppressWarnings(ovideo::ov_get_video_data(dvw$meta$video$file))
         if (!is.null(temp)) {
             court_ref <- temp
         } else {
-            crfile <- paste0(fs::path_ext_remove(video_file), "_video_info.rds")
+            crfile <- paste0(fs::path_ext_remove(dvw$meta$video$file), "_video_info.rds")
             if (file.exists(crfile)) tryCatch(court_ref <- readRDS(crfile), error = function(e) {
                 warning("found video_info.rds file but could not extract court_ref component")
             })
@@ -127,19 +139,12 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
     opts <- ov_scouter_options()
     for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
     ## finally the shiny app
-    app_data <- c(list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = !is.na(video_file), court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, ui_header = tags$div()), other_args)
+    app_data <- c(list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, ui_header = tags$div()), other_args)
     app_data$serving <- "*" ## HACK for testing
     app_data$play_overlap <- 0.5 ## amount (in seconds) to rewind before restarting the video, after pausing to enter data
     app_data$evaluation_decoder <- skill_evaluation_decoder() ## to expose as a parameter, perhaps
     app_data$scoreboard <- isTRUE(scoreboard)
     if (app_data$with_video) {
-        video_src <- app_data$dvw$meta$video$file[1]
-        if (!fs::file_exists(as.character(video_src))) {
-            ## can't find the file, go looking for it
-            chk <- ovideo::ov_find_video_file(dvw_filename = app_data$dvw_filename, video_filename = video_src)
-            if (!is.na(chk)) video_src <- chk
-        }
-        app_data$video_src <- video_src
         have_lighttpd <- FALSE
         video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001
         tryCatch({
@@ -150,7 +155,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
         if (video_serve_method == "lighttpd") {
             ## build config file to pass to lighttpd
             lighttpd_conf_file <- tempfile(fileext = ".conf")
-            cat("server.document-root = \"", dirname(video_src), "\"\nserver.port = \"", video_server_port, "\"\n", sep = "", file = lighttpd_conf_file, append = FALSE)
+            cat("server.document-root = \"", dirname(app_data$video_src), "\"\nserver.port = \"", video_server_port, "\"\n", sep = "", file = lighttpd_conf_file, append = FALSE)
             lighttpd_pid <- sys::exec_background("lighttpd", c("-D", "-f", lighttpd_conf_file), std_out = FALSE) ## start lighttpd not in background mode
             lighttpd_cleanup <- function() {
                 message("cleaning up lighttpd")
@@ -159,7 +164,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
             onStop(function() try({ lighttpd_cleanup() }, silent = TRUE))
         } else {
             ## start servr instance serving from the video source directory
-            blah <- servr::httd(dir = dirname(video_src), port = video_server_port, browser = FALSE, daemon = TRUE)
+            blah <- servr::httd(dir = dirname(app_data$video_src), port = video_server_port, browser = FALSE, daemon = TRUE)
             onStop(function() {
                 message("cleaning up servr")
                 servr::daemon_stop()
