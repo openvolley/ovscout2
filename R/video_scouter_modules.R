@@ -544,6 +544,7 @@ mod_teamscores <- function(input, output, session, game_state, rdata) {
     ns <- session$ns
     ss <- reactive({
         sets_won <- c(0L, 0L) ## sets won by home, visiting teams
+        if (nrow(rdata$dvw$plays2) < 1 || !"code" %in% names(rdata$dvw$plays2)) return(c(0L, 0L))
         set_end_rows <- grep("^\\*\\*[[:digit:]]set", rdata$dvw$plays2$code)
         for (si in seq_along(set_end_rows)) {
             set_plays2 <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == si)

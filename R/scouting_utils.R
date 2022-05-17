@@ -292,6 +292,7 @@ update_meta <- function(x, set_ended = FALSE) {
             x$meta$result <- bind_rows(x$meta$result, x$meta$result[0, ][rep(1, x$game_state$set_number - nrow(x$meta$result)), ]) ## add all-NA row(s)
         }
     }
+    if (is.null(x$plays2) || nrow(x$plays2) < 1) return(x)
     ## update all set results, including durations
     set_start_rows <- which(grepl(">LUp", x$plays2$code, ignore.case = TRUE) & (!grepl(">LUp", dplyr::lag(x$plays2$code), ignore.case = TRUE) | seq_along(x$plays2$code) == 1))
     if (nrow(x$meta$result) < length(set_start_rows)) {

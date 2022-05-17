@@ -73,6 +73,7 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
 
 ## rationalize plays2 rows
 rp2 <- function(p2) {
+    if (is.null(p2) || nrow(p2) < 1) return(p2)
     ## input can either be a whole dvw object, or just the plays2 component thereof
     was_dvw <- is.list(p2) && "plays2" %in% names(p2)
     if (was_dvw) {

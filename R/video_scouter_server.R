@@ -1262,11 +1262,18 @@ ov_scouter_server <- function(app_data) {
         if (!"ht_lib2" %in% names(temp)) temp$ht_lib2 <- NA_character_
         if (!"vt_lib1" %in% names(temp)) temp$vt_lib1 <- NA_character_
         if (!"vt_lib2" %in% names(temp)) temp$vt_lib2 <- NA_character_
+        ## initial scores
+        ## if we haven't played any points yet, these will be NA
+        if (nrow(app_data$dvw$plays2) < 1 || !any(grepl("^[a\\*]p[[:digit:]]", app_data$dvw$plays2$code))) {
+            temp$home_score_start_of_point <- temp$visiting_score_start_of_point <- 0L
+        }
         game_state <- do.call(reactiveValues, temp)
         court_inset$home_team_end("upper") ## home team end defaults to upper
         ## seek to video time on startup
-        temp_vt <- na.omit(app_data$dvw$plays2$video_time)
-        if (length(temp_vt) > 0) do_video("set_time", max(temp_vt))
+        if ("video_time" %in% names(app_data$dvw$plays2) && nrow(app_data$dvw$plays2) > 0) {
+            temp_vt <- na.omit(app_data$dvw$plays2$video_time)
+            if (length(temp_vt) > 0) do_video("set_time", max(temp_vt))
+        }
 
         show_admin_modal <- function() {
             ## home player sub buttons
