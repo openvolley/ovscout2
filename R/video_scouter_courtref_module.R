@@ -267,5 +267,5 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
             }
         }
     })
-    list(active = active)
+    list(active = active, crox = crox)
 }

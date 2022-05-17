@@ -262,7 +262,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         observeEvent(input$pause_trigger, deal_with_pause())
-        deal_with_pause <- function() {
+        deal_with_pause <- function(show_modal = TRUE) {
             ## don't allow unpause if we have a scouting modal shown
             if (isTRUE(scout_modal_active())) {
                 ## but do allow pause, if somehow it isn't already
@@ -283,8 +283,10 @@ ov_scouter_server <- function(app_data) {
                 } else {
                     ## not paused, so pause and show admin modal
                     do_video("pause")
-                    editing$active <- "admin"
-                    show_admin_modal()
+                    if (show_modal) {
+                        editing$active <- "admin"
+                        show_admin_modal()
+                    }
                 }
             }
         }
@@ -336,7 +338,8 @@ ov_scouter_server <- function(app_data) {
                             ## only accept this if we are not editing, or it's the admin modal being shown
                             if (is.null(editing$active) || editing$active %eq% "admin") {
                                 ## video pause/unpause
-                                deal_with_pause()
+                                ## Q (uppercase) does just pause, with no admin modal
+                                deal_with_pause(show_modal = mycmd[3] == "false") ## testing shift key modifier here
                             }
                         } else if (is.null(editing$active) && !courtref$active()) {
                             ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
@@ -394,6 +397,9 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
+        ## video overlay
+        output$show_courtref_ui <- renderUI(if (!is.null(detection_ref()$court_ref)) checkboxInput("show_courtref", "Show court reference?", value = FALSE) else NULL)
+
         overlay_points <- reactiveVal(NULL)
         observe({
             output$video_overlay <- renderPlot({
@@ -402,6 +408,9 @@ ov_scouter_server <- function(app_data) {
                 ## need to plot SOMETHING else we don't get correct coordinates back
                 ##this <- selected_event()
                 p <- ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + gg_tight
+                if (isTRUE(input$show_courtref) && !is.null(courtref$crox())) {
+                    p <- p + geom_segment(data = courtref$crox()$courtxy, aes_string(x = "image_x", y = "image_y", xend = "xend", yend = "yend"), color = app_data$styling$court_lines_colour)
+                }
                 if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
                     ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
                     p <- p + geom_point(data = ixy, fill = "dodgerblue", pch = 21, col = "white", size = 6)

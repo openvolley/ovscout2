@@ -191,6 +191,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
                              h_court_highlight = "#43AFD3",
                              v_court_colour = "#BCEE68", ## darkolivegreen2
                              v_court_highlight = "#5D8022",
+                             court_lines_colour = "#0000CC",
                              continue = "#10C424", continue_light = "#60FC71",
                              cancel = "#D41024", cancel_light = "#DF5463",
                              undo = "#EB6927", undo_light = "#F9AC50",
