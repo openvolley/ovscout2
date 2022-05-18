@@ -1284,6 +1284,7 @@ ov_scouter_server <- function(app_data) {
                 ## sp should be the serving player
                 ## other players that could be serving, if the rotation is somehow wrong
                 other_sp <- get_players(game_state, team = game_state$serving, dvw = rdata$dvw) ## includes sp in here too
+                names(other_sp) <- player_nums_to(other_sp, team = game_state$serving, dvw = rdata$dvw)
                 serve_player_buttons <- make_fat_radio_buttons(choices = sort(other_sp), selected = sp, input_var = "serve_preselect_player")
                 ## default serve type is either the most common serve type by this player, or the default serve type
                 st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state, opts = app_data$options)
