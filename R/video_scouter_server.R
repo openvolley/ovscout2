@@ -594,11 +594,11 @@ ov_scouter_server <- function(app_data) {
                         stop("setter for beach")
                         ## choose the player who didn't pass
                     }
-                    sp <- get_setter(game_state)
-                    sp <- c(sort(c(sp, setdiff(get_players(game_state, dvw = rdata$dvw), sp))), sort(get_liberos(game_state, dvw = rdata$dvw)))
+                    soc <- get_setter(game_state)
+                    sp <- c(sort(get_players(game_state, dvw = rdata$dvw)), sort(get_liberos(game_state, dvw = rdata$dvw)))
                     names(sp) <- player_nums_to(sp, team = game_state$current_team, dvw = rdata$dvw)
                     sp <- c(sp, Unknown = "Unknown")
-                    setter_buttons <- make_fat_radio_buttons(choices = sp, input_var = "c2_player")
+                    setter_buttons <- make_fat_radio_buttons(choices = sp, selected = soc, input_var = "c2_player")
                     opp <- c(sort(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw)), sort(get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw)))
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
