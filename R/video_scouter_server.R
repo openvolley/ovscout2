@@ -519,6 +519,7 @@ ov_scouter_server <- function(app_data) {
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
                     ## time probably won't have resolved yet, so add it after next click
                     rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
+                    game_state$current_team <- other(game_state$serving)
                     rally_state("click serve end")
                 } else if (rally_state() == "click serve end") {
                     do_video("pause")
@@ -529,8 +530,9 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(rbind(overlay_points(), courtxy))
                     ## pop up to find either serve error, or passing player
                     ## passing player options
+                    ## game_state$current_team here is the receiving team
                     pass_pl_opts <- guess_pass_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
-                    names(pass_pl_opts$choices) <- player_nums_to(pass_pl_opts$choices, team = other(game_state$current_team), dvw = rdata$dvw)
+                    names(pass_pl_opts$choices) <- player_nums_to(pass_pl_opts$choices, team = game_state$current_team, dvw = rdata$dvw)
                     pass_pl_opts$choices <- c(pass_pl_opts$choices, Unknown = "Unknown")
 
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
@@ -928,7 +930,6 @@ ov_scouter_server <- function(app_data) {
                 } else {
                     ## reception in play
                     sp <- if (!is.null(input$serve_preselect_player)) input$serve_preselect_player else if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
-                    game_state$current_team <- other(game_state$serving)
                     st <- if (!is.null(input$serve_type)) input$serve_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
                     pp <- if (!is.null(input$pass_player)) input$pass_player else 0L
                     remove_scout_modal()
