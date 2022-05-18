@@ -632,7 +632,11 @@ ov_scouter_server <- function(app_data) {
                     game_state$start_t <- game_state$current_time_uuid
                     overlay_points(courtxy)
                     ## popup
-                    ac <- c(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end(), opts = app_data$options), "Other attack")
+                    ac <- c(head(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end(), opts = app_data$options), 10),
+                            ## if we aren't scouting transition sets, then this "third" contact could be a setter dump
+                            ## TODO don't show this during reception phase, because we are always scouting second contacts in reception phase
+                            if (!isTRUE(app_data$options$transition_sets)) { if (!is.null(app_data$options$setter_dump_code)) app_data$options$setter_dump_code else "PP"},
+                            "Other attack")
                     ac <- c(setNames(ac, ac), "Freeball over" = "F")
                     if (!isTRUE(app_data$options$transition_sets)) ac <- c(ac, "Set error" = "E=")
                     c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR")), input_var = "c3")
