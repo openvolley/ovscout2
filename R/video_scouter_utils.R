@@ -73,13 +73,14 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
 
 ## rationalize plays2 rows
 rp2 <- function(p2) {
-    if (is.null(p2) || nrow(p2) < 1) return(p2)
+    if (is.null(p2)) return(p2)
     ## input can either be a whole dvw object, or just the plays2 component thereof
     was_dvw <- is.list(p2) && "plays2" %in% names(p2)
     if (was_dvw) {
         dvw <- p2
         p2 <- dvw$plays2
     }
+    if (nrow(p2) < 1) return(if (was_dvw) dvw else p2)
     ## strip out redundant codes
     ## if we have multiple az or *z codes (setter locations) without other intervening codes (other than *P or aP, which designate the setter on court) then just take the last of each
     ok <- rep(TRUE, nrow(p2))
@@ -341,7 +342,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
                                      .data$team %eq% passing_team)
 
     passing_responsibility_posterior <- passing_responsibility_prior
-    if(nrow(passing_history) > 0) {
+    if (nrow(passing_history) > 0) {
         passing_history <- dplyr::select(passing_history, "team", "player_number", paste0(home_visiting, "_p", pseq)) %>%
             tidyr::pivot_longer(cols = paste0(home_visiting, "_p", pseq)) %>%
             dplyr::filter(.data$value %eq% .data$player_number) %>%
