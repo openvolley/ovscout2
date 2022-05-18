@@ -545,6 +545,11 @@ ov_scouter_server <- function(app_data) {
                     } else if (game_state$end_y < 0.5 || game_state$end_y > 6.5) {
                         ## out long
                         guess_was_err <- "=O"
+                    } else if ((((game_state$serving %eq% "*" && court_inset$home_team_end() %eq% "lower") || (game_state$serving %eq% "a" && court_inset$home_team_end() %eq% "upper")) && (game_state$end_y > 3.3 && game_state$end_y <= 3.55)) ||
+                               (((game_state$serving %eq% "a" && court_inset$home_team_end() %eq% "lower") || (game_state$serving %eq% "*" && court_inset$home_team_end() %eq% "upper")) && (game_state$end_y < 3.7 && game_state$end_y >= 3.45))) {
+                        ## ball end point is near the net, either an error into the net or hit the net and dropped over without being an error
+                        ## if it's on the serving team's side, or only just over, assume it was an error
+                        guess_was_err <- "=N"
                     }
                     ## TODO possibly also guess foot fault, although that will be confusing because the (legal) serve contact might be inside the baseline
                     ## we pre-select either the passer, or the error type, depending on whether we thought it was an error or not
