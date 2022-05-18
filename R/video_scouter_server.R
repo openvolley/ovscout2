@@ -587,7 +587,7 @@ ov_scouter_server <- function(app_data) {
                     ## popup
                     ## TODO maybe also setter call here
                     c2_buttons <- make_fat_radio_buttons(
-                        choices = c(Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball attack" = "P2", "Freeball over" = "F", ## rcv team actions
+                        choices = c(Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball attack" = "P2", "Freeball over" = "F", "Reception error (serve ace)" = "R=", ## rcv team actions
                                     "Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR"), ## opp actions
                         selected = "E", input_var = "c2")
                     if (app_data$is_beach) {
@@ -605,7 +605,7 @@ ov_scouter_server <- function(app_data) {
                     opp_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c2_opp_player")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Second contact:")),
-                                            do.call(fixedRow, lapply(c2_buttons[1:5], function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(2, but))),
                                             tags$br(),
                                             tags$p("by player"),
                                             tags$br(),
@@ -613,7 +613,7 @@ ov_scouter_server <- function(app_data) {
                                             tags$br(),
                                             tags$div("OR"),
                                             tags$br(),
-                                            do.call(fixedRow, lapply(c2_buttons[6:8], function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(c2_buttons[7:9], function(but) column(2, but))),
                                             tags$br(),
                                             tags$p("by player"),
                                             tags$br(),
@@ -1155,9 +1155,9 @@ ov_scouter_server <- function(app_data) {
             if (nchar(seval) != 1) seval <- "~"
             rc$eval[rc$skill %eq% "S"] <- seval
             start_t <- retrieve_video_time(game_state$start_t)
-            ## possible values for input$c2 are: Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball attack" = "P2", "Freeball over" = "F",
+            ## possible values for input$c2 are: Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball attack" = "P2", "Freeball over" = "F", R= rec error
             ##                                   "Opp. dig" = "aD", error "aD=", "Opp. overpass attack" = "aPR"
-            if (input$c2 %in% c("E", "E=", "PP", "P2", "F")) {
+            if (input$c2 %in% c("E", "E=", "PP", "P2", "F", "R=")) {
                 sp <- input$c2_player
                 if (input$c2 == "E") {
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "E", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
@@ -1186,6 +1186,18 @@ ov_scouter_server <- function(app_data) {
                     ## TODO add end pos to this on next contact
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                     rally_state("click freeball end point")
+                } else if (input$c2 == "R=") {
+                    ## delayed reception error (e.g. shanked pass)
+                    ## just adjust the S & R evaluations and end the point
+                    rc <- rally_codes()
+                    Sidx <- which(rc$skill == "S")
+                    if (length(Sidx) == 1) rc[Sidx, ] <- update_code_trow(rc[Sidx, ], eval = "#")
+                    Ridx <- which(rc$skill == "R")
+                    if (length(Ridx) == 1) rc[Ridx, ] <- update_code_trow(rc[Ridx, ], eval = "=")
+                    rally_codes(rc)
+                    game_state$current_team <- game_state$serving
+                    game_state$point_won_by <- game_state$serving
+                    rally_ended()
                 }
             } else if (input$c2 %eq% "aPR") {
                 ## opposition overpass attack
