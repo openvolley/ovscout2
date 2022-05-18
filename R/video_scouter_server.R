@@ -943,11 +943,13 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$assign_c1, {
             ## possible values for input$c1 are currently: A#, A=, A!, D, D=, B/, B#
             ## A#, A=, D, D= can be preceded by a block touch (but not B#, B/ and A!). A= is unlikely but theoretically possible
+            mid_xy <- c(NA_real_, NA_real_)
             if (!is.null(input$c1_block_touch_player)) {
                 if (input$c1 %in% c("A#", "A=", "D", "D=")) {
                     beval <- if (input$c1 %eq% "A#") "=" else app_data$default_scouting_table$evaluation_code[app_data$default_scouting_table$skill == "B"]
                     rc <- rally_codes()
                     Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
+                    mid_xy <- infer_mid_coords(game_state = game_state)
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = input$c1_block_touch_player, skill = "B", eval = beval, tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table))) ## TODO x,y?
                 }
             }
@@ -963,6 +965,8 @@ ov_scouter_server <- function(app_data) {
                     rc$esz[Aidx] <- esz[2]
                     rc$end_x[Aidx] <- game_state$end_x
                     rc$end_y[Aidx] <- game_state$end_y
+                    rc$mid_x[Aidx] <- mid_xy[1]
+                    rc$mid_y[Aidx] <- mid_xy[2]
                     rc$eval[Aidx] <- eval
                     rally_codes(rc)
                 }
@@ -981,7 +985,6 @@ ov_scouter_server <- function(app_data) {
                 ## TODO if we already have a block skill here, don't add a new one, just update the existing one ... though there should never already be block skill here
                 ## block fault player should be in input$c1_def_player, but we'll take input$b1_block_touch_player otherwise
                 bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
-                mid_xy <- infer_mid_coords(game_state = game_state)
                 if (!is.na(Aidx)) {
                     ## adjust the attack row
                     rc$eval[Aidx] <- "!"
@@ -1036,6 +1039,8 @@ ov_scouter_server <- function(app_data) {
                     rc$esz[Aidx] <- esz[2]
                     rc$end_x[Aidx] <- game_state$end_x
                     rc$end_y[Aidx] <- game_state$end_y
+                    rc$mid_x[Aidx] <- mid_xy[1]
+                    rc$mid_y[Aidx] <- mid_xy[2]
                     rc$eval[Aidx] <- "/"
                 }
                 rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "#", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table))) ## TODO x,y?
@@ -1053,6 +1058,8 @@ ov_scouter_server <- function(app_data) {
                     rc$esz[Aidx] <- esz[2]
                     rc$end_x[Aidx] <- game_state$end_x
                     rc$end_y[Aidx] <- game_state$end_y
+                    rc$mid_x[Aidx] <- mid_xy[1]
+                    rc$mid_y[Aidx] <- mid_xy[2]
                     tempo <- rc$tempo[Aidx]
                 } else {
                     tempo <- "~"
