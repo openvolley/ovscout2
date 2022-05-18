@@ -291,8 +291,61 @@ ov_scouter_server <- function(app_data) {
             }
         }
 
+        ## input$cmd reflects keypress events
+        ## input$controlkey reflects keydown, use for keys that might not get detected by keypress but do by keydown. This returns a less convenient format, so use keypress for standard alpha/numeric/punct keys
+        observeEvent(input$cmd, {
+            mycmd <- NULL
+            if (!is.null(input$cmd)) {
+                temp <- strsplit(input$cmd, "@")[[1]]
+                ## elements are keyid element_class element_id cursor_position field_length time
+                mycmd <- temp[1]
+                myclass <- temp[2]
+                if (!is.null(myclass) && nzchar(myclass) && myclass %in% c("form-control")) {
+                    ## don't process these - they are e.g. key events in DT filter boxes
+                    mycmd <- NULL
+                }
+            }
+            if (!is.null(mycmd)) {
+                ky <- intToUtf8(as.numeric(mycmd))
+                if (ky %in% c("z", "Z")) {
+                    ## temporarily hide the modal, so the video can be seen
+                    ## but only for the admin modal or the ones that pop up during the rally, not the editing modals for lineups etc
+                    if (is.null(editing$active) || editing$active %eq% c("admin")) dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
+                } else if (ky %in% c("q", "Q", "0")) {
+                    ## only accept this if we are not editing, or it's the admin modal being shown
+                    if (is.null(editing$active) || editing$active %eq% "admin") {
+                        ## video pause/unpause
+                        ## Q (uppercase) does just pause, with no admin modal
+                        deal_with_pause(show_modal = ky != "Q")
+                    }
+                } else if (is.null(editing$active) && !courtref$active()) {
+                    ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
+                    if (ky %in% c("g", "G", "#")) {
+                        ## video go to currently-selected event
+                        vt <- game_state$video_time
+                        if (is.null(vt) || is.na(vt)) {
+                            vt <- max(rdata$dvw$plays$video_time, na.rm = TRUE)
+                        }
+                        if (!is.null(vt) && !is.na(vt)) {
+                            if (debug > 1) cat("jumping to video time: ", vt, "\n")
+                            do_video("set_time", vt)
+                        }
+                    } else if (ky %in% c("u", "U")) {
+                        ## undo
+                        do_undo()
+                    } else if (ky %in% strsplit("nm13jhl;46$^b,79", "")[[1]]) {
+                        if (is.null(editing$active)) {
+                            ## video forward/backward nav
+                            ## same as for other ovscout interface, although the fine control is not needed here?
+                            vidcmd <- if (ky %in% strsplit("1nhj4$b7", "")[[1]]) "rew" else "ff"
+                            dur <- if (ky %in% strsplit("h$;^", "")[[1]]) 10 else if (ky %in% strsplit("nm13", "")[[1]]) 0.1 else if (ky %in% strsplit("b7,9", "")[[1]]) 1/30 else 2
+                            do_video(vidcmd, dur)
+                        }
+                    }
+                }
+            }
+        })
         observeEvent(input$controlkey, {
-            ## keys that might not get detected by keypress but do by keydown?
             if (!is.null(input$controlkey)) {
                 temp <- strsplit(input$controlkey, "@")[[1]]
                 ## elements are modifiers_and_key element_class element_id cursor_position field_length time
@@ -308,6 +361,8 @@ ov_scouter_server <- function(app_data) {
                     mycmd <- strsplit(mycmd, "|", fixed = TRUE)[[1]] ## e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which
                     if (length(mycmd) == 5) {
                         ky <- mycmd[5] ## key pressed, as ASCII code
+                        ## NOTE that we get the ascii code for the base key (i.e. upper-case letter, or number) AND the modifier
+                        ## so for "#" we'd get ky == utf8ToInt("3") (which is 51) plus mycmd[3] == "true" (shift)
                         if (debug > 1) cat("key: ", ky, "\n")
                         if (ky %eq% 27) {
                             ## esc
@@ -330,41 +385,6 @@ ov_scouter_server <- function(app_data) {
                                 do_edit_commit()
                             }
                             ## but not for team editing, because pressing enter in the DT fires this too
-                        } else if (ky %in% c(90, 122)) {
-                            ## "z", temporarily hide the modal, so the video can be seen
-                            ## but only for the admin modal or the ones that pop up during the rally, not the editing modals for lineups etc
-                            if (is.null(editing$active) || editing$active %eq% c("admin")) dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
-                        } else if (ky %in% utf8ToInt("qQ0")) {
-                            ## only accept this if we are not editing, or it's the admin modal being shown
-                            if (is.null(editing$active) || editing$active %eq% "admin") {
-                                ## video pause/unpause
-                                ## Q (uppercase) does just pause, with no admin modal
-                                deal_with_pause(show_modal = mycmd[3] == "false") ## testing shift key modifier here
-                            }
-                        } else if (is.null(editing$active) && !courtref$active()) {
-                            ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
-                            if (ky %in% utf8ToInt("gG#")) {
-                                ## video go to currently-selected event
-                                vt <- game_state$video_time
-                                if (is.null(vt) || is.na(vt)) {
-                                    vt <- max(rdata$dvw$plays$video_time, na.rm = TRUE)
-                                }
-                                if (!is.null(vt) && !is.na(vt)) {
-                                    if (debug > 1) cat("jumping to video time: ", vt, "\n")
-                                    do_video("set_time", vt)
-                                }
-                            } else if (ky %in% utf8ToInt("uU")) {
-                                ## undo
-                                do_undo()
-                            } else if (ky %in% utf8ToInt("nm13jhl;46$^b,79")) {
-                                if (is.null(editing$active)) {
-                                    ## video forward/backward nav
-                                    ## same as for other ovscout interface, although the fine control is not needed here?
-                                    vidcmd <- if (ky %in% utf8ToInt("1nhj4$b7")) "rew" else "ff"
-                                    dur <- if (ky %in% utf8ToInt("h$;^")) 10 else if (ky %in% utf8ToInt("nm13")) 0.1 else if (ky %in% utf8ToInt("b7,9")) 1/30 else 2
-                                    do_video(vidcmd, dur)
-                                }
-                            }
                         }
                     }
                 }
