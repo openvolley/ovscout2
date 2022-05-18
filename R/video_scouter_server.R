@@ -322,6 +322,8 @@ ov_scouter_server <- function(app_data) {
                     ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
                     if (ky %in% c("g", "G", "#")) {
                         ## video go to currently-selected event
+                        ## NB this is the current game_state time, not the time of the currently-selected event
+                        ## TO FIX
                         vt <- game_state$video_time
                         if (is.null(vt) || is.na(vt)) {
                             vt <- max(rdata$dvw$plays$video_time, na.rm = TRUE)
@@ -593,11 +595,11 @@ ov_scouter_server <- function(app_data) {
                         ## choose the player who didn't pass
                     }
                     sp <- get_setter(game_state)
-                    sp <- c(sp, setdiff(get_players(game_state, dvw = rdata$dvw), sp), get_liberos(game_state, dvw = rdata$dvw))
+                    sp <- c(sort(c(sp, setdiff(get_players(game_state, dvw = rdata$dvw), sp))), sort(get_liberos(game_state, dvw = rdata$dvw)))
                     names(sp) <- player_nums_to(sp, team = game_state$current_team, dvw = rdata$dvw)
                     sp <- c(sp, Unknown = "Unknown")
                     setter_buttons <- make_fat_radio_buttons(choices = sp, input_var = "c2_player")
-                    opp <- c(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw), get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw))
+                    opp <- c(sort(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw)), sort(get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw)))
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
                     opp_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c2_opp_player")
@@ -643,12 +645,12 @@ ov_scouter_server <- function(app_data) {
                     if (isTRUE(app_data$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3), selected = if (!is.null(app_data$options$default_nblockers)) app_data$options$default_nblockers, input_var = "nblockers")
                     ## attack error, blocked, replay will be scouted on next entry
                     ## TODO other special codes ?
-                    opp <- c(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw), get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw))
+                    opp <- c(sort(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw)), sort(get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw)))
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
                     opp_player_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c3_opp_player")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
-                                            tags$p(tags$strong("Attack:")),
+                                            tags$p(tags$strong("Attack or freeball over:")),
                                             do.call(fixedRow, lapply(c3_buttons[seq_along(ac)], function(but) column(1, but))),
                                             tags$br(), tags$p("by player"), tags$br(),
                                             do.call(fixedRow, lapply(attacker_buttons, function(but) column(1, but))),
@@ -689,7 +691,7 @@ ov_scouter_server <- function(app_data) {
                     coverp <- c(coverp, Unknown = "Unknown")
                     cover_player_buttons <- make_fat_radio_buttons(choices = coverp, selected = cover_pl_opts$selected, input_var = "c1_cover_player")
                     ## blocking players
-                    blockp <- get_players(game_state, team = game_state$current_team, dvw = rdata$dvw)
+                    blockp <- sort(get_players(game_state, team = game_state$current_team, dvw = rdata$dvw))
                     if (length(blockp) == 6) blockp <- blockp[2:4] ## front-row only
                     names(blockp) <- player_nums_to(blockp, team = game_state$current_team, dvw = rdata$dvw)
                     blockp <- c(blockp, Unknown = "Unknown")
@@ -1278,8 +1280,8 @@ ov_scouter_server <- function(app_data) {
                 sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                 ## sp should be the serving player
                 ## other players that could be serving, if the rotation is somehow wrong
-                other_sp <- get_players(game_state, team = game_state$serving, dvw = rdata$dvw)
-                serve_player_buttons <- make_fat_radio_buttons(choices = c(sp, setdiff(other_sp, sp)), selected = sp, input_var = "serve_preselect_player")
+                other_sp <- get_players(game_state, team = game_state$serving, dvw = rdata$dvw) ## includes sp in here too
+                serve_player_buttons <- make_fat_radio_buttons(choices = sort(other_sp), selected = sp, input_var = "serve_preselect_player")
                 ## default serve type is either the most common serve type by this player, or the default serve type
                 st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state, opts = app_data$options)
                 if (is.na(st_default)) st_default <- app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
@@ -1323,13 +1325,13 @@ ov_scouter_server <- function(app_data) {
 
         show_admin_modal <- function() {
             ## home player sub buttons
-            ht_on <- get_players(game_state, team = "*", dvw = rdata$dvw)
+            ht_on <- sort(get_players(game_state, team = "*", dvw = rdata$dvw))
             ht_other <- setdiff(rdata$dvw$meta$players_h$number, ht_on)
             ht_other <- setdiff(ht_other, get_liberos(game_state, team = "*", dvw = rdata$dvw))
             ht_sub_out <- make_fat_radio_buttons(choices = ht_on, selected = NA, input_var = "ht_sub_out")
             ht_sub_in <- make_fat_radio_buttons(choices = ht_other, selected = NA, input_var = "ht_sub_in")
             ## visiting player sub buttons
-            vt_on <- get_players(game_state, team = "a", dvw = rdata$dvw)
+            vt_on <- sort(get_players(game_state, team = "a", dvw = rdata$dvw))
             vt_other <- setdiff(rdata$dvw$meta$players_v$number, vt_on)
             vt_other <- setdiff(vt_other, get_liberos(game_state, team = "a", dvw = rdata$dvw))
             vt_sub_out <- make_fat_radio_buttons(choices = vt_on, selected = NA, input_var = "vt_sub_out")
