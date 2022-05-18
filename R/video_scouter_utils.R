@@ -354,7 +354,7 @@ guess_pass_player_options <- function(game_state, dvw, system) {
     plsel_tmp <- names(sort(passing_responsibility_posterior, decreasing = TRUE))
     poc <- paste0(home_visiting, "_p", pseq) ## players on court
 
-    pp <- c(as.numeric(reactiveValuesToList(game_state)[poc]), libs)
+    pp <- c(sort(as.numeric(reactiveValuesToList(game_state)[poc])), sort(libs))
     plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(reactiveValuesToList(game_state)[plsel_tmp[1]])
     list(choices = pp, selected = plsel)
 }
@@ -432,7 +432,7 @@ guess_attack_player_options <- function(game_state, dvw, system) {
         attacking_responsibility_posterior <-  attacking_responsibility_posterior / sum(attacking_responsibility_posterior)
     }
     poc <- names(sort(attacking_responsibility_posterior, decreasing = TRUE))
-    pp <- as.numeric(reactiveValuesToList(game_state)[poc])
+    pp <- sort(as.numeric(reactiveValuesToList(game_state)[poc]))
     plsel <- as.numeric(reactiveValuesToList(game_state)[poc[1]])
     list(choices = pp, selected = plsel)
 }
@@ -509,7 +509,7 @@ guess_dig_player_options <- function(game_state, dvw, system) {
     }
     plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
     poc <- paste0(home_visiting, "_p", pseq)
-    pp <- c(as.numeric(reactiveValuesToList(game_state)[poc]), libs)
+    pp <- c(sort(as.numeric(reactiveValuesToList(game_state)[poc])), sort(libs))
     plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(reactiveValuesToList(game_state)[plsel_tmp[1]])
     list(choices = pp, selected = plsel)
 }
@@ -556,7 +556,7 @@ guess_cover_player_options <- function(game_state, dvw, system) {
     }
     plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
     poc <- paste0(home_visiting, "_p", pseq)
-    pp <- c(as.numeric(reactiveValuesToList(game_state)[poc]), libs)
+    pp <- c(sort(as.numeric(reactiveValuesToList(game_state)[poc])), sort(libs))
     plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(reactiveValuesToList(game_state)[plsel_tmp[1]])
     list(choices = pp, selected = plsel)
 }

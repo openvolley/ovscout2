@@ -637,7 +637,7 @@ ov_scouter_server <- function(app_data) {
                     if (!isTRUE(app_data$options$transition_sets)) ac <- c(ac, "Set error" = "E=")
                     c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR")), input_var = "c3")
                     attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
-                    ap <- attack_pl_opts$choices
+                    ap <- sort(attack_pl_opts$choices)
                     names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
                     ap <- c(ap, Unknown = "Unknown")
                     attacker_buttons <- make_fat_radio_buttons(choices = ap, selected = attack_pl_opts$selected, input_var = "c3_player")
