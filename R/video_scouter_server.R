@@ -1492,22 +1492,25 @@ ov_scouter_server <- function(app_data) {
                 }
             },
             content = function(file) {
-                tryCatch(dv_write2(update_meta(rp2(rdata$dvw)), file = file),
-                         error = function(e) {
-                             rds_ok <- FALSE
-                             if (!nzchar(Sys.getenv("SHINY_PORT"))) {
-                                 ## this only makes sense if running locally, not deployed on a remote server
-                                 ## if no port defined, assumed running under shiny within R, not under shiny server
-                                 tf <- tempfile(fileext = ".rds")
-                                 try({
-                                     saveRDS(rdata$dvw, file = tf)
-                                     rds_ok <- file.exists(tf) && file.size(tf) > 0
-                                 }, silent = TRUE)
-                             }
-                             showModal(modalDialog(title = "Save error",
-                                                   tags$div(class = "alert alert-danger", "Sorry, the save failed. The error message was:", tags$br(), tags$pre(conditionMessage(e)), tags$br(), if (rds_ok) paste0("The edited datavolley object has been saved to ", tf, ". You might be able to recover your edited information from that (contact the package authors for assistance)."))))
-                             NULL
-                         })
+                tryCatch({
+                    ## TODO flush any rally codes to plays2 - but note that then we won't have the right rally_state when we restart
+                    ## so might not be able to do this
+                    dv_write2(update_meta(rp2(rdata$dvw)), file = file)
+                }, error = function(e) {
+                    rds_ok <- FALSE
+                    if (!nzchar(Sys.getenv("SHINY_PORT"))) {
+                        ## this only makes sense if running locally, not deployed on a remote server
+                        ## if no port defined, assumed running under shiny within R, not under shiny server
+                        tf <- tempfile(fileext = ".rds")
+                        try({
+                            saveRDS(rdata$dvw, file = tf)
+                            rds_ok <- file.exists(tf) && file.size(tf) > 0
+                        }, silent = TRUE)
+                    }
+                    showModal(modalDialog(title = "Save error",
+                                          tags$div(class = "alert alert-danger", "Sorry, the save failed. The error message was:", tags$br(), tags$pre(conditionMessage(e)), tags$br(), if (rds_ok) paste0("The edited datavolley object has been saved to ", tf, ". You might be able to recover your edited information from that (contact the package authors for assistance)."))))
+                    NULL
+                })
             }
         )
 
