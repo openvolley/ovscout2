@@ -28,7 +28,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, ball_path 
     dv_read_args <- dots[names(dots) %in% names(formals(datavolley::dv_read))] ## passed to dv_read
     other_args <- dots[!names(dots) %in% names(formals(datavolley::dv_read))] ## passed to the server and UI
     fchoose <- function(caption) {
-        if (requireNamespace("rstudioapi", quietly = TRUE)) {
+        if (requireNamespace("rstudioapi", quietly = TRUE) && tryCatch({ rstudioapi::versionInfo(); TRUE }, error = function(e) FALSE)) {
             fchoosefun <- function(caption) rstudioapi::selectFile(caption = caption)
         } else {
             if (.Platform$OS.type == "windows") {
