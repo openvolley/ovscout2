@@ -687,6 +687,7 @@ ov_scouter_server <- function(app_data) {
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
                     c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (play continues)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"), input_var = "c1") ## defaults to attack kill without dig error
                     ## TODO smarter guessing of that
+                    ae_buttons <- make_fat_radio_buttons(choices = c("Out long" = "O", "Out side" = "S", "In net" = "N", "Net contact" = "I", Antenna = "A", "Other/referee cal" = "Z"), selected = NA, input_var = "attack_error_type")
                     ## Identify defending players
                     dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
                     digp <- dig_pl_opts$choices
@@ -708,7 +709,8 @@ ov_scouter_server <- function(app_data) {
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack outcome:")),
                                             do.call(fixedRow, lapply(c1_buttons[1:3], function(but) column(2, but))),
-                                            tags$br(), tags$div("OR", tags$strong("Defence outcome:")),
+                                            tags$br(), tags$div(id = "ae_ui", style = "display:none;", do.call(fixedRow, lapply(ae_buttons, function(but) column(2, but)))),
+                                            tags$div("OR", tags$strong("Defence outcome:")),
                                             do.call(fixedRow, lapply(c1_buttons[4:7], function(but) column(2, but))),
                                             tags$br(), tags$hr(),
                                             ## either dig players (defending team)
@@ -816,6 +818,7 @@ ov_scouter_server <- function(app_data) {
                     js_hide2("c1_coverp_ui")
                     js_hide2("c1_digp_ui")
                 }
+                if (input$c1 %eq% "A=") js_show2("ae_ui") else js_hide2("ae_ui")
             }
         })
 
@@ -978,6 +981,7 @@ ov_scouter_server <- function(app_data) {
                     rc$mid_x[Aidx] <- mid_xy[1]
                     rc$mid_y[Aidx] <- mid_xy[2]
                     rc$eval[Aidx] <- eval
+                    if (!is.null(input$attack_error_type)) rc$special[Aidx] <- input$attack_error_type
                     rally_codes(rc)
                 }
                 ## "current" team here is the digging team
