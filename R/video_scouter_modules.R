@@ -177,34 +177,43 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                            )
             scxy <- scxy %>% mutate(x = case_when(court_inset_home_team_end() != "lower" ~ .data$x,
                                                   court_inset_home_team_end() == "lower" ~ .data$x + 5))
-            p + geom_text(data = scxy, aes_string("x", "y", label = "score"), size = 6, fontface = "bold", vjust = 0)
+            p <- p + geom_text(data = scxy, aes_string("x", "y", label = "score"), size = 6, fontface = "bold", vjust = 0)
         }
+        if (court_inset_home_team_end() != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
+        p
     })
 
+    ## keep track of the digest of the rally_codes() object so that we can trigger the plot update when it has actually changed AND only if we are showing ball coords
+    rally_codes_digest <- reactiveVal("")
+    observe({
+        if (with_ball_coords) rally_codes_digest(digest::digest(rally_codes()))
+    })
     output$court_inset <- renderPlot({
         p <- base_plot()
-        if (nrow(rally_codes()) > 0) {
-            ## plot the current rally actions
-            temp_rally_plays2 <- make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw)
-            temp_rally_plays <- plays2_to_plays(temp_rally_plays2, dvw = rdata$dvw, evaluation_decoder = skill_evaluation_decoder()) ## this is the default evaluation decoder, but it doesn't matter here unless we start e.g. colouring things by evaluation
-            temp_rally_plays <- mutate(temp_rally_plays, rn = dplyr::row_number())
-            segxy <- bind_rows(temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y", rn = "rn"),
-                               temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "end_coordinate_x", y = "end_coordinate_y", rn = "rn"),
-                               temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception")) %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y", rn = "rn"),
-                               temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception") & !is.na(.data$mid_coordinate_x)) %>% dplyr::select(x = "mid_coordinate_x", y = "mid_coordinate_y", rn = "rn") %>% mutate(rn = .data$rn + 0.5)) %>%
-                na.omit() %>% dplyr::arrange(.data$rn)
-            if (nrow(segxy) > 0) {
-                ## court module is always plotted assuming that the home team is at the lower end
-                ## but the coordinates will be oriented to the actual video orientation, so flip if needed
-                if (court_inset_home_team_end() != "lower") segxy <- dv_flip_xy(segxy)
-                p <- p + geom_path(data = segxy)
+        blah <- rally_codes_digest()
+        isolate({
+            if (nrow(rally_codes()) > 0 && with_ball_coords) {
+                ## plot the current rally actions
+                temp_rally_plays2 <- make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw)
+                temp_rally_plays <- plays2_to_plays(temp_rally_plays2, dvw = rdata$dvw, evaluation_decoder = skill_evaluation_decoder()) ## this is the default evaluation decoder, but it doesn't matter here unless we start e.g. colouring things by evaluation
+                temp_rally_plays <- mutate(temp_rally_plays, rn = dplyr::row_number())
+                segxy <- bind_rows(temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y", rn = "rn"),
+                                   temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "end_coordinate_x", y = "end_coordinate_y", rn = "rn"),
+                                   temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception")) %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y", rn = "rn"),
+                                   temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception") & !is.na(.data$mid_coordinate_x)) %>% dplyr::select(x = "mid_coordinate_x", y = "mid_coordinate_y", rn = "rn") %>% mutate(rn = .data$rn + 0.5)) %>%
+                    na.omit() %>% dplyr::arrange(.data$rn)
+                if (nrow(segxy) > 0) {
+                    ## court module is always plotted assuming that the home team is at the lower end
+                    ## but the coordinates will be oriented to the actual video orientation, so flip if needed
+                    if (court_inset_home_team_end() != "lower") segxy <- dv_flip_xy(segxy)
+                    p <- p + geom_path(data = segxy)
+                }
             }
-        }
-        ##            if (nrow(click_points$queue) > 0) {
-        ##                p <- p + geom_point(data = click_points$queue, shape = 16) +
-        ##                    geom_path(data = click_points$queue, linetype = "dashed", colour = "black", arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
-        ##            }
-        if (court_inset_home_team_end() != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
+            ##            if (nrow(click_points$queue) > 0) {
+            ##                p <- p + geom_point(data = click_points$queue, shape = 16) +
+            ##                    geom_path(data = click_points$queue, linetype = "dashed", colour = "black", arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
+            ##            }
+        })
         p
     })
 

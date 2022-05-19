@@ -5,6 +5,7 @@
 #' @param video_file string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. Provide `video_file = NA` to run the app without a video file
 #' @param court_ref data.frame or string: data.frame with the court reference (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
 #' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
+#' @param ball_path logical: if `TRUE`, show the ball path on the court inset diagram. Note that this will slow the app down slightly
 #' @param scouting_options list: a named list with entries as per [ov_scouter_options()]
 #' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
 #' @param compound_table tibble: the table of compound codes
@@ -19,8 +20,8 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
-    if (!missing(dvw) && identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = scoreboard, scouting_options = scouting_options, default_scouting_table = default_scouting_table, compound_table = compound_table, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
+ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, ball_path = FALSE, scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+    if (!missing(dvw) && identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = isTRUE(scoreboard), ball_path = isTRUE(ball_path), scouting_options = scouting_options, default_scouting_table = default_scouting_table, compound_table = compound_table, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     dots <- list(...)
@@ -117,13 +118,12 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
     ## look for the court ref data, if it hasn't been provided
     if (missing(court_ref)) {
         court_ref <- NULL
-        if (packageVersion("ovideo") >= "0.14.3") temp <- suppressWarnings(ovideo::ov_get_video_data(dvw$meta$video$file))
-        if (!is.null(temp)) {
-            court_ref <- temp
-        } else {
+        if (packageVersion("ovideo") >= "0.14.3") court_ref <- tryCatch(suppressWarnings(ovideo::ov_get_video_data(dvw$meta$video$file)), error = function(e) NULL)
+        if (is.null(court_ref)) {
             crfile <- paste0(fs::path_ext_remove(dvw$meta$video$file), "_video_info.rds")
             if (file.exists(crfile)) tryCatch(court_ref <- readRDS(crfile), error = function(e) {
                 warning("found video_info.rds file but could not extract court_ref component")
+                NULL
             })
         }
     }
@@ -144,6 +144,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, scouting_o
     app_data$play_overlap <- 0.5 ## amount (in seconds) to rewind before restarting the video, after pausing to enter data
     app_data$evaluation_decoder <- skill_evaluation_decoder() ## to expose as a parameter, perhaps
     app_data$scoreboard <- isTRUE(scoreboard)
+    app_data$ball_path <- isTRUE(ball_path)
     if (app_data$with_video) {
         have_lighttpd <- FALSE
         video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001
