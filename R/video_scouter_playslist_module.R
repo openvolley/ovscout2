@@ -133,10 +133,10 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
     plays_do_rename <- function(z) names_first_to_capital(dplyr::rename(z, plays_cols_renames))
     selected_row <- reactiveVal(NULL)
 
-    js_with_retry <- function(f, tries = 10) {
+    js_with_retry <- function(f, need_n_rows = 1, tries = 10) {
         tries_var <- gsub("-", "_", ns("tries"))
         fn_var <- gsub("-", "_", ns("retryfn"))
-        dojs(paste0(tries_var, " = 0; var ", fn_var, "=function(){ var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); if (rows != null && rows.length > 0) { ", f, " } else { if (", tries_var, " < ", tries, ") { ", tries_var, "++; setTimeout(", fn_var, ", 200) }}}; ", fn_var, "();"))
+        dojs(paste0(tries_var, " = 0; var ", fn_var, "=function(){ var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); if (rows != null && rows.length >", need_n_rows - 1, ") { ", f, " } else { if (", tries_var, " < ", tries, ") { ", tries_var, "++; setTimeout(", fn_var, ", 100) }}}; ", fn_var, "();"))
     }
 
     dat2html <- function(dat) {
@@ -180,7 +180,7 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
             output$pl <- renderUI(shiny::HTML(html))
             if (!is.null(selected) && scroll) {
                 initfun <- paste0("var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); $('#", ns("tbl"), "').scrollTop(rows[", selected - 1L, "].offsetTop - 4 * rows[0].offsetHeight);")
-                js_with_retry(initfun)
+                js_with_retry(initfun, need_n_rows = selected)
             }
         } else {
             selected_row(NULL)
@@ -203,7 +203,9 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
 
     scroll_to <- function(i) {
         ## i is zero based in js, but 1-based when passed in
-        if (is.numeric(i)) dojs(paste0("var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); if (rows.length >= ", i, ") { $('#", ns("tbl"), "').scrollTop(rows[", i - 1L, "].offsetTop - 4 * rows[0].offsetHeight);}"))
+        if (is.numeric(i)) {
+            dojs(paste0("var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); if (rows.length >= ", i, ") { $('#", ns("tbl"), "').scrollTop(rows[", i - 1L, "].offsetTop - 4 * rows[0].offsetHeight);}"))
+        }
     }
 
     observe({

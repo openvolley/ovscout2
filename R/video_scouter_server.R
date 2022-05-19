@@ -859,7 +859,6 @@ ov_scouter_server <- function(app_data) {
             ##            cat(str(temp_rally_plays2))
             ##            cat(str(rdata$dvw$plays2))
             rdata$dvw$plays <- plays2_to_plays(rp2(bind_rows(rdata$dvw$plays2, temp_rally_plays2)), dvw = rdata$dvw, evaluation_decoder = app_data$evaluation_decoder)
-            playslist_mod$scroll_playslist(nrow(rdata$dvw$plays))
         })
 
         observeEvent(input$cancelrew, {
