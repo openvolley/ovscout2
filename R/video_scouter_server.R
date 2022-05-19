@@ -609,17 +609,17 @@ ov_scouter_server <- function(app_data) {
                                             tags$p(tags$strong("Second contact:")),
                                             do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(2, but))),
                                             tags$br(),
-                                            tags$p("by player"),
-                                            tags$br(),
-                                            do.call(fixedRow, lapply(setter_buttons, function(but) column(1, but))),
-                                            tags$br(),
-                                            tags$div("OR"),
-                                            tags$br(),
-                                            do.call(fixedRow, lapply(c2_buttons[7:9], function(but) column(2, but))),
-                                            tags$br(),
-                                            tags$p("by player"),
-                                            tags$br(),
-                                            do.call(fixedRow, lapply(opp_buttons, function(but) column(1, but))),
+                                            tags$div(id = "c2_more_ui", tags$p("by player"),
+                                                     tags$br(),
+                                                     do.call(fixedRow, lapply(setter_buttons, function(but) column(1, but))),
+                                                     tags$br(),
+                                                     tags$div("OR"),
+                                                     tags$br(),
+                                                     do.call(fixedRow, lapply(c2_buttons[7:9], function(but) column(2, but))),
+                                                     tags$br(),
+                                                     tags$p("by player"),
+                                                     tags$br(),
+                                                     do.call(fixedRow, lapply(opp_buttons, function(but) column(1, but)))),
                                             tags$hr(),
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
                                                      column(2, offset = 8, actionButton("assign_c2", "Continue", class = "continue fatradio")))
@@ -804,6 +804,10 @@ ov_scouter_server <- function(app_data) {
                 js_hide2("serve_error_type_ui")
                 js_show2("passers_ui")
             }
+        })
+
+        observe({
+            if (!is.null(input$c2) && input$c2 %eq% "R=") js_hide2("c2_more_ui") else js_show2("c2_more_ui")
         })
 
         observe({
@@ -1197,7 +1201,6 @@ ov_scouter_server <- function(app_data) {
                 } else if (input$c2 == "R=") {
                     ## delayed reception error (e.g. shanked pass)
                     ## just adjust the S & R evaluations and end the point
-                    rc <- rally_codes()
                     Sidx <- which(rc$skill == "S")
                     if (length(Sidx) == 1) rc[Sidx, ] <- update_code_trow(rc[Sidx, ], eval = "#")
                     Ridx <- which(rc$skill == "R")
