@@ -634,10 +634,17 @@ ov_scouter_server <- function(app_data) {
                     game_state$start_t <- game_state$current_time_uuid
                     overlay_points(courtxy)
                     ## popup
+                    ## figure current phase
+                    if (nrow(rally_codes()) > 0) {
+                        temp <- make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)
+                        ph <- tail(temp$phase, 1)
+                    } else {
+                        ph <- NA_character_
+                    }
                     ac <- c(head(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end(), opts = app_data$options), 10),
                             ## if we aren't scouting transition sets, then this "third" contact could be a setter dump
                             ## TODO don't show this during reception phase, because we are always scouting second contacts in reception phase
-                            if (!isTRUE(app_data$options$transition_sets)) { if (!is.null(app_data$options$setter_dump_code)) app_data$options$setter_dump_code else "PP"},
+                            if (!isTRUE(app_data$options$transition_sets) && ph %eq% "Transition") { if (!is.null(app_data$options$setter_dump_code)) app_data$options$setter_dump_code else "PP"},
                             "Other attack")
                     ac <- c(setNames(ac, ac), "Freeball over" = "F")
                     if (!isTRUE(app_data$options$transition_sets)) ac <- c(ac, "Set error" = "E=")
@@ -861,8 +868,9 @@ ov_scouter_server <- function(app_data) {
         ## for the playslist table, convert the rally codes into plays2 rows, and build plays from plays2
         observe({
             temp_rally_plays2 <- if (nrow(rally_codes()) > 0) make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw) else NULL
-            ##            cat(str(temp_rally_plays2))
-            ##            cat(str(rdata$dvw$plays2))
+            ##print(dplyr::glimpse(temp_rally_plays2))
+            ##print(temp_rally_plays2$phase)
+            ##cat(str(rdata$dvw$plays2))
             rdata$dvw$plays <- plays2_to_plays(rp2(bind_rows(rdata$dvw$plays2, temp_rally_plays2)), dvw = rdata$dvw, evaluation_decoder = app_data$evaluation_decoder)
         })
 
