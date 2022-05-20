@@ -1,7 +1,7 @@
 ov_scouter_ui <- function(app_data) {
     ## some startup stuff
     running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
-    fluidPage(theme = if (running_locally) shinythemes::shinytheme("lumen") else "https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.7/lumen/bootstrap.min.css",
+    fluidPage(theme = shinythemes::shinytheme("lumen"),
               htmltools::findDependencies(shiny::selectizeInput("foo", "bar", choices = "a")), ## workaround for https://github.com/rstudio/shiny/issues/3125
               tags$script("Shiny.addCustomMessageHandler('evaljs', function(jsexpr) { eval(jsexpr) });"), ## handler for running js code directly
               rintrojs::introjsUI(),
@@ -11,6 +11,9 @@ ov_scouter_ui <- function(app_data) {
                         tags$style("#video_overlay, #video_overlay_img { -webkit-backface-visibility: hidden; -webkit-transform: translateZ(0); } #problem_ui {position:absolute; left:25%; width:50%; top:10%; -webkit-transform: translateZ(10);}"), ## stop chrome putting the overlay underneath the video
                         tags$style(paste0(".undo {background-color:", app_data$styling$undo, "; border-color:", app_data$styling$undo_light, "} .undo:hover {background-color:", app_data$styling$undo_light, "; border-color:", app_data$styling$undo, "} .continue {background-color:", app_data$styling$continue, "; border-color:", app_data$styling$continue_light, "} .continue:hover {background-color:", app_data$styling$continue_light, "; border-color:", app_data$styling$continue, "} .cancel {background-color:", app_data$styling$cancel, "; border-color:", app_data$styling$cancel_light, "} .cancel:hover {background-color:", app_data$styling$cancel_light, "; border-color:", app_data$styling$cancel, "}")),
                         if (!is.null(app_data$css)) tags$style(app_data$css),
+                        tags$link(href = if (running_locally) "css/video-js.min.css" else "//vjs.zencdn.net/7.10.2/video-js.min.css", rel = "stylesheet"),
+                        tags$script(src = if (running_locally) "js/video.min.js" else "//vjs.zencdn.net/7.10.2/video.min.js"),
+                        tags$style(".video-js .vjs-big-play-button { display: none; }"),
                         ##key press handling
                         tags$script("$(document).on('keypress', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.setInputValue('cmd', e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
                         tags$script("$(document).on('keydown', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.setInputValue('controlkey', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
@@ -26,6 +29,7 @@ $(document).on('shiny:sessioninitialized', function() {
     function vo_doneResizing() {
       Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); Shiny.setInputValue('vo_voffset', $('#video_holder').innerHeight());
     }
+    vidplayer = videojs('main_video');
 });
 function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); Shiny.setInputValue('vo_voffset', $('#video_holder').innerHeight()); }")),
                         tags$title("Volleyball scout and video sync")
@@ -41,10 +45,14 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                        ##tags$button(tags$span(icon("step-forward", style = "vertical-align:middle;")), onclick = paste0(cstr, "video_next();"), title = "Next"),
                                        tags$button(tags$span(icon("pause-circle", style = "vertical-align:middle;")), onclick = "Shiny.setInputValue('pause_trigger', new Date().getTime());", title = "Pause")
                                        ),
-                              if (app_data$with_video) introBox(tags$div(id = "video_holder", style = "position:relative;",
-                                                                         if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc", styling = app_data$styling)),
-                                                                         uiOutput("problem_ui"),
-                                                                         tags$video(id = "main_video", style = "border: 1px solid black; width: 100%;", src = file.path(app_data$video_server_base_url, basename(app_data$video_src)), autoplay = "false")), tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 4, data.intro = "Video of the game to scout."), ##controls = "controls",
+                              if (app_data$with_video)
+                                  introBox(tags$div(id = "video_holder", style = "position:relative;",
+                                                    if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc", styling = app_data$styling)),
+                                                    uiOutput("problem_ui"),
+                                                    tags$video(id = "main_video", class = "video-js", `data-setup` = "{ \"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true }",
+                                                               tags$source(src = file.path(app_data$video_server_base_url, basename(app_data$video_src))), ##type="video/mp4"
+                                                               tags$p(class = "vjs-no-js", "This app cannot be used without a web browser that", tags$a(href = "https://videojs.com/html5-video-support/", target = "_blank", "supports HTML5 video")))),
+                                           tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 4, data.intro = "Video of the game to scout."),
                               fluidRow(column(4, offset = 8, uiOutput("rally_state"))),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
                               fluidRow(column(8,

@@ -2,7 +2,8 @@ ov_scouter_server <- function(app_data) {
     function(input, output, session) {
         debug <- 1L
 
-        shiny::addResourcePath("fonts", system.file("extdata/fonts", package = "ovscout"))
+        shiny::addResourcePath("css", system.file("extdata/css", package = "ovscout"))
+        shiny::addResourcePath("js", system.file("extdata/js", package = "ovscout"))
 
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "Score") ##"home_setter_position", "visiting_setter_position", "is_skill"
         plays_cols_renames <- c(Set = "set_number")##, hs = "home_setter_position", as = "visiting_setter_position")
@@ -116,7 +117,7 @@ ov_scouter_server <- function(app_data) {
 
         ## video functions
         do_video <- function(what, ..., id = "main_video") {
-            getel <- paste0("document.getElementById('", id, "')")
+            getel <- "vidplayer"
             myargs <- list(...)
             if (what == "pause") {
                 dojs(paste0(getel, ".pause();"))
@@ -142,17 +143,17 @@ ov_scouter_server <- function(app_data) {
             } else if (what == "get_time_fid") {
                 dojs(paste0("Shiny.setInputValue('video_time', ", getel, ".currentTime + '&", myargs[[1]], "')"))
             } else if (what == "set_time") {
-                dojs(paste0(getel, ".currentTime='", myargs[[1]], "';"))
+                dojs(paste0(getel, ".currentTime(", myargs[[1]], ");"))
             } else if (what == "set_current_video_time") {
                 dojs(paste0("Shiny.setInputValue('set_current_video_time', ", getel, ".currentTime + '&", myargs[1], "&' + new Date().getTime())"))
             } else if (what == "tag_current_video_time") {
                 dojs(paste0("Shiny.setInputValue('tag_current_video_time', ", getel, ".currentTime + '&", myargs[1], "')"))
             } else if (what == "rew") {
-                dojs(paste0(getel, ".currentTime=", getel, ".currentTime - ", myargs[[1]], ";"))
+                dojs(paste0(getel, ".currentTime(", getel, ".currentTime - ", myargs[[1]], ");"))
             } else if (what == "ff") {
-                dojs(paste0(getel, ".currentTime=", getel, ".currentTime + ", myargs[[1]], ";"))
+                dojs(paste0(getel, ".currentTime(", getel, ".currentTime + ", myargs[[1]], ");"))
             } else if (what == "playback_rate") {
-                dojs(paste0(getel, ".playbackRate=", myargs[[1]], ";"))
+                dojs(paste0(getel, ".playbackRate(", myargs[[1]], ");"))
             } else {
                 NULL
             }
