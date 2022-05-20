@@ -72,7 +72,7 @@ ov_scouter_server <- function(app_data) {
 
         playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show, plays_cols_renames = plays_cols_renames)
 
-        video_state <- reactiveValues(paused = TRUE) ## starts paused
+        video_state <- reactiveValues(paused = TRUE, muted = TRUE) ## starts paused and muted
         editing <- reactiveValues(active = NULL)
 
         ## height of the video player element
@@ -139,21 +139,41 @@ ov_scouter_server <- function(app_data) {
                 }
                 NULL
             } else if (what == "get_time") {
-                dojs(paste0("Shiny.setInputValue('video_time', ", getel, ".currentTime)"))
+                dojs(paste0("Shiny.setInputValue('video_time', ", getel, ".currentTime())"))
             } else if (what == "get_time_fid") {
-                dojs(paste0("Shiny.setInputValue('video_time', ", getel, ".currentTime + '&", myargs[[1]], "')"))
+                dojs(paste0("Shiny.setInputValue('video_time', ", getel, ".currentTime() + '&", myargs[[1]], "')"))
             } else if (what == "set_time") {
                 dojs(paste0(getel, ".currentTime(", myargs[[1]], ");"))
             } else if (what == "set_current_video_time") {
-                dojs(paste0("Shiny.setInputValue('set_current_video_time', ", getel, ".currentTime + '&", myargs[1], "&' + new Date().getTime())"))
+                dojs(paste0("Shiny.setInputValue('set_current_video_time', ", getel, ".currentTime() + '&", myargs[1], "&' + new Date().getTime())"))
             } else if (what == "tag_current_video_time") {
-                dojs(paste0("Shiny.setInputValue('tag_current_video_time', ", getel, ".currentTime + '&", myargs[1], "')"))
+                dojs(paste0("Shiny.setInputValue('tag_current_video_time', ", getel, ".currentTime() + '&", myargs[1], "')"))
             } else if (what == "rew") {
-                dojs(paste0(getel, ".currentTime(", getel, ".currentTime - ", myargs[[1]], ");"))
+                dojs(paste0(getel, ".currentTime(", getel, ".currentTime() - ", myargs[[1]], ");"))
             } else if (what == "ff") {
-                dojs(paste0(getel, ".currentTime(", getel, ".currentTime + ", myargs[[1]], ");"))
+                dojs(paste0(getel, ".currentTime(", getel, ".currentTime() + ", myargs[[1]], ");"))
             } else if (what == "playback_rate") {
                 dojs(paste0(getel, ".playbackRate(", myargs[[1]], ");"))
+            } else if (what == "get_volume") {
+                dojs(paste0(getel, ".volume();"))
+            } else if (what == "set_volume") {
+                dojs(paste0(getel, ".volume(", myargs[[1]], ");"))
+            } else if (what == "mute") {
+                dojs(paste0(getel, ".muted(true);"))
+                video_state$muted <- TRUE
+            } else if (what == "unmute") {
+                dojs(paste0(getel, ".muted(false);"))
+                video_state$muted <- FALSE
+            } else if (what == "muted") {
+                video_state$muted
+            } else if (what == "toggle_mute") {
+                if (video_state$muted) {
+                    updateActionButton(session, "video_toggle_mute", label = "Mute")
+                    do_video("unmute")
+                } else {
+                    updateActionButton(session, "video_toggle_mute", label = "Unmute")
+                    do_video("mute")
+                }
             } else {
                 NULL
             }
@@ -242,7 +262,6 @@ ov_scouter_server <- function(app_data) {
             ## check courtref
             courtref_ok <- !is.null(detection_ref()$court_ref)
             ok <- lineups_ok && rosters_ok && courtref_ok
-            cat("meta ok: ", ok, "\n")
             meta_is_valid(ok)
             output$problem_ui <- renderUI({
                 if (!ok) {
@@ -262,7 +281,14 @@ ov_scouter_server <- function(app_data) {
             })
         })
 
-        observeEvent(input$pause_trigger, deal_with_pause())
+        ## exteral video control buttons
+        ##observeEvent(input$pause_trigger, deal_with_pause())
+        observeEvent(input$video_pause, deal_with_pause())
+        observeEvent(input$video_rew_10, do_video("rew", 10))
+        observeEvent(input$video_ff_10, do_video("ff", 10))
+        observeEvent(input$video_volume, if (!is.null(input$video_volume)) do_video("set_volume", input$video_volume))
+        observeEvent(input$video_toggle_mute, do_video("toggle_mute"))
+
         deal_with_pause <- function(show_modal = TRUE) {
             ## don't allow unpause if we have a scouting modal shown
             if (isTRUE(scout_modal_active())) {
