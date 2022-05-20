@@ -701,8 +701,9 @@ ov_scouter_server <- function(app_data) {
                     coverp <- c(coverp, Unknown = "Unknown")
                     cover_player_buttons <- make_fat_radio_buttons(choices = coverp, selected = cover_pl_opts$selected, input_var = "c1_cover_player")
                     ## blocking players
-                    blockp <- sort(get_players(game_state, team = game_state$current_team, dvw = rdata$dvw))
+                    blockp <- get_players(game_state, team = game_state$current_team, dvw = rdata$dvw)
                     if (length(blockp) == 6) blockp <- blockp[2:4] ## front-row only
+                    blockp <- sort(blockp)
                     names(blockp) <- player_nums_to(blockp, team = game_state$current_team, dvw = rdata$dvw)
                     blockp <- c(blockp, Unknown = "Unknown")
                     block_player_buttons <- make_fat_radio_buttons(choices = blockp, selected = NA, input_var = "c1_block_touch_player")
