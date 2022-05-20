@@ -715,7 +715,7 @@ plays_to_plays2 <- function(p) {
     p2 <- mutate(p, serving = case_when(.data$serving_team == .data$home_team ~ "*", .data$serving_team == .data$visiting_team ~ "a"))##, X4 = NA, X14 = NA)
     as_tibble(dplyr::select(p2, "code", "point_phase", "attack_phase", ##"X4",
                             "start_coordinate", "mid_coordinate", "end_coordinate", "time", "set_number", "home_setter_position", "visiting_setter_position", "video_file_number", "video_time", ##"X14",
-                            home_score_start_of_point = "home_team_score", visiting_score_start_of_point = "visiting_team_score", "serving", "home_p1", "home_p2", "home_p3", "home_p4", "home_p5", "home_p6", "visiting_p1", "visiting_p2", "visiting_p3", "visiting_p4", "visiting_p5", "visiting_p6")) %>%
+                            home_score_start_of_point = "home_team_score", visiting_score_start_of_point = "visiting_team_score", "serving", "home_p1", "home_p2", "home_p3", "home_p4", "home_p5", "home_p6", "visiting_p1", "visiting_p2", "visiting_p3", "visiting_p4", "visiting_p5", "visiting_p6", "phase")) %>%
         mutate(ht_lib1 = NA_integer_, ht_lib2 = NA_integer_, vt_lib1 = NA_integer_, vt_lib2 = NA_integer_)
 }
 

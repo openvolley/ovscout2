@@ -25,15 +25,31 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
             mid_coord <- dv_xy2index(as.numeric(rally_codes$mid_x), as.numeric(rally_codes$mid_y))
             end_coord <- dv_xy2index(as.numeric(rally_codes$end_x), as.numeric(rally_codes$end_y))
             vt <- rally_codes$t
+            phase <- rep(NA_character_, length(codes))
+            rec_tm <- ""
+            for (i in seq_along(codes)) {
+                if (grepl("^[a\\*][[:digit:]][[:digit:]]S", codes[i])) {
+                    phase[i] <- "Serve"
+                } else if (grepl("^[a\\*][[:digit:]][[:digit:]]R", codes[i])) {
+                    phase[i] <- "Reception"
+                    rec_tm <- substr(codes[i], 1, 1)
+                } else if (i > 1 && phase[i - 1] %eq% "Reception" && (substr(codes[i], 1, 1) %eq% rec_tm || grepl("^[a\\*][[:digit:]][[:digit:]]B", codes[i]))) {
+                    phase[i] <- "Reception"
+                } else if (!is.na(phase[i - 1])) {
+                    phase[i] <- "Transition"
+                }
+            }
         } else {
             codes <- character()
             start_coord <- mid_coord <- end_coord <- vt <- numeric()
+            phase <- character()
         }
     } else {
         ## rally_codes are just char, which means that these aren't skill codes, they are auto codes (position codes or similar)
         codes <- rally_codes
         start_coord <- mid_coord <- end_coord <- NA_integer_
         vt <- NA_real_
+        phase <- NA_character_
     }
     if (rally_ended) {
         assert_that(game_state$point_won_by %in% c("*", "a"))
@@ -49,6 +65,7 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
             mid_coord <- c(mid_coord, rep(NA_integer_, n_extra))
             end_coord <- c(end_coord, rep(NA_integer_, n_extra))
             vt <- c(vt, rep(NA_real_, n_extra))
+            phase <- c(phase, rep(NA_character_, n_extra))
         }
     }
     ##cat("codes: "); print(codes)
@@ -68,6 +85,7 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
     out <- bind_cols(out, as.data.frame(reactiveValuesToList(game_state)[paste0("home_p", pseq)]))
     out <- bind_cols(out, as.data.frame(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
     for (lib in c(paste0("ht_lib", 1:2), paste0("vt_lib", 1:2))) out[[lib]] <- if (!lib %in% names(game_state)) NA_integer_ else game_state[[lib]]
+    out$phase <- phase
     out
 }
 
@@ -156,7 +174,7 @@ plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
     out <- bind_cols(out, setNames(dv_index2xy(plays2$start_coordinate), c("start_coordinate_x", "start_coordinate_y")))
     out <- bind_cols(out, setNames(dv_index2xy(plays2$mid_coordinate), c("mid_coordinate_x", "mid_coordinate_y")))
     out <- bind_cols(out, setNames(dv_index2xy(plays2$end_coordinate), c("end_coordinate_x", "end_coordinate_y")))
-    out$phase <- datavolley::play_phase(out)
+    out$phase <- plays2$phase ##datavolley::play_phase(out)
     out$set_number <- plays2$set_number
     out$video_time <- plays2$video_time
     out$error_icon <- ""##ifelse(is.na(x$plays$error_message), "", HTML(as.character(shiny::icon("exclamation-triangle"))))
