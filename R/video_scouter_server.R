@@ -168,10 +168,10 @@ ov_scouter_server <- function(app_data) {
                 video_state$muted
             } else if (what == "toggle_mute") {
                 if (video_state$muted) {
-                    updateActionButton(session, "video_toggle_mute", label = "Mute")
+                    shiny::updateActionButton(session, "video_toggle_mute", label = "Mute")
                     do_video("unmute")
                 } else {
-                    updateActionButton(session, "video_toggle_mute", label = "Unmute")
+                    shiny::updateActionButton(session, "video_toggle_mute", label = "Unmute")
                     do_video("mute")
                 }
             } else {
