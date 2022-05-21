@@ -413,6 +413,7 @@ dv_write2 <- function(x, file, text_encoding = "UTF-8") {
 
     ##x$plays2 <- x$plays2[, setdiff(names(x$plays2), c("home_score_start_of_point", "visiting_score_start_of_point", "serving"))]
     x$plays2$na_col <- NA
+    x$plays2$video_time <- round(x$plays2$video_time)
     ## make sure we have the right columns, including the all-NA ones
     nms <- c("code", "point_phase", "attack_phase", "na_col", ## cols 1-4
              "start_coordinate", "mid_coordinate", "end_coordinate", ## cols 5-7
