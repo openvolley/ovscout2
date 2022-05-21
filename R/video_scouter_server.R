@@ -670,7 +670,7 @@ ov_scouter_server <- function(app_data) {
                     } else {
                         ph <- NA_character_
                     }
-                    ac <- c(head(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end(), opts = app_data$options), if (isTRUE(app_data$review_pane)) 4 else 8),
+                    ac <- c(head(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end(), opts = app_data$options), if (isTRUE(app_data$review_pane)) 5 else 8),
                             ## if we aren't scouting transition sets, then this "third" contact could be a setter dump
                             ## TODO don't show this during reception phase, because we are always scouting second contacts in reception phase
                             if (!isTRUE(app_data$options$transition_sets) && ph %eq% "Transition") { if (!is.null(app_data$options$setter_dump_code)) app_data$options$setter_dump_code else "PP"},
