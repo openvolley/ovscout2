@@ -636,7 +636,7 @@ ov_scouter_server <- function(app_data) {
                     opp_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c2_opp_player")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Second contact:")),
-                                            do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(1, but))),
+                                            do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(if (isTRUE(app_data$review_pane)) 1 else 2, but))),
                                             tags$br(),
                                             tags$div(id = "c2_more_ui", tags$p("by player"),
                                                      tags$br(),
