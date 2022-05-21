@@ -10,6 +10,7 @@ ov_scouter(
   court_ref,
   scoreboard = TRUE,
   ball_path = FALSE,
+  review_pane = TRUE,
   scouting_options = ov_scouter_options(),
   default_scouting_table = ov_default_scouting_table(),
   compound_table = ov_default_compound_table(),
@@ -29,6 +30,8 @@ If \code{dvw} is "demo", the app will be started with a demonstration data set}
 \item{scoreboard}{logical: if \code{TRUE}, show a scoreboard in the top-right of the video pane}
 
 \item{ball_path}{logical: if \code{TRUE}, show the ball path on the court inset diagram. Note that this will slow the app down slightly}
+
+\item{review_pane}{logical: if \code{TRUE}, entry popups will be accompanied by a small video pane that shows a loop of the video of the action in question}
 
 \item{scouting_options}{list: a named list with entries as per \code{\link[=ov_scouter_options]{ov_scouter_options()}}}
 

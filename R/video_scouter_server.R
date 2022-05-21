@@ -517,10 +517,12 @@ ov_scouter_server <- function(app_data) {
         show_scout_modal <- function(...) {
             scout_modal_active(TRUE)
             showModal(...)
+            if (isTRUE(app_data$review_pane)) show_review_pane()
         }
         remove_scout_modal <- function() {
             scout_modal_active(FALSE)
             removeModal()
+            if (isTRUE(app_data$review_pane)) hide_review_pane()
         }
 
         ## single click the video to register a tag location, or starting ball coordinates
@@ -634,7 +636,7 @@ ov_scouter_server <- function(app_data) {
                     opp_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c2_opp_player")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Second contact:")),
-                                            do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(2, but))),
+                                            do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(1, but))),
                                             tags$br(),
                                             tags$div(id = "c2_more_ui", tags$p("by player"),
                                                      tags$br(),
@@ -668,7 +670,7 @@ ov_scouter_server <- function(app_data) {
                     } else {
                         ph <- NA_character_
                     }
-                    ac <- c(head(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end(), opts = app_data$options), 10),
+                    ac <- c(head(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end(), opts = app_data$options), if (isTRUE(app_data$review_pane)) 4 else 8),
                             ## if we aren't scouting transition sets, then this "third" contact could be a setter dump
                             ## TODO don't show this during reception phase, because we are always scouting second contacts in reception phase
                             if (!isTRUE(app_data$options$transition_sets) && ph %eq% "Transition") { if (!is.null(app_data$options$setter_dump_code)) app_data$options$setter_dump_code else "PP"},
@@ -1465,6 +1467,19 @@ ov_scouter_server <- function(app_data) {
             removeModal()
             do_video("play")
         })
+
+        show_review_pane <- function() {
+            ## use the current video time from the main video
+            ## construct the playlist js by hand, because we need to inject the current video time
+            temp <- paste0("var start_t=vidplayer.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", file.path(app_data$video_server_base_url, basename(app_data$video_src)), "','start_time':start_t,'duration':4,'type':'local'}], 'review_player', 'local', true); revpl.set_playback_rate(1.4);")
+            dojs(temp)
+            js_show2("review_pane")
+        }
+        hide_review_pane <- function() {
+            js_hide2("review_pane")
+            dojs("revpl.video_stop();")
+        }
+
         observeEvent(input$undo, {
             do_undo()
             removeModal()
