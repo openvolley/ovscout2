@@ -1,8 +1,8 @@
 #' Launch a Shiny app for scouting
 #'
-#' @param dvw string or datavolley: either the path to a dvw file (which will be read by \code{\link[datavolley]{dv_read}}) or a datavolley object (e.g. as returned by [dv_create()]. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}.
+#' @param dvw string or datavolley: either the path to a dvw file (which will be read by [datavolley::dv_read()]) or a datavolley object (e.g. as returned by [dv_create()]. Passing the file name (not the datavolley object) is required if any extra arguments are passed via `...`. `dvw` can also be an rds object, as saved by `ov_scouter()`
 #' If `dvw` is "demo", the app will be started with a demonstration data set
-#' @param video_file string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. Provide `video_file = NA` to run the app without a video file
+#' @param video_file string: optionally, the path to the video file. If not supplied (or `NULL`) the video file specified in the dvw file will be used. Provide `video_file = NA` to run the app without a video file
 #' @param court_ref data.frame or string: data.frame with the court reference (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
 #' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
 #' @param ball_path logical: if `TRUE`, show the ball path on the court inset diagram. Note that this will slow the app down slightly
@@ -10,11 +10,10 @@
 #' @param scouting_options list: a named list with entries as per [ov_scouter_options()]
 #' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
 #' @param compound_table tibble: the table of compound codes
-#' @param launch_browser logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny]{runApp}}'s \code{launch.browser} parameter)
-#' @param prompt_for_files logical: if \code{dvw} was not specified, prompt the user to select the dvw file
-#' @param ... : extra parameters passed to \code{\link[datavolley]{dv_read}} (if \code{dvw} is a provided as a string) and/or to the shiny server and UI functions
+#' @param launch_browser logical: if `TRUE`, launch the app in the system's default web browser (passed to [shiny::runApp()]'s `launch.browser` parameter)
+#' @param prompt_for_files logical: if `dvw` was not specified, prompt the user to select the dvw file
+#' @param ... : extra parameters passed to [datavolley::dv_read()] (if `dvw` is a provided as a string) and/or to the shiny server and UI functions
 #'
-#' @seealso \code{\link[datavolley]{dv_read}}
 #' @examples
 #' \dontrun{
 #'   ov_scouter("demo")
@@ -178,7 +177,8 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, ball_path 
     }
     ## initialize the plays and plays2 components
     ## if we've started with an empty dvw and done dv_set_lineups, then we'll have an empty tibble for $plays but something in $plays2
-    ## but if we are continuing a partially-scouted file, then we'll have something in plays but not plays2
+    ## if we are continuing a partially-scouted file that has been reloaded from dvw, then we'll have something in plays but not plays2
+    ## if we are restarting from an rds file, it should have something in plays2 but not plays
     if ((is.null(app_data$dvw[["plays"]]) || nrow(app_data$dvw[["plays"]]) < 1)) {
         app_data$dvw$plays <- plays2_to_plays(app_data$dvw$plays2, dvw = app_data$dvw, evaluation_decoder = app_data$evaluation_decoder)
     } else if (is.null(app_data$dvw$plays2) || nrow(app_data$dvw$plays2) < 1) {

@@ -1386,7 +1386,12 @@ ov_scouter_server <- function(app_data) {
         ## initialize the game state
         rally_state <- reactiveVal("click or unpause the video to start")
         rally_codes <- reactiveVal(empty_rally_codes)
-        temp <- as.list(tail(app_data$dvw$plays2, 1))
+        if ("game_state" %in% names(app_data$dvw)) {
+            ## saved as an rds, so re-use this
+            temp <- app_data$dvw$game_state
+        } else {
+            temp <- as.list(tail(app_data$dvw$plays2, 1))
+        }
         if (!"serving" %in% names(temp) || is.na(temp$serving)) temp$serving <- "*" ## default to home team serving - maybe allow this as a parm to ov_scouter (maybe TODO)
         temp$current_team <- temp$serving
         temp$start_x <- temp$start_y <- temp$end_x <- temp$end_y <- NA_real_
@@ -1401,6 +1406,9 @@ ov_scouter_server <- function(app_data) {
         if (nrow(app_data$dvw$plays2) < 1 || !any(grepl("^[a\\*]p[[:digit:]]", app_data$dvw$plays2$code))) {
             temp$home_score_start_of_point <- temp$visiting_score_start_of_point <- 0L
         }
+        ## get the correct set_number
+        nsets <- grep("^\\*\\*[[:digit:]]set", app_data$dvw$plays2$code)
+        temp$set_number <- length(nsets) + 1L
         game_state <- do.call(reactiveValues, temp)
         court_inset$home_team_end("upper") ## home team end defaults to upper
         ## seek to video time on startup
@@ -1427,7 +1435,8 @@ ov_scouter_server <- function(app_data) {
 
             showModal(vwModalDialog(title = "Miscellaneous", footer = NULL,
                                     fluidRow(column(2, if (!is.null(rdata$dvw$plays2)) {
-                                                           tags$div(tags$p(tags$strong("File operations")), downloadButton("save_dvw_button", "Export to dvw"))
+                                                           tags$div(tags$p(tags$strong("File operations")), downloadButton("save_rds_button", "Save file"),
+                                                                    downloadButton("save_dvw_button", "Export to dvw"))
                                                        }),
                                              ##column(2, shinyFiles::shinySaveButton("auto_save_file", label = "Auto save", title = "Save file as", filetype = "dvw"), tags$p(style = "font-size: small", "Auto save will automatically save a copy of the file after each rally"))
                                              ),
@@ -1577,21 +1586,50 @@ ov_scouter_server <- function(app_data) {
             HTML(end_zone_helper(input$code_entry_skill, input$code_entry_eval, dvw = rdata$dvw))
         })
 
+        save_file_basename <- reactive({
+            if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename) && nchar(rdata$dvw$meta$filename)) {
+                fs::path_ext_remove(basename(rdata$dvw$meta$filename))
+            } else if (!is.null(rdata$dvw$meta$video) && nrow(rdata$dvw$meta$video) > 0 && length(na.omit(rdata$dvw$meta$video$file)) > 0 && nchar(na.omit(rdata$dvw$meta$video$file)[1])) {
+                paste0(basename(fs::path_ext_remove(na.omit(rdata$dvw$meta$video$file)[1])))
+            } else {
+                "myfile"
+            }
+        })
+
         output$save_dvw_button <- downloadHandler(
-            filename = function() {
-                if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename) && nchar(rdata$dvw$meta$filename)) {
-                    basename(rdata$dvw$meta$filename)
-                } else if (!is.null(rdata$dvw$meta$video) && nrow(rdata$dvw$meta$video) > 0 && length(na.omit(rdata$dvw$meta$video$file)) > 0 && nchar(na.omit(rdata$dvw$meta$video$file)[1])) {
-                    paste0(basename(fs::path_ext_remove(na.omit(rdata$dvw$meta$video$file)[1])), ".dvw")
-                } else {
-                    "myfile.dvw"
-                }
-            },
+            filename = function() paste0(save_file_basename(), ".dvw"),
             content = function(file) {
                 tryCatch({
                     ## TODO flush any rally codes to plays2 - but note that then we won't have the right rally_state when we restart
                     ## so might not be able to do this
                     dv_write2(update_meta(rp2(rdata$dvw)), file = file)
+                }, error = function(e) {
+                    rds_ok <- FALSE
+                    if (!nzchar(Sys.getenv("SHINY_PORT"))) {
+                        ## this only makes sense if running locally, not deployed on a remote server
+                        ## if no port defined, assumed running under shiny within R, not under shiny server
+                        tf <- tempfile(fileext = ".rds")
+                        try({
+                            saveRDS(rdata$dvw, file = tf)
+                            rds_ok <- file.exists(tf) && file.size(tf) > 0
+                        }, silent = TRUE)
+                    }
+                    showModal(modalDialog(title = "Save error",
+                                          tags$div(class = "alert alert-danger", "Sorry, the save failed. The error message was:", tags$br(), tags$pre(conditionMessage(e)), tags$br(), if (rds_ok) paste0("The edited datavolley object has been saved to ", tf, ". You might be able to recover your edited information from that (contact the package authors for assistance)."))))
+                    NULL
+                })
+            }
+        )
+
+        output$save_rds_button <- downloadHandler(
+            filename = function() paste0(save_file_basename(), ".rds"),
+            content = function(file) {
+                tryCatch({
+                    ## TODO flush any rally codes to plays2 - but note that then we won't have the right rally_state when we restart
+                    ## so might not be able to do this
+                    out <- rdata$dvw
+                    out$plays <- NULL ## don't save this
+                    saveRDS(out, file)
                 }, error = function(e) {
                     rds_ok <- FALSE
                     if (!nzchar(Sys.getenv("SHINY_PORT"))) {

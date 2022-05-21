@@ -20,7 +20,7 @@ ov_scouter(
 )
 }
 \arguments{
-\item{dvw}{string or datavolley: either the path to a dvw file (which will be read by \code{\link[datavolley]{dv_read}}) or a datavolley object (e.g. as returned by \code{\link[=dv_create]{dv_create()}}. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}.
+\item{dvw}{string or datavolley: either the path to a dvw file (which will be read by \code{\link[datavolley:read_dv]{datavolley::dv_read()}}) or a datavolley object (e.g. as returned by \code{\link[=dv_create]{dv_create()}}. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}. \code{dvw} can also be an rds object, as saved by \code{ov_scouter()}
 If \code{dvw} is "demo", the app will be started with a demonstration data set}
 
 \item{video_file}{string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. Provide \code{video_file = NA} to run the app without a video file}
@@ -39,11 +39,11 @@ If \code{dvw} is "demo", the app will be started with a demonstration data set}
 
 \item{compound_table}{tibble: the table of compound codes}
 
-\item{launch_browser}{logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny]{runApp}}'s \code{launch.browser} parameter)}
+\item{launch_browser}{logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny:runApp]{shiny::runApp()}}'s \code{launch.browser} parameter)}
 
 \item{prompt_for_files}{logical: if \code{dvw} was not specified, prompt the user to select the dvw file}
 
-\item{...}{: extra parameters passed to \code{\link[datavolley]{dv_read}} (if \code{dvw} is a provided as a string) and/or to the shiny server and UI functions}
+\item{...}{: extra parameters passed to \code{\link[datavolley:read_dv]{datavolley::dv_read()}} (if \code{dvw} is a provided as a string) and/or to the shiny server and UI functions}
 }
 \description{
 Launch a Shiny app for scouting
@@ -53,7 +53,4 @@ Launch a Shiny app for scouting
   ov_scouter("demo")
 }
 
-}
-\seealso{
-\code{\link[datavolley]{dv_read}}
 }
