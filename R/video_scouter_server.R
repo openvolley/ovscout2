@@ -937,6 +937,7 @@ ov_scouter_server <- function(app_data) {
                     st <- if (!is.null(input$serve_type)) input$serve_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
                     remove_scout_modal()
                     special_code <- substr(serve_err_type, 2, 2)
+                    if (special_code %eq% "N" && app_data$options$end_convention %eq% "actual") game_state$end_y <- 3.5 ## exactly on net
                     esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
                     rc <- rally_codes()
                     Sidx <- which(rc$skill == "S")
@@ -1131,7 +1132,7 @@ ov_scouter_server <- function(app_data) {
                 dx <- game_state$end_x
                 dy <- game_state$end_y
                 dz <- esz[1]
-                if (!is.null(input$c1_block_touch_player) && app_data$options$attack_end %eq% "intended") {
+                if (!is.null(input$c1_block_touch_player) && app_data$options$end_convention %eq% "intended") {
                     ## if we are scouting intended attack directions, and there was a block touch, then don't use a dig location
                     dx <- dy <- NA_real_
                     dz <- "~"

@@ -5,7 +5,7 @@
 \title{Scouting options}
 \usage{
 ov_scouter_options(
-  attack_end = "actual",
+  end_convention = "actual",
   nblockers = TRUE,
   default_nblockers = NA,
   transition_sets = FALSE,
@@ -16,7 +16,7 @@ ov_scouter_options(
 )
 }
 \arguments{
-\item{attack_end}{string: "actual" or "intended" the end coordinate of an attack is the actual end location, or the intended one. The actual might differ from the intended if there is a block touch. If "actual", and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing)}
+\item{end_convention}{string: either "actual" or "intended". Is the end coordinate of an attack or serve the actual end location (where the ball contacted the floor or out of bounds area), or the intended one. The actual might differ from the intended if there is a block touch or the ball hit the net. If "actual", and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing)}
 
 \item{nblockers}{logical: scout the number of blockers on each attack?}
 
