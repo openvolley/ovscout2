@@ -57,7 +57,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                                     tags$video(id = "main_video", class = "video-js", `data-setup` = "{ \"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true }",
                                                                tags$source(src = file.path(app_data$video_server_base_url, basename(app_data$video_src))), ##type="video/mp4"
                                                                tags$p(class = "vjs-no-js", "This app cannot be used without a web browser that", tags$a(href = "https://videojs.com/html5-video-support/", target = "_blank", "supports HTML5 video")))),
-                                           tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 4, data.intro = "Video of the game to scout."),
+                                           tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 5, data.intro = "Video of the game to scout."),
                               fluidRow(column(4, offset = 8, uiOutput("rally_state"))),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
                               fluidRow(column(8,
@@ -67,7 +67,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                                   mod_match_data_edit_ui(id = "match_data_editor"),
                                                   mod_team_edit_ui(id = "team_editor"),
                                                   mod_lineup_edit_ui(id = "lineup_editor"),
-                                                  data.step = 3, data.intro = "Click on these action buttons if you want to edit the starting lineups, edit the rosters, or edit the match metadata.")
+                                                  data.step = 2, data.intro = "Click on these buttons if you want to edit the court reference, starting lineups, rosters, or match metadata. The court reference defines where the court is located in the video image.")
                                               )),
                               tags$div(style = "height: 14px;"),
                               fluidRow(column(5, actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
@@ -75,12 +75,12 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                               sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1),
                                               uiOutput("show_courtref_ui")
                                               ),
-                                       column(7, wellPanel(mod_teamslists_ui(id = "teamslists")))
+                                       column(7, wellPanel(introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")))
                                        )
                               ),
                        column(3,
-                              introBox(wellPanel(mod_courtrot2_ui(id = "courtrot", with_ball_coords = FALSE)), data.step = 2, data.intro = "Team rosters and oncourt rotation."),
-                              introBox(mod_playslist_ui("playslist", height = "35vh", styling = app_data$styling), data.step = 1, data.intro = "List of events. Existing events can be edited or deleted. New events can be added. They will appear here."),
+                              introBox(wellPanel(mod_courtrot2_ui(id = "courtrot", with_ball_coords = FALSE)), data.step = 3, data.intro = "Team lineups and on-court rotations."),
+                              introBox(mod_playslist_ui("playslist", height = "35vh", styling = app_data$styling), data.step = 4, data.intro = "List of actions. New entries appear here as they are scouted."),
                               uiOutput("error_message"))
                        ),
 tags$script("set_vspinner = function() { $('#review_player').addClass('loading'); }"),
