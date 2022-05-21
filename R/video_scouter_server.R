@@ -19,6 +19,35 @@ ov_scouter_server <- function(app_data) {
 
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
+        ## initialize the game state
+        rally_state <- reactiveVal("click or unpause the video to start")
+        rally_codes <- reactiveVal(empty_rally_codes)
+        if ("game_state" %in% names(app_data$dvw)) {
+            ## saved as an rds, so re-use this
+            temp <- app_data$dvw$game_state
+        } else {
+            temp <- as.list(tail(app_data$dvw$plays2, 1))
+        }
+        if (!"serving" %in% names(temp) || is.na(temp$serving)) temp$serving <- "*" ## default to home team serving - maybe allow this as a parm to ov_scouter (maybe TODO)
+        temp$current_team <- temp$serving
+        temp$start_x <- temp$start_y <- temp$end_x <- temp$end_y <- NA_real_
+        temp$current_time_uuid <- ""
+        ## liberos
+        if (!"ht_lib1" %in% names(temp)) temp$ht_lib1 <- NA_character_
+        if (!"ht_lib2" %in% names(temp)) temp$ht_lib2 <- NA_character_
+        if (!"vt_lib1" %in% names(temp)) temp$vt_lib1 <- NA_character_
+        if (!"vt_lib2" %in% names(temp)) temp$vt_lib2 <- NA_character_
+        ## initial scores
+        ## if we haven't played any points yet, these will be NA
+        if (nrow(app_data$dvw$plays2) < 1 || !any(grepl("^[a\\*]p[[:digit:]]", app_data$dvw$plays2$code))) {
+            temp$home_score_start_of_point <- temp$visiting_score_start_of_point <- 0L
+        }
+        ## get the correct set_number
+        nsets <- grep("^\\*\\*[[:digit:]]set", app_data$dvw$plays2$code)
+        temp$set_number <- length(nsets) + 1L
+        if (!"home_team_end" %in% names(temp)) temp$home_team_end <- "upper" ## home team end defaults to upper
+        game_state <- do.call(reactiveValues, temp)
+
         ## court inset showing rotation and team lists
         court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, styling = app_data$styling, with_ball_coords = app_data$ball_path)
         ## force a team rotation
@@ -571,15 +600,15 @@ ov_scouter_server <- function(app_data) {
                     guess_was_err <- NA
                     if (game_state$end_x < 0.5) {
                         ## out left or right
-                        guess_was_err <- if ((game_state$serving %eq% "*" && court_inset$home_team_end() %eq% "lower") || (game_state$serving %eq% "a" && court_inset$home_team_end() %eq% "upper")) "=L" else "=R"
+                        guess_was_err <- if ((game_state$serving %eq% "*" && game_state$home_team_end %eq% "lower") || (game_state$serving %eq% "a" && game_state$home_team_end %eq% "upper")) "=L" else "=R"
                     } else if (game_state$end_x > 3.5) {
                         ## out left or right
-                        guess_was_err <- if ((game_state$serving %eq% "*" && court_inset$home_team_end() %eq% "lower") || (game_state$serving %eq% "a" && court_inset$home_team_end() %eq% "upper")) "=R" else "=L"
+                        guess_was_err <- if ((game_state$serving %eq% "*" && game_state$home_team_end %eq% "lower") || (game_state$serving %eq% "a" && game_state$home_team_end %eq% "upper")) "=R" else "=L"
                     } else if (game_state$end_y < 0.5 || game_state$end_y > 6.5) {
                         ## out long
                         guess_was_err <- "=O"
-                    } else if ((((game_state$serving %eq% "*" && court_inset$home_team_end() %eq% "lower") || (game_state$serving %eq% "a" && court_inset$home_team_end() %eq% "upper")) && (game_state$end_y > 3.3 && game_state$end_y <= 3.55)) ||
-                               (((game_state$serving %eq% "a" && court_inset$home_team_end() %eq% "lower") || (game_state$serving %eq% "*" && court_inset$home_team_end() %eq% "upper")) && (game_state$end_y < 3.7 && game_state$end_y >= 3.45))) {
+                    } else if ((((game_state$serving %eq% "*" && game_state$home_team_end %eq% "lower") || (game_state$serving %eq% "a" && game_state$home_team_end %eq% "upper")) && (game_state$end_y > 3.3 && game_state$end_y <= 3.55)) ||
+                               (((game_state$serving %eq% "a" && game_state$home_team_end %eq% "lower") || (game_state$serving %eq% "*" && game_state$home_team_end %eq% "upper")) && (game_state$end_y < 3.7 && game_state$end_y >= 3.45))) {
                         ## ball end point is near the net, either an error into the net or hit the net and dropped over without being an error
                         ## if it's on the serving team's side, or only just over, assume it was an error
                         guess_was_err <- "=N"
@@ -670,7 +699,7 @@ ov_scouter_server <- function(app_data) {
                     } else {
                         ph <- NA_character_
                     }
-                    ac <- c(head(guess_attack_code(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end(), opts = app_data$options), if (isTRUE(app_data$review_pane)) 5 else 8),
+                    ac <- c(head(guess_attack_code(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end, opts = app_data$options), if (isTRUE(app_data$review_pane)) 5 else 8),
                             ## if we aren't scouting transition sets, then this "third" contact could be a setter dump
                             ## TODO don't show this during reception phase, because we are always scouting second contacts in reception phase
                             if (!isTRUE(app_data$options$transition_sets) && ph %eq% "Transition") { if (!is.null(app_data$options$setter_dump_code)) app_data$options$setter_dump_code else "PP"},
@@ -1198,7 +1227,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$assign_c2, {
             ## set uses end position for zone/subzone
             esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
-            passq <- guess_pass_quality(game_state, dvw = rdata$dvw, home_end = court_inset$home_team_end())
+            passq <- guess_pass_quality(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end)
             rc <- rally_codes()
             rc$eval[rc$skill %eq% "R"] <- passq
             ## find corresponding serve evaluation code
@@ -1382,40 +1411,6 @@ ov_scouter_server <- function(app_data) {
                 output$serve_preselect <- NULL
             }
         })
-
-        ## initialize the game state
-        rally_state <- reactiveVal("click or unpause the video to start")
-        rally_codes <- reactiveVal(empty_rally_codes)
-        if ("game_state" %in% names(app_data$dvw)) {
-            ## saved as an rds, so re-use this
-            temp <- app_data$dvw$game_state
-        } else {
-            temp <- as.list(tail(app_data$dvw$plays2, 1))
-        }
-        if (!"serving" %in% names(temp) || is.na(temp$serving)) temp$serving <- "*" ## default to home team serving - maybe allow this as a parm to ov_scouter (maybe TODO)
-        temp$current_team <- temp$serving
-        temp$start_x <- temp$start_y <- temp$end_x <- temp$end_y <- NA_real_
-        temp$current_time_uuid <- ""
-        ## liberos
-        if (!"ht_lib1" %in% names(temp)) temp$ht_lib1 <- NA_character_
-        if (!"ht_lib2" %in% names(temp)) temp$ht_lib2 <- NA_character_
-        if (!"vt_lib1" %in% names(temp)) temp$vt_lib1 <- NA_character_
-        if (!"vt_lib2" %in% names(temp)) temp$vt_lib2 <- NA_character_
-        ## initial scores
-        ## if we haven't played any points yet, these will be NA
-        if (nrow(app_data$dvw$plays2) < 1 || !any(grepl("^[a\\*]p[[:digit:]]", app_data$dvw$plays2$code))) {
-            temp$home_score_start_of_point <- temp$visiting_score_start_of_point <- 0L
-        }
-        ## get the correct set_number
-        nsets <- grep("^\\*\\*[[:digit:]]set", app_data$dvw$plays2$code)
-        temp$set_number <- length(nsets) + 1L
-        game_state <- do.call(reactiveValues, temp)
-        court_inset$home_team_end("upper") ## home team end defaults to upper
-        ## seek to video time on startup
-        if ("video_time" %in% names(app_data$dvw$plays2) && nrow(app_data$dvw$plays2) > 0) {
-            temp_vt <- na.omit(app_data$dvw$plays2$video_time)
-            if (length(temp_vt) > 0) do_video("set_time", max(temp_vt))
-        }
 
         show_admin_modal <- function() {
             ## home player sub buttons
@@ -1629,6 +1624,7 @@ ov_scouter_server <- function(app_data) {
                     ## so might not be able to do this
                     out <- rdata$dvw
                     out$plays <- NULL ## don't save this
+                    out$game_state <- isolate(reactiveValuesToList(game_state))
                     saveRDS(out, file)
                 }, error = function(e) {
                     rds_ok <- FALSE
@@ -1744,6 +1740,7 @@ ov_scouter_server <- function(app_data) {
         shiny::onSessionEnded(function() {
             tryCatch({
                 dvw <- isolate(rdata$dvw)
+                dvw$game_state <- isolate(reactiveValuesToList(game_state))
                 tf <- tempfile(fileext = ".rds")
                 saveRDS(dvw, tf)
                 message("working file has been saved to:", tf)
@@ -1751,5 +1748,10 @@ ov_scouter_server <- function(app_data) {
                 message("could not save working file on exit (error message was: ", conditionMessage(e))
             })
         })
+        ## seek to video time on startup
+        if ("video_time" %in% names(app_data$dvw$plays2) && nrow(app_data$dvw$plays2) > 0) {
+            temp_vt <- na.omit(app_data$dvw$plays2$video_time)
+            if (length(temp_vt) > 0) do_video("set_time", max(temp_vt))
+        }
     }
 }
