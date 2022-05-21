@@ -1427,7 +1427,7 @@ ov_scouter_server <- function(app_data) {
 
             showModal(vwModalDialog(title = "Miscellaneous", footer = NULL,
                                     fluidRow(column(2, if (!is.null(rdata$dvw$plays2)) {
-                                                           tags$div(tags$p(tags$strong("File operations")), downloadButton("save_file_button", "Save file"))
+                                                           tags$div(tags$p(tags$strong("File operations")), downloadButton("save_dvw_button", "Export to dvw"))
                                                        }),
                                              ##column(2, shinyFiles::shinySaveButton("auto_save_file", label = "Auto save", title = "Save file as", filetype = "dvw"), tags$p(style = "font-size: small", "Auto save will automatically save a copy of the file after each rally"))
                                              ),
@@ -1577,7 +1577,7 @@ ov_scouter_server <- function(app_data) {
             HTML(end_zone_helper(input$code_entry_skill, input$code_entry_eval, dvw = rdata$dvw))
         })
 
-        output$save_file_button <- downloadHandler(
+        output$save_dvw_button <- downloadHandler(
             filename = function() {
                 if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename) && nchar(rdata$dvw$meta$filename)) {
                     basename(rdata$dvw$meta$filename)
