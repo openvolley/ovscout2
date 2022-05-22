@@ -945,7 +945,7 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$end_of_set, {
             game_state$set_number <- game_state$set_number + 1L
-            rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
+            rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number - 1L, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
             game_state$home_score_start_of_point <- game_state$visiting_score_start_of_point <- 0L
             ## update match metadata
             rdata$dvw <- update_meta(rp2(rdata$dvw))
@@ -1391,26 +1391,30 @@ ov_scouter_server <- function(app_data) {
         observeEvent(rally_state(), {
             if (rally_state() == "click serve start") {
                 ## show the serve player and tempo pre-select buttons
-                sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
-                ## sp should be the serving player
-                ## other players that could be serving, if the rotation is somehow wrong
-                other_sp <- get_players(game_state, team = game_state$serving, dvw = rdata$dvw) ## includes sp in here too
-                names(other_sp) <- player_nums_to(other_sp, team = game_state$serving, dvw = rdata$dvw)
-                serve_player_buttons <- make_fat_radio_buttons(choices = sort(other_sp), selected = sp, input_var = "serve_preselect_player")
-                ## default serve type is either the most common serve type by this player, or the default serve type
-                st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state, opts = app_data$options)
-                if (is.na(st_default)) st_default <- app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
-                chc <- app_data$options$skill_tempo_map %>% dplyr::filter(.data$skill == "Serve") %>% mutate(tempo = sub(" serve", "", .data$tempo))
-                chc <- setNames(chc$tempo_code, chc$tempo)
-                serve_type_buttons <- make_fat_radio_buttons(choices = chc, selected = st_default, input_var = "serve_preselect_type")
-                output$serve_preselect <- renderUI(
-                    tags$div(tags$strong("Serve type:"), do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),
-                             tags$strong("Serve player:"), do.call(fixedRow, lapply(serve_player_buttons, function(but) column(2, but))))
-                )
+                do_serve_preselect()
             } else {
                 output$serve_preselect <- NULL
             }
         })
+
+        do_serve_preselect <- function() {
+            sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
+            ## sp should be the serving player
+            ## other players that could be serving, if the rotation is somehow wrong
+            other_sp <- get_players(game_state, team = game_state$serving, dvw = rdata$dvw) ## includes sp in here too
+            names(other_sp) <- player_nums_to(other_sp, team = game_state$serving, dvw = rdata$dvw)
+            serve_player_buttons <- make_fat_radio_buttons(choices = sort(other_sp), selected = sp, input_var = "serve_preselect_player")
+            ## default serve type is either the most common serve type by this player, or the default serve type
+            st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state, opts = app_data$options)
+            if (is.na(st_default)) st_default <- app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
+            chc <- app_data$options$skill_tempo_map %>% dplyr::filter(.data$skill == "Serve") %>% mutate(tempo = sub(" serve", "", .data$tempo))
+            chc <- setNames(chc$tempo_code, chc$tempo)
+            serve_type_buttons <- make_fat_radio_buttons(choices = chc, selected = st_default, input_var = "serve_preselect_type")
+            output$serve_preselect <- renderUI(
+                tags$div(tags$strong("Serve type:"), do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),
+                         tags$strong("Serve player:"), do.call(fixedRow, lapply(serve_player_buttons, function(but) column(2, but))))
+            )
+        }
 
         show_admin_modal <- function() {
             ## home player sub buttons
@@ -1682,6 +1686,8 @@ ov_scouter_server <- function(app_data) {
                     if (length(p_out) == 1 && length(p_in) == 1) {
                         game_state <- game_state_make_substitution(game_state, team = substr(code, 1, 1), player_out = p_out, player_in = p_in, dvw = rdata$dvw)
                         rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0(substr(code, 1, 1), "C", p_out, ".", p_in), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
+                        ## if we just substituted the player about to serve, we need to update the serve preselect buttons
+                        do_serve_preselect()
                     } else {
                         ## players in/out not selected, ignore
                         ok <- FALSE
