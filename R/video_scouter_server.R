@@ -365,8 +365,8 @@ ov_scouter_server <- function(app_data) {
                 ky <- intToUtf8(as.numeric(mycmd))
                 if (ky %in% c("z", "Z")) {
                     ## temporarily hide the modal, so the video can be seen
-                    ## but only for the admin modal or the ones that pop up during the rally, not the editing modals for lineups etc
-                    if (is.null(editing$active) || editing$active %eq% c("admin")) dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
+                    ## but only for the admin, lineup modal or the ones that pop up during the rally, not the editing modals for teams or rosters
+                    if (is.null(editing$active) || editing$active %in% c("admin", "change starting lineup")) dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
                 } else if (ky %in% c("q", "Q", "0")) {
                     ## only accept this if we are not editing, or it's the admin modal being shown
                     if (is.null(editing$active) || editing$active %eq% "admin") {
@@ -467,7 +467,7 @@ ov_scouter_server <- function(app_data) {
                         ky <- mycmd[5]
                         if (ky %in% c("90", "122")) {
                             ## z
-                            ## temporarily hide the modal, so the video can be seen
+                            ## re-show the modal after temporarily hiding
                             dojs("$('#shiny-modal-wrapper').show(); $('.modal-backdrop').show();")
                         }
                     }
@@ -1630,7 +1630,7 @@ ov_scouter_server <- function(app_data) {
                 tryCatch({
                     ## TODO flush any rally codes to plays2 - but note that then we won't have the right rally_state when we restart
                     ## so might not be able to do this
-                    out <- rdata$dvw
+                    out <- update_meta(rp2(rdata$dvw))
                     out$plays <- NULL ## don't save this
                     out$game_state <- isolate(reactiveValuesToList(game_state))
                     saveRDS(out, file)
