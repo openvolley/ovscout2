@@ -11,12 +11,40 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
         ## trigger the crvt data to be re-initialized each time a popup is spawned
         did_sr_popup(did_sr_popup() + 1L)
         active(TRUE)
-        showModal(vwModalDialog(title = "Set up court reference", uiOutput(ns("srui")), footer = fluidRow(column(1, offset = 10, actionButton(ns("sr_cancel"), "Cancel", class = "fatradio cancel")), column(1, uiOutput(ns("sr_apply_ui"), inline = TRUE))), width = 100))
+        showModal(vwModalDialog(title = "Set up court reference", uiOutput(ns("srui")),
+                                footer = fluidRow(column(4, uiOutput(ns("sr_save_ui"))), column(4, uiOutput(ns("sr_save_dialog"))),
+                                                  column(1, offset = 2, actionButton(ns("sr_cancel"), "Cancel", class = "fatradio cancel")), column(1, uiOutput(ns("sr_apply_ui"), inline = TRUE))), width = 100))
     })
 
     observeEvent(input$sr_cancel, {
         active(FALSE)
         removeModal()
+    })
+
+    output$sr_save_ui <- renderUI({
+        if (!nzchar(Sys.getenv("SHINY_PORT"))) {
+            ## only if running locally
+            ## check if the file already has court data saved into it
+            chk <- tryCatch(!is.null(ovideo::ov_get_video_data(rdata$dvw$meta$video$file[1])), error = function(e) FALSE)
+            output$sr_save_dialog <- renderUI(if (chk) tags$div("The video file already has court data saved in it.") else NULL)
+            fluidRow(column(5, actionButton(ns("sr_save"), "Save into video file", class = "fatradio")),
+                     column(5, "Note: this will overwrite the existing video file. The original file will be backed up first, but use at your own risk."))
+        } else {
+            output$sr_save_dialog <- renderUI(NULL)
+            NULL
+        }
+    })
+    observeEvent(input$sr_save, {
+        output$sr_save_dialog <- renderUI({
+            tryCatch({
+                vf <- rdata$dvw$meta$video$file[1]
+                fs::file_copy(vf, paste0(vf, ".bak"))
+                ovideo::ov_set_video_data(vf, obj = detection_ref(), replace = TRUE, overwrite = TRUE)
+                tags$div("Saved")
+            }, error = function(e) {
+                tags$div("Could not save court reference into video file. The error message was:", conditionMessage(e))
+            })
+        })
     })
 
     output$sr_apply_ui <- renderUI({
