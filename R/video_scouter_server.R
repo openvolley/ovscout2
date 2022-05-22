@@ -22,7 +22,7 @@ ov_scouter_server <- function(app_data) {
         ## initialize the game state
         rally_state <- reactiveVal("click or unpause the video to start")
         rally_codes <- reactiveVal(empty_rally_codes)
-        if ("game_state" %in% names(app_data$dvw)) {
+        if ("game_state" %in% names(app_data$dvw) && !is.null(app_data$dvw$game_state)) {
             ## saved as an rds, so re-use this
             temp <- app_data$dvw$game_state
         } else {
