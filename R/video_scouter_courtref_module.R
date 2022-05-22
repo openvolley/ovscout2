@@ -39,7 +39,9 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
             tryCatch({
                 vf <- rdata$dvw$meta$video$file[1]
                 fs::file_copy(vf, paste0(vf, ".bak"))
-                ovideo::ov_set_video_data(vf, obj = detection_ref(), replace = TRUE, overwrite = TRUE)
+                temp <- list(court_ref = dplyr::select(left_join(crvt$court[, c("image_x", "image_y", "pos")], court_refs_data[, c("court_x", "court_y", "pos")], by = "pos"), -"pos"),
+                             antenna = crvt$antenna, net_height = crvt$net_height, video_framerate = crvt$video_framerate, video_width = crimg()$width, video_height = crimg()$height)
+                ovideo::ov_set_video_data(vf, obj = temp, replace = TRUE, overwrite = TRUE)
                 tags$div("Saved")
             }, error = function(e) {
                 tags$div("Could not save court reference into video file. The error message was:", conditionMessage(e))
@@ -61,8 +63,8 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
         temp$net_height <- crvt$net_height
         temp$video_framerate <- crvt$video_framerate
         ## TODO possibly also allow video_height, video_width to be overridden?
-        temp$video_width = crimg()$width
-        temp$video_height = crimg()$height
+        temp$video_width <- crimg()$width
+        temp$video_height <- crimg()$height
         detection_ref(temp)
         removeModal()
     })
