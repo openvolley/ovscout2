@@ -462,6 +462,10 @@ guess_attack_code <- function(game_state, dvw, home_end, opts) {
     atbl <- dvw$meta$attacks %>% dplyr::filter(!.data$code %in% exclude_codes)
     do_flip_click <- (game_state$current_team == "*" && home_end == "upper") || (game_state$current_team == "a" && home_end == "lower")
     thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
+    ## the start location in the attack table is a bit in front of the 3m line for back-row attacks
+    ## shift our y-location forwards a bit to reduce risk of our front-row click looking like it's nearest to a back-row location
+    ## TODO, better solution than this
+    thisxy[2] <- thisxy[2] + 0.3
     d <- sqrt((atbl$start_x - thisxy[1])^2 + (atbl$start_y - thisxy[2])^2)
     ## if setter is back row, slides are unlikely
     ## TODO what happens with beach?
