@@ -42,10 +42,6 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     beach <- is_beach(isolate(rdata$dvw))
     pseq <- if (beach) 1:2 else 1:6
 
-    observeEvent(input$cancel_ball_coords, {
-        clear_click_queue()
-    })
-
     output$switch_serving_ui <- renderUI({
         if (rally_state() %in% c("click or unpause the video to start", "click serve start")) {
             actionButton(ns("switch_serving"), "Switch serving team")
@@ -60,20 +56,13 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     })
 
     rotate_teams <- reactiveValues(home = 0L, visiting = 0L)
-    ## we keep a queue of (up to) 3 clicked points
-    click_points <- reactiveValues(queue = data.frame(x = numeric(), y = numeric()))
-    add_to_click_queue <- function(x, y) {
-        if (!is.data.frame(x)) x <- data.frame(x = x, y = y)
-        click_points$queue <- if (nrow(click_points$queue) == 3) x else rbind(click_points$queue, x)
-        click_points$queue
-    }
-    clear_click_queue <- function() {
-        click_points$queue <- data.frame(x = numeric(), y = numeric())
-        click_points$queue
-    }
+    clickout <- reactiveVal(list(x = NA_real_, y = NA_real_))
     observeEvent(input$plot_click, {
         req(input$plot_click)
-        add_to_click_queue(x = input$plot_click$x, y = input$plot_click$y)
+        ## input$plot_click gives the click location, but we want to flip this if the court direction has been reversed
+        out <- data.frame(x = input$plot_click$x, y = input$plot_click$y)
+        if (game_state$home_team_end != "lower") out <- dv_flip_xy(out)
+        clickout(out)
     })
 
     ## the court plot itself
@@ -208,10 +197,6 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                     p <- p + geom_path(data = segxy)
                 }
             }
-            ##            if (nrow(click_points$queue) > 0) {
-            ##                p <- p + geom_point(data = click_points$queue, shape = 16) +
-            ##                    geom_path(data = click_points$queue, linetype = "dashed", colour = "black", arrow = arrow(length = unit(0.05, "npc"), ends = "last"))
-            ##            }
         })
         p
     })
@@ -231,7 +216,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     observeEvent(input$validate_ball_coords, {
         accept_ball_coords(isolate(accept_ball_coords()) + 1L)
     })
-    return(list(rt = rotate_teams, ball_coords_checkbox = ball_coords, accept_ball_coords = accept_ball_coords, click_points = click_points, add_to_click_queue = add_to_click_queue, clear_click_queue = clear_click_queue))
+    return(list(rt = rotate_teams, ball_coords_checkbox = ball_coords, accept_ball_coords = accept_ball_coords, click = clickout))
 }
 
 mod_match_data_edit_ui <- function(id) {

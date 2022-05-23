@@ -511,6 +511,7 @@ ov_scouter_server <- function(app_data) {
             imagexy
         }
 
+        courtxy <- reactiveVal(list(x = NA_real_, y = NA_real_))
         loop_trigger <- reactiveVal(0L)
         observeEvent(input$video_click, {
             ## when video clicked, get the corresponding video time and trigger the loop
@@ -518,8 +519,18 @@ ov_scouter_server <- function(app_data) {
             time_uuid <- uuid()
             game_state$current_time_uuid <- time_uuid
             do_video("get_time_fid", time_uuid) ## make asynchronous request
+            courtxy(vid_to_crt(input$video_click))
             loop_trigger(loop_trigger() + 1L)
             ## TODO MAYBE also propagate the click to elements below the overlay?
+        })
+        observeEvent(court_inset$click(), {
+            ## when video clicked, get the corresponding video time and trigger the loop
+            flash_screen() ## visual indicator that click has registered
+            time_uuid <- uuid()
+            game_state$current_time_uuid <- time_uuid
+            do_video("get_time_fid", time_uuid) ## make asynchronous request
+            courtxy(court_inset$click())
+            loop_trigger(loop_trigger() + 1L)
         })
 
         ## video times are a pain, because we get asynchronous replies from the browser via input$video_time
@@ -557,8 +568,6 @@ ov_scouter_server <- function(app_data) {
         ## single click the video to register a tag location, or starting ball coordinates
         observeEvent(loop_trigger(), {
             if (loop_trigger() > 0) {
-                courtxy <- vid_to_crt(input$video_click)
-                ##court_inset$add_to_click_queue(courtxy)
                 if (rally_state() == "click or unpause the video to start") {
                     if (meta_is_valid()) {
                         do_video("play")
@@ -566,10 +575,10 @@ ov_scouter_server <- function(app_data) {
                     }
                 } else if (rally_state() == "click serve start") {
                     ## click was the serve position
-                    game_state$start_x <- courtxy$x[1]
-                    game_state$start_y <- courtxy$y[1]
+                    game_state$start_x <- courtxy()$x[1]
+                    game_state$start_y <- courtxy()$y[1]
                     game_state$start_t <- game_state$current_time_uuid
-                    overlay_points(courtxy)
+                    overlay_points(courtxy())
                     ## add placeholder serve code, will get updated on next click
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     ## serve type should have been selected in the preselect
@@ -582,10 +591,10 @@ ov_scouter_server <- function(app_data) {
                 } else if (rally_state() == "click serve end") {
                     do_video("pause")
                     ## click was the end-of-serve position, either error or reception
-                    game_state$end_x <- courtxy$x[1]
-                    game_state$end_y <- courtxy$y[1]
+                    game_state$end_x <- courtxy()$x[1]
+                    game_state$end_y <- courtxy()$y[1]
                     game_state$end_t <- game_state$current_time_uuid
-                    overlay_points(rbind(overlay_points(), courtxy))
+                    overlay_points(rbind(overlay_points(), courtxy()))
                     ## pop up to find either serve error, or passing player
                     ## passing player options
                     ## game_state$current_team here is the receiving team
@@ -640,10 +649,10 @@ ov_scouter_server <- function(app_data) {
                     ## we get a clue if it's the receiving/digging team or their opposition by the side of the court that has been clicked
                     do_video("pause")
                     ## click was the set contact position, or the freeball start position
-                    game_state$start_x <- courtxy$x[1]
-                    game_state$start_y <- courtxy$y[1]
+                    game_state$start_x <- courtxy()$x[1]
+                    game_state$start_y <- courtxy()$y[1]
                     game_state$start_t <- game_state$current_time_uuid
-                    overlay_points(courtxy)
+                    overlay_points(courtxy())
                     ## popup
                     ## TODO maybe also setter call here
                     c2_buttons <- make_fat_radio_buttons(
@@ -687,10 +696,10 @@ ov_scouter_server <- function(app_data) {
                     ## or dig/freeball dig by on overset, or PR
                     do_video("pause")
                     ## click was the attack contact position, or the freeball start position
-                    game_state$start_x <- courtxy$x[1]
-                    game_state$start_y <- courtxy$y[1]
+                    game_state$start_x <- courtxy()$x[1]
+                    game_state$start_y <- courtxy()$y[1]
                     game_state$start_t <- game_state$current_time_uuid
-                    overlay_points(courtxy)
+                    overlay_points(courtxy())
                     ## popup
                     ## figure current phase
                     if (nrow(rally_codes()) > 0) {
@@ -748,10 +757,10 @@ ov_scouter_server <- function(app_data) {
                     ## allow attack kill with no dig error?
                     do_video("pause")
                     ## click was the dig or attack kill or error position
-                    game_state$end_x <- courtxy$x[1]
-                    game_state$end_y <- courtxy$y[1]
+                    game_state$end_x <- courtxy()$x[1]
+                    game_state$end_y <- courtxy()$y[1]
                     game_state$end_t <- game_state$current_time_uuid
-                    overlay_points(courtxy)
+                    overlay_points(courtxy())
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
                     c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (play continues)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"), input_var = "c1") ## defaults to attack kill without dig error
@@ -799,10 +808,10 @@ ov_scouter_server <- function(app_data) {
                     ## freeball dig, freeball dig error, freeball error (in theory could be blocked, blocked for replay, block touch (freeball kill))
                     do_video("pause")
                     ## click was the dig or freeball end
-                    game_state$end_x <- courtxy$x[1]
-                    game_state$end_y <- courtxy$y[1]
+                    game_state$end_x <- courtxy()$x[1]
+                    game_state$end_y <- courtxy()$y[1]
                     game_state$end_t <- game_state$current_time_uuid
-                    overlay_points(courtxy)
+                    overlay_points(courtxy())
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
                     f1_buttons <- make_fat_radio_buttons(choices = c("Freeball over error" = "F=", "Freeball dig" = "FD", "Freeball dig error" = "FD="), selected = "FD", input_var = "f1")
