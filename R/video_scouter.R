@@ -48,6 +48,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, ball_path 
         }
         fchoosefun(caption = caption)
     }
+
     if ((missing(dvw) || is.null(dvw))) {
         if (prompt_for_files) {
             dvw <- tryCatch({

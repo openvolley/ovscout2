@@ -362,7 +362,10 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
         vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
         ## NB the edit and cancel buttons are global, not namespaced by ns()
-        showModal(modalDialog(title = "Edit teams", size = "l", footer = tags$div(actionButton("edit_commit", label = "Update teams data", class = "continue"), actionButton("edit_cancel", label = "Cancel", class = "cancel")),
+        showModal(modalDialog(title = "Edit teams", size = "l",
+                              footer = tags$div(
+                                  actionButton("edit_commit", label = "Update teams data", class = "continue"),
+                                                actionButton("edit_cancel", label = "Cancel", class = "cancel")),
                               tabsetPanel(
                                   tabPanel("Home team",
                                            fluidRow(column(4, textInput(ns("ht_edit_name"), label = "Team name:", value = rdata$dvw$meta$teams$team[htidx])),
@@ -379,6 +382,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                         column(1, selectInput(ns("ht_new_special"), label = "Special", choices = c("", "L", "C")))),
                                                fluidRow(column(3, offset = 9, actionButton(ns("ht_add_player_button"), "Add player")))
                                            ),
+                                           actionButton(ns("load_home_team"), label = "Load home team", class = "updating"),
                                            uiOutput(ns("ht_delete_player_ui"))
                                            ),
                                   tabPanel("Visiting team",
@@ -396,6 +400,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                         column(1, selectInput(ns("vt_new_special"), label = "Special", choices = c("", "L", "C")))),
                                                fluidRow(column(3, offset = 9, actionButton(ns("vt_add_player_button"), "Add player")))
                                            ),
+                                           actionButton(ns("load_visiting_team"), label = "Load visiting team", class = "updating"),
                                            uiOutput(ns("vt_delete_player_ui"))
                                            )
                               )
@@ -457,6 +462,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
             })
         }
     })
+
     output$vt_edit_team <- DT::renderDataTable({
         if (is.null(vtdata_edit())) vtdata_edit(rdata$dvw$meta$players_v)
         if (!is.null(vtdata_edit())) {
@@ -510,6 +516,32 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 updateSelectInput(session, "vt_new_special", selected = "")
             })
         }
+    })
+
+    observeEvent(input$load_home_team, {
+        season_dir <- dchoose(caption = "Choose season directory")
+        team_table<- get_teams_from_dvw_dir(season_dir)
+        showModal(modalDialog(title = "Choose home team", size = "m",
+                              column(3,
+                              selectInput(ns('home_team_select'), 'Select home team', team_table$team_id, multiple=FALSE, selectize=FALSE)),
+                              footer = tags$div(
+                                  actionButton("load_team_commit", label = "Select team", class = "continue"),
+                                  actionButton("load_team_cancel", label = "Cancel", class = "cancel"))
+        )
+        )
+    })
+
+    observeEvent(input$load_visiting_team, {
+        season_dir <- dchoose(caption = "Choose season directory")
+        team_table<- get_teams_from_dvw_dir(season_dir)
+        showModal(modalDialog(title = "Choose visiting team", size = "m",
+                              column(3,
+                                     selectInput(ns('visiting_team_select'), 'Select visiting team', team_table$team_id, multiple=FALSE, selectize=FALSE)),
+                              footer = tags$div(
+                                  actionButton("load_team_commit", label = "Select team", class = "continue"),
+                                  actionButton("load_team_cancel", label = "Cancel", class = "cancel"))
+        )
+        )
     })
 
     list(htdata_edit = htdata_edit, vtdata_edit = vtdata_edit)
