@@ -409,6 +409,7 @@ ov_scouter_server <- function(app_data) {
                 }
             }
         })
+        click_with <- reactiveValues(shift = FALSE, ctrl = FALSE, alt = FALSE)
         observeEvent(input$controlkey, {
             if (!is.null(input$controlkey)) {
                 temp <- strsplit(input$controlkey, "@")[[1]]
@@ -424,6 +425,9 @@ ov_scouter_server <- function(app_data) {
                     if (debug > 1) cat("control key: ", mycmd, "\n")
                     mycmd <- strsplit(mycmd, "|", fixed = TRUE)[[1]] ## e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which
                     if (length(mycmd) == 5) {
+                        click_with$ctrl <- mycmd[1] %eq% "true"
+                        click_with$alt <- mycmd[2] %eq% "true"
+                        click_with$shift <- mycmd[3] %eq% "true"
                         ky <- mycmd[5] ## key pressed, as ASCII code
                         ## NOTE that we get the ascii code for the base key (i.e. upper-case letter, or number) AND the modifier
                         ## so for "#" we'd get ky == utf8ToInt("3") (which is 51) plus mycmd[3] == "true" (shift)
@@ -470,6 +474,9 @@ ov_scouter_server <- function(app_data) {
                     if (debug > 1) cat("control key up: ", mycmd, "\n")
                     mycmd <- strsplit(mycmd, "|", fixed = TRUE)[[1]] ## e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which
                     if (length(mycmd) == 5) {
+                        click_with$ctrl <- mycmd[1] %eq% "true"
+                        click_with$alt <- mycmd[2] %eq% "true"
+                        click_with$shift <- mycmd[3] %eq% "true"
                         ky <- mycmd[5]
                         if (ky %in% c("90", "122")) {
                             ## z
@@ -678,25 +685,41 @@ ov_scouter_server <- function(app_data) {
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
                     opp_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c2_opp_player")
-                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
-                                            tags$p(tags$strong("Second contact:")),
-                                            do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(if (isTRUE(app_data$review_pane)) 1 else 2, but))),
-                                            tags$br(),
-                                            tags$div(id = "c2_more_ui", tags$p("by player"),
-                                                     tags$br(),
-                                                     do.call(fixedRow, lapply(setter_buttons, function(but) column(1, but))),
-                                                     tags$br(),
-                                                     tags$div("OR"),
-                                                     tags$br(),
-                                                     do.call(fixedRow, lapply(c2_buttons[7:9], function(but) column(2, but))),
-                                                     tags$br(),
-                                                     tags$p("by player"),
-                                                     tags$br(),
-                                                     do.call(fixedRow, lapply(opp_buttons, function(but) column(1, but)))),
-                                            tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
-                                                     column(2, offset = 8, actionButton("assign_c2", "Continue", class = "continue fatradio")))
-                                            ))
+                    if (click_with$shift) {
+                        ## accept set by setter on court, with no popup
+                        esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
+                        passq <- guess_pass_quality(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end)
+                        rc <- rally_codes()
+                        rc$eval[rc$skill %eq% "R"] <- passq
+                        ## find corresponding serve evaluation code
+                        seval <- app_data$compound_table$code[app_data$compound_table$skill %eq% "S" & app_data$compound_table$compound_skill %eq% "R" & app_data$compound_table$compound_code %eq% passq]
+                        if (nchar(seval) != 1) seval <- "~"
+                        rc$eval[rc$skill %eq% "S"] <- seval
+                        start_t <- retrieve_video_time(game_state$start_t)
+                        rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = soc, skill = "E", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
+                        rally_state("click third contact")
+                        do_video("play")
+                    } else {
+                        show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
+                                                       tags$p(tags$strong("Second contact:")),
+                                                       do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(if (isTRUE(app_data$review_pane)) 1 else 2, but))),
+                                                       tags$br(),
+                                                       tags$div(id = "c2_more_ui", tags$p("by player"),
+                                                                tags$br(),
+                                                                do.call(fixedRow, lapply(setter_buttons, function(but) column(1, but))),
+                                                                tags$br(),
+                                                                tags$div("OR"),
+                                                                tags$br(),
+                                                                do.call(fixedRow, lapply(c2_buttons[7:9], function(but) column(2, but))),
+                                                                tags$br(),
+                                                                tags$p("by player"),
+                                                                tags$br(),
+                                                                do.call(fixedRow, lapply(opp_buttons, function(but) column(1, but)))),
+                                                       tags$hr(),
+                                                       fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
+                                                                column(2, offset = 8, actionButton("assign_c2", "Continue", class = "continue fatradio")))
+                                                       ))
+                    }
                 } else if (rally_state() == "click third contact") {
                     ## attack, freeball over (by the setting team)
                     ## or dig/freeball dig by on overset, or PR
