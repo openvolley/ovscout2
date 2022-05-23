@@ -673,3 +673,25 @@ get_teams_from_dvw_dir <- function(season){
     }
 return(team_list)
 }
+
+dchoose <- function(caption) {
+  if (requireNamespace("rstudioapi", quietly = TRUE) && tryCatch({ rstudioapi::versionInfo(); TRUE }, error = function(e) FALSE)) {
+    dchoosefun <- function(caption) rstudioapi::selectDirectory(caption = caption)
+  } else {
+    if (.Platform$OS.type == "windows") {
+      dchoosefun <- function(caption) utils::choose.dir(caption = caption)
+    } else {
+      if (!interactive()) {
+        ## file.choose won't work non-interactively (e.g. started via Rscript)
+        if (!requireNamespace("tcltk", quietly = TRUE)) {
+          stop("the tcltk package is required")
+        }
+        dchoosefun <- tcltk::tk_choose.dir
+      } else {
+        cat(caption, "\n"); flush.console()
+        #dchoosefun <- function(caption) file.choose()
+      }
+    }
+  }
+  dchoosefun(caption = caption)
+}
