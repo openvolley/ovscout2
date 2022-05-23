@@ -26,6 +26,7 @@ Imports:
     lubridate,
     ovdata,
     ovideo (>= 0.17.0),
+    peranavolley,
     R.utils,
     rintrojs,
     servr (>= 0.15.1),
