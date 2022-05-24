@@ -416,7 +416,6 @@ ov_scouter_server <- function(app_data) {
                 }
             }
         })
-        click_with <- reactiveValues(shift = FALSE, ctrl = FALSE, alt = FALSE)
         observeEvent(input$controlkey, {
             if (!is.null(input$controlkey)) {
                 temp <- strsplit(input$controlkey, "@")[[1]]
@@ -432,9 +431,6 @@ ov_scouter_server <- function(app_data) {
                     if (debug > 1) cat("control key: ", mycmd, "\n")
                     mycmd <- strsplit(mycmd, "|", fixed = TRUE)[[1]] ## e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which
                     if (length(mycmd) == 5) {
-                        click_with$ctrl <- mycmd[1] %eq% "true"
-                        click_with$alt <- mycmd[2] %eq% "true"
-                        click_with$shift <- mycmd[3] %eq% "true"
                         ky <- mycmd[5] ## key pressed, as ASCII code
                         ## NOTE that we get the ascii code for the base key (i.e. upper-case letter, or number) AND the modifier
                         ## so for "#" we'd get ky == utf8ToInt("3") (which is 51) plus mycmd[3] == "true" (shift)
@@ -481,9 +477,6 @@ ov_scouter_server <- function(app_data) {
                     if (debug > 1) cat("control key up: ", mycmd, "\n")
                     mycmd <- strsplit(mycmd, "|", fixed = TRUE)[[1]] ## e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which
                     if (length(mycmd) == 5) {
-                        click_with$ctrl <- mycmd[1] %eq% "true"
-                        click_with$alt <- mycmd[2] %eq% "true"
-                        click_with$shift <- mycmd[3] %eq% "true"
                         ky <- mycmd[5]
                         if (ky %in% c("90", "122")) {
                             ## z
@@ -692,7 +685,7 @@ ov_scouter_server <- function(app_data) {
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
                     opp_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c2_opp_player")
-                    if (click_with$shift) {
+                    if (isTRUE(input$shiftkey)) {
                         ## accept set by setter on court, with no popup
                         esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
                         passq <- guess_pass_quality(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end)
