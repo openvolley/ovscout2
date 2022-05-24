@@ -114,7 +114,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
                       game_state$set_number
                   }
         tryCatch({
-            dvw <- dv_set_lineups(dvw, set_number = setnum, lineups = list(ht$lineup, vt$lineup), setters = c(ht$setter, vt$setter))
+            dvw <- dv_set_lineups(dvw, set_number = setnum, lineups = list(c(ht$lineup, na.omit(ht$liberos)), c(vt$lineup, na.omit(vt$liberos))), setters = c(ht$setter, vt$setter))
         }, error = function(e) warning(conditionMessage(e)))
         ## TODO, show some useful message to the user that the lineup operation failed
         do_reparse <- TRUE

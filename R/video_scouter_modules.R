@@ -274,6 +274,38 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
         if (is.null(vt_setter) || is.na(vt_setter) || vt_setter %eq% 0L) vt_setter <- ""
         ht_libs <- get_liberos(game_state = game_state, team = "*", dvw = rdata$dvw)
         vt_libs <- get_liberos(game_state = game_state, team = "a", dvw = rdata$dvw)
+
+        ## suggest lineups, take from (1) this set starting lineup (i.e. we're editing one we've already entered), then (2) previous set starting lineup, then (3) game_state
+        temp <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == (max(rdata$dvw$plays2$set_number, na.rm = TRUE))) %>% ## this set
+            dplyr::filter(grepl(">LUp", .data$code)) %>% dplyr::slice_tail(n = 1)
+        if (nrow(temp) == 1) {
+            ht_def_lup <- as.integer(temp[, c(paste0("home_p", pseq), "ht_lib1", "ht_lib2")])
+            vt_def_lup <- as.integer(temp[, c(paste0("visiting_p", pseq), "vt_lib1", "vt_lib2")])
+        } else {
+            temp <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == (max(rdata$dvw$plays2$set_number, na.rm = TRUE) - 1L)) %>% ## previous set
+                dplyr::filter(grepl(">LUp", .data$code)) %>% dplyr::slice_tail(n = 1)
+            if (nrow(temp) == 1) {
+                ht_def_lup <- as.integer(temp[, c(paste0("home_p", pseq), "ht_lib1", "ht_lib2")])
+                vt_def_lup <- as.integer(temp[, c(paste0("visiting_p", pseq), "vt_lib1", "vt_lib2")])
+            } else {
+                ht_def_lup <- as.integer(c(if (!is.null(game_state$home_p1)) game_state$home_p1 else NA,
+                                           if (!is.null(game_state$home_p2)) game_state$home_p2 else NA,
+                                           if (!is.null(game_state$home_p3)) game_state$home_p3 else NA,
+                                           if (!is.null(game_state$home_p4)) game_state$home_p4 else NA,
+                                           if (!is.null(game_state$home_p5)) game_state$home_p5 else NA,
+                                           if (!is.null(game_state$home_p6)) game_state$home_p6 else NA,
+                                           if (!is.null(game_state$ht_lib1)) game_state$ht_lib1 else NA,
+                                           if (!is.null(game_state$ht_lib2)) game_state$ht_lib2 else NA))
+                vt_def_lup <- as.integer(c(if (!is.null(game_state$visiting_p1)) game_state$visiting_p1 else NA,
+                                           if (!is.null(game_state$visiting_p2)) game_state$visiting_p2 else NA,
+                                           if (!is.null(game_state$visiting_p3)) game_state$visiting_p3 else NA,
+                                           if (!is.null(game_state$visiting_p4)) game_state$visiting_p4 else NA,
+                                           if (!is.null(game_state$visiting_p5)) game_state$visiting_p5 else NA,
+                                           if (!is.null(game_state$visiting_p6)) game_state$visiting_p6 else NA,
+                                           if (!is.null(game_state$vt_lib1)) game_state$vt_lib1 else NA,
+                                           if (!is.null(game_state$vt_lib2)) game_state$vt_lib2 else NA))
+            }
+        }
         showModal(
             vwModalDialog(
                 title = "Edit starting line up", size = "l", footer = tags$div(uiOutput(ns("edit_lineup_commit_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", class = "cancel")),
@@ -283,17 +315,16 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                              DT::dataTableOutput(ns("ht_display_team")),
                              wellPanel(
                                  fluidRow(
-                                     ##column(1, textInput(ns("ht_set_number"), label = "Set", placeholder = "Set number")),
-                                     column(1, textInput(ns("ht_P1"), label = "P1", value = if (!is.null(game_state$home_p1) && !is.na(game_state$home_p1)) game_state$home_p1 else "", placeholder = "P1")),
-                                     column(1, textInput(ns("ht_P2"), label = "P2", value = if (!is.null(game_state$home_p2) && !is.na(game_state$home_p2)) game_state$home_p2 else "", placeholder = "P2")),
-                                     column(1, textInput(ns("ht_P3"), label = "P3", value = if (!is.null(game_state$home_p3) && !is.na(game_state$home_p3)) game_state$home_p3 else "", placeholder = "P3")),
-                                     column(1, textInput(ns("ht_P4"), label = "P4", value = if (!is.null(game_state$home_p4) && !is.na(game_state$home_p4)) game_state$home_p4 else "", placeholder = "P4")),
-                                     column(1, textInput(ns("ht_P5"), label = "P5", value = if (!is.null(game_state$home_p5) && !is.na(game_state$home_p5)) game_state$home_p5 else "", placeholder = "P5")),
-                                     column(1, textInput(ns("ht_P6"), label = "P6", value = if (!is.null(game_state$home_p6) && !is.na(game_state$home_p6)) game_state$home_p6 else "", placeholder = "P6"))),
+                                     column(1, textInput(ns("ht_P1"), label = "P1", value = if (!is.na(ht_def_lup[1])) ht_def_lup[1] else "", placeholder = "P1")),
+                                     column(1, textInput(ns("ht_P2"), label = "P2", value = if (!is.na(ht_def_lup[2])) ht_def_lup[2] else "", placeholder = "P2")),
+                                     column(1, textInput(ns("ht_P3"), label = "P3", value = if (!is.na(ht_def_lup[3])) ht_def_lup[3] else "", placeholder = "P3")),
+                                     column(1, textInput(ns("ht_P4"), label = "P4", value = if (!is.na(ht_def_lup[4])) ht_def_lup[4] else "", placeholder = "P4")),
+                                     column(1, textInput(ns("ht_P5"), label = "P5", value = if (!is.na(ht_def_lup[5])) ht_def_lup[5] else "", placeholder = "P5")),
+                                     column(1, textInput(ns("ht_P6"), label = "P6", value = if (!is.na(ht_def_lup[6])) ht_def_lup[6] else "", placeholder = "P6"))),
                                  fluidRow(
                                      column(1, textInput(ns("ht_setter"), label = "Setter", value = ht_setter, placeholder = "Setter")),
-                                     column(1, textInput(ns("ht_libero1"), label = "Libero 1", value = if (length(ht_libs) > 0) ht_libs[1], placeholder = "Libero 1")),
-                                     column(1, textInput(ns("ht_libero2"), label = "Libero 2", value = if (length(ht_libs) > 1) ht_libs[2], placeholder = "Libero 2"))
+                                     column(1, textInput(ns("ht_libero1"), label = "Libero 1", value = if (is.na(ht_def_lup[7]) && length(ht_libs) > 0) ht_libs[1] else if (!is.na(ht_def_lup[7]) && ht_def_lup[7] == -1) "" else if (!is.na(ht_def_lup[7])) ht_def_lup[7], placeholder = "Libero 1")),
+                                     column(1, textInput(ns("ht_libero2"), label = "Libero 2", value = if (is.na(ht_def_lup[8]) && length(ht_libs) > 1) ht_libs[2] else if (!is.na(ht_def_lup[8]) && ht_def_lup[8] == -1) "" else if (!is.na(ht_def_lup[8])) ht_def_lup[8], placeholder = "Libero 2"))
                                  ),
                                  style = paste0("background: ", styling$h_court_colour)
                              )),
@@ -302,17 +333,16 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                                  DT::dataTableOutput(ns("vt_display_team")),
                                  wellPanel(
                                      fluidRow(
-                                         ##column(1, textInput(ns("vt_set_number"), label = "Set", placeholder = "Set number")),
-                                         column(1, textInput(ns("vt_P1"), label = "P1", value = if (!is.null(game_state$visiting_p1) && !is.na(game_state$visiting_p1)) game_state$visiting_p1 else "", placeholder = "P1")),
-                                         column(1, textInput(ns("vt_P2"), label = "P2", value = if (!is.null(game_state$visiting_p2) && !is.na(game_state$visiting_p2)) game_state$visiting_p2 else "", placeholder = "P2")),
-                                         column(1, textInput(ns("vt_P3"), label = "P3", value = if (!is.null(game_state$visiting_p3) && !is.na(game_state$visiting_p3)) game_state$visiting_p3 else "", placeholder = "P3")),
-                                         column(1, textInput(ns("vt_P4"), label = "P4", value = if (!is.null(game_state$visiting_p4) && !is.na(game_state$visiting_p4)) game_state$visiting_p4 else "", placeholder = "P4")),
-                                         column(1, textInput(ns("vt_P5"), label = "P5", value = if (!is.null(game_state$visiting_p5) && !is.na(game_state$visiting_p5)) game_state$visiting_p5 else "", placeholder = "P5")),
-                                         column(1, textInput(ns("vt_P6"), label = "P6", value = if (!is.null(game_state$visiting_p6) && !is.na(game_state$visiting_p6)) game_state$visiting_p6 else "", placeholder = "P6"))),
+                                         column(1, textInput(ns("vt_P1"), label = "P1", value = if (!is.na(vt_def_lup[1])) vt_def_lup[1] else "", placeholder = "P1")),
+                                         column(1, textInput(ns("vt_P2"), label = "P2", value = if (!is.na(vt_def_lup[2])) vt_def_lup[2] else "", placeholder = "P2")),
+                                         column(1, textInput(ns("vt_P3"), label = "P3", value = if (!is.na(vt_def_lup[3])) vt_def_lup[3] else "", placeholder = "P3")),
+                                         column(1, textInput(ns("vt_P4"), label = "P4", value = if (!is.na(vt_def_lup[4])) vt_def_lup[4] else "", placeholder = "P4")),
+                                         column(1, textInput(ns("vt_P5"), label = "P5", value = if (!is.na(vt_def_lup[5])) vt_def_lup[5] else "", placeholder = "P5")),
+                                         column(1, textInput(ns("vt_P6"), label = "P6", value = if (!is.na(vt_def_lup[6])) vt_def_lup[6] else "", placeholder = "P6"))),
                                      fluidRow(
                                          column(1, textInput(ns("vt_setter"), label = "Setter", value = vt_setter, placeholder = "Setter")),
-                                         column(1, textInput(ns("vt_libero1"), label = "Libero 1", value = if (length(vt_libs) > 0) vt_libs[1], placeholder = "Libero 1")),
-                                         column(1, textInput(ns("vt_libero2"), label = "Libero 2", value = if (length(vt_libs) > 1) vt_libs[2], placeholder = "Libero 2"))
+                                         column(1, textInput(ns("vt_libero1"), label = "Libero 1", value = if (is.na(vt_def_lup[7]) && length(vt_libs) > 0) vt_libs[1] else if (!is.na(vt_def_lup[7]) && vt_def_lup[7] == -1) "" else if (!is.na(vt_def_lup[7])) vt_def_lup[7], placeholder = "Libero 1")),
+                                         column(1, textInput(ns("vt_libero2"), label = "Libero 2", value = if (is.na(vt_def_lup[8]) && length(vt_libs) > 1) vt_libs[2] else if (!is.na(vt_def_lup[8]) && vt_def_lup[8] == -1) "" else if (!is.na(vt_def_lup[8])) vt_def_lup[8], placeholder = "Libero 2"))
                                      ),
                                      style = paste0("background: ", styling$v_court_colour)
                                  ))

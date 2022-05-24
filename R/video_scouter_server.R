@@ -297,10 +297,10 @@ ov_scouter_server <- function(app_data) {
             if (!app_data$is_beach) lineups_ok <- lineups_ok && notnn(game_state$home_setter_position) && notnn(game_state$visiting_setter_position)
             ## also need to see >LUp lines for this set in plays2
             temp_set_idx <- rdata$dvw$plays2$set_number %eq% game_state$set_number
-            lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^\\*P[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) == 1)
-            lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^\\*z[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) == 1)
-            lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^aP[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) == 1)
-            lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^az[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) == 1)
+            lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^\\*P[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) >= 1)
+            lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^\\*z[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) >= 1)
+            lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^aP[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) >= 1)
+            lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^az[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) >= 1)
             ## check courtref
             courtref_ok <- !is.null(detection_ref()$court_ref)
             ok <- lineups_ok && rosters_ok && courtref_ok
@@ -904,7 +904,7 @@ ov_scouter_server <- function(app_data) {
                                          column(2, offset = 8, actionButton("end_of_set", "Confirm", class = "continue fatradio")))
                                 ))
                 do_video("pause")
-                rally_state("confirm end of set")
+                rally_state("click serve start")
             }
         }
 
@@ -996,6 +996,8 @@ ov_scouter_server <- function(app_data) {
             game_state$set_number <- game_state$set_number + 1L ## should be incremented in this plays2 line
             rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number - 1L, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
             game_state$home_score_start_of_point <- game_state$visiting_score_start_of_point <- 0L
+            game_state$home_team_end <- other_end(game_state$home_team_end) ## TODO deal with 5th set
+            ## TODO choose the correct serving team
             ## update match metadata
             rdata$dvw <- update_meta(rp2(rdata$dvw))
             remove_scout_modal()
