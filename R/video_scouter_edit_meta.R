@@ -1,5 +1,5 @@
 ## match data editing
-code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit = NULL, vtdata_edit = NULL) {
+code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit = NULL, vtdata_edit = NULL, htdata_select = NULL, vtdata_select = NULL) {
     removeModal()
     do_reparse <- FALSE
     if (is.null(editing_active)) {
@@ -25,6 +25,29 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$teams$assistant[vtidx] <- input[[te_ns("vt_edit_assistant")]]
         if (!is.null(vtdata_edit)) {
             dvw$meta$players_v <- vtdata_edit
+            dvw$meta$players_v$name <- paste(dvw$meta$players_v$firstname, dvw$meta$players_v$lastname)
+        }
+        do_reparse <- TRUE
+    } else if (editing_active %eq% "select_teams") {
+        ts_ns <- function(id) paste0("team_selector-", id) ## to reference the UI elements in the team_selector module. Note the hard-coding of the 'team_selector' id
+        ## Home team
+        htidx <- which(dvw$meta$teams$home_away_team %eq% "*")
+        dvw$meta$teams$team[htidx] <- input[[ts_ns("ht_select_name")]]
+        dvw$meta$teams$team_id[htidx] <- input[[ts_ns("ht_select_id")]]
+        dvw$meta$teams$coach[htidx] <- input[[ts_ns("ht_select_coach")]]
+        dvw$meta$teams$assistant[htidx] <- input[[ts_ns("ht_select_assistant")]]
+        if (!is.null(htdata_select)) {
+            dvw$meta$players_h <- htdata_select
+            dvw$meta$players_h$name <- paste(dvw$meta$players_h$firstname, dvw$meta$players_h$lastname)
+        }
+        ## and visiting team
+        vtidx <- which(dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
+        dvw$meta$teams$team[vtidx] <- input[[ts_ns("vt_select_name")]]
+        dvw$meta$teams$team_id[vtidx] <- input[[ts_ns("vt_select_id")]]
+        dvw$meta$teams$coach[vtidx] <- input[[ts_ns("vt_select_coach")]]
+        dvw$meta$teams$assistant[vtidx] <- input[[ts_ns("vt_select_assistant")]]
+        if (!is.null(vtdata_select)) {
+            dvw$meta$players_v <- vtdata_select
             dvw$meta$players_v$name <- paste(dvw$meta$players_v$firstname, dvw$meta$players_v$lastname)
         }
         do_reparse <- TRUE

@@ -347,6 +347,99 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
     })
 }
 
+mod_team_select_ui <- function(id){
+    ns <- NS(id)
+    actionButton(ns("select_teams_button"), "Select teams", icon = icon("users"))
+}
+
+mod_team_select <- function(input, output, session, rdata, editing, styling) {
+    ns <- session$ns
+    htdata_select <- reactiveVal(NULL)
+    vtdata_select <- reactiveVal(NULL)
+    team_Table <- reactiveVal(NULL)
+
+
+    observeEvent(input$select_teams_button, {
+        editing$active <- "select_teams"
+        season_dir <- dchoose(caption = "Choose season directory")
+        team_table<- get_teams_from_dvw_dir(season_dir)
+        team_Table(team_table)
+        showModal(modalDialog(title = "Choose teams", size = "m",
+                              tabsetPanel(
+                                  tabPanel("Home team",
+                                           fluidRow(
+                              column(4,selectInput(ns('home_team_select'), 'Select home team', team_table$team_id, multiple=FALSE, selectize=FALSE)),
+                              column(4, textInput(ns("ht_select_id"), label = "Team ID:", value = "")),
+                             column(4, textInput(ns("ht_select_name"), label = "Team name:", value = ""))),
+                             fluidRow(
+                                 column(4),
+                                 column(4, textInput(ns("ht_select_coach"), label = "Coach:", value = "")),
+                                 column(4, textInput(ns("ht_select_assistant"), label = "Assistant:", value = "")),
+                             ),
+                             fluidRow(
+                                 column(12, DT::dataTableOutput(ns("ht_select_team")))
+                             )
+                              ),
+                             tabPanel("Visiting team",
+                                      fluidRow(
+                                          column(4,selectInput(ns('visiting_team_select'), 'Select visiting team', team_table$team_id, multiple=FALSE, selectize=FALSE)),
+                                          column(4, textInput(ns("vt_select_id"), label = "Team ID:", value = "")),
+                                          column(4, textInput(ns("vt_select_name"), label = "Team name:", value = ""))),
+                                      fluidRow(
+                                          column(4),
+                                          column(4, textInput(ns("vt_select_coach"), label = "Coach:", value = "")),
+                                          column(4, textInput(ns("vt_select_assistant"), label = "Assistant:", value = "")),
+                                      ),
+                                      fluidRow(
+                                          column(12, DT::dataTableOutput(ns("vt_select_team")))
+                                      )
+                             )
+                              ),
+                              footer = tags$div(
+                                  actionButton("edit_commit", label = "Select teams", class = "continue"),
+                                  actionButton("edit_cancel", label = "Cancel", class = "cancel"))
+        )
+        )
+    })
+    observe({
+        updateTextInput(session, "ht_select_id", value = input$home_team_select)
+        updateTextInput(session, "ht_select_name", value = team_Table()$team[team_Table()$team_id %eq% input$home_team_select])
+        updateTextInput(session, "ht_select_coach", value = team_Table()$coach[team_Table()$team_id %eq% input$home_team_select])
+        updateTextInput(session, "ht_select_assistant", value = team_Table()$assistant[team_Table()$team_id %eq% input$home_team_select])
+
+        updateTextInput(session, "vt_select_id", value = input$visiting_team_select)
+        updateTextInput(session, "vt_select_name", value = team_Table()$team[team_Table()$team_id %eq% input$visiting_team_select])
+        updateTextInput(session, "vt_select_coach", value = team_Table()$coach[team_Table()$team_id %eq% input$visiting_team_select])
+        updateTextInput(session, "vt_select_assistant", value = team_Table()$assistant[team_Table()$team_id %eq% input$visiting_team_select])
+
+    })
+
+    output$ht_select_team <- DT::renderDataTable({
+        if (is.null(team_Table())) htdata_select(rdata$dvw$meta$players_h)
+        if (!is.null(team_Table())) {
+            pth <- team_Table()$player_table[team_Table()$team_id %eq% input$home_team_select][[1]]
+            htdata_select(pth)
+            DT::datatable(pth, rownames = FALSE, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
+        } else {
+            NULL
+        }
+    }, server = TRUE)
+
+    output$vt_select_team <- DT::renderDataTable({
+        if (is.null(team_Table())) vtdata_select(rdata$dvw$meta$players_v)
+        if (!is.null(team_Table())) {
+            ptv <- team_Table()$player_table[team_Table()$team_id %eq% input$visiting_team_select][[1]]
+            vtdata_select(ptv)
+            DT::datatable(ptv, rownames = FALSE, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
+        } else {
+            NULL
+        }
+    }, server = TRUE)
+
+    list(htdata_select = htdata_select, vtdata_select = vtdata_select)
+
+}
+
 mod_team_edit_ui <- function(id) {
     ns <- NS(id)
     actionButton(ns("edit_teams_button"), "Edit teams", icon = icon("users"))
@@ -382,7 +475,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                         column(1, selectInput(ns("ht_new_special"), label = "Special", choices = c("", "L", "C")))),
                                                fluidRow(column(3, offset = 9, actionButton(ns("ht_add_player_button"), "Add player")))
                                            ),
-                                           actionButton(ns("load_home_team"), label = "Load home team", class = "updating"),
+                                           #actionButton(ns("load_home_team"), label = "Load home team", class = "updating"),
                                            uiOutput(ns("ht_delete_player_ui"))
                                            ),
                                   tabPanel("Visiting team",
@@ -400,7 +493,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                         column(1, selectInput(ns("vt_new_special"), label = "Special", choices = c("", "L", "C")))),
                                                fluidRow(column(3, offset = 9, actionButton(ns("vt_add_player_button"), "Add player")))
                                            ),
-                                           actionButton(ns("load_visiting_team"), label = "Load visiting team", class = "updating"),
+                                           #actionButton(ns("load_visiting_team"), label = "Load visiting team", class = "updating"),
                                            uiOutput(ns("vt_delete_player_ui"))
                                            )
                               )
@@ -516,32 +609,6 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 updateSelectInput(session, "vt_new_special", selected = "")
             })
         }
-    })
-
-    observeEvent(input$load_home_team, {
-        season_dir <- dchoose(caption = "Choose season directory")
-        team_table<- get_teams_from_dvw_dir(season_dir)
-        showModal(modalDialog(title = "Choose home team", size = "m",
-                              column(3,
-                              selectInput(ns('home_team_select'), 'Select home team', team_table$team_id, multiple=FALSE, selectize=FALSE)),
-                              footer = tags$div(
-                                  actionButton("load_team_commit", label = "Select team", class = "continue"),
-                                  actionButton("load_team_cancel", label = "Cancel", class = "cancel"))
-        )
-        )
-    })
-
-    observeEvent(input$load_visiting_team, {
-        season_dir <- dchoose(caption = "Choose season directory")
-        team_table<- get_teams_from_dvw_dir(season_dir)
-        showModal(modalDialog(title = "Choose visiting team", size = "m",
-                              column(3,
-                                     selectInput(ns('visiting_team_select'), 'Select visiting team', team_table$team_id, multiple=FALSE, selectize=FALSE)),
-                              footer = tags$div(
-                                  actionButton("load_team_commit", label = "Select team", class = "continue"),
-                                  actionButton("load_team_cancel", label = "Cancel", class = "cancel"))
-        )
-        )
     })
 
     list(htdata_edit = htdata_edit, vtdata_edit = vtdata_edit)

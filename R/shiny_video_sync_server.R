@@ -701,7 +701,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             if (!is.null(ridx)) {
                 thiscode <- rdata$dvw$plays$code[ridx]
                 editing$active <- "edit"
-                showModal(modalDialog(title = "Edit code", size = "l", 
+                showModal(modalDialog(title = "Edit code", size = "l",
                                       footer = tags$div(actionButton("edit_commit", label = "Update code (or press Enter)"), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
                                       withTags({
                                           fluidRow(
@@ -826,11 +826,11 @@ ov_shiny_video_sync_server <- function(app_data) {
                     ## Change libero to "*" in meta
                     ## BR not sure if this is needed, it was commented out
                     ##rdata$dvw$meta$players_h[rdata$dvw$meta$players_h$number %eq% input$ht_libero,paste0("starting_position_set", setnumber)] <- "*"
-                    # Change in play rotation 
+                    # Change in play rotation
                     rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation, new_rotation_id, new_setter)
                 }
                 if(input$vt_set_number != "" && input$vt_P1  != ""  && input$vt_P2 != "" &&
-                   input$vt_P3 != "" &&  input$vt_P4 != "" && input$vt_P5 != "" && 
+                   input$vt_P3 != "" &&  input$vt_P4 != "" && input$vt_P5 != "" &&
                    input$vt_P6 != "" && input$vt_setter != ""){
                     team = datavolley::visiting_team(rdata$dvw)
                     setnumber = input$vt_set_number
@@ -842,7 +842,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                     ## Change libero to "*" in meta
                     ## BR not sure if this is needed, it was commented out
                     ##rdata$dvw$meta$players_v[rdata$dvw$meta$players_v$number %eq% input$vt_libero,paste0("starting_position_set", setnumber)] <- "*"
-                    # Change in play rotation 
+                    # Change in play rotation
                     rdata$dvw <- dv_change_startinglineup(rdata$dvw, team, setnumber, new_rotation, new_rotation_id, new_setter)
                 }
                 do_reparse <- TRUE
@@ -936,7 +936,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                     } else if (editing$active %eq% "substitution"){
                         if(input$ht_inplayer != "" && input$ht_outplayer != ""){
                             teamSelect = datavolley::home_team(rdata$dvw)
-                            rdata$dvw <- dv_create_substitution(rdata$dvw, ridx, team = teamSelect, in_player = input$ht_inplayer, out_player = input$ht_outplayer, 
+                            rdata$dvw <- dv_create_substitution(rdata$dvw, ridx, team = teamSelect, in_player = input$ht_inplayer, out_player = input$ht_outplayer,
                                                                 new_setter = input$ht_new_setter)
                         }
                         if(input$vt_inplayer != "" && input$vt_outplayer != ""){
@@ -1035,10 +1035,10 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                    tags$style("#vt_display_team {border: 2px solid #bcee68;}"),
                                                    DT::dataTableOutput("vt_display_team"),
                                                    wellPanel(
-                                                       fluidRow(column(1, 
+                                                       fluidRow(column(1,
                                                                        tags$style("#vt_outplayer {border: 2px solid #dd4b39;}"),
                                                                        textInput("vt_outplayer", label = "OUT", placeholder = "OUT")),
-                                                                column(1, 
+                                                                column(1,
                                                                        tags$style("#vt_inplayer {border: 2px solid #168a52;}"),
                                                                        textInput("vt_inplayer", label = "IN", placeholder = "IN")),
                                                                 column(2,
@@ -1052,7 +1052,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 ))
             }
         }
-        
+
         insert_sub <- function() {
             ridx <- playslist_current_row()
             if (!is.null(ridx)) {
@@ -1089,7 +1089,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                 )
             }
         }
-        
+
         output$htroster <- renderUI({
             re <- names2roster(rdata$dvw$meta$players_h)
             do.call(tags$div, c(list(tags$strong("Home team"), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
@@ -1134,7 +1134,7 @@ ov_shiny_video_sync_server <- function(app_data) {
             p
         })
         # Insert setting
-        
+
         insert_setting_data_row <- function() {
             ridx_set <- dv_insert_sets_check(rdata$dvw, no_set_attacks = no_set_attacks)
             if (length(ridx_set) > 0) {
@@ -1551,8 +1551,8 @@ ov_shiny_video_sync_server <- function(app_data) {
                 })
             }
         })
-        
-        
+
+
         ## starting line up editing
         observeEvent(input$edit_lineup_button, {
             editing$active <- "change starting lineup"

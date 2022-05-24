@@ -666,7 +666,7 @@ get_teams_from_dvw_dir <- function(season){
                    firstname = stringr::str_to_title(.data$firstname),
                    role = stringr::str_to_lower(.data$role)) %>% dplyr::distinct()
 
-    player_table_tid <- aggregate(.~player_id+lastname+firstname, player_table_tid, paste)
+    player_table_tid <- aggregate(.~player_id+lastname+firstname+number, player_table_tid, paste)
 
     team_list$player_table[team_list$team_id == t_id] <- list(player_table_tid)
 

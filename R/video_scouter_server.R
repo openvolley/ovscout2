@@ -215,12 +215,17 @@ ov_scouter_server <- function(app_data) {
         ## match, team, and lineup data editing
         match_data_edit_mod <- callModule(mod_match_data_edit, id = "match_data_editor", rdata = rdata, editing = editing, styling = app_data$styling)
         team_edit_mod <- callModule(mod_team_edit, id = "team_editor", rdata = rdata, editing = editing, styling = app_data$styling)
+        team_select_mod <- callModule(mod_team_select, id = "team_selector", rdata = rdata, editing = editing, styling = app_data$styling)
         lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, video_state = video_state, styling = app_data$styling)
 
         observeEvent(input$edit_cancel, {
             if (!is.null(editing$active) && editing$active %in% "teams") {
                 team_edit_mod$htdata_edit(NULL)
                 team_edit_mod$vtdata_edit(NULL)
+            }
+            if (!is.null(editing$active) && editing$active %in% "select_teams") {
+                team_select_mod$htdata_select(NULL)
+                team_select_mod$vtdata_select(NULL)
             }
             editing$active <- NULL
             removeModal()
@@ -260,7 +265,9 @@ ov_scouter_server <- function(app_data) {
                         ## not handled yet
                     }
                 } else {
-                    changed <- code_make_change(editing$active, game_state = game_state, dvw = rdata$dvw, input = input, htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit())
+                    changed <- code_make_change(editing$active, game_state = game_state, dvw = rdata$dvw, input = input,
+                                                htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit(),
+                                                htdata_select = team_select_mod$htdata_select(),vtdata_select = team_select_mod$vtdata_select())
                     rdata$dvw <- changed$dvw
                     if (changed$do_reparse) {
                         ## we don't need to reparse (??), but (might) need to adjust game_state, e.g. if we've changed lineups

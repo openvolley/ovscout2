@@ -65,6 +65,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                               introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
                                                   mod_courtref_ui(id = "courtref"),
                                                   mod_match_data_edit_ui(id = "match_data_editor"),
+                                                  mod_team_select_ui(id = "team_selector"),
                                                   mod_team_edit_ui(id = "team_editor"),
                                                   mod_lineup_edit_ui(id = "lineup_editor"),
                                                   data.step = 2, data.intro = "Click on these buttons if you want to edit the court reference, starting lineups, rosters, or match metadata. The court reference defines where the court is located in the video image.")
