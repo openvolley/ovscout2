@@ -1543,12 +1543,15 @@ ov_scouter_server <- function(app_data) {
             if (nrow(rc) > 0) {
                 restore_rally_state <- tail(rc$rally_state, 1)
                 restore_current_team <- tail(rc$current_team, 1)
+                restore_t <- head(rc$t, 1)
                 rc <- head(rc, -1)
                 rally_codes(rc)
                 ## reset the rally_state back to what it was for the last-existing code
                 rally_state(restore_rally_state)
                 ## and the current team
                 game_state$current_team <- restore_current_team
+                ## rewind the video to the time of the last action, or if we've removed all actions then the prior time of the first one
+                do_video("set_time", if (nrow(rc) > 0) tail(rc$t, 1) else restore_t)
             } else {
                 ## undo the last code in plays2
                 ## this is trickier
