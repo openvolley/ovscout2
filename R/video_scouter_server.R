@@ -898,11 +898,11 @@ ov_scouter_server <- function(app_data) {
                     modalDialog(title = "End of set", easyClose = FALSE, footer = NULL,
                                 paste0("Confirm end of set ", game_state$set_number, "?"),
                                 tags$hr(),
-                                fixedRow(column(2, actionButton("cancel", "Cancel", class = "cancel fatradio")),
-                                         column(2, offset = 8, actionButton("end_of_set", "Confirm", class = "continue fatradio")))
+                                fixedRow(column(2, actionButton("end_of_set_cancel", "Cancel", class = "cancel fatradio")),
+                                         column(2, offset = 8, actionButton("end_of_set_confirm", "Confirm", class = "continue fatradio")))
                                 ))
                 do_video("pause")
-                rally_state("click serve start")
+                rally_state("confirm end of set")
             }
         }
 
@@ -990,7 +990,7 @@ ov_scouter_server <- function(app_data) {
             remove_scout_modal()
         })
 
-        observeEvent(input$end_of_set, {
+        observeEvent(input$end_of_set_confirm, {
             game_state$set_number <- game_state$set_number + 1L ## should be incremented in this plays2 line
             rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number - 1L, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
             game_state$home_score_start_of_point <- game_state$visiting_score_start_of_point <- 0L
@@ -999,6 +999,12 @@ ov_scouter_server <- function(app_data) {
             ## update match metadata
             rdata$dvw <- update_meta(rp2(rdata$dvw))
             remove_scout_modal()
+            rally_state("click serve start")
+        })
+        observeEvent(input$end_of_set_cancel, {
+            do_video("play")
+            remove_scout_modal()
+            rally_state("click serve start")
         })
 
         observeEvent(input$assign_serve_outcome, {
@@ -1023,7 +1029,6 @@ ov_scouter_server <- function(app_data) {
                     rally_codes(rc)
                     game_state$point_won_by <- other(game_state$serving)
                     rally_ended()
-                    do_video("play")
                 } else if (input$serve_initial_outcome %eq% "S#") {
                     ## serve ace
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
@@ -1044,7 +1049,6 @@ ov_scouter_server <- function(app_data) {
                     game_state$current_team <- game_state$serving
                     game_state$point_won_by <- game_state$serving
                     rally_ended()
-                    do_video("play")
                 } else {
                     ## reception in play
                     sp <- if (!is.null(input$serve_preselect_player)) input$serve_preselect_player else if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
@@ -1063,8 +1067,9 @@ ov_scouter_server <- function(app_data) {
                     }
                     rally_codes(bind_rows(rc, code_trow(team = other(game_state$serving), pnum = pp, skill = "R", tempo = st, sz = sz, ez = esz[1], esz = esz[2], t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, rally_state = rally_state(), current_team = game_state$current_team, default_scouting_table = app_data$default_scouting_table)))
                     rally_state("click second contact")
-                    do_video("rew", app_data$play_overlap); do_video("play")
+                    do_video("rew", app_data$play_overlap)
                 }
+                if (rally_state() != "confirm end of set") do_video("play")
             }
         })
 
@@ -1220,9 +1225,11 @@ ov_scouter_server <- function(app_data) {
                     rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
                 }
             }
-            remove_scout_modal()
             if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
-            do_video("play")
+            if (rally_state() != "confirm end of set") {
+                remove_scout_modal()
+                do_video("play")
+            }
         })
 
         observeEvent(input$assign_f1, {
@@ -1263,9 +1270,11 @@ ov_scouter_server <- function(app_data) {
                     rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
                 }
             }
-            remove_scout_modal()
             if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
-            do_video("play")
+            if (rally_state() != "confirm end of set") {
+                remove_scout_modal()
+                do_video("play")
+            }
         })
 
         observeEvent(input$assign_c2, {
@@ -1350,9 +1359,11 @@ ov_scouter_server <- function(app_data) {
                     rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
                 }
             }
-            remove_scout_modal()
             if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
-            do_video("play")
+            if (rally_state() != "confirm end of set") {
+                remove_scout_modal()
+                do_video("play")
+            }
         })
 
         observeEvent(input$assign_c3, {
@@ -1422,9 +1433,11 @@ ov_scouter_server <- function(app_data) {
                 rally_state("click attack end point")
                 game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
             }
-            remove_scout_modal()
             if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
-            do_video("play")
+            if (rally_state() != "confirm end of set") {
+                remove_scout_modal()
+                do_video("play")
+            }
         })
 
         output$rally_state <- renderUI({
