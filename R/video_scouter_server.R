@@ -672,7 +672,7 @@ ov_scouter_server <- function(app_data) {
                     passq <- guess_pass_quality(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end)
                     c2_pq_buttons <- make_fat_radio_buttons(choices = c(Overpass = "/", Poor = "-", OK = "!", Good = "+", Perfect = "#"), selected = passq, input_var = "c2_pq")
                     c2_buttons <- make_fat_radio_buttons(
-                        choices = c(Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball attack" = "P2", "Freeball over" = "F", "Reception error (serve ace)" = "R=", ## rcv team actions
+                        choices = c(Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball<br />attack" = "P2", "Freeball over" = "F", "Reception error<br />(serve ace)" = "R=", ## rcv team actions
                                     "Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR"), ## opp actions
                         selected = "E", input_var = "c2")
                     if (app_data$is_beach) {
