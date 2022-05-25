@@ -393,7 +393,7 @@ guess_pass_quality <- function(game_state, dvw, home_end) {
         "/" ## overpass
     } else if (thisxy[2] >= 3 & thisxy[1] >= 2  & thisxy[1] <= 3) {
         "#"
-    } else if (thisxy[2] >= 3.25 & thisxy[1] >= 1.5  & thisxy[1] <= 3) {
+    } else if (thisxy[2] >= 2.75 & thisxy[1] >= 1.75  & thisxy[1] <= 3.1) {
         "+"
     } else if (thisxy[2] > 2.25 & thisxy[1] >= 1 & thisxy[1] <= 3.5) {
         "!"
