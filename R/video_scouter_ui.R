@@ -44,12 +44,15 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
               tags$div(id = "review_pane", style = "position:absolute; top:20px; right:20px; width:27vw; -webkit-transform:translateZ(9999); z-index:9999; display:none;", ## start hidden
                             ovideo::ov_video_player(id = "review_player", type = "local", controls = FALSE, poster = "data:image/gif,AAAA", style = "border: 1px solid black; width: 100%;", muted = "true", onloadstart = "set_vspinner();", oncanplay = "remove_vspinner();", onerror = "review_player_onerror(event);")),
               fluidRow(column(9,
-                              tags$div(actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward")),
+                              fluidRow(column(8, tags$div(actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward")),
                                        actionButton("video_pause", label = "Pause", icon = icon("pause-circle")),
                                        actionButton("video_ff_10", label = "Forward 10s", icon = icon("step-forward")),
                                        tags$div(class = "bareslider", sliderInput("video_volume", label = "Volume", min = 0, max = 1, value = 0, width = "60px", ticks = FALSE)),
                                        actionButton("video_toggle_mute", label = "Unmute", icon = icon("volume-mute"))
-                                       ),
+                                       )),
+                                      column(4, if (!is.null(rdata$dvw$plays2)) downloadButton("save_rds_button", "Save file"), downloadButton("save_dvw_button", "Export to dvw")),
+                                             ##column(2, shinyFiles::shinySaveButton("auto_save_file", label = "Auto save", title = "Save file as", filetype = "dvw"), tags$p(style = "font-size: small", "Auto save will automatically save a copy of the file after each rally"))
+                                      ),
                               fluidRow(column(4, uiOutput("rally_state"))),
                               if (app_data$with_video)
                                   introBox(tags$div(id = "video_holder", style = "position:relative;",

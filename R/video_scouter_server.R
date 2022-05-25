@@ -1490,13 +1490,6 @@ ov_scouter_server <- function(app_data) {
             vt_can_sub <- length(vt_sub_in) > 0
 
             showModal(vwModalDialog(title = "Miscellaneous", footer = NULL,
-                                    fluidRow(column(2, if (!is.null(rdata$dvw$plays2)) {
-                                                           tags$div(tags$p(tags$strong("File operations")), downloadButton("save_rds_button", "Save file"),
-                                                                    downloadButton("save_dvw_button", "Export to dvw"))
-                                                       }),
-                                             ##column(2, shinyFiles::shinySaveButton("auto_save_file", label = "Auto save", title = "Save file as", filetype = "dvw"), tags$p(style = "font-size: small", "Auto save will automatically save a copy of the file after each rally"))
-                                             ),
-                                    tags$hr(),
                                     tags$p(tags$strong("Match actions")),
                                     fluidRow(column(2, actionButton("undo", "Undo last rally action", class = "undo fatradio")),
                                              ## only partially implemented
