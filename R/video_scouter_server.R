@@ -668,6 +668,9 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(courtxy())
                     ## popup
                     ## TODO maybe also setter call here
+                    ## allow user to override auto-assigned reception quality
+                    passq <- guess_pass_quality(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end)
+                    c2_pq_buttons <- make_fat_radio_buttons(choices = c(Overpass = "/", Poor = "-", OK = "!", Good = "+", Perfect = "#"), selected = passq, input_var = "c2_pq")
                     c2_buttons <- make_fat_radio_buttons(
                         choices = c(Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball attack" = "P2", "Freeball over" = "F", "Reception error (serve ace)" = "R=", ## rcv team actions
                                     "Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR"), ## opp actions
@@ -701,6 +704,8 @@ ov_scouter_server <- function(app_data) {
                         do_video("play")
                     } else {
                         show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
+                                                       do.call(fixedRow, c(list(column(2, tags$strong("Reception quality"))), lapply(c2_pq_buttons, function(but) column(1, but)))),
+                                                       tags$br(), tags$hr(),
                                                        tags$p(tags$strong("Second contact:")),
                                                        do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(if (isTRUE(app_data$review_pane)) 1 else 2, but))),
                                                        tags$br(),
@@ -1266,7 +1271,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$assign_c2, {
             ## set uses end position for zone/subzone
             esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
-            passq <- guess_pass_quality(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end)
+            passq <- if (!is.null(input$c2_pq)) input$c2_pq else guess_pass_quality(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end)
             rc <- rally_codes()
             rc$eval[rc$skill %eq% "R"] <- passq
             ## find corresponding serve evaluation code
