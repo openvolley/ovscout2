@@ -50,7 +50,7 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                        tags$div(class = "bareslider", sliderInput("video_volume", label = "Volume", min = 0, max = 1, value = 0, width = "60px", ticks = FALSE)),
                                        actionButton("video_toggle_mute", label = "Unmute", icon = icon("volume-mute"))
                                        )),
-                                      column(4, if (!is.null(rdata$dvw$plays2)) downloadButton("save_rds_button", "Save file"), downloadButton("save_dvw_button", "Export to dvw")),
+                                      column(4, if (!is.null(app_data$dvw$plays2)) downloadButton("save_rds_button", "Save file"), downloadButton("save_dvw_button", "Export to dvw")),
                                              ##column(2, shinyFiles::shinySaveButton("auto_save_file", label = "Auto save", title = "Save file as", filetype = "dvw"), tags$p(style = "font-size: small", "Auto save will automatically save a copy of the file after each rally"))
                                       ),
                               fluidRow(column(4, uiOutput("rally_state"))),
