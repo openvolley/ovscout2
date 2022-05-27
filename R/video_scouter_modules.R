@@ -261,6 +261,7 @@ mod_lineup_edit_ui <- function(id) {
 mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, video_state, styling) {
     ns <- session$ns
     beach <- is_beach(isolate(rdata$dvw))
+    pseq <- if (beach) 1:2 else 1:6
     observeEvent(input$edit_lineup_button, {
         editing$active <- "change starting lineup"
         ## pause video
