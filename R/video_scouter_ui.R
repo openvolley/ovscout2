@@ -30,7 +30,6 @@ $(document).on('shiny:sessioninitialized', function() {
     function vo_doneResizing() {
       Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); Shiny.setInputValue('vo_voffset', $('#video_holder').innerHeight());
     }
-    vidplayer = videojs('main_video');
 });
 function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); Shiny.setInputValue('vo_voffset', $('#video_holder').innerHeight()); }")),
                         tags$title("Volleyball scout and video sync")
@@ -91,6 +90,6 @@ tags$script("set_vspinner = function() { $('#review_player').addClass('loading')
 tags$script("remove_vspinner = function() { $('#review_player').removeClass('loading'); }"),
 tags$style("video.loading { background: black; }"),
 tags$script("review_player_onerror = function(e) { $('#review_player').removeClass('loading'); try { var this_src = btoa(document.getElementById(e.target.id).getAttribute('src')); } catch { var this_src = ''; }; Shiny.setInputValue('video_error', e.target.id + '@' + this_src + '@' + e.target.error.code + '@' + new Date().getTime()); }"),
-tags$script("revpl = new dvjs_controller('review_player','local',true);  revpl.video_onfinished = function() { revpl.video_controller.current=0; revpl.video_play(); }")
+tags$script("vidplayer = videojs('main_video'); revpl = new dvjs_controller('review_player','local',true);  revpl.video_onfinished = function() { revpl.video_controller.current=0; revpl.video_play(); }")
 )
 }
