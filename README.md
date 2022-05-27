@@ -28,3 +28,9 @@ remotes::install_github("openvolley/ovscout2")
 
 This R package provides a Shiny app for scouting volleyball data files.
 At this stage it is entirely experimental. Beware!
+
+For a quick demo on a short match video clip:
+
+``` r
+ov_scouter_demo()
+```
