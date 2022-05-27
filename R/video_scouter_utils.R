@@ -627,14 +627,7 @@ infer_mid_coords <- function(game_state, start_x, start_y, end_x, end_y) {
 
 get_teams_from_dvw_dir <- function(season){
   myfiles <- dir(season, pattern = "\\.(dvw|psvb)$", ignore.case = TRUE, full.names = TRUE)
-  dvargs <- list()
-  dvargs$metadata_only <- TRUE
-  out <- lapply(myfiles, function(z) if (grepl("psvb$", z, ignore.case = TRUE)) {
-    peranavolley::pv_read(z)$meta
-  } else {
-    dvargs$filename <- z
-    do.call(dv_read, dvargs)$meta
-  })
+  out <- lapply(myfiles, function(z) if (grepl("psvb$", z, ignore.case = TRUE)) peranavolley::pv_read(z)$meta else dv_read(z, metadata_only = TRUE)$meta)
   team_list <- dplyr::select(do.call(bind_rows,lapply(out, function(z) z$teams)), "team_id", "team", "coach", "assistant", "shirt_colour") %>%
     mutate(team_id = stringr::str_to_upper(.data$team_id),
            team = stringr::str_to_title(.data$team),

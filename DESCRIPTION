@@ -1,12 +1,12 @@
-Package: ovscout
-Title: An R Shiny App for Editing, Syncing, and Scouting Volleyball Match Files
+Package: ovscout2
+Title: An R Shiny App for Scouting Volleyball Match Files
 Version: 0.4.5.9000
 Authors@R: c(person(given = "Ben", family = "Raymond", role = c("aut", "cre"), email = "ben@untan.gl"),
              person(given = "Adrien", family = "Ickowicz", role = "aut"),
              person("openvolley.org", role = "org"))
-Description: Functions for video synchronisation, scout file editing, and more from volleyball match files.
-URL: https://github.com/openvolley/ovscout
-BugReports: https://github.com/openvolley/ovscout/issues
+Description: Functions for scouting volleyball match files.
+URL: https://github.com/openvolley/ovscout2
+BugReports: https://github.com/openvolley/ovscout2/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -25,7 +25,7 @@ Imports:
     htmltools,
     lubridate,
     ovdata,
-    ovideo (>= 0.17.0),
+    ovideo (>= 0.17.2),
     peranavolley,
     R.utils,
     rintrojs,

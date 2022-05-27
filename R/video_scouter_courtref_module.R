@@ -22,8 +22,8 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
     })
 
     output$sr_save_ui <- renderUI({
-        if (!nzchar(Sys.getenv("SHINY_PORT"))) {
-            ## only if running locally
+        ## only if running locally, and only if we have ffmpeg available
+        if (!nzchar(Sys.getenv("SHINY_PORT")) && ovideo::ov_ffmpeg_ok(do_error = FALSE)) {
             ## check if the file already has court data saved into it
             chk <- tryCatch(!is.null(ovideo::ov_get_video_data(rdata$dvw$meta$video$file[1])), error = function(e) FALSE)
             output$sr_save_dialog <- renderUI(if (chk) tags$div("The video file already has court data saved in it.") else NULL)

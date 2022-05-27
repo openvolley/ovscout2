@@ -2,8 +2,8 @@ ov_scouter_server <- function(app_data) {
     function(input, output, session) {
         debug <- 1L
 
-        shiny::addResourcePath("css", system.file("extdata/css", package = "ovscout"))
-        shiny::addResourcePath("js", system.file("extdata/js", package = "ovscout"))
+        shiny::addResourcePath("css", system.file("extdata/css", package = "ovscout2"))
+        shiny::addResourcePath("js", system.file("extdata/js", package = "ovscout2"))
 
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "Score") ##"home_setter_position", "visiting_setter_position", "is_skill"
         plays_cols_renames <- c(Set = "set_number")##, hs = "home_setter_position", as = "visiting_setter_position")

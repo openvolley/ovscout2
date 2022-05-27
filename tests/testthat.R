@@ -1,3 +1,3 @@
 library(testthat)
-library(ovscout)
-test_check("ovscout")
+library(ovscout2)
+test_check("ovscout2")

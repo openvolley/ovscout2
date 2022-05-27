@@ -1,8 +1,8 @@
-#' \pkg{ovscout}
+#' \pkg{ovscout2}
 #'
-#' Functions for video synchronisation, scout file editing, and more from volleyball match files.
+#' Functions for scouting volleyball match files.
 #'
-#' @name ovscout
+#' @name ovscout2
 #' @docType package
 #' @importFrom assertthat assert_that has_name is.flag is.string
 #' @importFrom datavolley dv_read dv_example_file dv_cone2xy dv_cone_polygons dv_flip_xy dv_index2xy dv_xy dv_xy2index dv_xy2subzone dv_xy2zone dv_write ggcourt read_dv skill_evaluation_decoder

@@ -481,9 +481,9 @@ create_file_meta <- function(file_type = "indoor", date_format = "%Y/%m/%d") {
     }
     tibble(fileformat = "2.0",
            generator_day = tdformat(tdnow),
-           generator_idp = "ovscout", generator_prg = "ovscout-R", generator_rel = packageVersion("ovscout"), generator_ver = "", generator_nam = "",
+           generator_idp = "ovscout2", generator_prg = "ovscout2-R", generator_rel = packageVersion("ovscout2"), generator_ver = "", generator_nam = "",
            lastchange_day = tdformat(tdnow),
-           lastchange_idp = "ovscout", lastchange_prg = "ovscout-R", lastchange_rel = packageVersion("ovscout"), lastchange_ver = "", lastchange_nam = "",
+           lastchange_idp = "ovscout2", lastchange_prg = "ovscout2-R", lastchange_rel = packageVersion("ovscout2"), lastchange_ver = "", lastchange_nam = "",
            preferred_date_format = tolower(gsub("[%/]", "", date_format)), file_type = file_type)
 }
 
