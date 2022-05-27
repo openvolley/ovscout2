@@ -34,7 +34,6 @@ Imports:
     stringr,
     sys,
     tidyr,
-    tidyselect,
     uuid
 Suggests:
     covr,
