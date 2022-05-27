@@ -1494,7 +1494,7 @@ ov_scouter_server <- function(app_data) {
                                     fluidRow(column(2, actionButton("undo", "Undo last rally action", class = "undo fatradio")),
                                              ## only partially implemented
                                              column(2, actionButton("enter_code", "Enter scout code", class = "fatradio"), tags$span(style = "font-size:small;", "Only non-skill codes are supported")),
-                                             column(2, actionButton("end_of_set", "End of set", class = "fatradio"))),
+                                             column(2, actionButton("end_of_set_confirm", "End of set", class = "fatradio"))),
                                     tags$br(),
                                     ## TODO consider if all of these buttons should be available mid-rally or not (e.g. timeouts)
                                     fluidRow(column(6, tags$strong(datavolley::home_team(rdata$dvw), "(home)")),
