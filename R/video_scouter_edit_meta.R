@@ -121,10 +121,5 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
     } else {
         warning("I don't know what to do with editing_active: ", editing_active)
     }
-    ##            if (do_reparse) {
-    ##                ## reparse the dvw
-    ##                dvw <- reparse_dvw(dvw, dv_read_args = dv_read_args)
-    ##                playslist_needs_scroll(TRUE)
-    ##            }
     list(dvw = dvw, do_reparse = do_reparse)
 }
