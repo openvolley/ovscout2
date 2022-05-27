@@ -1559,12 +1559,47 @@ ov_scouter_server <- function(app_data) {
                 ## rewind the video to the time of the last action, or if we've removed all actions then the prior time of the first one
                 do_video("set_time", if (nrow(rc) > 0) tail(rc$t, 1) else restore_t)
             } else {
-                ## undo the last code in plays2
-                ## this is trickier
-                ## if it's lineups, remove all lineups
-                ## otherwise if it's a point end, do we remove that plus the prior action?
-                ## and need to figure out what rally state to reset to, which if we're continuing scouting of a partial file, we won't have
-                ## TODO
+                ## undo the last code in plays2, this is trickier
+                ## we need the game_state and rally_state to reset to, these are in plays2
+                ## also need to reconstruct the rally_codes to this point in the rally
+                ## game_state is a list, and will be NULL or NA for non-skill rows (?)
+                ## so when undoing, remove the last row in plays2 AND all preceding rows with NULL game_state??
+                p2 <- rdata$dvw$plays2
+                p2keep <- rep(TRUE, nrow(p2))
+                temp <- p2$rally_codes
+                ## strip the trailing rows that have NULL or NA rally_code entries, these will be non-skill rows
+                rcnull <- vapply(temp, function(z) is.null(z) || all(is.na(z)), FUN.VALUE = TRUE)
+                ## but note that if we've started from a partially-scouted dvw file, we won't have rally_codes saved in plays2
+                ## so if we have a skill code, treat this as not-undoable
+                rcnull <- rcnull & !substr(p2$code, 4, 4) %in% c("S", "R", "A", "B", "D", "E", "F")
+                todrop <- rep(FALSE, length(rcnull))
+                for (i in rev(seq_along(rcnull))) { if (rcnull[i]) todrop[i] <- TRUE else break }
+                temp <- temp[!todrop]
+                p2keep[todrop] <- FALSE
+                rcnull <- rcnull[!todrop]
+                ## AND strip the last non-NULL/NA rally_code row, this is the one we are undoing
+                ## but save its rally_state and current_team first
+                restore_rally_state <- temp[[length(temp)]]$rally_state
+                restore_current_team <- temp[[length(temp)]]$current_team
+                p2keep[length(temp)] <- FALSE
+                temp <- temp[-length(temp)]
+                rcnull <- rcnull[-length(rcnull)]
+                ## then everything back to the next NULL goes into rally_codes
+                totake <- rep(FALSE, length(rcnull))
+                for (i in rev(seq_along(rcnull))) { if (!rcnull[i]) totake[i] <- TRUE else break }
+                new_rc <- bind_rows(temp[totake])
+                p2keep[totake] <- FALSE
+                ## set plays2
+                rdata$dvw$plays2 <- p2[p2keep, ]
+                ## set rally state
+                rally_state(restore_rally_state)##tail(new_rc$rally_state, 1))
+                ## set game state
+                gs <- tail(new_rc$rally_state, 1)
+                for (nm in names(gs)) game_state[[nm]] <- gs[[nm]]
+                game_state$current_team <- restore_current_team
+                ## reset rally codes
+                rally_codes(new_rc)
+                do_video("set_time", tail(new_rc$t, 1))
             }
             if (nrow(rally_codes()) > 0 && !all(is.na(rally_codes()$t))) {
                 ## set time to last action minus play_overlap
