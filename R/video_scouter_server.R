@@ -1709,7 +1709,7 @@ ov_scouter_server <- function(app_data) {
         )
 
         output$save_rds_button <- downloadHandler(
-            filename = function() paste0(save_file_basename(), ".rds"),
+            filename = function() paste0(save_file_basename(), ".ovs"),
             content = function(file) {
                 tryCatch({
                     ## TODO flush any rally codes to plays2 - but note that then we won't have the right rally_state when we restart
@@ -1834,8 +1834,9 @@ ov_scouter_server <- function(app_data) {
         shiny::onSessionEnded(function() {
             tryCatch({
                 dvw <- isolate(rdata$dvw)
+                dvw$plays <- NULL ## don't save this
                 dvw$game_state <- isolate(reactiveValuesToList(game_state))
-                tf <- tempfile(fileext = ".rds")
+                tf <- tempfile(fileext = ".ovs")
                 saveRDS(dvw, tf)
                 message("working file has been saved to:", tf)
             }, error = function(e) {
