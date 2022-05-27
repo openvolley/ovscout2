@@ -30,19 +30,19 @@ var2fc <- function(x) {
     vapply(x, function(z) gsub("_", " ", paste0(toupper(substr(z, 1, 1)), substr(z, 2, nchar(z)))), FUN.VALUE = "", USE.NAMES = FALSE)
 }
 
-#' Variable width modal dialog
-#'
-#' @param width numeric: percentage of viewport width
-#' @param ... : as for [shiny::modalDialog()]
-#'
-#' @return As for [shiny::modalDialog()]
-#'
-#' @examples
-#' \dontrun{
-#'   showModal(vwModalDialog(title = "Wide dialog", "blah", width = 90))
-#' }
-#'
-#' @export
+## Variable width modal dialog
+##
+## @param width numeric: percentage of viewport width
+## @param ... : as for [shiny::modalDialog()]
+##
+## @return As for [shiny::modalDialog()]
+##
+## @examples
+## \dontrun{
+##   showModal(vwModalDialog(title = "Wide dialog", "blah", width = 90))
+## }
+##
+## @export
 vwModalDialog <- function(..., width = 90) {
     rgs <- list(...)
     rgs$size <- "l"
