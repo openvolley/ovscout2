@@ -1,9 +1,9 @@
 #' Launch a Shiny app for scouting
 #'
-#' @param dvw string or datavolley: either the path to a dvw file (which will be read by [datavolley::dv_read()]) or a datavolley object (e.g. as returned by [dv_create()]. Passing the file name (not the datavolley object) is required if any extra arguments are passed via `...`. `dvw` can also be an rds object, as saved by `ov_scouter()`
-#' If `dvw` is "demo", the app will be started with a demonstration data set
+#' @param dvw string or datavolley: either the path to a dvw or ovs file or a datavolley object (e.g. as returned by [dv_create()]. Passing the file name (not the datavolley object) is required if any extra arguments are passed via `...`. `dvw` can also be an object as saved by `ov_scouter()` in ovs format. If `dvw` is "demo", the app will be started with a demonstration data set
 #' @param video_file string: optionally, the path to the video file. If not supplied (or `NULL`) the video file specified in the dvw file will be used. Provide `video_file = NA` to run the app without a video file
 #' @param court_ref data.frame or string: data.frame with the court reference (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
+#' @param season_dir string: optional path to a directory with other dvw/ovs files from this season
 #' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
 #' @param ball_path logical: if `TRUE`, show the ball path on the court inset diagram. Note that this will slow the app down slightly
 #' @param review_pane logical: if `TRUE`, entry popups will be accompanied by a small video pane that shows a loop of the video of the action in question
@@ -20,39 +20,39 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
     if (!missing(dvw) && identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = isTRUE(scoreboard), ball_path = isTRUE(ball_path), review_pane = isTRUE(review_pane), scouting_options = scouting_options, default_scouting_table = default_scouting_table, compound_table = compound_table, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     dots <- list(...)
     dv_read_args <- dots[names(dots) %in% names(formals(datavolley::dv_read))] ## passed to dv_read
     other_args <- dots[!names(dots) %in% names(formals(datavolley::dv_read))] ## passed to the server and UI
-    fchoose <- function(caption) {
+    fchoose <- function(caption, path) {
         if (requireNamespace("rstudioapi", quietly = TRUE) && tryCatch({ rstudioapi::versionInfo(); TRUE }, error = function(e) FALSE)) {
-            fchoosefun <- function(caption) rstudioapi::selectFile(caption = caption)
+            fchoosefun <- function(caption, path) rstudioapi::selectFile(caption = caption, path = if (missing(path)) getwd() else path)
         } else {
             if (.Platform$OS.type == "windows") {
-                fchoosefun <- function(caption) utils::choose.files(caption = caption, multi = FALSE)
+                fchoosefun <- function(caption, path) utils::choose.files(caption = caption, multi = FALSE, default = if (missing(path)) "" else file.path(path, "*"))
             } else {
                 if (!interactive()) {
                     ## file.choose won't work non-interactively (e.g. started via Rscript)
                     if (!requireNamespace("tcltk", quietly = TRUE)) {
                         stop("the tcltk package is required")
                     }
-                    fchoosefun <- tcltk::tk_choose.files
+                    fchoosefun <- function(caption, path) tcltk::tk_choose.files(caption = caption, multi = FALSE, default = if (missing(path)) "" else file.path(path, "*"))
                 } else {
                     cat(caption, "\n"); flush.console()
-                    fchoosefun <- function(caption) file.choose()
+                    fchoosefun <- function(caption, path) file.choose()
                 }
             }
         }
-        fchoosefun(caption = caption)
+        fchoosefun(caption = caption, path = path)
     }
 
     if ((missing(dvw) || is.null(dvw))) {
         if (prompt_for_files) {
             dvw <- tryCatch({
-                fchoose(caption = "Choose dvw file")##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
+                fchoose(caption = "Choose dvw file", path = if (!missing(season_dir) && dir.exists(season_dir)) season_dir else getwd())##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
             }, error = function(e) NULL)
             if (!is.null(dvw) && (is.character(dvw) && all(!nzchar(dvw) | is.na(dvw)))) dvw <- NULL
         } else {
@@ -64,13 +64,17 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, ball_path 
         dvw <- dv_create(teams = c("Home team", "Visiting team"))
     }
     if (is.string(dvw)) {
-        dvw_filename <- dvw
-        if (!"skill_evaluation_decode" %in% names(dv_read_args)) dv_read_args$skill_evaluation_decode <- "guess"
-        dv_read_args$filename <- dvw
-        dvw <- do.call(datavolley::dv_read, dv_read_args)
-    } else if (is.null(dvw)) {
-        ## dummy, no file. Maybe just tagging a video
-        stop("no dvw file")
+        if (grepl("\\.dvw$", dvw, ignore.case = TRUE)) {
+            dvw_filename <- dvw
+            if (!"skill_evaluation_decode" %in% names(dv_read_args)) dv_read_args$skill_evaluation_decode <- "guess"
+            dv_read_args$filename <- dvw
+            dvw <- do.call(datavolley::dv_read, dv_read_args)
+        } else if (grepl("\\.ovs$", dvw, ignore.case = TRUE)) {
+            dvw_filename <- dvw
+            dvw <- readRDS(dvw)
+        } else {
+            stop("unrecognized file format: ", dvw)
+        }
     } else {
         if (!inherits(dvw, "datavolley")) stop("dvw should be a datavolley object or the path to a .dvw file")
         dvw_filename <- dvw$meta$filename
@@ -105,7 +109,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, ball_path 
     if (!(nrow(dvw$meta$video) == 1 && file.exists(dvw$meta$video$file))) {
         if (prompt_for_files) {
             ## allow file chooser to find video file
-            video_file <- fchoose(caption = "Choose video file")##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
+            video_file <- fchoose(caption = "Choose video file", path = if (!missing(season_dir) && dir.exists(season_dir)) season_dir else getwd())##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
             if (length(video_file) == 1) dvw$meta$video <- tibble(camera = "Camera0", file = video_file)
         }
     }
@@ -137,6 +141,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, ball_path 
             stop("court_ref is not of the expected format")
         }
     }
+
     opts <- ov_scouter_options()
     for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
     ## finally the shiny app
@@ -147,6 +152,7 @@ ov_scouter <- function(dvw, video_file, court_ref, scoreboard = TRUE, ball_path 
     app_data$scoreboard <- isTRUE(scoreboard)
     app_data$ball_path <- isTRUE(ball_path)
     app_data$review_pane <- isTRUE(review_pane)
+    app_data$season_dir <- if (!missing(season_dir) && dir.exists(season_dir)) season_dir else NULL ## minimal check of the season_dir
     if (app_data$with_video) {
         have_lighttpd <- FALSE
         video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001

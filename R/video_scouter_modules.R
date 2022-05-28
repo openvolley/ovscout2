@@ -277,34 +277,36 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
         vt_libs <- get_liberos(game_state = game_state, team = "a", dvw = rdata$dvw)
 
         ## suggest lineups, take from (1) this set starting lineup (i.e. we're editing one we've already entered), then (2) previous set starting lineup, then (3) game_state
-        temp <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == (max(rdata$dvw$plays2$set_number, na.rm = TRUE))) %>% ## this set
-            dplyr::filter(grepl(">LUp", .data$code)) %>% dplyr::slice_tail(n = 1)
-        if (nrow(temp) == 1) {
-            ht_def_lup <- as.integer(temp[, c(paste0("home_p", pseq), "ht_lib1", "ht_lib2")])
-            vt_def_lup <- as.integer(temp[, c(paste0("visiting_p", pseq), "vt_lib1", "vt_lib2")])
-        } else {
-            temp <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == (max(rdata$dvw$plays2$set_number, na.rm = TRUE) - 1L)) %>% ## previous set
+        ## default to game state
+        ht_def_lup <- as.integer(c(if (!is.null(game_state$home_p1)) game_state$home_p1 else NA,
+                                   if (!is.null(game_state$home_p2)) game_state$home_p2 else NA,
+                                   if (!is.null(game_state$home_p3)) game_state$home_p3 else NA,
+                                   if (!is.null(game_state$home_p4)) game_state$home_p4 else NA,
+                                   if (!is.null(game_state$home_p5)) game_state$home_p5 else NA,
+                                   if (!is.null(game_state$home_p6)) game_state$home_p6 else NA,
+                                   if (!is.null(game_state$ht_lib1)) game_state$ht_lib1 else NA,
+                                   if (!is.null(game_state$ht_lib2)) game_state$ht_lib2 else NA))
+        vt_def_lup <- as.integer(c(if (!is.null(game_state$visiting_p1)) game_state$visiting_p1 else NA,
+                                   if (!is.null(game_state$visiting_p2)) game_state$visiting_p2 else NA,
+                                   if (!is.null(game_state$visiting_p3)) game_state$visiting_p3 else NA,
+                                   if (!is.null(game_state$visiting_p4)) game_state$visiting_p4 else NA,
+                                   if (!is.null(game_state$visiting_p5)) game_state$visiting_p5 else NA,
+                                   if (!is.null(game_state$visiting_p6)) game_state$visiting_p6 else NA,
+                                   if (!is.null(game_state$vt_lib1)) game_state$vt_lib1 else NA,
+                                   if (!is.null(game_state$vt_lib2)) game_state$vt_lib2 else NA))
+        if ("set_number" %in% names(rdata$dvw$plays2)) {
+            temp <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == (max(rdata$dvw$plays2$set_number, na.rm = TRUE))) %>% ## this set
                 dplyr::filter(grepl(">LUp", .data$code)) %>% dplyr::slice_tail(n = 1)
             if (nrow(temp) == 1) {
                 ht_def_lup <- as.integer(temp[, c(paste0("home_p", pseq), "ht_lib1", "ht_lib2")])
                 vt_def_lup <- as.integer(temp[, c(paste0("visiting_p", pseq), "vt_lib1", "vt_lib2")])
             } else {
-                ht_def_lup <- as.integer(c(if (!is.null(game_state$home_p1)) game_state$home_p1 else NA,
-                                           if (!is.null(game_state$home_p2)) game_state$home_p2 else NA,
-                                           if (!is.null(game_state$home_p3)) game_state$home_p3 else NA,
-                                           if (!is.null(game_state$home_p4)) game_state$home_p4 else NA,
-                                           if (!is.null(game_state$home_p5)) game_state$home_p5 else NA,
-                                           if (!is.null(game_state$home_p6)) game_state$home_p6 else NA,
-                                           if (!is.null(game_state$ht_lib1)) game_state$ht_lib1 else NA,
-                                           if (!is.null(game_state$ht_lib2)) game_state$ht_lib2 else NA))
-                vt_def_lup <- as.integer(c(if (!is.null(game_state$visiting_p1)) game_state$visiting_p1 else NA,
-                                           if (!is.null(game_state$visiting_p2)) game_state$visiting_p2 else NA,
-                                           if (!is.null(game_state$visiting_p3)) game_state$visiting_p3 else NA,
-                                           if (!is.null(game_state$visiting_p4)) game_state$visiting_p4 else NA,
-                                           if (!is.null(game_state$visiting_p5)) game_state$visiting_p5 else NA,
-                                           if (!is.null(game_state$visiting_p6)) game_state$visiting_p6 else NA,
-                                           if (!is.null(game_state$vt_lib1)) game_state$vt_lib1 else NA,
-                                           if (!is.null(game_state$vt_lib2)) game_state$vt_lib2 else NA))
+                temp <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == (max(rdata$dvw$plays2$set_number, na.rm = TRUE) - 1L)) %>% ## previous set
+                    dplyr::filter(grepl(">LUp", .data$code)) %>% dplyr::slice_tail(n = 1)
+                if (nrow(temp) == 1) {
+                    ht_def_lup <- as.integer(temp[, c(paste0("home_p", pseq), "ht_lib1", "ht_lib2")])
+                    vt_def_lup <- as.integer(temp[, c(paste0("visiting_p", pseq), "vt_lib1", "vt_lib2")])
+                }
             }
         }
         showModal(
@@ -383,7 +385,7 @@ mod_team_select_ui <- function(id){
     actionButton(ns("select_teams_button"), "Select teams", icon = icon("users"))
 }
 
-mod_team_select <- function(input, output, session, rdata, editing, styling) {
+mod_team_select <- function(input, output, session, rdata, editing, app_data) {
     ns <- session$ns
     htdata_select <- reactiveVal(NULL)
     vtdata_select <- reactiveVal(NULL)
@@ -392,45 +394,41 @@ mod_team_select <- function(input, output, session, rdata, editing, styling) {
 
     observeEvent(input$select_teams_button, {
         editing$active <- "select_teams"
-        season_dir <- dchoose(caption = "Choose season directory")
-        team_table<- get_teams_from_dvw_dir(season_dir)
+        season_dir <- if (is.null(app_data$season_dir) || !dir.exists(app_data$season_dir)) dchoose(caption = "Choose season directory") else app_data$season_dir
+        team_table <- get_teams_from_dvw_dir(season_dir)
         team_Table(team_table)
         showModal(modalDialog(title = "Choose teams", size = "m",
                               tabsetPanel(
                                   tabPanel("Home team",
                                            fluidRow(
-                              column(4,selectInput(ns('home_team_select'), 'Select home team', team_table$team_id, multiple=FALSE, selectize=FALSE)),
-                              column(4, textInput(ns("ht_select_id"), label = "Team ID:", value = "")),
-                             column(4, textInput(ns("ht_select_name"), label = "Team name:", value = ""))),
-                             fluidRow(
-                                 column(4),
-                                 column(4, textInput(ns("ht_select_coach"), label = "Coach:", value = "")),
-                                 column(4, textInput(ns("ht_select_assistant"), label = "Assistant:", value = "")),
-                             ),
-                             fluidRow(
-                                 column(12, DT::dataTableOutput(ns("ht_select_team")))
-                             )
+                                               column(4,selectInput(ns('home_team_select'), 'Select home team', team_table$team_id, multiple=FALSE, selectize=FALSE)),
+                                               column(4, textInput(ns("ht_select_id"), label = "Team ID:", value = "")),
+                                               column(4, textInput(ns("ht_select_name"), label = "Team name:", value = ""))),
+                                           fluidRow(
+                                               column(4),
+                                               column(4, textInput(ns("ht_select_coach"), label = "Coach:", value = "")),
+                                               column(4, textInput(ns("ht_select_assistant"), label = "Assistant:", value = "")),
+                                               ),
+                                           fluidRow(
+                                               column(12, DT::dataTableOutput(ns("ht_select_team")))
+                                           )),
+                                  tabPanel("Visiting team",
+                                           fluidRow(
+                                               column(4,selectInput(ns('visiting_team_select'), 'Select visiting team', team_table$team_id, multiple=FALSE, selectize=FALSE)),
+                                               column(4, textInput(ns("vt_select_id"), label = "Team ID:", value = "")),
+                                               column(4, textInput(ns("vt_select_name"), label = "Team name:", value = ""))),
+                                           fluidRow(
+                                               column(4),
+                                               column(4, textInput(ns("vt_select_coach"), label = "Coach:", value = "")),
+                                               column(4, textInput(ns("vt_select_assistant"), label = "Assistant:", value = "")),
+                                               ),
+                                           fluidRow(
+                                               column(12, DT::dataTableOutput(ns("vt_select_team")))
+                                           ))
                               ),
-                             tabPanel("Visiting team",
-                                      fluidRow(
-                                          column(4,selectInput(ns('visiting_team_select'), 'Select visiting team', team_table$team_id, multiple=FALSE, selectize=FALSE)),
-                                          column(4, textInput(ns("vt_select_id"), label = "Team ID:", value = "")),
-                                          column(4, textInput(ns("vt_select_name"), label = "Team name:", value = ""))),
-                                      fluidRow(
-                                          column(4),
-                                          column(4, textInput(ns("vt_select_coach"), label = "Coach:", value = "")),
-                                          column(4, textInput(ns("vt_select_assistant"), label = "Assistant:", value = "")),
-                                      ),
-                                      fluidRow(
-                                          column(12, DT::dataTableOutput(ns("vt_select_team")))
-                                      )
-                             )
-                              ),
-                              footer = tags$div(
-                                  actionButton("edit_commit", label = "Select teams", class = "continue"),
-                                  actionButton("edit_cancel", label = "Cancel", class = "cancel"))
-        )
-        )
+                              footer = tags$div(actionButton("edit_commit", label = "Select teams", class = "continue"),
+                                                actionButton("edit_cancel", label = "Cancel", class = "cancel")))
+                  )
     })
     observe({
         updateTextInput(session, "ht_select_id", value = input$home_team_select)

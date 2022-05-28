@@ -215,7 +215,7 @@ ov_scouter_server <- function(app_data) {
         ## match, team, and lineup data editing
         match_data_edit_mod <- callModule(mod_match_data_edit, id = "match_data_editor", rdata = rdata, editing = editing, styling = app_data$styling)
         team_edit_mod <- callModule(mod_team_edit, id = "team_editor", rdata = rdata, editing = editing, styling = app_data$styling)
-        team_select_mod <- callModule(mod_team_select, id = "team_selector", rdata = rdata, editing = editing, styling = app_data$styling)
+        team_select_mod <- callModule(mod_team_select, id = "team_selector", rdata = rdata, editing = editing, app_data = app_data)
         lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, video_state = video_state, styling = app_data$styling)
 
         observeEvent(input$edit_cancel, {
@@ -286,6 +286,8 @@ ov_scouter_server <- function(app_data) {
         meta_is_valid <- reactiveVal(TRUE)
         observe({
             notnn <- function(z) !is.null(z) && !is.na(z)
+            ## check teams
+            teams_ok <- !is.null(rdata$dvw$meta$teams) && !any(tolower(rdata$dvw$meta$teams$team) %in% c("home team", "visiting team"))
             ## check rosters
             ## TODO better
             rosters_ok <- !is.null(rdata$dvw$meta$players_h) && length(na.omit(rdata$dvw$meta$players_h$number)) >= length(pseq) &&
@@ -303,7 +305,7 @@ ov_scouter_server <- function(app_data) {
             lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^az[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) >= 1)
             ## check courtref
             courtref_ok <- !is.null(detection_ref()$court_ref)
-            ok <- lineups_ok && rosters_ok && courtref_ok
+            ok <- teams_ok && lineups_ok && rosters_ok && courtref_ok
             meta_is_valid(ok)
             output$problem_ui <- renderUI({
                 if (!ok) {
@@ -311,6 +313,7 @@ ov_scouter_server <- function(app_data) {
                              tags$h2("Information needed"),
                              tags$ul(
                                       if (!courtref_ok) tags$li("Use the 'Court reference' button to define the court reference."),
+                                      if (!teams_ok) tags$li("Use the 'Select teams' button to choose from existing teams, or 'Edit teams' to enter new ones."),
                                       if (!rosters_ok) tags$li("Use the 'Edit teams' button to enter the team rosters."),
                                       if (!lineups_ok) tags$li(paste0("Use the 'Edit lineups' to enter starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), "."))
                                   ),
@@ -1838,7 +1841,7 @@ ov_scouter_server <- function(app_data) {
                 dvw$game_state <- isolate(reactiveValuesToList(game_state))
                 tf <- tempfile(fileext = ".ovs")
                 saveRDS(dvw, tf)
-                message("working file has been saved to:", tf)
+                message("working file has been saved to: ", tf)
             }, error = function(e) {
                 message("could not save working file on exit (error message was: ", conditionMessage(e))
             })

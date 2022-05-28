@@ -8,6 +8,7 @@ ov_scouter(
   dvw,
   video_file,
   court_ref,
+  season_dir,
   scoreboard = TRUE,
   ball_path = FALSE,
   review_pane = TRUE,
@@ -20,12 +21,13 @@ ov_scouter(
 )
 }
 \arguments{
-\item{dvw}{string or datavolley: either the path to a dvw file (which will be read by \code{\link[datavolley:read_dv]{datavolley::dv_read()}}) or a datavolley object (e.g. as returned by \code{\link[=dv_create]{dv_create()}}. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}. \code{dvw} can also be an rds object, as saved by \code{ov_scouter()}
-If \code{dvw} is "demo", the app will be started with a demonstration data set}
+\item{dvw}{string or datavolley: either the path to a dvw or ovs file or a datavolley object (e.g. as returned by \code{\link[=dv_create]{dv_create()}}. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}. \code{dvw} can also be an object as saved by \code{ov_scouter()} in ovs format. If \code{dvw} is "demo", the app will be started with a demonstration data set}
 
 \item{video_file}{string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. Provide \code{video_file = NA} to run the app without a video file}
 
 \item{court_ref}{data.frame or string: data.frame with the court reference (as returned by \code{\link[ovideo:ov_shiny_court_ref]{ovideo::ov_shiny_court_ref()}}) or the path to the rds file containing the output from this}
+
+\item{season_dir}{string: optional path to a directory with other dvw/ovs files from this season}
 
 \item{scoreboard}{logical: if \code{TRUE}, show a scoreboard in the top-right of the video pane}
 
