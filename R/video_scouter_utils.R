@@ -631,46 +631,49 @@ infer_mid_coords <- function(game_state, start_x, start_y, end_x, end_y) {
     c(mid_x, 3.5)
 }
 
-get_teams_from_dvw_dir <- function(season){
-  myfiles <- dir(season, pattern = "\\.(dvw|psvb)$", ignore.case = TRUE, full.names = TRUE)
-  out <- lapply(myfiles, function(z) if (grepl("psvb$", z, ignore.case = TRUE)) peranavolley::pv_read(z)$meta else dv_read(z, metadata_only = TRUE)$meta)
-  team_list <- dplyr::select(do.call(bind_rows,lapply(out, function(z) z$teams)), "team_id", "team", "coach", "assistant", "shirt_colour") %>%
-    mutate(team_id = stringr::str_to_upper(.data$team_id),
-           team = stringr::str_to_title(.data$team),
-           coach = stringr::str_to_title(.data$coach),
-           assistant = stringr::str_to_title(.data$assistant),
-           shirt_colour = stringr::str_to_lower(.data$shirt_colour))
+get_teams_from_dvw_dir <- function(season) {
+    myfiles <- dir(season, pattern = "\\.(dvw|psvb|ovs)$", ignore.case = TRUE, full.names = TRUE)
+    if (length(myfiles) < 1) return(tibble())
+    out <- lapply(myfiles, function(z) if (grepl("psvb$", z, ignore.case = TRUE)) peranavolley::pv_read(z)$meta else if (grepl("ovs$", z, ignore.case = TRUE)) readRDS(z)$meta else dv_read(z, metadata_only = TRUE)$meta)
+    team_list <- dplyr::select(do.call(bind_rows, lapply(out, function(z) z$teams)), "team_id", "team", "coach", "assistant", "shirt_colour") %>%
+        mutate(team_id = stringr::str_to_upper(.data$team_id),
+               team = stringr::str_to_title(.data$team),
+               coach = stringr::str_to_title(.data$coach),
+               assistant = stringr::str_to_title(.data$assistant),
+               shirt_colour = stringr::str_to_lower(.data$shirt_colour))
 
-  team_list <- left_join(left_join(left_join(aggregate(team ~ team_id, data = team_list, FUN = paste, collapse = ", "),
-          aggregate(coach ~ team_id, data = team_list, FUN = paste, collapse = ", ")),
-          aggregate(assistant ~ team_id, data = team_list, FUN = paste, collapse = ", ")),
-          aggregate(shirt_colour ~ team_id, data = team_list, FUN = paste, collapse = ", "))
+    csu <- function(z) paste(unique(na.omit(z)), collapse = ", ") ## comma-separated unique values
+    team_list <- team_list %>% group_by(team_id) %>% dplyr::summarize(team = csu(.data$team), coach = csu(.data$coach), assistant = csu(.data$assistant), shirt_colour = most_common_value(.data$shirt_colour, na.rm = TRUE)) %>% ungroup
+    ##  team_list <- left_join(left_join(left_join(aggregate(team ~ team_id, data = team_list, FUN = paste, collapse = ", "),
+    ##                                             aggregate(coach ~ team_id, data = team_list, FUN = paste, collapse = ", "), by = "team_id"),
+    ##                                   aggregate(assistant ~ team_id, data = team_list, FUN = paste, collapse = ", "), by = "team_id"),
+    ##                         aggregate(shirt_colour ~ team_id, data = team_list, FUN = paste, collapse = ", "), by = "team_id")
 
-  team_list <- as_tibble(team_list)
-  team_list$player_table <- list(NULL)
-  tid_list <- team_list$team_id
+    team_list <- as_tibble(team_list)
+    team_list$player_table <- list(NULL)
+    tid_list <- team_list$team_id
 
-  for (t_id in tid_list) {
-    player_table_tid <- do.call(bind_rows, lapply(out, function(x) {
-        if (t_id %in% stringr::str_to_upper(x$teams$team_id)) {
-            if(x$teams$home_away_team[which(t_id == stringr::str_to_upper(x$teams$team_id))] == "*"){
-                x$players_h[, c("player_id","number", "lastname", "firstname", "role")]
-            } else if(x$teams$home_away_team[which(t_id == stringr::str_to_upper(x$teams$team_id))] == "a"){
-                x$players_v[, c("player_id","number", "lastname", "firstname", "role")]}
-        } else {
-            tibble()
-        }
-    })) %>% mutate(player_id = stringr::str_to_upper(.data$player_id),
-                   lastname = stringr::str_to_title(.data$lastname),
-                   firstname = stringr::str_to_title(.data$firstname),
-                   role = stringr::str_to_lower(.data$role)) %>% dplyr::distinct()
+    for (t_id in tid_list) {
+        player_table_tid <- do.call(bind_rows, lapply(out, function(x) {
+            if (t_id %in% stringr::str_to_upper(x$teams$team_id)) {
+                if(x$teams$home_away_team[which(t_id == stringr::str_to_upper(x$teams$team_id))] == "*"){
+                    x$players_h[, c("player_id","number", "lastname", "firstname", "role")]
+                } else if(x$teams$home_away_team[which(t_id == stringr::str_to_upper(x$teams$team_id))] == "a"){
+                    x$players_v[, c("player_id","number", "lastname", "firstname", "role")]}
+            } else {
+                tibble(player_id = character(), number = integer(), lastname = character(), firstname = character(), role = character())
+            }
+        })) %>% mutate(player_id = stringr::str_to_upper(.data$player_id),
+                       lastname = stringr::str_to_title(.data$lastname),
+                       firstname = stringr::str_to_title(.data$firstname),
+                       role = stringr::str_to_lower(.data$role)) %>% dplyr::distinct()
 
-    player_table_tid <- aggregate(.~player_id+lastname+firstname+number, player_table_tid, paste)
+        player_table_tid <- aggregate(.~player_id+lastname+firstname+number, player_table_tid, paste)
 
-    team_list$player_table[team_list$team_id == t_id] <- list(player_table_tid)
+        team_list$player_table[team_list$team_id == t_id] <- list(player_table_tid)
 
-  }
-  return(team_list)
+    }
+    team_list
 }
 
 dchoose <- function(caption) {

@@ -3,6 +3,15 @@
 is_nnn <- function(z) is.null(z) || is.na(z) || !nzchar(z)
 nn_or <- function(z, or = "") if (is.null(z)) or else z
 
+most_common_value <- function(x, na.rm = FALSE) {
+    ux <- unique(x)
+    if (na.rm) {
+        ux <- ux[!is.na(ux)]
+        if (length(ux)<1) ux <- as(NA, class(x))
+    }
+    ux[which.max(tabulate(match(x, ux)))]
+}
+
 ## plotting
 court_circle <- function(cxy, r = 0.45, cz = NULL, end = "lower", nseg = 31) {
     ## cxy must be data.frame with x and y centres
