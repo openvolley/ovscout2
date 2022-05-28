@@ -103,6 +103,21 @@ if (any(lhok)) {
     if (DEBUG) cat("check for system-level lighttpd installation:", have_lighttpd, "\n")
 }
 
+## check that we have ffmpeg
+if (!ovideo::ov_ffmpeg_ok()) {
+    ## try the local install
+    ffpaths <- unique(c(fs::path_real(fs::path(Rlibpath, "ffmpeg")), fs::path(Rlibpath, "ffmpeg")))
+    if (DEBUG) cat("trying local ffmpeg path(s):", ffpaths, "\n")
+    ffbin <- unlist(lapply(ffpaths, function(pth) dir(pth, recursive = TRUE, full.names = TRUE, pattern = "ffmpeg\\.exe")))
+    if (length(ffbin) > 0) {
+        ffpath <- dirname(ffbin[1])
+        Sys.setenv(path = paste0(ffpath, ";", Sys.getenv("path")))
+        if (DEBUG) cat("setting system path to include local ffmpeg path:", Sys.getenv("path"), "\n")
+    } else {
+        if (DEBUG) cat("could not find system or local ffmpeg binary\n")
+    }
+}
+
 library(ovscout2)
 ## check for dvw, video file args: if not provided the shiny app will prompt for user to select file
 dvw <- if (length(rgs) < 2 || is.na(rgs[2]) || !nzchar(rgs[2])) NULL else rgs[2]
