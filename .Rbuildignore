@@ -1,9 +1,7 @@
-^dvideo\.Rproj$
+^ovscout2\.Rproj$
 ^\.Rproj\.user$
 ^README\.Rmd$
 ^README\.html$
-^\.travis\.yml$
 standalone
 docs/
 ^\.github$
-^codecov\.yml$
