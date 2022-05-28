@@ -37,13 +37,12 @@ if (!file.exists(file.path(libdir, "lighttpd/lighttpd.exe"))) {
 ## 3. install ffmpeg
 ffmpeg_dir <- file.path(libdir, "ffmpeg")
 if (!dir.exists(ffmpeg_dir)) dir.create(ffmpeg_dir)
-if (!file.exists(file.path(ffmpeg_dir, ""))) {
+if (length(dir(ffmpeg_dir, recursive = TRUE, pattern = "ffmpeg\\.exe")) < 1) {
     dl_url <- "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
     zipname <- file.path(ffmpeg_dir, basename(dl_url))
     err <- utils::download.file(dl_url, destfile = zipname, mode = "wb")
     if (!err) utils::unzip(zipname, exdir = ffmpeg_dir)
-    ffbin <- dir(ffmpeg_dir, recursive = TRUE, full.names = TRUE, pattern = "ffmpeg\\.exe")
-    if (length(ffbin) < 1) stop("ffmpeg install failed")
+    if (length(dir(ffmpeg_dir, recursive = TRUE, pattern = "ffmpeg\\.exe")) < 1) stop("ffmpeg install failed")
 }
 
 ## install packages to our lib dir

@@ -117,6 +117,7 @@ if (!ovideo::ov_ffmpeg_ok()) {
         if (DEBUG) cat("could not find system or local ffmpeg binary\n")
     }
 }
+if (!ovideo::ov_ffmpeg_ok()) warning("ffmpeg could not be found, some functionality will be disabled")
 
 library(ovscout2)
 ## check for dvw, video file args: if not provided the shiny app will prompt for user to select file
