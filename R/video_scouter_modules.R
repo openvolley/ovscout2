@@ -401,7 +401,7 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
                               tabsetPanel(
                                   tabPanel("Home team",
                                            fluidRow(
-                                               column(4,selectInput(ns('home_team_select'), 'Select home team', team_table$team_id, multiple=FALSE, selectize=FALSE)),
+                                               column(4, selectInput(ns("home_team_select"), "Select home team", team_table$team_id, multiple=FALSE, selectize=FALSE)),
                                                column(4, textInput(ns("ht_select_id"), label = "Team ID:", value = "")),
                                                column(4, textInput(ns("ht_select_name"), label = "Team name:", value = ""))),
                                            fluidRow(
@@ -414,7 +414,7 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
                                            )),
                                   tabPanel("Visiting team",
                                            fluidRow(
-                                               column(4,selectInput(ns('visiting_team_select'), 'Select visiting team', team_table$team_id, multiple=FALSE, selectize=FALSE)),
+                                               column(4, selectInput(ns("visiting_team_select"), "Select visiting team", team_table$team_id, multiple=FALSE, selectize=FALSE)),
                                                column(4, textInput(ns("vt_select_id"), label = "Team ID:", value = "")),
                                                column(4, textInput(ns("vt_select_name"), label = "Team name:", value = ""))),
                                            fluidRow(
@@ -426,10 +426,18 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
                                                column(12, DT::dataTableOutput(ns("vt_select_team")))
                                            ))
                               ),
-                              footer = tags$div(actionButton("edit_commit", label = "Select teams", class = "continue"),
-                                                actionButton("edit_cancel", label = "Cancel", class = "cancel")))
+                              footer = tags$div(uiOutput(ns("tsc_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", class = "cancel")))
                   )
     })
+
+    output$tsc_ui <- renderUI({
+        if (!is.null(input$ht_select_id) && !is.null(input$vt_select_id) && isTRUE(input$ht_select_id != input$vt_select_id)) {
+            actionButton("edit_commit", label = "Select teams", class = "continue")
+        } else {
+            NULL
+        }
+    })
+
     observe({
         updateTextInput(session, "ht_select_id", value = input$home_team_select)
         updateTextInput(session, "ht_select_name", value = team_Table()$team[team_Table()$team_id %eq% input$home_team_select])
@@ -448,7 +456,7 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
         if (!is.null(team_Table())) {
             pth <- team_Table()$player_table[team_Table()$team_id %eq% input$home_team_select][[1]]
             htdata_select(pth)
-            DT::datatable(pth, rownames = FALSE, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
+            DT::datatable(pth, rownames = FALSE, colnames = var2fc(colnames(pth)), selection = "none", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
         } else {
             NULL
         }
@@ -459,7 +467,7 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
         if (!is.null(team_Table())) {
             ptv <- team_Table()$player_table[team_Table()$team_id %eq% input$visiting_team_select][[1]]
             vtdata_select(ptv)
-            DT::datatable(ptv, rownames = FALSE, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
+            DT::datatable(ptv, rownames = FALSE, colnames = var2fc(colnames(ptv)), selection = "none", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
         } else {
             NULL
         }
