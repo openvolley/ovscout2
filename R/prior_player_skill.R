@@ -86,8 +86,7 @@ player_responsibility_fn <- function(system = "SHM3", skill, setter_position, zo
                                                                          zone %in% c(2) ~ paste0(home_visiting,"_p2"),
                                                                          zone %in% c(5,7,8) & loc ~ ln,
                                                                          zone %in% c(5,7,8) ~ paste0(home_visiting,"_p1")))
-            }
-            if(opp_attack_start_zone %in% c(3,8,6)){
+            } else if (opp_attack_start_zone %in% c(3,8,6)) {
                 ret <- case_when(setter_position %in% c(3,6) ~ case_when(zone %in% c(6) ~ paste0(home_visiting,"_p1"),
                                                                          zone %in% c(3) ~ paste0(home_visiting,"_p2"),
                                                                          zone %in% c(4) ~ paste0(home_visiting,"_p4"),
@@ -109,8 +108,7 @@ player_responsibility_fn <- function(system = "SHM3", skill, setter_position, zo
                                                                          zone %in% c(2) ~ paste0(home_visiting,"_p2"),
                                                                          zone %in% c(5,7,8) & loc ~ ln,
                                                                          zone %in% c(5,7,8) ~ paste0(home_visiting,"_p1")))
-            }
-            if(opp_attack_start_zone %in% c(2,9,1)){
+            } else if (opp_attack_start_zone %in% c(2,9,1)) {
                 ret <- case_when(setter_position %in% c(3,6) ~ case_when(zone %in% c(6) ~ paste0(home_visiting,"_p1"),
                                                                          zone %in% c(2, 3) ~ paste0(home_visiting,"_p3"),
                                                                          zone %in% c(1,9,8) ~ paste0(home_visiting,"_p6"),
@@ -129,6 +127,8 @@ player_responsibility_fn <- function(system = "SHM3", skill, setter_position, zo
                                                                          zone %in% c(4) ~ paste0(home_visiting,"_p3"),
                                                                          zone %in% c(5,7) & loc ~ ln,
                                                                          zone %in% c(5,7) ~ paste0(home_visiting,"_p1")))
+            } else {
+              ret <- NA_character_
             }
         } else if (skill == "Cover") {
             warning("cover responsibility not coded yet")
