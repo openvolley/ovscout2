@@ -1597,7 +1597,7 @@ ov_scouter_server <- function(app_data) {
                 ## set rally state
                 rally_state(restore_rally_state)##tail(new_rc$rally_state, 1))
                 ## set game state
-                gs <- tail(new_rc$rally_state, 1)
+                gs <- new_rc$game_state[[nrow(new_rc)]]
                 for (nm in names(gs)) game_state[[nm]] <- gs[[nm]]
                 game_state$current_team <- restore_current_team
                 ## reset rally codes
