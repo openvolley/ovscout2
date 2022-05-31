@@ -182,6 +182,21 @@ plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
     out$phase <- plays2$phase ##datavolley::play_phase(out)
     out$set_number <- plays2$set_number
     out$video_time <- plays2$video_time
+    ## add point_id
+    pid <- 0
+    temp_point_id <- rep(NA, nrow(out))
+    temp_point_id[1] <- pid
+    temp_timeout <- rep(FALSE, nrow(out))##out$timeout
+    for (k in 2:nrow(out)) {
+        if (out$point[k-1] || temp_timeout[k] || temp_timeout[k-1]) pid <- pid+1
+        temp_point_id[k] <- pid
+    }
+    out$point_id <- temp_point_id
+    ## serving team
+    who_served <- dplyr::distinct(dplyr::filter(out, .data$skill == "Serve"), .data$point_id, .data$team) %>%
+        dplyr::rename(serving_team = "team") %>% dplyr::filter(!duplicated(.data$point_id))
+    out <- left_join(out, who_served, by = c("point_id"))
+    out$serving_team <- as.character(out$serving_team) ## to be sure is not factor
     out$error_icon <- ""##ifelse(is.na(x$plays$error_message), "", HTML(as.character(shiny::icon("exclamation-triangle"))))
     bind_cols(out, plays2[, c(paste0("home_p", pseq), paste0("visiting_p", pseq))])
 }
@@ -442,10 +457,9 @@ guess_attack_player_options <- function(game_state, dvw, system) {
     if (!is.na(attacking_responsibility)) attacking_responsibility_prior[attacking_responsibility] <- 1
 
     ## Update the probability with the history of the game
-    attacking_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Attack",
-                                       .data[[paste0(home_visiting, "_setter_position")]] %eq% as.character(setter_rot),
-                                       .data$start_zone %eq% attacking_zone,
-                                       .data$team %eq% attacking_team)
+    ##  this also needs to account for the attacking team being in sideout/breakpoint
+    attacking_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Attack" & .data[[paste0(home_visiting, "_setter_position")]] %eq% as.character(setter_rot) &
+                                                  .data$start_zone %eq% attacking_zone & .data$team %eq% attacking_team & .data$serving_team == game_state$serving)
 
     attacking_responsibility_posterior <- attacking_responsibility_prior
     if (nrow(attacking_history) > 0) {
