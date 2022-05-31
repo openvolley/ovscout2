@@ -391,6 +391,9 @@ is_end_of_set <- function(x) {
 ## then it is possible to read that file back in, which will populate the full plays data.frame without having to duplicate the code needed to do this
 dv_write2 <- function(x, file, text_encoding = "UTF-8") {
     x[["plays"]] <- tibble()
+    ## ensure players are OK
+    x$meta$players_h <- make_players(x$meta$players_h)
+    x$meta$players_v <- make_players(x$meta$players_v)
     ## write without the plays part
     dv_write(x, file = file, text_encoding = text_encoding)
     ## now the plays but from plays2
@@ -577,23 +580,22 @@ create_meta <- function(match, more, teams, players_h, players_v, video_file, at
 
 make_players <- function(players, which = "home") {
     assert_that(is.data.frame(players))
-    req <- c("lastname", "firstname", "number")
-    if (!all(req %in% names(players))) {
-        stop(which, " players data.frame is missing columns: ", paste(setdiff(req, names(players)), collapse = ", "))
-    }
+    req <- c("lastname", "firstname", "number") ## absolutely required
+    if (!all(req %in% names(players))) stop(which, " players data.frame is missing columns: ", paste(setdiff(req, names(players)), collapse = ", "))
     if (!"player_id" %in% names(players)) players$player_id <- make_player_id(players$lastname, players$firstname)
     if (!"role" %in% names(players)) players$role <- "unknown"
     if (!"nickname" %in% names(players)) players$nickname <- ""
-    if (!"special_role" %in% names(players)) players$special_role <- NA_character_
+    if (!"special_role" %in% names(players)) players <- mutate(players, special_role = case_when(tolower(.data$role) %eq% "libero" ~ "L", TRUE ~ ""))
     if (!"foreign" %in% names(players)) players$foreign <- FALSE
+    for (nm in paste0("starting_position_set", 1:5)) if (!nm %in% names(players)) players[[nm]] <- NA_character_
     temp <- tibble(X1 = 0,
                    number = players$number,
                    X3 = seq_len(nrow(players)),
-                   starting_position_set1 = NA_character_,
-                   starting_position_set2 = NA_character_,
-                   starting_position_set3 = NA_character_,
-                   starting_position_set4 = NA_character_,
-                   starting_position_set5 = NA_character_,
+                   starting_position_set1 = players$starting_position_set1,
+                   starting_position_set2 = players$starting_position_set2,
+                   starting_position_set3 = players$starting_position_set3,
+                   starting_position_set4 = players$starting_position_set4,
+                   starting_position_set5 = players$starting_position_set5,
                    player_id = players$player_id,
                    lastname = players$lastname,
                    firstname = players$firstname,

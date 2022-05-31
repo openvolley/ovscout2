@@ -13,20 +13,14 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$teams$team_id[htidx] <- input[[te_ns("ht_edit_id")]]
         dvw$meta$teams$coach[htidx] <- input[[te_ns("ht_edit_coach")]]
         dvw$meta$teams$assistant[htidx] <- input[[te_ns("ht_edit_assistant")]]
-        if (!is.null(htdata_edit)) {
-            dvw$meta$players_h <- htdata_edit
-            dvw$meta$players_h$name <- paste(dvw$meta$players_h$firstname, dvw$meta$players_h$lastname)
-        }
+        if (!is.null(htdata_edit)) dvw$meta$players_h <- make_players(htdata_edit)
         ## and visiting team
         vtidx <- which(dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
         dvw$meta$teams$team[vtidx] <- input[[te_ns("vt_edit_name")]]
         dvw$meta$teams$team_id[vtidx] <- input[[te_ns("vt_edit_id")]]
         dvw$meta$teams$coach[vtidx] <- input[[te_ns("vt_edit_coach")]]
         dvw$meta$teams$assistant[vtidx] <- input[[te_ns("vt_edit_assistant")]]
-        if (!is.null(vtdata_edit)) {
-            dvw$meta$players_v <- vtdata_edit
-            dvw$meta$players_v$name <- paste(dvw$meta$players_v$firstname, dvw$meta$players_v$lastname)
-        }
+        if (!is.null(vtdata_edit)) dvw$meta$players_v <- make_players(vtdata_edit)
         do_reparse <- TRUE
     } else if (editing_active %eq% "select_teams") {
         ts_ns <- function(id) paste0("team_selector-", id) ## to reference the UI elements in the team_selector module. Note the hard-coding of the 'team_selector' id
@@ -36,22 +30,14 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$teams$team_id[htidx] <- input[[ts_ns("ht_select_id")]]
         dvw$meta$teams$coach[htidx] <- input[[ts_ns("ht_select_coach")]]
         dvw$meta$teams$assistant[htidx] <- input[[ts_ns("ht_select_assistant")]]
-        if (!is.null(htdata_select)) {
-            dvw$meta$players_h <- htdata_select
-            dvw$meta$players_h$name <- paste(dvw$meta$players_h$firstname, dvw$meta$players_h$lastname)
-        }
-        if (!"special_role" %in% names(dvw$meta$players_h)) dvw$meta$players_h <- mutate(dvw$meta$players_h, special_role = case_when(.data$role %eq% "libero" ~ "L", TRUE ~ ""))
+        if (!is.null(htdata_select)) dvw$meta$players_h <- make_players(htdata_select)
         ## and visiting team
         vtidx <- which(dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
         dvw$meta$teams$team[vtidx] <- input[[ts_ns("vt_select_name")]]
         dvw$meta$teams$team_id[vtidx] <- input[[ts_ns("vt_select_id")]]
         dvw$meta$teams$coach[vtidx] <- input[[ts_ns("vt_select_coach")]]
         dvw$meta$teams$assistant[vtidx] <- input[[ts_ns("vt_select_assistant")]]
-        if (!is.null(vtdata_select)) {
-            dvw$meta$players_v <- vtdata_select
-            dvw$meta$players_v$name <- paste(dvw$meta$players_v$firstname, dvw$meta$players_v$lastname)
-        }
-        if (!"special_role" %in% names(dvw$meta$players_v)) dvw$meta$players_v <- mutate(dvw$meta$players_v, special_role = case_when(.data$role %eq% "libero" ~ "L", TRUE ~ ""))
+        if (!is.null(vtdata_select)) dvw$meta$players_v <- make_players(vtdata_select) %>% mutate(X3 = .data$X3 + nrow(dvw$meta$players_h))
         do_reparse <- TRUE
     } else if (editing_active %eq% "match_data") {
         md_ns <- function(id) paste0("match_data_editor-", id) ## to reference the UI elements in the match_data_editor module. Note the hard-coding of the 'match_data_editor' id

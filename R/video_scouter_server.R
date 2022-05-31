@@ -267,7 +267,7 @@ ov_scouter_server <- function(app_data) {
                 } else {
                     changed <- code_make_change(editing$active, game_state = game_state, dvw = rdata$dvw, input = input,
                                                 htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit(),
-                                                htdata_select = team_select_mod$htdata_select(),vtdata_select = team_select_mod$vtdata_select())
+                                                htdata_select = team_select_mod$htdata_select(), vtdata_select = team_select_mod$vtdata_select())
                     rdata$dvw <- changed$dvw
                     if (changed$do_reparse) {
                         ## we don't need to reparse (??), but (might) need to adjust game_state, e.g. if we've changed lineups
