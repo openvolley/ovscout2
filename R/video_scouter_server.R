@@ -99,7 +99,8 @@ ov_scouter_server <- function(app_data) {
         ##    court_inset$clear_click_queue()
         ##})
 
-        playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show, plays_cols_renames = plays_cols_renames)
+        playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show,
+                                    plays_cols_renames = plays_cols_renames, display_option = app_data$playlist_display_option)
 
         video_state <- reactiveValues(paused = TRUE, muted = TRUE) ## starts paused and muted
         editing <- reactiveValues(active = NULL)

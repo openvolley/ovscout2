@@ -128,7 +128,7 @@ mod_playslist_ui <- function(id, height = "40vh", styling) {
     )
 }
 
-mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, plays_cols_renames, height = "40vh") {
+mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, plays_cols_renames, display_option = "dv_codes", height = "40vh") {
     ns <- session$ns
     plays_do_rename <- function(z) names_first_to_capital(dplyr::rename(z, plays_cols_renames))
     selected_row <- reactiveVal(NULL)
@@ -139,7 +139,7 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
         dojs(paste0(tries_var, " = 0; var ", fn_var, "=function(){ var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); if (rows != null && rows.length >", need_n_rows - 1, ") { ", f, " } else { if (", tries_var, " < ", tries, ") { ", tries_var, "++; setTimeout(", fn_var, ", 100) }}}; ", fn_var, "();"))
     }
 
-    dat2html <- function(dat) {
+    dat2html <- function(dat, display_option) {
         ## make sure all cols are present, otherwise the update won't happen properly when those columns are added later
         for (cl in setdiff(c("skill", "set_number", "home_team_score", "visiting_team_score", plays_cols_to_show), c("Score", "is_skill"))) {
             if (!cl %in% names(dat)) dat[[cl]] <- rep(NA, nrow(dat))
@@ -151,7 +151,18 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
         ##cols_to_hide <- which(plays_cols_to_show %in% c("is_skill")) - 1L ## 0-based because no row names
         cnames <- names(plays_do_rename(dat[1, plays_cols_to_show, drop = FALSE]))
         cnames[plays_cols_to_show == "error_icon"] <- ""
-        dat <- setNames(as.data.frame(dat[, plays_cols_to_show, drop = FALSE]), cnames)
+        if(display_option == 'dv_codes'){
+            dat <- setNames(as.data.frame(dat[, plays_cols_to_show, drop = FALSE]), cnames)
+        }
+        if(display_option == 'commentary'){
+            dat$commentary = case_when(!is.na(dat$skill) & dat$skill %in% c("Serve", "Reception", "Set", "Attack", "Block", "Dig", "Freeball")~ paste0(dat$skill, " by ", dat$player_name, " (#", dat$player_number,")"),
+                                       !is.na(dat$skill) & dat$skill %in% c("Timeout") ~ paste(dat$skill, dat$team),
+                                       TRUE ~ NA_character_)
+            dat$game_time = ifelse(!is.na(dat$video_time),paste0(floor(dat$video_time / 60),"'",floor(dat$video_time-floor(dat$video_time / 60)*60)),NA)
+            plays_cols_to_show = c("game_time", "set_number", "Score", "commentary")
+            cnames <- c("Game time", "Set", "Score", "Comment")
+            dat <- setNames(as.data.frame(dat[, plays_cols_to_show, drop = FALSE]), cnames)
+        }
         html <- shiny::renderTable(dat, na = "")()
         ## inject our pl2_fixhdr class name
         html <- sub("(class[[:space:]]*=[[:space:]]*['\"][^'\"]*)(['\"])", "\\1 pl2_fixhdr\\2", html)
@@ -166,7 +177,7 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
         }
         if (!is.numeric(selected)) selected <- NULL
         if (!is.null(dat)) {
-            html <- dat2html(dat)
+            html <- dat2html(dat, display_option = display_option)
             if (!is.null(selected)) {
                 selected_row(selected)
                 ## add the 'selected' class to the appropriate row

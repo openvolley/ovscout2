@@ -20,10 +20,11 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = 'dv_codes', scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
     if (!missing(dvw) && identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = isTRUE(scoreboard), ball_path = isTRUE(ball_path), review_pane = isTRUE(review_pane), scouting_options = scouting_options, default_scouting_table = default_scouting_table, compound_table = compound_table, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
+    assert_that(playlist_display_option %in% c('dv_cones', 'commentary'))
     dots <- list(...)
     dv_read_args <- dots[names(dots) %in% names(formals(datavolley::dv_read))] ## passed to dv_read
     other_args <- dots[!names(dots) %in% names(formals(datavolley::dv_read))] ## passed to the server and UI
@@ -152,6 +153,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     app_data$scoreboard <- isTRUE(scoreboard)
     app_data$ball_path <- isTRUE(ball_path)
     app_data$review_pane <- isTRUE(review_pane)
+    app_data$playlist_display_option <- if (!missing(playlist_display_option)) playlist_display_option else 'dv_codes'
     app_data$season_dir <- if (!missing(season_dir) && dir.exists(season_dir)) season_dir else NULL ## minimal check of the season_dir
     if (app_data$with_video) {
         have_lighttpd <- FALSE
