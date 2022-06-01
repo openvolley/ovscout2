@@ -1432,8 +1432,14 @@ ov_scouter_server <- function(app_data) {
                 rally_state("click freeball end point")
             } else if (input$c3 == "E=") {
                 ## set error
-                esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
-                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = if (!is.null(input$c3_player)) input$c3_player else 0L, skill = "E", eval = "=", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table)))
+                ## this is the third contact, so we should modify the existing set if we have scouted a set
+                if (tail(rc$skill, 1) %eq% "E") {
+                    rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = "=")
+                    rally_codes(rc)
+                } else {
+                    esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
+                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = if (!is.null(input$c3_player)) input$c3_player else 0L, skill = "E", eval = "=", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table)))
+                }
                 game_state$point_won_by <- other(game_state$current_team)
                 rally_ended()
             } else {
