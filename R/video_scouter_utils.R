@@ -618,6 +618,7 @@ make_fat_buttons <- function(choices, selected, input_var, extra_class = c(), as
     buts <- lapply(seq_along(choices), function(i) tags$button(class = paste(c("btn", "btn-default", "fatradio", cls, extra_class, if (grepl("(L)", names(choices)[i], fixed = TRUE)) "libero", if (i %eq% selected && nzchar(as_radio)) "active"), collapse = " "), id = ids[i], HTML(names(choices)[i]), onclick = paste0(clickfun, " if (!wa) { Shiny.setInputValue('", input_var, "', '", choices[[i]], "', {priority: 'event'}) } else { Shiny.setInputValue('", input_var, "', null, {priority: 'event'}) }"), ...))
     ## set the initial value of the associated input variable, or clear it
     dojs(paste0("Shiny.setInputValue(\"", input_var, "\", ", if (!is.na(selected) && nzchar(as_radio)) paste0("\"", choices[[selected]], "\"") else "null", ")"))
+    attr(buts, "class") <- cls
     buts
 }
 

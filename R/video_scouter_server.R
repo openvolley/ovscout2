@@ -581,6 +581,9 @@ ov_scouter_server <- function(app_data) {
             if (isTRUE(app_data$review_pane)) hide_review_pane()
         }
 
+        fatradio_class_uuids <- reactiveValues()
+        attack_other_opts <- reactiveVal(NULL)
+
         ## single click the video to register a tag location, or starting ball coordinates
         observeEvent(loop_trigger(), {
             if (loop_trigger() > 0) {
@@ -753,10 +756,17 @@ ov_scouter_server <- function(app_data) {
                     } else {
                         ac <- head(ac, if (isTRUE(app_data$review_pane)) 6 else 9)
                     }
-                    ac <- c(ac, "Other attack")
+                    n_ac <- length(ac) ## number of guessed attack codes being shown before the "Other attacks" option
+                    ac_others <- c("Choose other", setdiff(rdata$dvw$meta$attacks$code, ac), "Other attack")
+                    attack_other_opts(ac_others)
+                    n_ac2 <- 1L ## freeball and (maybe) set error
                     ac <- c(setNames(ac, ac), "Freeball over" = "F")
-                    if (!isTRUE(app_data$options$transition_sets)) ac <- c(ac, "Set error" = "E=")
+                    if (!isTRUE(app_data$options$transition_sets)) {
+                        ac <- c(ac, "Set error" = "E=")
+                        n_ac2 <- 2L
+                    }
                     c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR")), input_var = "c3")
+                    fatradio_class_uuids$c3 <- attr(c3_buttons, "class")
                     attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
                     ap <- sort(attack_pl_opts$choices)
                     names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
@@ -775,7 +785,9 @@ ov_scouter_server <- function(app_data) {
                     opp_player_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c3_opp_player")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack or freeball over:")),
-                                            do.call(fixedRow, lapply(c3_buttons[seq_along(ac)], function(but) column(1, but))),
+                                            do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
+                                                                list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))),
+                                                                lapply(c3_buttons[c(n_ac + seq_len(n_ac2))], function(but) column(1, but)))),
                                             tags$br(), tags$p("by player"), tags$br(),
                                             do.call(fixedRow, lapply(attacker_buttons, function(but) column(1, but))),
                                             if (isTRUE(app_data$options$nblockers)) tags$div(tags$br(), "with", tags$br()),
@@ -940,6 +952,19 @@ ov_scouter_server <- function(app_data) {
                 }
                 if (input$c1 %eq% "A=") js_show2("ae_ui") else js_hide2("ae_ui")
             }
+        })
+
+        observeEvent(input$c3_other_attack, {
+            if (!is.null(input$c3_other_attack) && !input$c3_other_attack %eq% "Choose other") {
+                dojs(paste0("Shiny.setInputValue('c3', '", input$c3_other_attack, "');"))
+                ## set the other c3 button styles as unselected, and this as selected
+                if (!is.null(fatradio_class_uuids$c3)) dojs(paste0("$('.", fatradio_class_uuids$c3, "').removeClass('active');"))
+                dojs("$('#c3_other_outer').addClass('active');")
+            }
+        })
+        observe({
+            ## if the 'other' isn't selected, set its style as unselected
+            if (!is.null(input$c3) && !input$c3 %in% attack_other_opts()) dojs("$('#c3_other_outer').removeClass('active');")
         })
 
         do_rally_end_things <- function() {
