@@ -15,8 +15,10 @@ ov_scouter_server <- function(app_data) {
         atbl <- bind_cols(atbl[, setdiff(names(atbl), c("start_x", "start_y"))], setNames(dv_index2xy(atbl$start_coordinate), c("start_x", "start_y")))
         app_data$dvw$meta$attacks <- atbl
 
-        if (is.null(app_data$options$setter_dump_code)) app_data$options$setter_dump_code <- "PP"
-        if (is.null(app_data$options$second_ball_attack_code)) app_data$options$second_ball_attack_code <- "P2"
+        if (app_data$options$attacks_by %eq% "codes") {
+            if (is.null(app_data$options$setter_dump_code)) app_data$options$setter_dump_code <- "PP"
+            if (is.null(app_data$options$second_ball_attack_code)) app_data$options$second_ball_attack_code <- "P2"
+        }
 
         rdata <- reactiveValues(dvw = app_data$dvw)
 
@@ -752,18 +754,26 @@ ov_scouter_server <- function(app_data) {
                     } else {
                         ph <- NA_character_
                     }
-                    ac <- guess_attack_code(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end, opts = app_data$options)
-                    ac <- setNames(ac, ac)
-                    if (!isTRUE(app_data$options$transition_sets) && ph %eq% "Transition") {
-                        ac <- head(ac, if (isTRUE(app_data$review_pane)) 4 else 7) ## wow, we don't have a lot here if we need to leave room for the three below plus space for the attack review pane
-                        ## if we aren't scouting transition sets, then this "third" contact could be a setter dump or second-ball attack
-                        ac <- c(ac, c("Setter dump" = app_data$options$setter_dump_code, "Second-ball<br />attack" = app_data$options$second_ball_attack_code))
+                    if (app_data$options$attacks_by %eq% "codes") {
+                        ac <- guess_attack_code(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end, opts = app_data$options)
+                        ac <- setNames(ac, ac)
+                        if (!isTRUE(app_data$options$transition_sets) && ph %eq% "Transition") {
+                            ac <- head(ac, if (isTRUE(app_data$review_pane)) 4 else 7) ## wow, we don't have a lot here if we need to leave room for the three below plus space for the attack review pane
+                            ## if we aren't scouting transition sets, then this "third" contact could be a setter dump or second-ball attack
+                            ac <- c(ac, c("Setter dump" = app_data$options$setter_dump_code, "Second-ball<br />attack" = app_data$options$second_ball_attack_code))
+                        } else {
+                            ac <- head(ac, if (isTRUE(app_data$review_pane)) 6 else 9)
+                        }
+                        ac_others <- c("Choose other", setdiff(rdata$dvw$meta$attacks$code, ac), "Other attack")
+                        attack_other_opts(ac_others)
                     } else {
-                        ac <- head(ac, if (isTRUE(app_data$review_pane)) 6 else 9)
+                        ac <- c("High ball" = "H", "Medium/fast<br />attack" = "M", "Quick attack" = "Q")##, "Other attack" = "O")
+                        if (!isTRUE(app_data$options$transition_sets) && ph %eq% "Transition") {
+                            ## if we aren't scouting transition sets, then this "third" contact could be a setter dump or second-ball attack
+                            ac <- c(ac, c("Setter dump" = app_data$options$setter_dump_code, "Second-ball<br />attack" = app_data$options$second_ball_attack_code))
+                        }
                     }
-                    n_ac <- length(ac) ## number of guessed attack codes being shown before the "Other attacks" option
-                    ac_others <- c("Choose other", setdiff(rdata$dvw$meta$attacks$code, ac), "Other attack")
-                    attack_other_opts(ac_others)
+                    n_ac <- length(ac)
                     n_ac2 <- 1L ## freeball and (maybe) set error
                     ac <- c(ac, "Freeball over" = "F")
                     if (!isTRUE(app_data$options$transition_sets)) {
@@ -791,7 +801,7 @@ ov_scouter_server <- function(app_data) {
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack or freeball over:")),
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
-                                                                list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))),
+                                                                if (app_data$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))),
                                                                 lapply(c3_buttons[c(n_ac + seq_len(n_ac2))], function(but) column(1, but)))),
                                             tags$br(),
                                             tags$div(id = "c3_pl_ui", tags$p("by player"), tags$br(),
@@ -1472,19 +1482,30 @@ ov_scouter_server <- function(app_data) {
                 game_state$point_won_by <- other(game_state$current_team)
                 rally_ended()
             } else {
-                ## only an attack code or "Other attack" for the time being
                 ap <- if (!is.null(input$c3_player)) input$c3_player else 0L
                 ac <- input$c3
-                if (nchar(ac) == 2) {
-                    tempo <- tryCatch(rdata$dvw$meta$attacks$type[rdata$dvw$meta$attacks$code %eq% input$c3], error = function(e) "~")
-                    targ <- tryCatch(rdata$dvw$meta$attacks$set_type[rdata$dvw$meta$attacks$code %eq% input$c3], error = function(e) "~")
+                if (is.null(input$c3)) ac <- ""
+                if (app_data$options$attacks_by %eq% "codes") {
+                    if (nchar(ac) == 2) {
+                        tempo <- tryCatch(rdata$dvw$meta$attacks$type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
+                        targ <- tryCatch(rdata$dvw$meta$attacks$set_type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
+                    } else {
+                        ## other attack
+                        ac <- "~~" ## no combo code
+                        tempo <- targ <- "" ## filled below
+                    }
                 } else {
-                    ## other attack
-                    ac <- "~~" ## no combo code
-                    tempo <- "H"
-                    targ <- "~"
+                    if (ac %in% c("PP", "P2")) {
+                        tempo <- tryCatch(rdata$dvw$meta$attacks$type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
+                        targ <- tryCatch(rdata$dvw$meta$attacks$set_type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
+                    } else {
+                        tempo <- if (ac %in% c("H", "M", "Q", "O")) ac else ""
+                        ac <- "~~"
+                        targ <- ""
+                    }
                 }
-                if (nchar(tempo) != 1) tempo <- "~"
+                if (nchar(tempo) != 1) tempo <- app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "A"] ## fallback
+                if (nchar(tempo) != 1) tempo <- "~" ## double-fallback
                 if (nchar(targ) != 1 || targ %eq% "-") targ <- "~"
                 ## update target in the preceding set row, if there was one
                 ##if (tail(rc$skill, 1) == "E") rc$target[nrow(rc)] <- targ

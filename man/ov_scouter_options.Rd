@@ -9,6 +9,7 @@ ov_scouter_options(
   nblockers = TRUE,
   default_nblockers = NA,
   transition_sets = FALSE,
+  attacks_by = "codes",
   team_system = "SHM3",
   setter_dump_code = "PP",
   second_ball_attack_code = "P2",
@@ -23,6 +24,8 @@ ov_scouter_options(
 \item{default_nblockers}{integer: if \code{nblockers} is TRUE, what number of blockers should we default to? If \code{NA}, no default}
 
 \item{transition_sets}{logical: scout sets in transition? If \code{FALSE}, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted}
+
+\item{attacks_by}{string: "codes" (X5, V5, etc) or "tempo" (high, medium, quick)}
 
 \item{team_system}{string: the assumed system that teams are using to assign e.g. passing and hitting responsibilities
 \itemize{

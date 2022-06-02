@@ -221,6 +221,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
 #' @param nblockers logical: scout the number of blockers on each attack?
 #' @param default_nblockers integer: if `nblockers` is TRUE, what number of blockers should we default to? If `NA`, no default
 #' @param transition_sets logical: scout sets in transition? If `FALSE`, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted
+#' @param attacks_by string: "codes" (X5, V5, etc) or "tempo" (high, medium, quick)
 #' @param team_system string: the assumed system that teams are using to assign e.g. passing and hitting responsibilities
 #' * "SHM3" - a setter-hitter-middle rotation, with 3 passers (the libero and two outside hitters)
 #' @param setter_dump_code string: the attack combination code for a setter dump
@@ -230,11 +231,12 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
 #' @return A named list
 #'
 #' @export
-ov_scouter_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR") {
+ov_scouter_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR") {
     end_convention <- match.arg(end_convention, c("actual", "intended"))
     assert_that(is.flag(nblockers), !is.na(nblockers))
     if (!is.na(default_nblockers)) assert_that(default_nblockers %in% 1:3)
     assert_that(is.flag(transition_sets), !is.na(transition_sets))
+    attacks_by <- match.arg(attacks_by, c("codes", "tempo"))
     team_system <- match.arg(team_system, c("SHM3"))
     assert_that(is.string(setter_dump_code))
     assert_that(is.string(second_ball_attack_code))
@@ -245,7 +247,7 @@ ov_scouter_options <- function(end_convention = "actual", nblockers = TRUE, defa
                                "Serve", "H", "Float serve",
                                "Serve", "T", "Topspin serve")
     ## or (some) beach conventions are T=jump-float, H=standing; VM use H=float far from the service line and T=float from the service line
-    list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code)
+    list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, attacks_by = attacks_by, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code)
 }
 
 
