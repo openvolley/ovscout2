@@ -12,6 +12,7 @@ ov_scouter(
   scoreboard = TRUE,
   ball_path = FALSE,
   review_pane = TRUE,
+  playlist_display_option = "dv_codes",
   scouting_options = ov_scouter_options(),
   default_scouting_table = ov_default_scouting_table(),
   compound_table = ov_default_compound_table(),
