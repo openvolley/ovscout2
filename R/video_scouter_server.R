@@ -15,6 +15,9 @@ ov_scouter_server <- function(app_data) {
         atbl <- bind_cols(atbl[, setdiff(names(atbl), c("start_x", "start_y"))], setNames(dv_index2xy(atbl$start_coordinate), c("start_x", "start_y")))
         app_data$dvw$meta$attacks <- atbl
 
+        if (is.null(app_data$options$setter_dump_code)) app_data$options$setter_dump_code <- "PP"
+        if (is.null(app_data$options$second_ball_attack_code)) app_data$options$second_ball_attack_code <- "P2"
+
         rdata <- reactiveValues(dvw = app_data$dvw)
 
         pseq <- if (app_data$is_beach) 1:2 else 1:6
@@ -750,10 +753,11 @@ ov_scouter_server <- function(app_data) {
                         ph <- NA_character_
                     }
                     ac <- guess_attack_code(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end, opts = app_data$options)
+                    ac <- setNames(ac, ac)
                     if (!isTRUE(app_data$options$transition_sets) && ph %eq% "Transition") {
                         ac <- head(ac, if (isTRUE(app_data$review_pane)) 4 else 7) ## wow, we don't have a lot here if we need to leave room for the three below plus space for the attack review pane
                         ## if we aren't scouting transition sets, then this "third" contact could be a setter dump or second-ball attack
-                        ac <- c(ac, if (!is.null(app_data$options$setter_dump_code)) app_data$options$setter_dump_code else "PP", if (!is.null(app_data$options$second_ball_attack_code)) app_data$options$second_ball_attack_code else "P2")
+                        ac <- c(ac, c("Setter dump" = app_data$options$setter_dump_code, "Second-ball<br />attack" = app_data$options$second_ball_attack_code))
                     } else {
                         ac <- head(ac, if (isTRUE(app_data$review_pane)) 6 else 9)
                     }
@@ -761,7 +765,7 @@ ov_scouter_server <- function(app_data) {
                     ac_others <- c("Choose other", setdiff(rdata$dvw$meta$attacks$code, ac), "Other attack")
                     attack_other_opts(ac_others)
                     n_ac2 <- 1L ## freeball and (maybe) set error
-                    ac <- c(setNames(ac, ac), "Freeball over" = "F")
+                    ac <- c(ac, "Freeball over" = "F")
                     if (!isTRUE(app_data$options$transition_sets)) {
                         ac <- c(ac, "Set error" = "E=")
                         n_ac2 <- 2L
@@ -789,14 +793,20 @@ ov_scouter_server <- function(app_data) {
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
                                                                 list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))),
                                                                 lapply(c3_buttons[c(n_ac + seq_len(n_ac2))], function(but) column(1, but)))),
-                                            tags$br(), tags$p("by player"), tags$br(),
-                                            do.call(fixedRow, lapply(attacker_buttons, function(but) column(1, but))),
-                                            if (isTRUE(app_data$options$nblockers)) tags$div(tags$br(), "with", tags$br()),
-                                            if (isTRUE(app_data$options$nblockers)) do.call(fixedRow, lapply(nblocker_buttons, function(but) column(2, but))),
-                                            tags$br(), tags$hr(), tags$div("OR"), tags$br(),
+                                            tags$br(),
+                                            tags$div(id = "c3_pl_ui", tags$p("by player"), tags$br(),
+                                                     do.call(fixedRow, lapply(attacker_buttons, function(but) column(1, but)))
+                                                     ),
+                                            tags$br(),
+                                            tags$div(id = "c3_bl_ui",
+                                                     if (isTRUE(app_data$options$nblockers)) tags$div("with", tags$br()),
+                                                     if (isTRUE(app_data$options$nblockers)) do.call(fixedRow, lapply(nblocker_buttons, function(but) column(2, but))),
+                                                     tags$br()),
+                                            tags$hr(), tags$div("OR"), tags$br(),
                                             do.call(fixedRow, lapply(tail(c3_buttons, 3), function(but) column(2, but))),
-                                            tags$br(), tags$p("by player"), tags$br(),
-                                            do.call(fixedRow, lapply(opp_player_buttons, function(but) column(1, but))),
+                                            tags$div(id = "c3_opp_pl_ui", style = "display:none;", tags$br(), tags$p("by player"), tags$br(),
+                                                     do.call(fixedRow, lapply(opp_player_buttons, function(but) column(1, but)))
+                                                     ),
                                             tags$hr(),
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
                                                      column(2, offset = 8, actionButton("assign_c3", "Continue", class = "continue fatradio")))
@@ -963,9 +973,27 @@ ov_scouter_server <- function(app_data) {
                 dojs("$('#c3_other_outer').addClass('active');")
             }
         })
-        observe({
-            ## if the 'other' isn't selected, set its style as unselected
-            if (!is.null(input$c3) && !input$c3 %in% attack_other_opts()) dojs("$('#c3_other_outer').removeClass('active');")
+        observeEvent(input$c3, {
+            if (!is.null(input$c3)) {
+                ## if an 'other' attack isn't selected, set its style as unselected
+                if (!input$c3 %in% attack_other_opts()) dojs("$('#c3_other_outer').removeClass('active');")
+                if (input$c3 %eq% "E=") {
+                    ## hide the blockers and opposition players selections
+                    js_hide2("c3_bl_ui"); js_hide2("c3_opp_pl_ui")
+                    ## if we've already scouted the set (i.e. in reception phase, or we are scouting transition sets) then also hide the player selector because it won't be used
+                    if (length(rally_codes()$skill) > 0 && tail(rally_codes()$skill, 1) %eq% "E") js_hide2("c3_pl_ui") else js_show2("c3_pl_ui")
+                } else {
+                    js_show2("c3_bl_ui");
+                    js_show2("c3_pl_ui")
+                    if (input$c3 %in% c("aD", "aD=", "aPR")) {
+                        ## show the opp players
+                        js_show2("c3_opp_pl_ui")
+                    } else {
+                        ## hide the opp players
+                        js_hide2("c3_opp_pl_ui")
+                    }
+                }
+            }
         })
 
         do_rally_end_things <- function() {
