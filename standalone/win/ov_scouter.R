@@ -120,8 +120,16 @@ if (!ovideo::ov_ffmpeg_ok()) {
 if (!ovideo::ov_ffmpeg_ok()) warning("ffmpeg could not be found, some functionality will be disabled")
 
 library(ovscout2)
-## check for dvw, video file args: if not provided the shiny app will prompt for user to select file
-dvw <- if (length(rgs) < 2 || is.na(rgs[2]) || !nzchar(rgs[2])) NULL else rgs[2]
-vf <- if (length(rgs) < 3 || is.na(rgs[3]) || !nzchar(rgs[3])) NULL else rgs[3]
-
-ov_scouter(dvw = dvw, video_file = vf, launch_browser = TRUE, prompt_for_files = TRUE)
+## check args
+dvw <- video_file <- season_dir <- NULL
+for (rg in na.omit(rgs[-1])) {
+    ## if we've been given a directory, treat it as the season_dir parm
+    if (tryCatch(fs::is_dir(rg), error = function(e) FALSE)) {
+        season_dir <- rg
+    } else if (grepl("\\.(ovs|dvw)$", rg, ignore.case = TRUE)) {
+        dvw <- rg
+    } else if (grepl("\\.(mp4|m4v|mov)$", rg, ignore.case = TRUE)) {
+        video_file <- rg
+    }
+}
+ov_scouter(dvw = dvw, video_file = video_file, season_dir = season_dir, launch_browser = TRUE, prompt_for_files = TRUE)

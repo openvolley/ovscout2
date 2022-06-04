@@ -53,7 +53,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     if ((missing(dvw) || is.null(dvw))) {
         if (prompt_for_files) {
             dvw <- tryCatch({
-                fchoose(caption = "Choose dvw file", path = if (!missing(season_dir) && dir.exists(season_dir)) season_dir else getwd())##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
+                fchoose(caption = "Choose dvw file", path = if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
             }, error = function(e) NULL)
             if (!is.null(dvw) && (is.character(dvw) && all(!nzchar(dvw) | is.na(dvw)))) dvw <- NULL
         } else {
@@ -110,7 +110,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     if (!(nrow(dvw$meta$video) == 1 && file.exists(dvw$meta$video$file))) {
         if (prompt_for_files) {
             ## allow file chooser to find video file
-            video_file <- fchoose(caption = "Choose video file", path = if (!missing(season_dir) && dir.exists(season_dir)) season_dir else getwd())##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
+            video_file <- fchoose(caption = "Choose video file", path = if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
             if (length(video_file) == 1) dvw$meta$video <- tibble(camera = "Camera0", file = video_file)
         }
     }
@@ -154,7 +154,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     app_data$ball_path <- isTRUE(ball_path)
     app_data$review_pane <- isTRUE(review_pane)
     app_data$playlist_display_option <- if (!missing(playlist_display_option)) playlist_display_option else 'dv_codes'
-    app_data$season_dir <- if (!missing(season_dir) && dir.exists(season_dir)) season_dir else NULL ## minimal check of the season_dir
+    app_data$season_dir <- if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else NULL ## minimal check of the season_dir
     if (app_data$with_video) {
         have_lighttpd <- FALSE
         video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001
