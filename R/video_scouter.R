@@ -28,10 +28,13 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     dots <- list(...)
     dv_read_args <- dots[names(dots) %in% names(formals(datavolley::dv_read))] ## passed to dv_read
     other_args <- dots[!names(dots) %in% names(formals(datavolley::dv_read))] ## passed to the server and UI
+    if (missing(season_dir)) season_dir <- NULL
     if ((missing(dvw) || is.null(dvw))) {
         if (prompt_for_files) {
+            ## start with season directory
+            if (is.null(season_dir)) season_dir <- tryCatch(dchoose(caption = "Choose season directory or cancel to skip"), error = function(e) NULL)
             dvw <- tryCatch({
-                fchoose(caption = "Choose dvw file", path = if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
+                fchoose(caption = "Choose dvw file or cancel to skip", path = if (!is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())
             }, error = function(e) NULL)
             if (!is.null(dvw) && (is.character(dvw) && all(!nzchar(dvw) | is.na(dvw)))) dvw <- NULL
         } else {
