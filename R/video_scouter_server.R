@@ -1574,7 +1574,7 @@ ov_scouter_server <- function(app_data) {
                                     fluidRow(column(2, actionButton("undo", "Undo last rally action", class = "undo fatradio")),
                                              column(2, actionButton("enter_code", "Enter scout code", class = "fatradio"), tags$span(style = "font-size:small;", "Only non-skill codes are supported")),
                                              column(2, actionButton("end_of_set_confirm", "End of set", class = "fatradio"))),
-                                    tags$br(),
+                                    tags$br(), tags$br(),
                                     ## TODO consider if all of these buttons should be available mid-rally or not (e.g. timeouts)
                                     fluidRow(column(6, tags$strong(datavolley::home_team(rdata$dvw), "(home)")),
                                              column(6, tags$strong(datavolley::visiting_team(rdata$dvw), "(visiting)"))),
@@ -1585,6 +1585,9 @@ ov_scouter_server <- function(app_data) {
                                              column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "manual_code")),
                                              column(2, if (vt_can_sub) make_fat_buttons(choices = c(Substitution = "aC"), input_var = "substitution"))),
                                     tags$br(),
+                                    fluidRow(column(2, make_fat_buttons(choices = c("Change setter" = "*P"), input_var = "change_setter")),
+                                             column(2, offset = 4, make_fat_buttons(choices = c("Change setter" = "aP"), input_var = "change_setter"))),
+                                    tags$br(),
                                     tags$hr(),
                                     fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Return to scouting", class = "continue fatradio")))
                                     ))
@@ -1594,6 +1597,33 @@ ov_scouter_server <- function(app_data) {
             editing$active <- NULL
             removeModal()
             do_video("play")
+        })
+
+        observeEvent(input$change_setter, {
+            if (!is.null(input$change_setter)) {
+                ht <- vt <- FALSE
+                if (input$change_setter %eq% "*P") {
+                    ## home players on court
+                    ht_on <- get_players(game_state, team = "*", dvw = rdata$dvw)
+                    ord <- order(ht_on)
+                    chc <- setNames(paste0(ht_on, "@", seq_along(ht_on)), ht_on)[ord]
+                    ht <- TRUE
+                    buts <- make_fat_radio_buttons(choices = chc, selected = NA, input_var = "new_setter")
+                } else {
+                    ## visiting players on court
+                    vt_on <- get_players(game_state, team = "a", dvw = rdata$dvw)
+                    ord <- order(vt_on)
+                    chc <- setNames(paste0(vt_on, "@", seq_along(vt_on)), vt_on)[ord]
+                    vt <- TRUE
+                    buts <- make_fat_radio_buttons(choices = chc, selected = NA, input_var = "new_setter")
+                }
+                showModal(vwModalDialog(title = paste0("On-court setter: ", if (ht) paste0(datavolley::home_team(rdata$dvw), " (home)") else paste0(datavolley::visiting_team(rdata$dvw), " (visiting)")), footer = NULL,
+                                        tags$div(tags$p(tags$strong("New setter")), do.call(fixedRow, lapply(buts, function(but) column(2, but)))),
+                                        tags$hr(),
+                                        fixedRow(column(2, offset = 8, make_fat_buttons(choices = c("Assign setter" = if (ht) "*P" else "aP"), input_var = "manual_code", class = "continue")),
+                                                 column(2, actionButton("admin_dismiss", "Cancel", class = "cancel fatradio")))
+                                        ))
+            }
         })
 
         observeEvent(input$substitution, {
@@ -1884,6 +1914,22 @@ ov_scouter_server <- function(app_data) {
                         do_serve_preselect()
                     } else {
                         ## players in/out not selected, ignore
+                        ok <- FALSE
+                    }
+                } else if (code %in% c("*P", "aP")) {
+                    ## setter on court
+                    ## input$new_setter will be in format player_number@position on court
+                    new_setr <- as.numeric(sub("@.*", "", input$new_setter))
+                    new_pos <- as.numeric(sub(".*@", "", input$new_setter))
+                    if (!is.na(new_setr) && !is.na(new_pos)) {
+                        if (substr(code, 1, 1) == "*") {
+                            game_state$home_setter_position <- new_pos
+                        } else {
+                            game_state$visiting_setter_position <- new_pos
+                        }
+                        ## and add the aPXX, azYY codes
+                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(c(paste0(substr(code, 1, 1), "P", sprintf("%02d", new_setr)), paste0(substr(code, 1, 1), "z", sprintf("%02d", new_pos))), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
+                    } else {
                         ok <- FALSE
                     }
                 }
