@@ -1558,25 +1558,20 @@ ov_scouter_server <- function(app_data) {
         }
 
         show_admin_modal <- function() {
-            ## home player sub buttons
+            ## can home team make a sub?
             ht_on <- sort(get_players(game_state, team = "*", dvw = rdata$dvw))
             ht_other <- setdiff(rdata$dvw$meta$players_h$number, ht_on)
             ht_other <- setdiff(ht_other, get_liberos(game_state, team = "*", dvw = rdata$dvw))
-            ht_sub_out <- make_fat_radio_buttons(choices = ht_on, selected = NA, input_var = "ht_sub_out")
-            ht_sub_in <- make_fat_radio_buttons(choices = ht_other, selected = NA, input_var = "ht_sub_in")
-            ## visiting player sub buttons
+            ht_can_sub <- length(ht_other) > 0
+            ## and visiting team?
             vt_on <- sort(get_players(game_state, team = "a", dvw = rdata$dvw))
             vt_other <- setdiff(rdata$dvw$meta$players_v$number, vt_on)
             vt_other <- setdiff(vt_other, get_liberos(game_state, team = "a", dvw = rdata$dvw))
-            vt_sub_out <- make_fat_radio_buttons(choices = vt_on, selected = NA, input_var = "vt_sub_out")
-            vt_sub_in <- make_fat_radio_buttons(choices = vt_other, selected = NA, input_var = "vt_sub_in")
-            ht_can_sub <- length(ht_sub_in) > 0
-            vt_can_sub <- length(vt_sub_in) > 0
+            vt_can_sub <- length(vt_other) > 0
 
             showModal(vwModalDialog(title = "Miscellaneous", footer = NULL,
                                     tags$p(tags$strong("Match actions")),
                                     fluidRow(column(2, actionButton("undo", "Undo last rally action", class = "undo fatradio")),
-                                             ## only partially implemented
                                              column(2, actionButton("enter_code", "Enter scout code", class = "fatradio"), tags$span(style = "font-size:small;", "Only non-skill codes are supported")),
                                              column(2, actionButton("end_of_set_confirm", "End of set", class = "fatradio"))),
                                     tags$br(),
@@ -1585,20 +1580,11 @@ ov_scouter_server <- function(app_data) {
                                              column(6, tags$strong(datavolley::visiting_team(rdata$dvw), "(visiting)"))),
                                     fluidRow(column(2, make_fat_buttons(choices = c("Won current rally" = "*p"), input_var = "manual_code")),
                                              column(2, make_fat_buttons(choices = c(Timeout = "*T"), input_var = "manual_code")),
-                                             column(2, offset = 2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "manual_code")),
-                                             column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "manual_code"))),
+                                             column(2, if (ht_can_sub) make_fat_buttons(choices = c(Substitution = "*C"), input_var = "substitution")),
+                                             column(2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "manual_code")),
+                                             column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "manual_code")),
+                                             column(2, if (vt_can_sub) make_fat_buttons(choices = c(Substitution = "aC"), input_var = "substitution"))),
                                     tags$br(),
-                                    fluidRow(column(6, if (ht_can_sub) tags$div(tags$p(tags$strong("Substitution"), "Player out"),
-                                                                                do.call(fixedRow, lapply(ht_sub_out, function(but) column(2, but))),
-                                                                                tags$p("Player in"),
-                                                                                do.call(fixedRow, lapply(ht_sub_in, function(but) column(if (length(ht_other) <= 6) 2 else 1, but))))),
-                                             column(6, if (vt_can_sub) tags$div(tags$p(tags$strong("Substitution"), "Player out"),
-                                                                                do.call(fixedRow, lapply(vt_sub_out, function(but) column(2, but))),
-                                                                                tags$p("Player in"),
-                                                                                do.call(fixedRow, lapply(vt_sub_in, function(but) column(if (length(vt_other) <= 6) 2 else 1, but)))))
-                                             ),
-                                    fluidRow(column(2, offset = 4, if (ht_can_sub) make_fat_buttons(choices = c("Make substitution" = "*C"), input_var = "manual_code")),
-                                             column(2, offset = 4, if (vt_can_sub) make_fat_buttons(choices = c("Make substitution" = "aC"), input_var = "manual_code"))),
                                     tags$hr(),
                                     fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Return to scouting", class = "continue fatradio")))
                                     ))
@@ -1608,6 +1594,42 @@ ov_scouter_server <- function(app_data) {
             editing$active <- NULL
             removeModal()
             do_video("play")
+        })
+
+        observeEvent(input$substitution, {
+            if (!is.null(input$substitution)) {
+                ht_sub <- vt_sub <- FALSE
+                if (input$substitution %eq% "*C") {
+                    ## home player sub buttons
+                    ht_on <- sort(get_players(game_state, team = "*", dvw = rdata$dvw))
+                    ht_other <- setdiff(rdata$dvw$meta$players_h$number, ht_on)
+                    ht_other <- setdiff(ht_other, get_liberos(game_state, team = "*", dvw = rdata$dvw))
+                    ht_sub_out <- make_fat_radio_buttons(choices = ht_on, selected = NA, input_var = "ht_sub_out")
+                    ht_sub_in <- make_fat_radio_buttons(choices = ht_other, selected = NA, input_var = "ht_sub_in")
+                    ht_sub <- TRUE
+                } else {
+                    ## visiting player sub buttons
+                    vt_on <- sort(get_players(game_state, team = "a", dvw = rdata$dvw))
+                    vt_other <- setdiff(rdata$dvw$meta$players_v$number, vt_on)
+                    vt_other <- setdiff(vt_other, get_liberos(game_state, team = "a", dvw = rdata$dvw))
+                    vt_sub_out <- make_fat_radio_buttons(choices = vt_on, selected = NA, input_var = "vt_sub_out")
+                    vt_sub_in <- make_fat_radio_buttons(choices = vt_other, selected = NA, input_var = "vt_sub_in")
+                    vt_sub <- TRUE
+                }
+                showModal(vwModalDialog(title = paste0("Substitution: ", if (ht_sub) paste0(datavolley::home_team(rdata$dvw), " (home)") else paste0(datavolley::visiting_team(rdata$dvw), " (visiting)")), footer = NULL,
+                                        if (ht_sub) tags$div(tags$p(tags$strong("Player out")),
+                                                             do.call(fixedRow, lapply(ht_sub_out, function(but) column(2, but))),
+                                                             tags$p(tags$strong("Player in")),
+                                                             do.call(fixedRow, lapply(ht_sub_in, function(but) column(if (length(ht_other) <= 6) 2 else 1, but)))),
+                                        if (vt_sub) tags$div(tags$p(tags$strong("Player out")),
+                                                             do.call(fixedRow, lapply(vt_sub_out, function(but) column(2, but))),
+                                                             tags$p(tags$strong("Player in")),
+                                                             do.call(fixedRow, lapply(vt_sub_in, function(but) column(if (length(vt_other) <= 6) 2 else 1, but)))),
+                                        tags$hr(),
+                                        fixedRow(column(2, offset = 8, make_fat_buttons(choices = c("Make substitution" = if (ht_sub) "*C" else "aC"), input_var = "manual_code", class = "continue")),
+                                                 column(2, actionButton("admin_dismiss", "Cancel", class = "cancel fatradio")))
+                                        ))
+            }
         })
 
         show_review_pane <- function() {
