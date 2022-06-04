@@ -28,28 +28,6 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     dots <- list(...)
     dv_read_args <- dots[names(dots) %in% names(formals(datavolley::dv_read))] ## passed to dv_read
     other_args <- dots[!names(dots) %in% names(formals(datavolley::dv_read))] ## passed to the server and UI
-    fchoose <- function(caption, path) {
-        if (requireNamespace("rstudioapi", quietly = TRUE) && tryCatch({ rstudioapi::versionInfo(); TRUE }, error = function(e) FALSE)) {
-            fchoosefun <- function(caption, path) rstudioapi::selectFile(caption = caption, path = if (missing(path)) getwd() else path)
-        } else {
-            if (.Platform$OS.type == "windows") {
-                fchoosefun <- function(caption, path) utils::choose.files(caption = caption, multi = FALSE, default = if (missing(path)) "" else file.path(path, "*"))
-            } else {
-                if (!interactive()) {
-                    ## file.choose won't work non-interactively (e.g. started via Rscript)
-                    if (!requireNamespace("tcltk", quietly = TRUE)) {
-                        stop("the tcltk package is required")
-                    }
-                    fchoosefun <- function(caption, path) tcltk::tk_choose.files(caption = caption, multi = FALSE, default = if (missing(path)) "" else file.path(path, "*"))
-                } else {
-                    cat(caption, "\n"); flush.console()
-                    fchoosefun <- function(caption, path) file.choose()
-                }
-            }
-        }
-        fchoosefun(caption = caption, path = path)
-    }
-
     if ((missing(dvw) || is.null(dvw))) {
         if (prompt_for_files) {
             dvw <- tryCatch({
