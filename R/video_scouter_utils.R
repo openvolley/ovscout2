@@ -449,7 +449,14 @@ guess_attack_player_options <- function(game_state, dvw, system) {
     attacking_team <- game_state$current_team
     home_visiting <- if (game_state$current_team %eq% "*") "home" else "visiting"
     setter_rot <- game_state[[paste0(home_visiting, "_setter_position")]]
-    attacking_zone <- dv_xy2zone(game_state$start_x, game_state$start_y)
+    this_y <- game_state$start_y
+    ## adjust the y-coordinate: back row attacks are likely to be clicked just in front of the 3m line, and dv_xy2zone will assign them a front-row zone
+    ##cat("attack y was: ", this_y)
+    y_margin <- 0.33 ## in court units, so 0.33 * 3 = about 1m in real court coordinates
+    if (this_y < (2.5 + y_margin)) this_y <- this_y - y_margin else if (this_y > (4.5 - y_margin)) this_y <- this_y + y_margin
+    ##cat(", now:", this_y, "\n")
+    attacking_zone <- dv_xy2zone(game_state$start_x, this_y)
+    ##cat("attack zone: ", attacking_zone, "\n")
     ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
     attacking_responsibility <- player_responsibility_fn(system = system, skill = "Attack", setter_position = setter_rot, zone = attacking_zone, libs = NULL, home_visiting = home_visiting, serving = game_state$serving %eq% attacking_team)
 
@@ -485,7 +492,7 @@ guess_attack_code <- function(game_state, dvw, home_end, opts) {
     ## the start location in the attack table is a bit in front of the 3m line for back-row attacks
     ## shift our y-location forwards a bit to reduce risk of our front-row click looking like it's nearest to a back-row location
     ## TODO, better solution than this
-    thisxy[2] <- thisxy[2] + 0.3
+    thisxy[2] <- thisxy[2] + 0.33 ## 0.33 = about 1m in real court space. See same adjustment in guess_attack_player_options
     d <- sqrt((atbl$start_x - thisxy[1])^2 + (atbl$start_y - thisxy[2])^2)
     ## if setter is back row, slides are unlikely
     ## TODO what happens with beach?
