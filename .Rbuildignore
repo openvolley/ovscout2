@@ -2,7 +2,7 @@
 ^\.Rproj\.user$
 ^README\.Rmd$
 ^README\.html$
-standalone
-docs/
+^standalone/
+^docs/
 ^\.github$
 ^codecov.yml$
