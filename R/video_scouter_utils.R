@@ -665,7 +665,7 @@ get_teams_from_dvw_dir <- function(season) {
                shirt_colour = stringr::str_to_lower(.data$shirt_colour))
 
     csu <- function(z) paste(unique(na.omit(z)), collapse = ", ") ## comma-separated unique values
-    team_list <- team_list %>% group_by(team_id) %>% dplyr::summarize(team = csu(.data$team), coach = csu(.data$coach), assistant = csu(.data$assistant), shirt_colour = most_common_value(.data$shirt_colour, na.rm = TRUE)) %>% ungroup
+    team_list <- team_list %>% group_by(.data$team_id) %>% dplyr::summarize(team = csu(.data$team), coach = csu(.data$coach), assistant = csu(.data$assistant), shirt_colour = most_common_value(.data$shirt_colour, na.rm = TRUE)) %>% ungroup
     ##  team_list <- left_join(left_join(left_join(aggregate(team ~ team_id, data = team_list, FUN = paste, collapse = ", "),
     ##                                             aggregate(coach ~ team_id, data = team_list, FUN = paste, collapse = ", "), by = "team_id"),
     ##                                   aggregate(assistant ~ team_id, data = team_list, FUN = paste, collapse = ", "), by = "team_id"),

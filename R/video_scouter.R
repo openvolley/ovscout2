@@ -6,6 +6,7 @@
 #' @param season_dir string: optional path to a directory with other dvw/ovs files from this season
 #' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
 #' @param ball_path logical: if `TRUE`, show the ball path on the court inset diagram. Note that this will slow the app down slightly
+#' @param playlist_display_option string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)
 #' @param review_pane logical: if `TRUE`, entry popups will be accompanied by a small video pane that shows a loop of the video of the action in question
 #' @param scouting_options list: a named list with entries as per [ov_scouter_options()]
 #' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)

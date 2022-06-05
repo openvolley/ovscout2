@@ -36,6 +36,8 @@ ov_scouter(
 
 \item{review_pane}{logical: if \code{TRUE}, entry popups will be accompanied by a small video pane that shows a loop of the video of the action in question}
 
+\item{playlist_display_option}{string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)}
+
 \item{scouting_options}{list: a named list with entries as per \code{\link[=ov_scouter_options]{ov_scouter_options()}}}
 
 \item{default_scouting_table}{tibble: the table of scouting defaults (skill type and evaluation)}

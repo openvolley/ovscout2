@@ -7,7 +7,7 @@ most_common_value <- function(x, na.rm = FALSE) {
     ux <- unique(x)
     if (na.rm) {
         ux <- ux[!is.na(ux)]
-        if (length(ux)<1) ux <- as(NA, class(x))
+        if (length(ux)<1) ux <- methods::as(NA, class(x))
     }
     ux[which.max(tabulate(match(x, ux)))]
 }
