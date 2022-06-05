@@ -44,7 +44,11 @@ for (pkg in names(depsl)) {
         cat(sprintf("Installing package: %s\n", pkg))
         install.packages(pkg)
     }, error = function(e) {
-        stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
+        if (!requireNamespace(pkg, quietly = TRUE)) {
+            stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
+        } else {
+            warning("Could not update the ", pkg, " package. The error message was: ", conditionMessage(e))
+        }
     })
 }
 
