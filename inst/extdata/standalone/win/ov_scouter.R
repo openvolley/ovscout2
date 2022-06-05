@@ -70,21 +70,21 @@ if (FALSE) {
     ## skip this for the time being pending more testing
     dR0 <- dR1 <- NULL
     tryCatch({
-        dR0 <- digest::digest("ov_scouter.R", file = TRUE)
+        dR0 <- digest::digest(file.path(mypath, "ov_scouter.R"), file = TRUE)
         dR1 <- digest::digest(system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2"), file = TRUE)
     }, error = function(e) {
         warning("could not update ov_scouter.R")
     })
     db0 <- db1 <- NULL
     tryCatch({
-        db0 <- digest::digest("ov_scouter.bat", file = TRUE)
+        db0 <- digest::digest(file.path(mypath, "ov_scouter.bat"), file = TRUE)
         db1 <- digest::digest(system.file("extdata/standalone/win/ov_scouter.bat", package = "ovscout2"), file = TRUE)
     }, error = function(e) {
         warning("could not update ov_scouter.bat")
     })
     if ((!is.null(dR0) && !is.null(dR1) && dR0 != dR1) || (!is.null(db0) && !is.null(db1) && db0 != db1)) {
-        file.copy(system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2"), "ov_scouter.R", overwrite = TRUE)
-        file.copy(system.file("extdata/standalone/win/ov_scouter.bat", package = "ovscout2"), "ov_scouter.bat", overwrite = TRUE)
+        file.copy(system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2"), file.path(mypath, "ov_scouter.R"), overwrite = TRUE)
+        file.copy(system.file("extdata/standalone/win/ov_scouter.bat", package = "ovscout2"), file.path(mypath,"ov_scouter.bat"), overwrite = TRUE)
         stop("ovscout2 updated. Please re-launch it!")
     }
 }
