@@ -44,7 +44,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
 
     output$switch_serving_ui <- renderUI({
         if (rally_state() %in% c("click or unpause the video to start", "click serve start")) {
-            actionButton(ns("switch_serving"), "Switch serving team")
+            actionButton(ns("switch_serving"), HTML("Switch<br />serving team"))
         } else {
             ## can't switch serving team once the rally has started
             NULL
