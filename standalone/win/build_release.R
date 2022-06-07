@@ -15,6 +15,7 @@ this_release <- paste0("v", this_release)
 
 ## 0. copy the bat and startup files into standalone/win
 file.copy("inst/extdata/standalone/win/ov_scouter.bat", "standalone/win", overwrite = TRUE)
+file.copy("inst/extdata/standalone/win/ov_scouter_demo.bat", "standalone/win", overwrite = TRUE)
 file.copy("inst/extdata/standalone/win/ov_scouter.R", "standalone/win", overwrite = TRUE)
 
 setwd("standalone/win")
@@ -45,16 +46,17 @@ if (length(dir(ffmpeg_dir, recursive = TRUE, pattern = "ffmpeg\\.exe")) < 1) {
     dl_url <- "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
     zipname <- file.path(ffmpeg_dir, basename(dl_url))
     err <- utils::download.file(dl_url, destfile = zipname, mode = "wb")
-    if (!err) utils::unzip(zipname, exdir = ffmpeg_dir)
-    if (length(dir(ffmpeg_dir, recursive = TRUE, pattern = "ffmpeg\\.exe")) < 1) stop("ffmpeg install failed")
+    if (!err) utils::unzip(zipname, exdir = ffmpeg_dir, files = file.path("ffmpeg-master-latest-win64-gpl", c("LICENSE.txt", "bin/ffmpeg.exe")))
+    unlink(file.path(ffmpeg_dir, basename(dl_url))) ## delete the zip file
 }
+if (length(dir(ffmpeg_dir, recursive = TRUE, pattern = "ffmpeg\\.exe")) < 1) stop("ffmpeg install failed")
 
 ## install packages to our lib dir
 old_libpaths <- .libPaths()
 .libPaths(c(libdir, "R-Portable/App/R-Portable/library")) ## probably fragile
-## this takes ages if installing from scratch
 install.packages(c("remotes", "fs", "base64enc"), lib = libdir)
-remotes::install_github("openvolley/ovscout2", lib = libdir)
+## don't bundle pkgs to save zip size, install on first run
+##remotes::install_github("openvolley/ovscout2", lib = libdir)
 
 ## zip everything up
 zipfile <- tempfile(fileext = ".zip")
@@ -66,7 +68,7 @@ if (res == 0L) {
     stop("zip failed with error code ", res)
 }
 
-file.copy(zipfile, "releases/ovscout2-x64.zip")
+file.copy(zipfile, "ovscout2-x64.zip")
 
 setwd(pwd)
 .libPaths(old_libpaths)

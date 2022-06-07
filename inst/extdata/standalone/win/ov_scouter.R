@@ -38,36 +38,35 @@ for (pkg in names(depsl)) {
 }
 
 ## we will always attempt to install these, so that they are always updated
-depsl <- list(ovscout2 = NA)
-for (pkg in names(depsl)) {
-    tryCatch({
-        cat(sprintf("Installing package: %s\n", pkg))
-        install.packages(pkg)
-    }, error = function(e) {
-        if (!requireNamespace(pkg, quietly = TRUE)) {
-            stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
-        } else {
-            warning("Could not update the ", pkg, " package. The error message was: ", conditionMessage(e))
-        }
-    })
-}
-
-##github_deps <- c("openvolley/ovscout2")
-##for (pkg in github_deps) {
+##depsl <- list(ovscout2 = NA)
+##for (pkg in names(depsl)) {
 ##    tryCatch({
-##        remotes::install_github(pkg)
+##        cat(sprintf("Installing package: %s\n", pkg))
+##        install.packages(pkg)
 ##    }, error = function(e) {
-##        if (!requireNamespace(basename(pkg), quietly = TRUE)) {
+##        if (!requireNamespace(pkg, quietly = TRUE)) {
 ##            stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
+##        } else {
+##            warning("Could not update the ", pkg, " package. The error message was: ", conditionMessage(e))
 ##        }
 ##    })
 ##}
 
+github_deps <- c("openvolley/ovscout2")
+for (pkg in github_deps) {
+    tryCatch({
+        remotes::install_github(pkg)
+    }, error = function(e) {
+        if (!requireNamespace(basename(pkg), quietly = TRUE)) {
+            stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
+        }
+    })
+}
+
 options(repos = optsave) ## restore
 
 ## also try and update this file (ov_scouter.R) and ov_scouter.bat from the potentially-reinstalled ovscout2 pkg
-if (FALSE) {
-    ## skip this for the time being pending more testing
+if (TRUE) {
     dR0 <- dR1 <- NULL
     tryCatch({
         dR0 <- digest::digest(file.path(mypath, "ov_scouter.R"), file = TRUE)
@@ -82,9 +81,17 @@ if (FALSE) {
     }, error = function(e) {
         warning("could not update ov_scouter.bat")
     })
-    if ((!is.null(dR0) && !is.null(dR1) && dR0 != dR1) || (!is.null(db0) && !is.null(db1) && db0 != db1)) {
+    dbd0 <- dbd1 <- NULL
+    tryCatch({
+        dbd0 <- digest::digest(file.path(mypath, "ov_scouter_demo.bat"), file = TRUE)
+        dbd1 <- digest::digest(system.file("extdata/standalone/win/ov_scouter_demo.bat", package = "ovscout2"), file = TRUE)
+    }, error = function(e) {
+        warning("could not update ov_scouter_demo.bat")
+    })
+    if ((!is.null(dR0) && !is.null(dR1) && dR0 != dR1) || (!is.null(db0) && !is.null(db1) && db0 != db1) || (!is.null(dbd0) && !is.null(dbd1) && dbd0 != dbd1)) {
         file.copy(system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2"), file.path(mypath, "ov_scouter.R"), overwrite = TRUE)
         file.copy(system.file("extdata/standalone/win/ov_scouter.bat", package = "ovscout2"), file.path(mypath,"ov_scouter.bat"), overwrite = TRUE)
+        file.copy(system.file("extdata/standalone/win/ov_scouter_demo.bat", package = "ovscout2"), file.path(mypath,"ov_scouter_demo.bat"), overwrite = TRUE)
         stop("ovscout2 updated. Please re-launch it!")
     }
 }
@@ -127,8 +134,10 @@ library(ovscout2)
 ## check args
 dvw <- video_file <- season_dir <- NULL
 for (rg in na.omit(rgs[-1])) {
-    ## if we've been given a directory, treat it as the season_dir parm
-    if (tryCatch(fs::is_dir(rg), error = function(e) FALSE)) {
+    if (rg %in% "demo") {
+        dvw <- "demo"
+    } else if (tryCatch(fs::is_dir(rg), error = function(e) FALSE)) {
+        ## if we've been given a directory, treat it as the season_dir parm
         season_dir <- rg
     } else if (grepl("\\.(ovs|dvw)$", rg, ignore.case = TRUE)) {
         dvw <- rg
