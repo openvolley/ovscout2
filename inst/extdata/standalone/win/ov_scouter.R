@@ -52,7 +52,7 @@ for (pkg in names(depsl)) {
 ##    })
 ##}
 
-github_deps <- c("openvolley/ovscout2")
+github_deps <- c("openvolley/ovscout2@dev")
 for (pkg in github_deps) {
     tryCatch({
         remotes::install_github(pkg)
