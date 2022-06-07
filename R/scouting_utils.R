@@ -360,7 +360,7 @@ update_meta <- function(x, set_ended = FALSE) {
             }
             ## subs
             all_home_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set_number == si & !grepl(">LUp", x$plays2$code, ignore.case = TRUE)), paste0("home_p", pseq)]))))
-            home_subs <- setdiff(all_home_pl, home_starting_lineup)
+            home_subs <- na.omit(setdiff(all_home_pl, home_starting_lineup))
             x$meta$players_h[[paste0("starting_position_set", si)]][x$meta$players_h$number %in% home_subs] <- "*"
             ## visiting team
             visiting_starting_lineup <- as.numeric(x$plays2[final_lup_row, paste0("visiting_p", pseq)])
@@ -370,7 +370,7 @@ update_meta <- function(x, set_ended = FALSE) {
             }
             ## subs
             all_visiting_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set_number == si & !grepl(">LUp", x$plays2$code, ignore.case = TRUE)), paste0("visiting_p", pseq)]))))
-            visiting_subs <- setdiff(all_visiting_pl, visiting_starting_lineup)
+            visiting_subs <- na.omit(setdiff(all_visiting_pl, visiting_starting_lineup))
             x$meta$players_v[[paste0("starting_position_set", si)]][x$meta$players_v$number %in% visiting_subs] <- "*"
         }
     }

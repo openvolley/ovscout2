@@ -143,12 +143,13 @@ game_state_make_substitution <- function(game_state, team, player_out, player_in
     lup_cols <- if (team == "*") paste0("home_p", pseq) else paste0("visiting_p", pseq)
     this_lup <- as.numeric(reactiveValuesToList(game_state)[lup_cols])
     available_players <- if (team == "*") dvw$meta$players_h$number else dvw$meta$players_v$number
+    available_players <- na.omit(available_players)
     if (!player_out %in% this_lup) {
         message("player being subbed out is not on court, ignoring sub")
     } else if (player_in %in% this_lup) {
         message("player being subbed in is already on court, ignoring sub")
-    ##} else if (!player_in %in% available_players) {
-    ##    message("player being subbed in is not in player list, ignoring sub")
+    } else if (!player_in %in% available_players) {
+        message("player being subbed in is not in player list, ignoring sub")
     } else {
         this_lup[this_lup == player_out] <- player_in
         for (i in seq_along(lup_cols)) game_state[[lup_cols[i]]] <- this_lup[i]
@@ -306,7 +307,7 @@ get_liberos <- function(game_state, team, dvw) {
         ## if those aren't specified, we take the liberos from the player lists
         if (team == "*") {
             if (!all(paste0("ht_lib", 1:2) %in% names(game_state)) || (is.na(game_state$ht_lib1) && is.na(game_state$ht_lib2))) {
-                dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"]
+                na.omit(dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"])
             } else {
                 out <- c(game_state$ht_lib1, game_state$ht_lib2)
                 ## note that -1 means no libero used
@@ -314,7 +315,7 @@ get_liberos <- function(game_state, team, dvw) {
             }
         } else if (team == "a") {
             if (!all(paste0("vt_lib", 1:2) %in% names(game_state)) || (is.na(game_state$vt_lib1) && is.na(game_state$vt_lib2))) {
-                dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"]
+                na.omit(dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"])
             } else {
                 out <- c(game_state$vt_lib1, game_state$vt_lib2)
                 out[!is.na(out) & out >= 0]
@@ -340,6 +341,7 @@ get_players <- function(game_state, team, dvw) {
 player_nums_to <- function(nums, team, dvw, to = "number lastname") {
     to <- match.arg(to, c("name", "number lastname"))
     temp_players <- if (team == "*") dvw$meta$players_h else if (team == "a") dvw$meta$players_v else stop("team should be '*' or 'a'")
+    temp_players <- temp_players %>% dplyr::filter(!is.na(.data$number))
     temp <- left_join(tibble(number = nums), temp_players[, c("number", if (to == "name") "name", if (to == "number lastname") "lastname", "special_role")], by = "number")
     if (to == "name") {
         temp$name[is.na(temp$name)] <- ""

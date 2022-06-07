@@ -71,15 +71,15 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     ## go to some effort to reduce redraws of the court plot
     plot_data <- reactive({
         htrot <- tibble(number = get_players(game_state, team = "*", dvw = rdata$dvw))
-        htrot <- dplyr::left_join(htrot, rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
+        htrot <- dplyr::left_join(htrot, dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
         vtrot <- tibble(number = get_players(game_state, team = "a", dvw = rdata$dvw))
-        vtrot <- dplyr::left_join(vtrot, rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
+        vtrot <- dplyr::left_join(vtrot, dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
         ht_setter <- get_setter(game_state, team = "*")
         ht_libxy <- vt_libxy <- NULL
         libs <- get_liberos(game_state, team = "*", dvw = rdata$dvw)
         if (length(libs)) {
             ht_libxy <- tibble(number = libs) %>%
-                dplyr::left_join(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
+                dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             ht_libxy$pos <- c(5, 7)[seq_len(nrow(ht_libxy))]
             ht_libxy <- cbind(dv_xy(ht_libxy$pos, end = "lower"), ht_libxy) %>% mutate(x = case_when(game_state$home_team_end != "lower" ~ .data$x - 1,
                                                                                                      game_state$home_team_end == "lower" ~ .data$x + 3))
@@ -88,7 +88,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         libs <- get_liberos(game_state, team = "a", dvw = rdata$dvw)
         if (length(libs)) {
             vt_libxy <- tibble(number = libs) %>%
-                dplyr::left_join(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], by = "number")
+                dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             vt_libxy$pos <- c(1, 9)[seq_len(nrow(vt_libxy))]
             vt_libxy <- cbind(dv_xy(vt_libxy$pos, end = "upper"), vt_libxy) %>% mutate(x = case_when(game_state$home_team_end != "lower" ~ .data$x - 1,
                                                                                                      game_state$home_team_end == "lower" ~ .data$x + 3))
@@ -299,13 +299,17 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                 dplyr::filter(grepl(">LUp", .data$code)) %>% dplyr::slice_tail(n = 1)
             if (nrow(temp) == 1) {
                 ht_def_lup <- as.integer(temp[, c(paste0("home_p", pseq), "ht_lib1", "ht_lib2")])
+                ht_setter <- tryCatch(as.integer(ht_def_lup[[temp$home_setter_position]]), error = function(e) NA_integer_)
                 vt_def_lup <- as.integer(temp[, c(paste0("visiting_p", pseq), "vt_lib1", "vt_lib2")])
+                vt_setter <- tryCatch(as.integer(vt_def_lup[[temp$visiting_setter_position]]), error = function(e) NA_integer_)
             } else {
                 temp <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == (max(rdata$dvw$plays2$set_number, na.rm = TRUE) - 1L)) %>% ## previous set
                     dplyr::filter(grepl(">LUp", .data$code)) %>% dplyr::slice_tail(n = 1)
                 if (nrow(temp) == 1) {
                     ht_def_lup <- as.integer(temp[, c(paste0("home_p", pseq), "ht_lib1", "ht_lib2")])
+                    ht_setter <- tryCatch(as.integer(ht_def_lup[[temp$home_setter_position]]), error = function(e) NA_integer_)
                     vt_def_lup <- as.integer(temp[, c(paste0("visiting_p", pseq), "vt_lib1", "vt_lib2")])
+                    vt_setter <- tryCatch(as.integer(vt_def_lup[[temp$visiting_setter_position]]), error = function(e) NA_integer_)
                 }
             }
         }
@@ -355,9 +359,19 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
 
     output$edit_lineup_commit_ui <- renderUI({
         htok <- nzchar(input$ht_P1) && nzchar(input$ht_P2)
-        if (!beach) htok <- htok && nzchar(input$ht_P3) && nzchar(input$ht_P4) && nzchar(input$ht_P5) && nzchar(input$ht_P6) && nzchar(input$ht_setter)
+        if (!beach) {
+            htok <- htok && nzchar(input$ht_P3) && nzchar(input$ht_P4) && nzchar(input$ht_P5) && nzchar(input$ht_P6) && nzchar(input$ht_setter)
+            htok <- htok && input$ht_setter %in% c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6)
+            if (nzchar(input$ht_libero1)) htok <- htok && !input$ht_libero1 %in% c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6)
+            if (nzchar(input$ht_libero2)) htok <- htok && !input$ht_libero2 %in% c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6)
+        }
         vtok <- nzchar(input$vt_P1) && nzchar(input$vt_P2)
-        if (!beach) vtok <- vtok && nzchar(input$vt_P3) && nzchar(input$vt_P4) && nzchar(input$vt_P5) && nzchar(input$vt_P6) && nzchar(input$vt_setter)
+        if (!beach) {
+            vtok <- vtok && nzchar(input$vt_P3) && nzchar(input$vt_P4) && nzchar(input$vt_P5) && nzchar(input$vt_P6) && nzchar(input$vt_setter)
+            vtok <- vtok && input$vt_setter %in% c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6)
+            if (nzchar(input$vt_libero1)) vtok <- vtok && !input$vt_libero1 %in% c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6)
+            if (nzchar(input$vt_libero2)) vtok <- vtok && !input$vt_libero2 %in% c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6)
+        }
         if (htok && vtok) actionButton("edit_commit", label = "Update teams lineups", class = "continue") else NULL
     })
 

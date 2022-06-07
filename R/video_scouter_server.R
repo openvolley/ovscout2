@@ -298,20 +298,41 @@ ov_scouter_server <- function(app_data) {
             ## TODO better
             rosters_ok <- !is.null(rdata$dvw$meta$players_h) && length(na.omit(rdata$dvw$meta$players_h$number)) >= length(pseq) &&
                 !is.null(rdata$dvw$meta$players_v) && length(na.omit(rdata$dvw$meta$players_v$number)) >= length(pseq)
+            if (rosters_ok) {
+                ## more checks
+                rtxt <- character()
+                if (any(duplicated(rdata$dvw$meta$players_h$number) & !is.na(rdata$dvw$meta$players_h$number))) rtxt <- c(rtxt, "At least one home team player number is duplicated.")
+                if (any(duplicated(rdata$dvw$meta$players_v$number) & !is.na(rdata$dvw$meta$players_v$number))) rtxt <- c(rtxt, "At least one visiting team player number is duplicated.")
+                rosters_ok <- if (length(rtxt)) paste(rtxt, sep = " ") else TRUE
+            }
             ## check lineups
             lineups_ok <- TRUE
             ## need to see non-NA, non-NULL entries in game_state
             for (pp in pseq) lineups_ok <- lineups_ok && notnn(game_state[[paste0("home_p", pp)]]) && notnn(game_state[[paste0("visiting_p", pp)]])
-            if (!app_data$is_beach) lineups_ok <- lineups_ok && notnn(game_state$home_setter_position) && notnn(game_state$visiting_setter_position)
             ## also need to see >LUp lines for this set in plays2
             temp_set_idx <- rdata$dvw$plays2$set_number %eq% game_state$set_number
             lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^\\*P[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) >= 1)
             lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^\\*z[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) >= 1)
             lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^aP[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) >= 1)
             lineups_ok <- lineups_ok && (sum(temp_set_idx & grepl("^az[[:digit:]]+>LUp", rdata$dvw$plays2$code), na.rm = TRUE) >= 1)
+            if (lineups_ok) {
+                ltxt <- character()
+                if (!app_data$is_beach) {
+                    if (!notnn(game_state$home_setter_position)) ltxt <- c(ltxt, "The home setter has not been specified (or is not in the lineup).")
+                    if (!notnn(game_state$visiting_setter_position)) ltxt <- c(ltxt, "The visiting setter has not been specified (or is not in the lineup).")
+                    ## make sure libero is not listed on court
+                    for (pp in pseq) {
+                        if (!is.na(game_state$ht_lib1) && game_state$ht_lib1 >= 0 && !is.null(game_state[[paste0("home_p", pp)]]) && game_state[[paste0("home_p", pp)]] %eq% game_state$ht_lib1) ltxt <- c(ltxt, "Home team libero 1 is also listed in the on-court lineup.")
+                        if (!is.na(game_state$ht_lib2) && game_state$ht_lib2 >= 0 && !is.null(game_state[[paste0("home_p", pp)]]) && game_state[[paste0("home_p", pp)]] %eq% game_state$ht_lib2) ltxt <- c(ltxt, "Home team libero 2 is also listed in the on-court lineup.")
+                        if (!is.na(game_state$vt_lib1) && game_state$vt_lib1 >= 0 && !is.null(game_state[[paste0("visiting_p", pp)]]) && game_state[[paste0("visiting_p", pp)]] %eq% game_state$vt_lib1) ltxt <- c(ltxt, "Visiting team libero 1 is also listed in the on-court lineup.")
+                        if (!is.na(game_state$vt_lib2) && game_state$vt_lib2 >= 0 && !is.null(game_state[[paste0("visiting_p", pp)]]) && game_state[[paste0("visiting_p", pp)]] %eq% game_state$vt_lib2) ltxt <- c(ltxt, "Visiting team libero 2 is also listed in the on-court lineup.")
+                    }
+                }
+                lineups_ok <- if (length(ltxt)) paste(ltxt, sep = " ") else TRUE
+            }
             ## check courtref
             courtref_ok <- !is.null(detection_ref()$court_ref)
-            ok <- teams_ok && lineups_ok && rosters_ok && courtref_ok
+            ok <- teams_ok && isTRUE(lineups_ok) && isTRUE(rosters_ok) && courtref_ok
             meta_is_valid(ok)
             output$problem_ui <- renderUI({
                 if (!ok) {
@@ -320,8 +341,8 @@ ov_scouter_server <- function(app_data) {
                              tags$ul(
                                       if (!courtref_ok) tags$li("Use the 'Court reference' button to define the court reference."),
                                       if (!teams_ok) tags$li("Use the 'Select teams' button to choose from existing teams, or 'Edit teams' to enter new ones."),
-                                      if (!rosters_ok) tags$li("Use the 'Edit teams' button to enter the team rosters."),
-                                      if (!lineups_ok) tags$li(paste0("Use the 'Edit lineups' to enter starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), "."))
+                                      if (!isTRUE(rosters_ok)) tags$li(if (is.character(rosters_ok)) paste0(rosters_ok, " "), "Use the 'Edit teams' button to enter or adjust the team rosters."),
+                                      if (!isTRUE(lineups_ok)) tags$li(if (is.character(lineups_ok)) paste0(lineups_ok, " "), paste0("Use the 'Edit lineups' to enter or adjust the starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), "."))
                                   ),
                              tags$hr(),
                              tags$p("Scouting cannot start until this information has been entered.")
@@ -651,7 +672,11 @@ ov_scouter_server <- function(app_data) {
                     ## we pre-select either the passer, or the error type, depending on whether we thought it was an error or not
                     serve_outcome_initial_buttons <- make_fat_radio_buttons(choices = c("Serve error" = "=", "Reception error (serve ace)" = "S#", "Reception in play" = "R~"), input_var = "serve_initial_outcome", selected = if (!is.na(guess_was_err)) "=" else "R~")
                     serve_error_type_buttons <- make_fat_radio_buttons(choices = c("In net" = "=N", "Foot fault/referee call" = "=Z", "Out long" = "=O", "Out left" = "=L", "Out right" = "=R"), selected = if (!is.na(guess_was_err)) guess_was_err else NA, input_var = "serve_error_type", as_radio = "blankable")
+                    cat("chc: ", capture.output(pass_pl_opts$choices), "\n")
+                    cat("sel: ", capture.output(pass_pl_opts$selected), "\n")
+                    
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "pass_player")
+                    cat("ok\n")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                                    tags$p(tags$strong("Serve type:")),
                                                    do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),
@@ -1560,12 +1585,12 @@ ov_scouter_server <- function(app_data) {
         show_admin_modal <- function() {
             ## can home team make a sub?
             ht_on <- sort(get_players(game_state, team = "*", dvw = rdata$dvw))
-            ht_other <- setdiff(rdata$dvw$meta$players_h$number, ht_on)
+            ht_other <- setdiff(na.omit(rdata$dvw$meta$players_h$number), ht_on)
             ht_other <- setdiff(ht_other, get_liberos(game_state, team = "*", dvw = rdata$dvw))
             ht_can_sub <- length(ht_other) > 0
             ## and visiting team?
             vt_on <- sort(get_players(game_state, team = "a", dvw = rdata$dvw))
-            vt_other <- setdiff(rdata$dvw$meta$players_v$number, vt_on)
+            vt_other <- setdiff(na.omit(rdata$dvw$meta$players_v$number), vt_on)
             vt_other <- setdiff(vt_other, get_liberos(game_state, team = "a", dvw = rdata$dvw))
             vt_can_sub <- length(vt_other) > 0
 
@@ -1632,7 +1657,7 @@ ov_scouter_server <- function(app_data) {
                 if (input$substitution %eq% "*C") {
                     ## home player sub buttons
                     ht_on <- sort(get_players(game_state, team = "*", dvw = rdata$dvw))
-                    ht_other <- setdiff(rdata$dvw$meta$players_h$number, ht_on)
+                    ht_other <- setdiff(na.omit(rdata$dvw$meta$players_h$number), ht_on)
                     ht_other <- setdiff(ht_other, get_liberos(game_state, team = "*", dvw = rdata$dvw))
                     ht_sub_out <- make_fat_radio_buttons(choices = ht_on, selected = NA, input_var = "ht_sub_out")
                     ht_sub_in <- make_fat_radio_buttons(choices = ht_other, selected = NA, input_var = "ht_sub_in")
@@ -1640,7 +1665,7 @@ ov_scouter_server <- function(app_data) {
                 } else {
                     ## visiting player sub buttons
                     vt_on <- sort(get_players(game_state, team = "a", dvw = rdata$dvw))
-                    vt_other <- setdiff(rdata$dvw$meta$players_v$number, vt_on)
+                    vt_other <- setdiff(na.omit(rdata$dvw$meta$players_v$number), vt_on)
                     vt_other <- setdiff(vt_other, get_liberos(game_state, team = "a", dvw = rdata$dvw))
                     vt_sub_out <- make_fat_radio_buttons(choices = vt_on, selected = NA, input_var = "vt_sub_out")
                     vt_sub_in <- make_fat_radio_buttons(choices = vt_other, selected = NA, input_var = "vt_sub_in")
