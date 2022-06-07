@@ -194,6 +194,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
                              playslist_highlight = "orange")
 
     this_app <- list(ui = ov_scouter_ui(app_data = app_data), server = ov_scouter_server(app_data = app_data))
+    shiny::addResourcePath("css", system.file("extdata/css", package = "ovscout2"))
+    shiny::addResourcePath("js", system.file("extdata/js", package = "ovscout2"))
     shiny::runApp(this_app, display.mode = "normal", launch.browser = launch_browser)
 }
 
