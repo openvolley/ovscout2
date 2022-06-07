@@ -61,7 +61,7 @@ install.packages(c("remotes", "fs", "base64enc"), lib = libdir)
 ## zip everything up
 zipfile <- tempfile(fileext = ".zip")
 cat("zipping, this will take a while ...\n")
-res <- utils::zip(zipfile, files = c("ov_scouter.bat", "ov_scouter.R", "R-Portable", "lib"))
+res <- utils::zip(zipfile, files = c("ov_scouter.bat", "ov_scouter_demo.bat", "ov_scouter.R", "R-Portable", "lib"))
 if (res == 0L) {
     cat("OK.\n")
 } else {
