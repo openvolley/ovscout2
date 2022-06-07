@@ -731,3 +731,20 @@ minimal_parse_code <- function(codes) {
     parsed <- setNames(as.data.frame(cbind(codes, do.call(rbind, lapply(code_split, function(this) if (nrow(this) < 1) na_row else as.list(this[1, -1]))))), c("code", "team_code", "player_number", "skill_code", "skill_type_code", "evaluation_code"))
     parsed
 }
+
+disambig_names <- function(last, first) {
+    firstinit <- substr(first, 1, 1)
+    didx <- which(last %in% last[duplicated(last)])
+    last[didx] <- paste(firstinit[didx], last[didx])
+    last
+}
+
+names2roster <- function(pm) {
+    pm <- dplyr::arrange(pm, .data$number)
+    pm$lastname <- disambig_names(pm$lastname, pm$firstname)
+    lc <- paste(ifelse(grepl("L", pm$special_role), "L", ""), ifelse(grepl("C", pm$special_role), "C", ""), sep = ",")
+    lc <- sub("^,", "", sub(",$", "", lc))
+    lc[nzchar(lc)] <- paste0(" (", lc[nzchar(lc)], ")")
+    pm$lastname <- paste0(pm$lastname, lc)
+    str_trim(paste0(pm$number, " ", pm$lastname))
+}
