@@ -1513,6 +1513,9 @@ ov_scouter_server <- function(app_data) {
                     if (nchar(ac) == 2) {
                         tempo <- tryCatch(rdata$dvw$meta$attacks$type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
                         targ <- tryCatch(rdata$dvw$meta$attacks$set_type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
+                        ## use the start zone from the attacks combo table
+                        newsz <- tryCatch(rdata$dvw$meta$attacks$attacker_position[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) NA_integer_)
+                        if (newsz %in% 1:9) sz <- newsz
                     } else {
                         ## other attack
                         ac <- "~~" ## no combo code
