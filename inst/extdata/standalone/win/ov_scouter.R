@@ -55,7 +55,8 @@ for (pkg in names(depsl)) {
 github_deps <- c("openvolley/ovscout2@dev")
 for (pkg in github_deps) {
     tryCatch({
-        remotes::install_github(pkg)
+        remotes::install_github(pkg, upgrade = if (!requireNamespace("ovscout2", quietly = TRUE)) "never" else "always")
+        ## don't upgrade dependencies on first install, to reduce the number of packages being installed multiple times
     }, error = function(e) {
         if (!requireNamespace(basename(pkg), quietly = TRUE)) {
             stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
