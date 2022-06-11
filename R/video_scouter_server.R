@@ -1692,7 +1692,16 @@ ov_scouter_server <- function(app_data) {
         show_review_pane <- function() {
             ## use the current video time from the main video
             ## construct the playlist js by hand, because we need to inject the current video time
-            temp <- paste0("var start_t=vidplayer.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", file.path(app_data$video_server_base_url, basename(app_data$video_src)), "','start_time':start_t,'duration':4,'type':'local'}], 'review_player', 'local', true); revpl.set_playback_rate(1.4);")
+            mytype <- "local"
+            if (is_youtube_url(app_data$video_src)) {
+                mysrc <- youtube_url_to_id(app_data$video_src)
+                mytype <- "youtube"
+            } else if (is_url(app_data$video_src)) {
+                mysrc <- app_data$video_src
+            } else {
+                mysrc <- file.path(app_data$video_server_base_url, basename(app_data$video_src))
+            }
+            temp <- paste0("var start_t=vidplayer.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", mysrc, "','start_time':start_t,'duration':4,'type':'", mytype, "'}], 'review_player', '", mytype, "', true); revpl.set_playback_rate(1.4);")
             dojs(temp)
             js_show2("review_pane")
         }
