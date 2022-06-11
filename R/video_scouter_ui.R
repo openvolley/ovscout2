@@ -1,6 +1,7 @@
 ov_scouter_ui <- function(app_data) {
     ## some startup stuff
     running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
+    yt <- isTRUE(is_youtube_url(app_data$video_src))
     fluidPage(theme = shinythemes::shinytheme("lumen"),
               htmltools::findDependencies(shiny::selectizeInput("foo", "bar", choices = "a")), ## workaround for https://github.com/rstudio/shiny/issues/3125
               tags$script("Shiny.addCustomMessageHandler('evaljs', function(jsexpr) { eval(jsexpr) });"), ## handler for running js code directly
@@ -14,6 +15,7 @@ ov_scouter_ui <- function(app_data) {
                         if (!is.null(app_data$css)) tags$style(app_data$css),
                         tags$link(href = if (running_locally) "css/video-js.min.css" else "//vjs.zencdn.net/7.10.2/video-js.min.css", rel = "stylesheet"),
                         tags$script(src = if (running_locally) "js/video.min.js" else "//vjs.zencdn.net/7.10.2/video.min.js"),
+                        if (yt) tags$script(src = "https://cdn.jsdelivr.net/npm/videojs-youtube@2.6.1/dist/Youtube.min.js"), ## for youtube
                         tags$style(".video-js .vjs-big-play-button { display: none; } .bareslider { display:inline-block; margin-left:4px; margin-right:4px;} .bareslider .irs-max, .bareslider .irs-min, .bareslider .irs-single, .bareslider .irs-from, .bareslider .irs-to { display:none; } .bareslider .irs-handle { top:0px; } .bareslider .irs-line { top:7px;} .bareslider .irs-bar {top:8px;}"),
                         ##key press handling
                         tags$script("$(document).on('keypress', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.setInputValue('cmd', e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
@@ -57,9 +59,9 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                   introBox(tags$div(id = "video_holder", style = "position:relative;",
                                                     if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc", styling = app_data$styling)),
                                                     uiOutput("problem_ui"),
-                                                    tags$video(id = "main_video", style = "max-width:100%;", class = "video-js", `data-setup` = "{ \"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true }",
-                                                               tags$source(src = file.path(app_data$video_server_base_url, basename(app_data$video_src))), ##type="video/mp4"
-                                                               tags$p(class = "vjs-no-js", "This app cannot be used without a web browser that", tags$a(href = "https://videojs.com/html5-video-support/", target = "_blank", "supports HTML5 video")))),
+                                                    HTML(paste0("<video id=\"main_video\" style=\"width:100%; height:75vh;\" class=\"video-js\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": ", if (yt) paste0("[{ \"type\": \"video/youtube\", \"src\": \"", app_data$video_src, "\"}]") else paste0("[{ \"src\": \"", file.path(app_data$video_server_base_url, basename(app_data$video_src)), "\"}]"), " }'>\n",
+                                                                "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>"))
+                                                    ),
                                            tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 5, data.intro = "Video of the game to scout."),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
                               fluidRow(column(8,

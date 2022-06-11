@@ -1,7 +1,7 @@
 #' Launch a Shiny app for scouting
 #'
 #' @param dvw string or datavolley: either the path to a dvw or ovs file or a datavolley object (e.g. as returned by [dv_create()]. Passing the file name (not the datavolley object) is required if any extra arguments are passed via `...`. `dvw` can also be an object as saved by `ov_scouter()` in ovs format. If `dvw` is "demo", the app will be started with a demonstration data set
-#' @param video_file string: optionally, the path to the video file. If not supplied (or `NULL`) the video file specified in the dvw file will be used. Provide `video_file = NA` to run the app without a video file
+#' @param video_file string: optionally, the path to the video file. If not supplied (or `NULL`) the video file specified in the dvw file will be used. `video_file` can also be a URL (including a YouTube URL or video ID)
 #' @param court_ref data.frame or string: data.frame with the court reference (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
 #' @param season_dir string: optional path to a directory with other dvw/ovs files from this season
 #' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
@@ -69,9 +69,14 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     if (is.null(dvw$meta$video)) dvw$meta$video <- tibble(camera = character(), file = character())
 
     if (!missing(video_file) && !is.null(video_file) && !is.na(video_file) && nchar(video_file)) {
-        tryCatch({
-            dvw$meta$video <- tibble(camera = "Camera0", file = fs::path_real(video_file))
-        }, error = function(e) stop("the provided video_file (", video_file, ") does not exist"))
+        if (is_youtube_id(video_file)) video_file <- paste0("https://www.youtube.com/watch?v=", video_file)
+        if (is_url(video_file)) {
+                dvw$meta$video <- tibble(camera = "Camera0", file = video_file)
+        } else {
+            tryCatch({
+                dvw$meta$video <- tibble(camera = "Camera0", file = fs::path_real(video_file))
+            }, error = function(e) stop("the provided video_file (", video_file, ") does not exist"))
+        }
     }
     if (nrow(dvw$meta$video) > 1) {
         warning("multiple video files have been specified in the dvw file metadata, using only the first one")
@@ -79,7 +84,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     }
 
     ## if the dvw file came from somebody/somewhere else, we might have the video but the absolute path in the dvw will be wrong
-    if (length(dvw$meta$video$file) == 1) {
+    if (length(dvw$meta$video$file) == 1 && !is_url(dvw$meta$video$file)) {
         chk <- dvw$meta$video$file
         if (!fs::file_exists(as.character(chk))) {
             ## can't find the file, go looking for it
@@ -89,7 +94,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     }
 
     ## has any of that resulted in a video file?
-    if (!(nrow(dvw$meta$video) == 1 && file.exists(dvw$meta$video$file))) {
+    if (!is_url(dvw$meta$video$file) && !(nrow(dvw$meta$video) == 1 && file.exists(dvw$meta$video$file))) {
         if (prompt_for_files) {
             ## allow file chooser to find video file
             video_file <- fchoose(caption = "Choose video file", path = if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
@@ -100,7 +105,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     if (nrow(dvw$meta$video) < 1) {
         stop("no video files specified, either in the dvw file or via the video_file parameter")
     } else {
-        if (!file.exists(dvw$meta$video$file)) stop("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
+        if (!is_url(dvw$meta$video$file) && !file.exists(dvw$meta$video$file)) stop("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
     }
 
     ## look for the court ref data, if it hasn't been provided
@@ -137,7 +142,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     app_data$review_pane <- isTRUE(review_pane)
     app_data$playlist_display_option <- if (!missing(playlist_display_option)) playlist_display_option else 'dv_codes'
     app_data$season_dir <- if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else NULL ## minimal check of the season_dir
-    if (app_data$with_video) {
+    if (app_data$with_video && !is_url(dvw$meta$video$file)) {
         have_lighttpd <- FALSE
         video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001
         tryCatch({
@@ -165,6 +170,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
         }
         app_data$video_server_base_url <- paste0("http://localhost:", video_server_port)
         message(paste0("video server ", video_serve_method, " on port: ", video_server_port))
+    } else {
+        app_data$video_server_base_url <- ""
     }
     ## initialize the plays and plays2 components
     ## if we've started with an empty dvw and done dv_set_lineups, then we'll have an empty tibble for $plays but something in $plays2

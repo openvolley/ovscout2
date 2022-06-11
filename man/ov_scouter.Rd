@@ -24,7 +24,7 @@ ov_scouter(
 \arguments{
 \item{dvw}{string or datavolley: either the path to a dvw or ovs file or a datavolley object (e.g. as returned by \code{\link[=dv_create]{dv_create()}}. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}. \code{dvw} can also be an object as saved by \code{ov_scouter()} in ovs format. If \code{dvw} is "demo", the app will be started with a demonstration data set}
 
-\item{video_file}{string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. Provide \code{video_file = NA} to run the app without a video file}
+\item{video_file}{string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. \code{video_file} can also be a URL (including a YouTube URL or video ID)}
 
 \item{court_ref}{data.frame or string: data.frame with the court reference (as returned by \code{\link[ovideo:ov_shiny_court_ref]{ovideo::ov_shiny_court_ref()}}) or the path to the rds file containing the output from this}
 
