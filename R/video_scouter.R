@@ -94,7 +94,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     }
 
     ## has any of that resulted in a video file?
-    if (!is_url(dvw$meta$video$file) && !(nrow(dvw$meta$video) == 1 && file.exists(dvw$meta$video$file))) {
+    if (!(nrow(dvw$meta$video) == 1 && (file.exists(dvw$meta$video$file) || is_url(dvw$meta$video$file)))) {
         if (prompt_for_files) {
             ## allow file chooser to find video file
             video_file <- fchoose(caption = "Choose video file", path = if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
