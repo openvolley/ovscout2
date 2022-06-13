@@ -38,19 +38,20 @@ At this stage it is entirely experimental. Beware!
     reasonably fast
 -   the scouting process avoids unnecessarily asking for information
     (e.g. information that can be inferred by other means, such as the
-    serving player), and tries to pre-fill as much information as it can
-    at each data entry step. It will learn a team’s patterns of play, so
-    that it can e.g. suggest the most likely player to have attacked,
-    passed or dug a certain ball
+    player next to serve), and tries to pre-fill as much information as
+    it can at each data entry step. It will learn a team’s patterns of
+    play, so that it can suggest the most likely player to have
+    attacked, passed or dug a certain ball
 -   the interface can be tailored for simple or advanced scouting, with
     more details in the latter
 
 This software is intended for scouts who do not have access to
 professional scouting software or who aren’t proficient with it. It is
-an alternative to the many tablet- and phone-based scouting apps, but
-provides more complete match data that is fully dvw compatible, and (we
-hope) is easy to use. It is unlikely to replace professional scouting
-software used by scouts who can already capture match data in real time.
+an alternative to the many available tablet- and phone-based scouting
+apps, but provides more complete match data that is fully dvw
+compatible, and (we hope) is easy to use. It is unlikely to replace
+professional scouting software used by scouts who can already capture
+match data in real time.
 
 ## Usage
 
@@ -59,3 +60,18 @@ To try it on a short match video clip:
 ``` r
 ov_scouter_demo()
 ```
+
+To use with your own data:
+
+``` r
+ov_scouter(video_file = "/path/to/video.mp4")
+```
+
+If you don’t provide the video file path, it will pop up a file
+navigator for you to select one. You can also provide it with a
+partially-scouted `.dvw` or `.ovs` file, to continue scouting where you
+left off.
+
+It relies on having the `ffmpeg` system utility for some functionality.
+You use `ovideo::ov_install_ffmpeg()` to install this if you don’t
+already have it (Windows and Linux only).

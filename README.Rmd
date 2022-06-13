@@ -24,7 +24,7 @@ knitr::opts_chunk$set(
 
 ## Installation
 
-```{r eval=FALSE}
+```{r eval = FALSE}
 ## install.packages("remotes") ## if needed
 remotes::install_github("openvolley/ovscout2")
 
@@ -38,10 +38,10 @@ This R package provides a Shiny app for scouting volleyball data files. At this 
 
 - scouting is always done from video, even when scouting a live match. The hope is that we can make the user interface fast enough to be "nearly real time" - while the scout might lag behind the real action at times, they can catch up at the ends of rallies or other breaks in play
 - by registering the corners of the court before scouting, we can map the court image to real-world court space. Clicking a location on the video can then be converted to its corresponding court coordinates. With a touch-screen device, this click interface can be reasonably fast
-- the scouting process avoids unnecessarily asking for information (e.g. information that can be inferred by other means, such as the serving player), and tries to pre-fill as much information as it can at each data entry step. It will learn a team's patterns of play, so that it can e.g. suggest the most likely player to have attacked, passed or dug a certain ball
+- the scouting process avoids unnecessarily asking for information (e.g. information that can be inferred by other means, such as the player next to serve), and tries to pre-fill as much information as it can at each data entry step. It will learn a team's patterns of play, so that it can suggest the most likely player to have attacked, passed or dug a certain ball
 - the interface can be tailored for simple or advanced scouting, with more details in the latter
 
-This software is intended for scouts who do not have access to professional scouting software or who aren't proficient with it. It is an alternative to the many tablet- and phone-based scouting apps, but provides more complete match data that is fully dvw compatible, and (we hope) is easy to use. It is unlikely to replace professional scouting software used by scouts who can already capture match data in real time.
+This software is intended for scouts who do not have access to professional scouting software or who aren't proficient with it. It is an alternative to the many available tablet- and phone-based scouting apps, but provides more complete match data that is fully dvw compatible, and (we hope) is easy to use. It is unlikely to replace professional scouting software used by scouts who can already capture match data in real time.
 
 ## Usage
 
@@ -51,3 +51,14 @@ To try it on a short match video clip:
 ov_scouter_demo()
 
 ```
+
+To use with your own data:
+
+```{r eval = FALSE}
+ov_scouter(video_file = "/path/to/video.mp4")
+
+```
+
+If you don't provide the video file path, it will pop up a file navigator for you to select one. You can also provide it with a partially-scouted `.dvw` or `.ovs` file, to continue scouting where you left off.
+
+It relies on having the `ffmpeg` system utility for some functionality. You use `ovideo::ov_install_ffmpeg()` to install this if you don't already have it (Windows and Linux only).
