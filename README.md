@@ -15,11 +15,6 @@ coverage](https://codecov.io/gh/openvolley/ovscout2/branch/master/graph/badge.sv
 ## Installation
 
 ``` r
-install.packages("ovscout2", repos = c("https://openvolley.r-universe.dev",
-                                         "https://cloud.r-project.org"))
-
-## or
-
 ## install.packages("remotes") ## if needed
 remotes::install_github("openvolley/ovscout2")
 ```
@@ -29,7 +24,32 @@ remotes::install_github("openvolley/ovscout2")
 This R package provides a Shiny app for scouting volleyball data files.
 At this stage it is entirely experimental. Beware!
 
-For a quick demo on a short match video clip:
+## Principles
+
+-   scouting is always done from video, even when scouting a live match.
+    The hope is that we can make the user interface fast enough to be
+    “nearly real time” - while the scout might lag behind the real
+    action at times, they can catch up at the ends of rallies or other
+    breaks in play
+-   by registering the corners of the court before scouting, we can map
+    the court image to real-world court space. Clicking a location on
+    the video can then be converted to its corresponding court
+    coordinates. With a touch-screen device, this click interface can be
+    reasonably fast
+-   the scouting process avoids unnecessarily asking for information
+    (e.g. information that can be inferred by other means, such as the
+    serving player), and tries to pre-fill as much information as it can
+    at each data entry step. It will learn a team’s passing and
+    defensive patterns, so that it can suggest the most likely player to
+    have passed or dug a certain ball
+
+This software is unlikely to replace professional scouting software used
+by scouts who can already capture match data in real time. But for the
+rest of us …
+
+## Usage
+
+To try it on a short match video clip:
 
 ``` r
 ov_scouter_demo()
