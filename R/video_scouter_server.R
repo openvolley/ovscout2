@@ -23,6 +23,8 @@ ov_scouter_server <- function(app_data) {
 
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
+        have_second_video <- !is.null(app_data$video_src2)
+
         ## initialize the game state
         rally_state <- reactiveVal("click or unpause the video to start")
         rally_codes <- reactiveVal(empty_rally_codes)
@@ -77,10 +79,10 @@ ov_scouter_server <- function(app_data) {
         })
 
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata)
-        detection_ref <- reactiveVal({
-            if (!is.null(app_data$court_ref)) app_data$court_ref else NULL
-        })
-        courtref <- callModule(mod_courtref, id = "courtref", rdata = rdata, app_data = app_data, detection_ref = detection_ref, styling = app_data$styling)
+        detection_ref <- reactiveVal({ if (!is.null(app_data$court_ref)) app_data$court_ref else NULL })
+        courtref <- callModule(mod_courtref, id = "courtref", rdata = rdata, video_src = app_data$video_src, detection_ref = detection_ref, styling = app_data$styling)
+        detection_ref2 <- reactiveVal({ if (!is.null(app_data$court_ref2)) app_data$court_ref2 else NULL })
+        courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", rdata = rdata, video_src = app_data$video_src2, detection_ref = detection_ref2, styling = app_data$styling) else NULL
         if (app_data$scoreboard) {
             tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata)
         }
@@ -331,6 +333,7 @@ ov_scouter_server <- function(app_data) {
             }
             ## check courtref
             courtref_ok <- !is.null(detection_ref()$court_ref)
+            if (have_second_video) courtref_ok <- courtref_ok && !is.null(detection_ref2()$court_ref)
             ok <- teams_ok && isTRUE(lineups_ok) && isTRUE(rosters_ok) && courtref_ok
             meta_is_valid(ok)
             output$problem_ui <- renderUI({

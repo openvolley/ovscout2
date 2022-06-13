@@ -3,7 +3,7 @@ mod_courtref_ui <- function(id) {
     actionButton(ns("do_scref"), "Court reference")
 }
 
-mod_courtref <- function(input, output, session, rdata, app_data, detection_ref, styling) {
+mod_courtref <- function(input, output, session, rdata, video_src, detection_ref, styling) {
     ns <- session$ns
     did_sr_popup <- reactiveVal(0L)
     active <- reactiveVal(FALSE)
@@ -190,7 +190,7 @@ mod_courtref <- function(input, output, session, rdata, app_data, detection_ref,
     crimg <- reactive({
         vt <- if (!is.null(input$video_time) && !is.na(input$video_time)) input$video_time else 10
         tryCatch({
-            image_file <- ovideo::ov_video_frame(normalizePath(app_data$video_src, mustWork = FALSE), vt)
+            image_file <- ovideo::ov_video_frame(normalizePath(video_src, mustWork = FALSE), vt)
             img <- jpeg::readJPEG(image_file, native = TRUE)
             list(image = img, width = dim(img)[2], height = dim(img)[1]) ## TODO could also get framerate here?
         }, error = function(e) {
