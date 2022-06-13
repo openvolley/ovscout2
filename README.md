@@ -39,13 +39,18 @@ At this stage it is entirely experimental. Beware!
 -   the scouting process avoids unnecessarily asking for information
     (e.g. information that can be inferred by other means, such as the
     serving player), and tries to pre-fill as much information as it can
-    at each data entry step. It will learn a team’s passing and
-    defensive patterns, so that it can suggest the most likely player to
-    have passed or dug a certain ball
+    at each data entry step. It will learn a team’s patterns of play, so
+    that it can e.g. suggest the most likely player to have attacked,
+    passed or dug a certain ball
+-   the interface can be tailored for simple or advanced scouting, with
+    more details in the latter
 
-This software is unlikely to replace professional scouting software used
-by scouts who can already capture match data in real time. But for the
-rest of us …
+This software is intended for scouts who do not have access to
+professional scouting software or who aren’t proficient with it. It is
+an alternative to the many tablet- and phone-based scouting apps, but
+provides more complete match data that is fully dvw compatible, and (we
+hope) is easy to use. It is unlikely to replace professional scouting
+software used by scouts who can already capture match data in real time.
 
 ## Usage
 

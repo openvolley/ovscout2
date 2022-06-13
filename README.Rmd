@@ -38,9 +38,10 @@ This R package provides a Shiny app for scouting volleyball data files. At this 
 
 - scouting is always done from video, even when scouting a live match. The hope is that we can make the user interface fast enough to be "nearly real time" - while the scout might lag behind the real action at times, they can catch up at the ends of rallies or other breaks in play
 - by registering the corners of the court before scouting, we can map the court image to real-world court space. Clicking a location on the video can then be converted to its corresponding court coordinates. With a touch-screen device, this click interface can be reasonably fast
-- the scouting process avoids unnecessarily asking for information (e.g. information that can be inferred by other means, such as the serving player), and tries to pre-fill as much information as it can at each data entry step. It will learn a team's passing and defensive patterns, so that it can suggest the most likely player to have passed or dug a certain ball
+- the scouting process avoids unnecessarily asking for information (e.g. information that can be inferred by other means, such as the serving player), and tries to pre-fill as much information as it can at each data entry step. It will learn a team's patterns of play, so that it can e.g. suggest the most likely player to have attacked, passed or dug a certain ball
+- the interface can be tailored for simple or advanced scouting, with more details in the latter
 
-This software is unlikely to replace professional scouting software used by scouts who can already capture match data in real time. But for the rest of us ...
+This software is intended for scouts who do not have access to professional scouting software or who aren't proficient with it. It is an alternative to the many tablet- and phone-based scouting apps, but provides more complete match data that is fully dvw compatible, and (we hope) is easy to use. It is unlikely to replace professional scouting software used by scouts who can already capture match data in real time.
 
 ## Usage
 
