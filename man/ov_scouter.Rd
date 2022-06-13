@@ -26,7 +26,7 @@ ov_scouter(
 \arguments{
 \item{dvw}{string or datavolley: either the path to a dvw or ovs file or a datavolley object (e.g. as returned by \code{\link[=dv_create]{dv_create()}}. Passing the file name (not the datavolley object) is required if any extra arguments are passed via \code{...}. \code{dvw} can also be an object as saved by \code{ov_scouter()} in ovs format. If \code{dvw} is "demo", the app will be started with a demonstration data set}
 
-\item{video_file}{string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. \code{video_file} can also be a URL (including a YouTube URL or video ID)}
+\item{video_file}{string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. \code{video_file} can also be a URL (including a YouTube URL or video ID). NOTE that in this case, \code{court_ref} must be provided, it can't yet be entered interactively in the app}
 
 \item{video_file2}{string: optionally, the file path or URL to a second video file (e.g. video from the opposite end of the court to \code{video_file}). If this is a local file, it must be in the same directory as \code{video_file}}
 
