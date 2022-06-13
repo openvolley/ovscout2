@@ -80,7 +80,7 @@ ov_scouter_server <- function(app_data) {
         detection_ref <- reactiveVal({
             if (!is.null(app_data$court_ref)) app_data$court_ref else NULL
         })
-        courtref <- callModule(mod_courtref, id = "courtref", rdata = rdata, app_data = app_data, detection_ref = detection_ref, styling = app_data$styling)
+        courtref <- callModule(mod_courtref, id = "courtref", video_src = app_data$video_src, detection_ref = detection_ref, styling = app_data$styling)
         if (app_data$scoreboard) {
             tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata)
         }
@@ -1847,9 +1847,9 @@ ov_scouter_server <- function(app_data) {
 
         save_file_basename <- reactive({
             if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename) && nchar(rdata$dvw$meta$filename)) {
-                fs::path_ext_remove(basename(rdata$dvw$meta$filename))
-            } else if (!is.null(rdata$dvw$meta$video) && nrow(rdata$dvw$meta$video) > 0 && length(na.omit(rdata$dvw$meta$video$file)) > 0 && nchar(na.omit(rdata$dvw$meta$video$file)[1])) {
-                paste0(basename(fs::path_ext_remove(na.omit(rdata$dvw$meta$video$file)[1])))
+                basename(fs::path_ext_remove(rdata$dvw$meta$filename))
+            } else if (!is.null(app_data$video_src) && nchar(app_data$video_src) && !is_url(app_data$video_src)) {
+                basename(fs::path_ext_remove(app_data$video_src))
             } else {
                 "myfile"
             }
