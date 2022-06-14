@@ -356,6 +356,8 @@ ov_scouter_server <- function(app_data) {
         ##observeEvent(input$pause_trigger, deal_with_pause())
         observeEvent(input$video_pause, deal_with_pause())
         observeEvent(input$video_rew_10, do_video("rew", 10))
+        observeEvent(input$video_rew_2, do_video("rew", 2))
+        observeEvent(input$video_ff_2, do_video("ff", 2))
         observeEvent(input$video_ff_10, do_video("ff", 10))
         observeEvent(input$video_volume, if (!is.null(input$video_volume)) do_video("set_volume", input$video_volume))
         observeEvent(input$video_toggle_mute, do_video("toggle_mute"))
@@ -673,7 +675,7 @@ ov_scouter_server <- function(app_data) {
                     serve_error_type_buttons <- make_fat_radio_buttons(choices = c("In net" = "=N", "Foot fault/referee call" = "=Z", "Out long" = "=O", "Out left" = "=L", "Out right" = "=R"), selected = if (!is.na(guess_was_err)) guess_was_err else NA, input_var = "serve_error_type", as_radio = "blankable")
                     cat("chc: ", capture.output(pass_pl_opts$choices), "\n")
                     cat("sel: ", capture.output(pass_pl_opts$selected), "\n")
-                    
+
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "pass_player")
                     cat("ok\n")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
