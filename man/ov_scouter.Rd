@@ -7,9 +7,7 @@
 ov_scouter(
   dvw,
   video_file,
-  video_file2,
   court_ref,
-  court_ref2,
   season_dir,
   scoreboard = TRUE,
   ball_path = FALSE,
@@ -28,11 +26,7 @@ ov_scouter(
 
 \item{video_file}{string: optionally, the path to the video file. If not supplied (or \code{NULL}) the video file specified in the dvw file will be used. \code{video_file} can also be a URL (including a YouTube URL or video ID). NOTE that in this case, \code{court_ref} must be provided, it can't yet be entered interactively in the app}
 
-\item{video_file2}{string: optionally, the file path or URL to a second video file (e.g. video from the opposite end of the court to \code{video_file}). If this is a local file, it must be in the same directory as \code{video_file}}
-
 \item{court_ref}{data.frame or string: data.frame with the court reference (as returned by \code{\link[ovideo:ov_shiny_court_ref]{ovideo::ov_shiny_court_ref()}}) or the path to the rds file containing the output from this}
-
-\item{court_ref2}{data.frame or string: data.frame with the court reference for \code{video_file2} (as returned by \code{\link[ovideo:ov_shiny_court_ref]{ovideo::ov_shiny_court_ref()}}) or the path to the rds file containing the output from this}
 
 \item{season_dir}{string: optional path to a directory with other dvw/ovs files from this season}
 

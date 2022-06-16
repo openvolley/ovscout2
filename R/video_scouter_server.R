@@ -24,7 +24,7 @@ ov_scouter_server <- function(app_data) {
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
         have_second_video <- !is.null(app_data$video_src2)
-        app_data$video2_offset <- 0##217 - 75 ## add as parm, and in video setup
+        if (is.null(app_data$video2_offset)) app_data$video2_offset <- 0
         current_video_src <- reactiveVal(1L) ## start with video 1
         observeEvent(input$switch_video, {
             current_video_src(3L - current_video_src())
@@ -695,11 +695,7 @@ ov_scouter_server <- function(app_data) {
                     ## we pre-select either the passer, or the error type, depending on whether we thought it was an error or not
                     serve_outcome_initial_buttons <- make_fat_radio_buttons(choices = c("Serve error" = "=", "Reception error (serve ace)" = "S#", "Reception in play" = "R~"), input_var = "serve_initial_outcome", selected = if (!is.na(guess_was_err)) "=" else "R~")
                     serve_error_type_buttons <- make_fat_radio_buttons(choices = c("In net" = "=N", "Foot fault/referee call" = "=Z", "Out long" = "=O", "Out left" = "=L", "Out right" = "=R"), selected = if (!is.na(guess_was_err)) guess_was_err else NA, input_var = "serve_error_type", as_radio = "blankable")
-                    cat("chc: ", capture.output(pass_pl_opts$choices), "\n")
-                    cat("sel: ", capture.output(pass_pl_opts$selected), "\n")
-                    
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "pass_player")
-                    cat("ok\n")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                                    tags$p(tags$strong("Serve type:")),
                                                    do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),

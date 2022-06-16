@@ -64,14 +64,19 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                                     ),
                                            tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 5, data.intro = "Video of the game to scout."),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
-                              fluidRow(column(8,
+                              fluidRow(column(12,
                                               ## some elements commented out for now - BR
                                               introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
-                                                  mod_courtref_ui(id = "courtref"),
+                                                  if (!is.null(app_data$video_src2)) {
+                                                      tags$div(style = "display:inline-block;", shinyWidgets::dropdown(inputId = "video_setup", label = "Video setup", mod_courtref_ui(id = "courtref"), mod_courtref_ui(id = "courtref2", button_label = HTML("Court reference<br />(video 2)")), actionButton("v2_offset", "Video time offset")))
+                                                  } else {
+                                                      mod_courtref_ui(id = "courtref")
+                                                  },
                                                   mod_match_data_edit_ui(id = "match_data_editor"),
                                                   mod_team_select_ui(id = "team_selector"),
                                                   mod_team_edit_ui(id = "team_editor"),
                                                   mod_lineup_edit_ui(id = "lineup_editor"),
+                                                  if (!is.null(app_data$video_src2)) actionButton("switch_video", "Switch video"),
                                                   data.step = 2, data.intro = "Click on these buttons if you want to edit the court reference, starting lineups, rosters, or match metadata. The court reference defines where the court is located in the video image.")
                                               )),
                               tags$div(style = "height: 14px;"),

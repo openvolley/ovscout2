@@ -2,9 +2,9 @@
 #'
 #' @param dvw string or datavolley: either the path to a dvw or ovs file or a datavolley object (e.g. as returned by [dv_create()]. Passing the file name (not the datavolley object) is required if any extra arguments are passed via `...`. `dvw` can also be an object as saved by `ov_scouter()` in ovs format. If `dvw` is "demo", the app will be started with a demonstration data set
 #' @param video_file string: optionally, the path to the video file. If not supplied (or `NULL`) the video file specified in the dvw file will be used. `video_file` can also be a URL (including a YouTube URL or video ID). NOTE that in this case, `court_ref` must be provided, it can't yet be entered interactively in the app
-#' @param video_file2 string: optionally, the file path or URL to a second video file (e.g. video from the opposite end of the court to `video_file`). If this is a local file, it must be in the same directory as `video_file`
+# @param video_file2 string: optionally, the file path or URL to a second video file (e.g. video from the opposite end of the court to `video_file`). If this is a local file, it must be in the same directory as `video_file`
 #' @param court_ref data.frame or string: data.frame with the court reference (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
-#' @param court_ref2 data.frame or string: data.frame with the court reference for `video_file2` (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
+# @param court_ref2 data.frame or string: data.frame with the court reference for `video_file2` (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
 #' @param season_dir string: optional path to a directory with other dvw/ovs files from this season
 #' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
 #' @param ball_path logical: if `TRUE`, show the ball path on the court inset diagram. Note that this will slow the app down slightly
@@ -23,7 +23,7 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, video_file2, court_ref, court_ref2, season_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
     if (!missing(dvw) && identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = isTRUE(scoreboard), ball_path = isTRUE(ball_path), review_pane = isTRUE(review_pane), scouting_options = scouting_options, default_scouting_table = default_scouting_table, compound_table = compound_table, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
@@ -138,10 +138,29 @@ ov_scouter <- function(dvw, video_file, video_file2, court_ref, court_ref2, seas
     for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
     ## finally the shiny app
     app_data <- c(list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, ui_header = tags$div()), other_args)
-    if (!missing(video_file2) && !is.null(video_file2) && nzchar(video_file2)) {
+    if ("video_file2" %in% names(other_args)) {
+        video_file2 <- other_args$video_file2
+        other_args$video_file2 <- NULL
+    } else {
+        video_file2 <- NULL
+    }
+    if ("video2_offset" %in% names(other_args)) {
+        video2_offset <- other_args$video2_offset
+        other_args$video2_offset <- NULL
+    } else {
+        video2_offset <- NULL
+    }
+    if ("court_ref2" %in% names(other_args)) {
+        court_ref2 <- other_args$court_ref2
+        other_args$court_ref2 <- NULL
+    } else {
+        court_ref2 <- NULL
+    }
+    if (!is.null(video_file2) && nzchar(video_file2)) {
+        if (is_youtube_id(video_file2)) video_file2 <- paste0("https://www.youtube.com/watch?v=", video_file2)
         app_data$video_src2 <- video_file2
-        if (missing(court_ref2)) {
-            court_ref2 <- NULL
+        app_data$video2_offset <- video2_offset
+        if (is.null(court_ref2)) {
             if (!is_url(video_file2)) {
                 if (packageVersion("ovideo") >= "0.14.3") court_ref2 <- tryCatch(suppressWarnings(ovideo::ov_get_video_data(video_file2)), error = function(e) NULL)
                 if (is.null(court_ref2)) {
