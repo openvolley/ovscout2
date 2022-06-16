@@ -1,9 +1,9 @@
-mod_courtref_ui <- function(id) {
+mod_courtref_ui <- function(id, button_label = "Court reference") {
     ns <- NS(id)
-    actionButton(ns("do_scref"), "Court reference")
+    actionButton(ns("do_scref"), button_label)
 }
 
-mod_courtref <- function(input, output, session, rdata, video_src, detection_ref, styling) {
+mod_courtref <- function(input, output, session, video_src, detection_ref, styling) {
     ns <- session$ns
     did_sr_popup <- reactiveVal(0L)
     active <- reactiveVal(FALSE)
@@ -25,7 +25,7 @@ mod_courtref <- function(input, output, session, rdata, video_src, detection_ref
         ## only if running locally, and only if we have ffmpeg available
         if (!nzchar(Sys.getenv("SHINY_PORT")) && ovideo::ov_ffmpeg_ok(do_error = FALSE)) {
             ## check if the file already has court data saved into it
-            chk <- tryCatch(!is.null(ovideo::ov_get_video_data(rdata$dvw$meta$video$file[1])), error = function(e) FALSE)
+            chk <- tryCatch(!is.null(ovideo::ov_get_video_data(video_src)), error = function(e) FALSE)
             output$sr_save_dialog <- renderUI(if (chk) tags$div("The video file already has court data saved in it.") else NULL)
             fluidRow(column(5, actionButton(ns("sr_save"), "Save into video file", class = "fatradio")),
                      column(5, "Note: this will overwrite the existing video file. The original file will be backed up first, but use at your own risk."))
@@ -37,11 +37,10 @@ mod_courtref <- function(input, output, session, rdata, video_src, detection_ref
     observeEvent(input$sr_save, {
         output$sr_save_dialog <- renderUI({
             tryCatch({
-                vf <- rdata$dvw$meta$video$file[1]
-                fs::file_copy(vf, paste0(vf, ".bak"))
+                fs::file_copy(video_src, paste0(video_src, ".bak"))
                 temp <- list(court_ref = dplyr::select(left_join(crvt$court[, c("image_x", "image_y", "pos")], court_refs_data[, c("court_x", "court_y", "pos")], by = "pos"), -"pos"),
                              antenna = crvt$antenna, net_height = crvt$net_height, video_framerate = crvt$video_framerate, video_width = crimg()$width, video_height = crimg()$height)
-                ovideo::ov_set_video_data(vf, obj = temp, replace = TRUE, overwrite = TRUE)
+                ovideo::ov_set_video_data(video_src, obj = temp, replace = TRUE, overwrite = TRUE)
                 tags$div("Saved")
             }, error = function(e) {
                 tags$div("Could not save court reference into video file. The error message was:", conditionMessage(e))

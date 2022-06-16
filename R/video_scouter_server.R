@@ -24,6 +24,27 @@ ov_scouter_server <- function(app_data) {
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
         have_second_video <- !is.null(app_data$video_src2)
+        app_data$video2_offset <- 0##217 - 75 ## add as parm, and in video setup
+        current_video_src <- reactiveVal(1L) ## start with video 1
+        observeEvent(input$switch_video, {
+            current_video_src(3L - current_video_src())
+            if (current_video_src() == 1L) {
+                new_src <- app_data$video_src
+                offs <- -app_data$video2_offset
+            } else {
+                new_src <- app_data$video_src2
+                offs <- app_data$video2_offset
+            }
+            new_type <- "local"
+            if (is_youtube_url(new_src)) {
+                new_type <- "youtube"
+            } else if (!is_url(new_src)) {
+                new_src <- file.path(app_data$video_server_base_url, basename(new_src))
+            }
+            myjs <- paste0("var ct=vidplayer.currentTime(); console.log('ct ' + ct + ' and will apply offset ' + ", offs, "); ct=ct", if (offs >= 0) "+", offs, "; console.log('ctwo ' + ct); if (ct >= 0) { vidplayer.src(", if (new_type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src, "\"}") else paste0("\"", new_src, "\""), "); vidplayer.currentTime(ct); vidplayer.play(); }")
+            message(myjs)
+            dojs(myjs)
+        })
 
         ## initialize the game state
         rally_state <- reactiveVal("click or unpause the video to start")
@@ -80,9 +101,9 @@ ov_scouter_server <- function(app_data) {
 
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata)
         detection_ref <- reactiveVal({ if (!is.null(app_data$court_ref)) app_data$court_ref else NULL })
-        courtref <- callModule(mod_courtref, id = "courtref", rdata = rdata, video_src = app_data$video_src, detection_ref = detection_ref, styling = app_data$styling)
+        courtref <- callModule(mod_courtref, id = "courtref", video_src = app_data$video_src, detection_ref = detection_ref, styling = app_data$styling)
         detection_ref2 <- reactiveVal({ if (!is.null(app_data$court_ref2)) app_data$court_ref2 else NULL })
-        courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", rdata = rdata, video_src = app_data$video_src2, detection_ref = detection_ref2, styling = app_data$styling) else NULL
+        courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", video_src = app_data$video_src2, detection_ref = detection_ref2, styling = app_data$styling) else NULL
         if (app_data$scoreboard) {
             tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata)
         }
@@ -333,15 +354,15 @@ ov_scouter_server <- function(app_data) {
             }
             ## check courtref
             courtref_ok <- !is.null(detection_ref()$court_ref)
-            if (have_second_video) courtref_ok <- courtref_ok && !is.null(detection_ref2()$court_ref)
-            ok <- teams_ok && isTRUE(lineups_ok) && isTRUE(rosters_ok) && courtref_ok
+            if (have_second_video && courtref_ok && is.null(detection_ref2()$court_ref)) courtref_ok <- "Use the 'Court reference' button to define the court reference for video 2."
+            ok <- teams_ok && isTRUE(lineups_ok) && isTRUE(rosters_ok) && isTRUE(courtref_ok)
             meta_is_valid(ok)
             output$problem_ui <- renderUI({
                 if (!ok) {
                     tags$div(class = "alert alert-info",
                              tags$h2("Information needed"),
                              tags$ul(
-                                      if (!courtref_ok) tags$li("Use the 'Court reference' button to define the court reference."),
+                                      if (!isTRUE(courtref_ok)) tags$li(if (is.character(courtref_ok)) courtref_ok else "Use the 'Court reference' button to define the court reference."),
                                       if (!teams_ok) tags$li("Use the 'Select teams' button to choose from existing teams, or 'Edit teams' to enter new ones."),
                                       if (!isTRUE(rosters_ok)) tags$li(if (is.character(rosters_ok)) paste0(rosters_ok, " "), "Use the 'Edit teams' button to enter or adjust the team rosters."),
                                       if (!isTRUE(lineups_ok)) tags$li(if (is.character(lineups_ok)) paste0(lineups_ok, " "), paste0("Use the 'Edit lineups' to enter or adjust the starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), "."))
@@ -1851,8 +1872,8 @@ ov_scouter_server <- function(app_data) {
         save_file_basename <- reactive({
             if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename) && nchar(rdata$dvw$meta$filename)) {
                 fs::path_ext_remove(basename(rdata$dvw$meta$filename))
-            } else if (!is.null(rdata$dvw$meta$video) && nrow(rdata$dvw$meta$video) > 0 && length(na.omit(rdata$dvw$meta$video$file)) > 0 && nchar(na.omit(rdata$dvw$meta$video$file)[1])) {
-                paste0(basename(fs::path_ext_remove(na.omit(rdata$dvw$meta$video$file)[1])))
+            } else if (!is.null(app_data$video_src) && nchar(app_data$video_src) && !is_url(app_data$video_src)) {
+                basename(fs::path_ext_remove(app_data$video_src))
             } else {
                 "myfile"
             }
