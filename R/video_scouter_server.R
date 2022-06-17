@@ -715,7 +715,7 @@ ov_scouter_server <- function(app_data) {
             imagexy
         }
 
-        courtxy <- reactiveVal(list(x = NA_real_, y = NA_real_))
+        courtxy <- reactiveVal(list(x = NA_real_, y = NA_real_)) ## keeps track of click locations (in court x, y space)
         loop_trigger <- reactiveVal(0L)
         observeEvent(input$video_click, {
             ## when video clicked, get the corresponding video time and trigger the loop

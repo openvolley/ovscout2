@@ -4,7 +4,7 @@
 #' @param video_file string: optionally, the path to the video file. If not supplied (or `NULL`) the video file specified in the dvw file will be used. `video_file` can also be a URL (including a YouTube URL or video ID). NOTE that in this case, `court_ref` must be provided, it can't yet be entered interactively in the app
 # @param video_file2 string: optionally, the file path or URL to a second video file (e.g. video from the opposite end of the court to `video_file`). If this is a local file, it must be in the same directory as `video_file`
 #' @param court_ref data.frame or string: data.frame with the court reference (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
-# @param court_ref2 data.frame or string: data.frame with the court reference for `video_file2` (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
+# @param court_ref2 data.frame or string: data.frame with the court reference for `video_file2` (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this. Note that `court_ref2` must be defined in the same orientation as `court_ref` - for example, the corner of the court considered to be "far left" must be the same physical court corner in both court references
 #' @param season_dir string: optional path to a directory with other dvw/ovs files from this season
 #' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
 #' @param ball_path logical: if `TRUE`, show the ball path on the court inset diagram. Note that this will slow the app down slightly
