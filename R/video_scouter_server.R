@@ -467,6 +467,8 @@ ov_scouter_server <- function(app_data) {
         ##observeEvent(input$pause_trigger, deal_with_pause())
         observeEvent(input$video_pause, deal_with_pause())
         observeEvent(input$video_rew_10, do_video("rew", 10))
+        observeEvent(input$video_rew_2, do_video("rew", 2))
+        observeEvent(input$video_ff_2, do_video("ff", 2))
         observeEvent(input$video_ff_10, do_video("ff", 10))
         observeEvent(input$video_volume, if (!is.null(input$video_volume)) do_video("set_volume", input$video_volume))
         observeEvent(input$video_toggle_mute, do_video("toggle_mute"))

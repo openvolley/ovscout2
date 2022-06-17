@@ -45,8 +45,11 @@ function dvjs_video_onstart() { vo_doneResizing(); }")),
               tags$div(id = "review_pane", style = "position:absolute; top:20px; right:20px; width:27vw; -webkit-transform:translateZ(9999); z-index:9999; display:none;", ## start hidden
                             ovideo::ov_video_player(id = "review_player", type = "local", controls = FALSE, poster = "data:image/gif,AAAA", style = "border: 1px solid black; width: 100%;", muted = "true", onloadstart = "set_vspinner();", oncanplay = "remove_vspinner();", onerror = "review_player_onerror(event);")),
               fluidRow(column(9,
-                              fluidRow(column(8, tags$div(actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward")),
+                              fluidRow(column(8, tags$div(
+                                  actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward")),
+                                  actionButton("video_rew_2", label = "Back 2s", icon = icon("step-backward")),
                                        actionButton("video_pause", label = "Pause", icon = icon("pause-circle")),
+                                  actionButton("video_ff_2", label = "Forward 2s", icon = icon("step-forward")),
                                        actionButton("video_ff_10", label = "Forward 10s", icon = icon("step-forward")),
                                        tags$div(class = "bareslider", sliderInput("video_volume", label = "Volume", min = 0, max = 1, value = 0, width = "60px", ticks = FALSE)),
                                        actionButton("video_toggle_mute", label = "Unmute", icon = icon("volume-mute"))
