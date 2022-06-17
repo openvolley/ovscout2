@@ -19,31 +19,107 @@ ov_scouter_server <- function(app_data) {
             if (is.null(app_data$options$second_ball_attack_code)) app_data$options$second_ball_attack_code <- "P2"
         }
 
+        if (is.null(app_data$dvw$video2_offset)) {
+            ## keep the video offset in app_data$dvw (and rdata$dvw), so it gets saved and reloaded in the .ovs file
+            if (is.null(app_data$video2_offset)) {
+                ## not provided as parm to ov_scouter call
+                app_data$dvw$video2_offset <- 0
+            } else {
+                app_data$dvw$video2_offset <- app_data$video2_offset
+            }
+        }
         rdata <- reactiveValues(dvw = app_data$dvw)
+
+        ## function to reference a video time measured on the time scale of video "from", to its equivalent time relative to video "to"
+        rebase_time <- function(t, time_to = 1, time_from) {
+            if (missing(time_from)) time_from <- current_video_src()
+            if (!time_from %in% c(1, 2)) time_from <- 1
+            if (!time_to %in% c(1, 2)) time_to <- 1
+            if (time_from > 1) t <- t - rdata$dvw$video2_offset
+            ## t is now relative to 1
+            if (time_to > 1) t <- t + rdata$dvw$video2_offset
+            t
+        }
 
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
         have_second_video <- !is.null(app_data$video_src2)
-        if (is.null(app_data$video2_offset)) app_data$video2_offset <- 0
         current_video_src <- reactiveVal(1L) ## start with video 1
+        preview_video_src <- reactiveVal(1L)
+        dojs("Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());")
+        get_src_type <- function(src) {
+            type <- "local"
+            if (is_youtube_url(src)) {
+                type <- "youtube"
+            } else if (!is_url(src)) {
+                src <- file.path(app_data$video_server_base_url, basename(src))
+            }
+            list(src = src, type = type)
+        }
         observeEvent(input$switch_video, {
+            do_switch_video()
+        })
+        do_switch_video <- function() {
             current_video_src(3L - current_video_src())
             if (current_video_src() == 1L) {
                 new_src <- app_data$video_src
-                offs <- -app_data$video2_offset
+                offs <- -rdata$dvw$video2_offset
             } else {
                 new_src <- app_data$video_src2
-                offs <- app_data$video2_offset
+                offs <- rdata$dvw$video2_offset
             }
-            new_type <- "local"
-            if (is_youtube_url(new_src)) {
-                new_type <- "youtube"
-            } else if (!is_url(new_src)) {
-                new_src <- file.path(app_data$video_server_base_url, basename(new_src))
-            }
-            myjs <- paste0("var ct=vidplayer.currentTime(); console.log('ct ' + ct + ' and will apply offset ' + ", offs, "); ct=ct", if (offs >= 0) "+", offs, "; console.log('ctwo ' + ct); if (ct >= 0) { vidplayer.src(", if (new_type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src, "\"}") else paste0("\"", new_src, "\""), "); vidplayer.currentTime(ct); vidplayer.play(); }")
-            message(myjs)
+            new_src <- get_src_type(new_src)
+            myjs <- paste0("var ct=vidplayer.currentTime(); console.log('ct ' + ct + ' and will apply offset ' + ", offs, "); ct=ct", if (offs >= 0) "+", offs, "; console.log('ctwo ' + ct); if (ct >= 0) { vidplayer.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); vidplayer.currentTime(ct); vidplayer.play(); Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight()); }")
+            ##message(myjs)
             dojs(myjs)
+        }
+        ## video 2 offset tweak
+        ## TODO, this would be better with side-by-side videos, but couldn't get that working reliably
+        ## maybe side-by-side still frames would be even better (though difficult to do with remote videos)
+        observeEvent(input$v2_offset, {
+            prevsrc <- get_src_type(if (preview_video_src() == 1L) app_data$video_src else app_data$video_src2)
+            editing$active <- "video offset"
+            showModal(vwModalDialog(title = "Video setup", footer = NULL,
+                                    uiOutput("preview_header"),
+                                    HTML(paste0("<video id=\"video_preview\" style=\"width:100%; height:50vh;\" class=\"video-js\" data-setup='{ ", if (prevsrc$type == "youtube") "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": true, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": ", if (prevsrc$type == "youtube") paste0("[{ \"type\": \"video/youtube\", \"src\": \"", prevsrc$src, "\"}]") else paste0("[{ \"src\": \"", prevsrc$src, "\"}]"), " }'>\n", "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>")),
+                                    fluidRow(column(4, offset = 2, numericInput("v2_offset_value", "Video 2 offset (s):", value = rdata$dvw$video2_offset)),
+                                             column(4, actionButton("switch_preview", "Switch video"))),
+                                    tags$br(),
+                                    tags$hr(),
+                                    fixedRow(column(2, offset = 10, actionButton("preview_dismiss", "Return to scouting", class = "continue fatradio")))
+                                    ))
+            dojs("videojs('video_preview');")
+
+        })
+
+        observeEvent(input$preview_dismiss, {
+            dojs("videojs('video_preview').dispose();")
+            editing$active <- NULL
+            removeModal()
+        })
+
+        output$preview_header <- renderUI({
+            tags$p(tags$strong("Showing video: ", preview_video_src()))
+        })
+
+        observeEvent(input$switch_preview, {
+            preview_video_src(3L - preview_video_src())
+            if (preview_video_src() == 1L) {
+                new_src <- app_data$video_src
+                offs <- -rdata$dvw$video2_offset
+            } else {
+                new_src <- app_data$video_src2
+                offs <- rdata$dvw$video2_offset
+            }
+            new_src <- get_src_type(new_src)
+            myjs <- paste0("var ct=videojs('video_preview').currentTime(); console.log('ct ' + ct + ' and will apply offset ' + ", offs, "); ct=ct", if (offs >= 0) "+", offs, "; console.log('ctwo ' + ct); if (ct >= 0) { videojs('video_preview').src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); videojs('video_preview').currentTime(ct); videojs('video_preview').play(); }")
+            ##message(myjs)
+            dojs(myjs)
+        })
+
+        observeEvent(input$v2_offset_value, {
+            ## TODO need this to react straight away, not after the value has been entered (the input box has been exited)
+            if (!is.null(input$v2_offset_value) && !is.na(input$v2_offset_value)) rdata$dvw$video2_offset <<- input$v2_offset_value
         })
 
         ## initialize the game state
@@ -100,10 +176,21 @@ ov_scouter_server <- function(app_data) {
         })
 
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata)
-        detection_ref <- reactiveVal({ if (!is.null(app_data$court_ref)) app_data$court_ref else NULL })
-        courtref <- callModule(mod_courtref, id = "courtref", video_src = app_data$video_src, detection_ref = detection_ref, styling = app_data$styling)
+        detection_ref1 <- reactiveVal({ if (!is.null(app_data$court_ref)) app_data$court_ref else NULL })
+        courtref1 <- callModule(mod_courtref, id = "courtref1", video_src = app_data$video_src, detection_ref = detection_ref1, styling = app_data$styling)
         detection_ref2 <- reactiveVal({ if (!is.null(app_data$court_ref2)) app_data$court_ref2 else NULL })
         courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", video_src = app_data$video_src2, detection_ref = detection_ref2, styling = app_data$styling) else NULL
+        detection_ref <- reactive(if (current_video_src() < 2) detection_ref1() else detection_ref2()) ## whichever is associated with the current view
+        courtref <- reactiveValues(active = FALSE, crox = NULL)
+        observe({
+            if (current_video_src() < 2) {
+                courtref$active <- courtref1$active
+                courtref$crox <- courtref1$crox
+            } else {
+                courtref$active <- courtref2$active
+                courtref$crox <- courtref2$crox
+            }
+        })
         if (app_data$scoreboard) {
             tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata)
         }
@@ -353,8 +440,8 @@ ov_scouter_server <- function(app_data) {
                 lineups_ok <- if (length(ltxt)) paste(ltxt, sep = " ") else TRUE
             }
             ## check courtref
-            courtref_ok <- !is.null(detection_ref()$court_ref)
-            if (have_second_video && courtref_ok && is.null(detection_ref2()$court_ref)) courtref_ok <- "Use the 'Court reference' button to define the court reference for video 2."
+            courtref_ok <- !is.null(detection_ref1()$court_ref)
+            if (have_second_video && courtref_ok && is.null(detection_ref2()$court_ref)) courtref_ok <- "Use the 'Video setup' button to define the court reference for video 2."
             ok <- teams_ok && isTRUE(lineups_ok) && isTRUE(rosters_ok) && isTRUE(courtref_ok)
             meta_is_valid(ok)
             output$problem_ui <- renderUI({
@@ -362,7 +449,7 @@ ov_scouter_server <- function(app_data) {
                     tags$div(class = "alert alert-info",
                              tags$h2("Information needed"),
                              tags$ul(
-                                      if (!isTRUE(courtref_ok)) tags$li(if (is.character(courtref_ok)) courtref_ok else "Use the 'Court reference' button to define the court reference."),
+                                      if (!isTRUE(courtref_ok)) tags$li(if (is.character(courtref_ok)) courtref_ok else paste0("Use the '", if (!is.null(app_data$video_src2)) "Video setup" else "Court reference", "' button to define the court reference.")),
                                       if (!teams_ok) tags$li("Use the 'Select teams' button to choose from existing teams, or 'Edit teams' to enter new ones."),
                                       if (!isTRUE(rosters_ok)) tags$li(if (is.character(rosters_ok)) paste0(rosters_ok, " "), "Use the 'Edit teams' button to enter or adjust the team rosters."),
                                       if (!isTRUE(lineups_ok)) tags$li(if (is.character(lineups_ok)) paste0(lineups_ok, " "), paste0("Use the 'Edit lineups' to enter or adjust the starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), "."))
@@ -452,11 +539,14 @@ ov_scouter_server <- function(app_data) {
                         }
                         if (!is.null(vt) && !is.na(vt)) {
                             if (debug > 1) cat("jumping to video time: ", vt, "\n")
-                            do_video("set_time", vt)
+                            do_video("set_time", rebase_time(vt, time_to = current_video_src()))
                         }
                     } else if (ky %in% c("u", "U")) {
                         ## undo
                         do_undo()
+                    } else if (ky %in% c("s")) {
+                        ## switch video
+                        do_switch_video()
                     } else if (ky %in% strsplit("nm13jhl;46$^b,79", "")[[1]]) {
                         if (is.null(editing$active)) {
                             ## video forward/backward nav
@@ -542,8 +632,42 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## video overlay
-        output$show_courtref_ui <- renderUI(if (!is.null(detection_ref()$court_ref)) checkboxInput("show_courtref", "Show court reference?", value = FALSE) else NULL)
+        output$show_courtref_ui <- renderUI(if (!is.null(detection_ref()$court_ref)) {
+                                                sel <- isolate(input$show_courtref)
+                                                checkboxInput("show_courtref", "Show court reference?", value = sel)
+                                            } else {
+                                                NULL
+                                            })
 
+        ## account for aspect ratios
+        ## the video overlay image (which receives the mouse clicks) will fill the whole video div element
+        ## but the actual video content can have a different aspect ratio, which means it will be letterboxed
+        ## direction "to_image" means we've taken unit coords in the outer (video div) space and are converting to inner video content space
+        ## direction "to_court" means we've taken unit coords in the inner video content space and are converting to outer (video div) space
+        ar_fix_x <- function(x, direction = "to_image") {
+            eAR <- input$dv_width / input$dv_height
+            mAR <- input$video_width / input$video_height
+            if (eAR > mAR) {
+                ## element is wider than the actual media, we have letterboxing on the sides
+                visW <- mAR * input$dv_height
+                lw <- (input$dv_width - visW) / input$dv_width / 2 ## letterboxing each side as proportion of element (visible) width
+                if (direction == "to_image") lw + x * (1 - 2 * lw) else (x - lw) / (1 - 2 * lw) ## adjust x
+            } else {
+                x
+            }
+        }
+        ar_fix_y <- function(y, direction = "to_image") {
+            eAR <- input$dv_width / input$dv_height
+            mAR <- input$video_width / input$video_height
+            if (mAR > eAR) {
+                ## media is wider than the element, we have letterboxing on the top/bottom
+                visH <- input$dv_width / mAR
+                lh <- (input$dv_height - visH) / input$dv_height / 2 ## letterboxing top/bottom as proportion of element (visible) height
+                if (direction == "to_image") lh + y * (1 - 2 * lh) else (y - lh) / (1 - 2 * lh) ## adjust y
+            } else {
+                y
+            }
+        }
         overlay_points <- reactiveVal(NULL)
         observe({
             output$video_overlay <- renderPlot({
@@ -553,7 +677,13 @@ ov_scouter_server <- function(app_data) {
                 ##this <- selected_event()
                 p <- ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + gg_tight
                 if (isTRUE(input$show_courtref) && !is.null(courtref$crox())) {
-                    p <- p + geom_segment(data = courtref$crox()$courtxy, aes_string(x = "image_x", y = "image_y", xend = "xend", yend = "yend"), color = app_data$styling$court_lines_colour)
+                    oxy <- courtref$crox()$courtxy
+                    ## account for aspect ratios
+                    oxy$image_x <- ar_fix_x(oxy$image_x)
+                    oxy$xend <- ar_fix_x(oxy$xend)
+                    oxy$image_y <- ar_fix_y(oxy$image_y)
+                    oxy$yend <- ar_fix_y(oxy$yend)
+                    p <- p + geom_segment(data = oxy, aes_string(x = "image_x", y = "image_y", xend = "xend", yend = "yend"), color = app_data$styling$court_lines_colour)
                 }
                 if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
                     ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
@@ -564,15 +694,21 @@ ov_scouter_server <- function(app_data) {
         })
         vid_to_crt <- function(obj) {
             courtxy <- data.frame(x = rep(NA_real_, length(obj$x)), y = rep(NA_real_, length(obj$x)))
-            if (!is.null(detection_ref()$court_ref)) {
-                if (length(obj$x) > 0) courtxy <- ovideo::ov_transform_points(obj$x, obj$y, ref = detection_ref()$court_ref, direction = "to_court")
+            if (!is.null(detection_ref()$court_ref) && length(obj$x) > 0) {
+                ## account for aspect ratios
+                thisx <- ar_fix_x(obj$x, direction = "to_court")
+                thisy <- ar_fix_y(obj$y, direction = "to_court")
+                courtxy <- ovideo::ov_transform_points(thisx, thisy, ref = detection_ref()$court_ref, direction = "to_court")
             }
             courtxy
         }
         crt_to_vid <- function(obj) {
             imagexy <- data.frame(image_x = rep(NA_real_, length(obj$x)), image_y = rep(NA_real_, length(obj$x)))
-            if (!is.null(detection_ref()$court_ref)) {
-                if (length(obj$x) > 0) imagexy <- setNames(ovideo::ov_transform_points(obj$x, obj$y, ref = detection_ref()$court_ref, direction = "to_image"), c("image_x", "image_y"))
+            if (!is.null(detection_ref()$court_ref) && length(obj$x) > 0) {
+                imagexy <- setNames(ovideo::ov_transform_points(obj$x, obj$y, ref = detection_ref()$court_ref, direction = "to_image"), c("image_x", "image_y"))
+                ## account for aspect ratios
+                imagexy$image_x <- ar_fix_x(imagexy$image_x)
+                imagexy$image_y <- ar_fix_y(imagexy$image_y)
             }
             imagexy
         }
@@ -584,7 +720,7 @@ ov_scouter_server <- function(app_data) {
             flash_screen() ## visual indicator that click has registered
             time_uuid <- uuid()
             game_state$current_time_uuid <- time_uuid
-            do_video("get_time_fid", time_uuid) ## make asynchronous request
+            do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
             courtxy(vid_to_crt(input$video_click))
             loop_trigger(loop_trigger() + 1L)
             ## TODO MAYBE also propagate the click to elements below the overlay?
@@ -594,7 +730,7 @@ ov_scouter_server <- function(app_data) {
             flash_screen() ## visual indicator that click has registered
             time_uuid <- uuid()
             game_state$current_time_uuid <- time_uuid
-            do_video("get_time_fid", time_uuid) ## make asynchronous request
+            do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
             courtxy(court_inset$click())
             loop_trigger(loop_trigger() + 1L)
         })
@@ -604,8 +740,11 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$video_time, {
             ## when a time comes in, stash it under its uuid
             temp <- input$video_time
+            this_timebase <- as.numeric(sub(".*@", "", temp))
+            if (length(this_timebase) < 1 || is.na(this_timebase) || !this_timebase %in% c(1, 2)) this_timebase <- current_video_src()
+            if (length(this_timebase) < 1 || is.na(this_timebase) || !this_timebase %in% c(1, 2)) this_timebase <- 1
             this_uuid <- sub(".*&", "", temp)
-            if (nzchar(this_uuid)) video_times[[this_uuid]] <<- round(as.numeric(sub("&.+", "", temp)), 2) ## video times to 2 dec places
+            if (nzchar(this_uuid)) video_times[[this_uuid]] <<- round(rebase_time(as.numeric(sub("&.+", "", temp)), time_from = this_timebase), 2) ## video times to 2 dec places
         })
         retrieve_video_time <- function(id) {
             if (is_uuid(id)) {
@@ -2054,7 +2193,7 @@ ov_scouter_server <- function(app_data) {
         ## seek to video time on startup
         if ("video_time" %in% names(app_data$dvw$plays2) && nrow(app_data$dvw$plays2) > 0) {
             temp_vt <- na.omit(app_data$dvw$plays2$video_time)
-            if (length(temp_vt) > 0) do_video("set_time", max(temp_vt))
+            if (length(temp_vt) > 0) do_video("set_time", rebase_time(max(temp_vt), time_from = 1)) ## rebase here should not be necessary, unless somehow we've started on video 2
         }
     }
 }

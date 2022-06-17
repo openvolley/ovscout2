@@ -24,16 +24,16 @@ ov_scouter_ui <- function(app_data) {
                         tags$script("document.addEventListener('click', function (e) { Shiny.setInputValue('shiftkey', e.shiftKey) }); $(document).on('shiny:sessioninitialized',function() { Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth()); });"),
                         tags$script("var rsztmr; $(window).resize(function() { clearTimeout(rsztmr); rsztmr = setTimeout(doneResizing, 500); }); function doneResizing() { Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth()); }"),
                         if (app_data$with_video) tags$script(HTML("var vo_rsztmr;
-$(document).on('shiny:sessioninitialized', function() {
+var vo_doneResizing = function() {
     Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); Shiny.setInputValue('vo_voffset', $('#video_holder').innerHeight());
+}
+$(document).on('shiny:sessioninitialized', function() {
+    vo_doneResizing();
     $(window).resize(function() {
       clearTimeout(vo_rsztmr);
       vo_rsztmr = setTimeout(vo_doneResizing, 500); });
-    function vo_doneResizing() {
-      Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); Shiny.setInputValue('vo_voffset', $('#video_holder').innerHeight());
-    }
 });
-function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); Shiny.setInputValue('vo_voffset', $('#video_holder').innerHeight()); }")),
+function dvjs_video_onstart() { vo_doneResizing(); }")),
                         tags$title("Volleyball scout and video sync")
                         ),
               if (!is.null(app_data$ui_header)) {
@@ -68,9 +68,9 @@ function dvjs_video_onstart() { Shiny.setInputValue('dv_height', $('#main_video'
                                               ## some elements commented out for now - BR
                                               introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
                                                   if (!is.null(app_data$video_src2)) {
-                                                      tags$div(style = "display:inline-block;", shinyWidgets::dropdown(inputId = "video_setup", label = "Video setup", mod_courtref_ui(id = "courtref"), mod_courtref_ui(id = "courtref2", button_label = HTML("Court reference<br />(video 2)")), actionButton("v2_offset", "Video time offset")))
+                                                      tags$div(style = "display:inline-block;", shinyWidgets::dropdown(inputId = "video_setup", label = "Video setup", mod_courtref_ui(id = "courtref1"), mod_courtref_ui(id = "courtref2", button_label = HTML("Court reference<br />(video 2)")), actionButton("v2_offset", "Video time offset")))
                                                   } else {
-                                                      mod_courtref_ui(id = "courtref")
+                                                      mod_courtref_ui(id = "courtref1")
                                                   },
                                                   mod_match_data_edit_ui(id = "match_data_editor"),
                                                   mod_team_select_ui(id = "team_selector"),
