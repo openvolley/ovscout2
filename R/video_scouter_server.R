@@ -1698,6 +1698,8 @@ ov_scouter_server <- function(app_data) {
                 ## update target in the preceding set row, if there was one
                 ##if (tail(rc$skill, 1) == "E") rc$target[nrow(rc)] <- targ
                 ## these only seem to be populated when setter calls are used TODO
+                ## update set tempo
+                if (tail(rc$skill, 1) == "E" && tempo != "~") rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], tempo = tempo)
                 nb <- input$nblockers
                 if (is.null(nb) || !nb %in% 0:3) nb <- "~"
                 ##if (nchar(input$c3) == 2) {
