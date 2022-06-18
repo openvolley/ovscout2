@@ -33,6 +33,7 @@ Imports:
     servr (>= 0.15.1),
     shiny,
     shinythemes,
+    shinyWidgets,
     stringr,
     sys,
     tidyr,
