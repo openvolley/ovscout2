@@ -197,7 +197,7 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
         })
     })
 
-    sr_clickdrag <- reactiveValues(mousedown = NULL, closest_down = NULL, mouseup = NULL)
+    sr_clickdrag <- reactiveValues(mousedown = NULL, mousedown_time = NULL, closest_down = NULL, mouseup = NULL)
     observeEvent(input$did_sr_plot_mousedown, {
         ##cat("mouse down\n")
         closest <- NULL
@@ -215,16 +215,21 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
             px <- NULL
         }
         sr_clickdrag$mousedown <- px
+        sr_clickdrag$mousedown_time <- as.numeric(Sys.time()) * 1000 ## milliseconds
         sr_clickdrag$closest_down <- closest
     })
 
     was_drag <- function(start, end) {
-        if (is.null(start) || is.null(end)) {
+        ## start should be the sr_clickdrag object
+        if (is.null(start) || is.null(start$mousedown) || is.null(end)) {
             FALSE
         } else {
-            ##cat("start: ", start, "\n")
+            ##cat("start: ", start$mousedown, "\n")
             ##cat("end: ", end, "\n")
-            sqrt(sum(start - end)^2) > 0.005
+            ##sqrt(sum(start$mousedown - end)^2) > 0.005
+            ## using position change (above) is fairly rubbish
+            ## use time since start-click
+            ((as.numeric(Sys.time()) * 1000) - start$mousedown_time) > 500 ## more than half a second
         }
     }
 
@@ -233,7 +238,7 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
         ## was it a click and not a drag?
         if (!is.null(sr_clickdrag$mousedown)) {
             isolate(px <- last_mouse_pos())
-            if (is.null(px) || !was_drag(sr_clickdrag$mousedown, px)) {
+            if (is.null(px) || !was_drag(sr_clickdrag, px)) {
                 ##if (is.null(px)) px <- sr_clickdrag$mousedown ## if hover is lagging use mouse down
                 ##cat("click\n")
                 ## enter new point if there is an empty slot, or ignore
@@ -260,6 +265,7 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
         }
         ## stop dragging
         sr_clickdrag$mousedown <- NULL
+        sr_clickdrag$mousedown_time <- NULL
         sr_clickdrag$closest_down <- NULL
     })
 
@@ -272,7 +278,7 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
     last_refresh_time <- NA_real_
     observe({
         px <- last_mouse_pos() ##c(input$sr_plot_hover$x, input$sr_plot_hover$y)
-        if (!is.null(px) && !is.null(sr_clickdrag$mousedown) && was_drag(sr_clickdrag$mousedown, px)) {
+        if (!is.null(px) && !is.null(sr_clickdrag$mousedown) && was_drag(sr_clickdrag, px)) {
             ##cat("was drag\n")
             ## did previously click, so now dragging a point
             now_time <- R.utils::System$currentTimeMillis()
