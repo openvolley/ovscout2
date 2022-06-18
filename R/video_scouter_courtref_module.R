@@ -201,8 +201,10 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
     observeEvent(input$did_sr_plot_mousedown, {
         ##cat("mouse down\n")
         closest <- NULL
-        if (!is.null(input$sr_plot_click)) {
-            px <- c(input$sr_plot_click$x, input$sr_plot_click$y)
+        if (!is.null(input$sr_plot_hover)) {
+            ## somehow the click location is slightly out of whack with the hover location
+            ##px <- c(input$sr_plot_click$x, input$sr_plot_click$y)
+            px <- c(input$sr_plot_hover$x, input$sr_plot_hover$y)
             isolate({
                 refpts <- bind_rows(mutate(crvt$court, what = "court", rownum = row_number()),
                                     mutate(crvt$antenna, what = "antenna", rownum = row_number() + nrow(crvt$court)))
@@ -215,7 +217,7 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
             px <- NULL
         }
         sr_clickdrag$mousedown <- px
-        sr_clickdrag$mousedown_time <- as.numeric(Sys.time()) * 1000 ## milliseconds
+        sr_clickdrag$mousedown_time <- R.utils::System$currentTimeMillis()
         sr_clickdrag$closest_down <- closest
     })
 
@@ -229,7 +231,7 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
             ##sqrt(sum(start$mousedown - end)^2) > 0.005
             ## using position change (above) is fairly rubbish
             ## use time since start-click
-            ((as.numeric(Sys.time()) * 1000) - start$mousedown_time) > 500 ## more than half a second
+            (R.utils::System$currentTimeMillis() - start$mousedown_time) > 500 ## more than half a second
         }
     }
 
@@ -239,11 +241,10 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
         if (!is.null(sr_clickdrag$mousedown)) {
             isolate(px <- last_mouse_pos())
             if (is.null(px) || !was_drag(sr_clickdrag, px)) {
-                ##if (is.null(px)) px <- sr_clickdrag$mousedown ## if hover is lagging use mouse down
                 ##cat("click\n")
                 ## enter new point if there is an empty slot, or ignore
                 if (is.null(crvt$court) || nrow(crvt$court) < 4) {
-                    warning("empty crtvt$court??")
+                    warning("empty crvt$court??")
                     stop("add new court row")
                 } else if (any(is.na(crvt$court$image_x))) {
                     next_pt <- min(which(is.na(crvt$court$image_x)))
@@ -252,7 +253,7 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
                     crvt$court$pos[next_pt] <- input[[paste0("crdd", next_pt)]]
                     ## TODO court_x and court_y here need updating
                 } else if (is.null(crvt$antenna) || nrow(crvt$antenna) < 4) {
-                    warning("empty crtvt$antenna??")
+                    warning("empty crvt$antenna??")
                     stop("add new antenna row")
                 } else if (any(is.na(crvt$antenna$image_x))) {
                     next_pt <- min(which(is.na(crvt$antenna$image_x)))
@@ -287,7 +288,7 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
                 last_refresh_time <<- now_time
                 refpts <- bind_rows(mutate(crvt$court, what = "court", rownum = row_number()),
                                     mutate(crvt$antenna, what = "antenna", rownum = row_number()))
-                if (nrow(refpts) > 0) {
+                if (nrow(refpts) > 0 && length(sr_clickdrag$closest_down) > 0) {
                     closest <- sr_clickdrag$closest_down
                     if (!is.na(closest)) {
                         if (refpts$what[closest] == "court") {
