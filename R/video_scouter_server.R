@@ -60,18 +60,20 @@ ov_scouter_server <- function(app_data) {
             do_switch_video()
         })
         do_switch_video <- function() {
-            current_video_src(3L - current_video_src())
-            if (current_video_src() == 1L) {
-                new_src <- app_data$video_src
-                offs <- -rdata$dvw$video2_offset
-            } else {
-                new_src <- app_data$video_src2
-                offs <- rdata$dvw$video2_offset
+            if (have_second_video) {
+                current_video_src(3L - current_video_src())
+                if (current_video_src() == 1L) {
+                    new_src <- app_data$video_src
+                    offs <- -rdata$dvw$video2_offset
+                } else {
+                    new_src <- app_data$video_src2
+                    offs <- rdata$dvw$video2_offset
+                }
+                new_src <- get_src_type(new_src)
+                myjs <- paste0("var ct=vidplayer.currentTime(); console.log('ct ' + ct + ' and will apply offset ' + ", offs, "); ct=ct", if (offs >= 0) "+", offs, "; console.log('ctwo ' + ct); if (ct >= 0) { vidplayer.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); vidplayer.currentTime(ct); vidplayer.play(); Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight()); }")
+                ##message(myjs)
+                dojs(myjs)
             }
-            new_src <- get_src_type(new_src)
-            myjs <- paste0("var ct=vidplayer.currentTime(); console.log('ct ' + ct + ' and will apply offset ' + ", offs, "); ct=ct", if (offs >= 0) "+", offs, "; console.log('ctwo ' + ct); if (ct >= 0) { vidplayer.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); vidplayer.currentTime(ct); vidplayer.play(); Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight()); }")
-            ##message(myjs)
-            dojs(myjs)
         }
         ## video 2 offset tweak
         ## TODO, this would be better with side-by-side videos, but couldn't get that working reliably
@@ -449,7 +451,7 @@ ov_scouter_server <- function(app_data) {
                     tags$div(class = "alert alert-info",
                              tags$h2("Information needed"),
                              tags$ul(
-                                      if (!isTRUE(courtref_ok)) tags$li(if (is.character(courtref_ok)) courtref_ok else paste0("Use the '", if (!is.null(app_data$video_src2)) "Video setup" else "Court reference", "' button to define the court reference.")),
+                                      if (!isTRUE(courtref_ok)) tags$li(if (is.character(courtref_ok)) courtref_ok else paste0("Use the '", if (have_second_video) "Video setup" else "Court reference", "' button to define the court reference.")),
                                       if (!teams_ok) tags$li("Use the 'Select teams' button to choose from existing teams, or 'Edit teams' to enter new ones."),
                                       if (!isTRUE(rosters_ok)) tags$li(if (is.character(rosters_ok)) paste0(rosters_ok, " "), "Use the 'Edit teams' button to enter or adjust the team rosters."),
                                       if (!isTRUE(lineups_ok)) tags$li(if (is.character(lineups_ok)) paste0(lineups_ok, " "), paste0("Use the 'Edit lineups' to enter or adjust the starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), "."))
