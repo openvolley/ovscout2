@@ -658,6 +658,15 @@ infer_mid_coords <- function(game_state, start_x, start_y, end_x, end_y) {
 get_teams_from_dvw_dir <- function(season) {
     myfiles <- dir(season, pattern = "\\.(dvw|psvb|ovs)$", ignore.case = TRUE, full.names = TRUE)
     if (length(myfiles) < 1) return(tibble())
+    ## remove duplicate files (might be saved in both dvw and ovs, for example)
+    ok <- rep(TRUE, length(myfiles))
+    is_dup <- fs::path_ext_remove(myfiles) %in% fs::path_ext_remove(myfiles)[duplicated(fs::path_ext_remove(myfiles))]
+    ## remove psvb files that also exist as dvw or ovs
+    ok <- ok & !(grepl("\\.psvb$", myfiles, ignore.case = TRUE) & is_dup)
+    ## and dvw files that exist as ovs
+    as_ovs <- paste0(fs::path_ext_remove(myfiles), ".ovs") %in% myfiles
+    ok <- ok & !(grepl("\\.dvw$", myfiles, ignore.case = TRUE) & is_dup & as_ovs)
+    myfiles <- myfiles[ok]
     out <- lapply(myfiles, function(z) if (grepl("psvb$", z, ignore.case = TRUE)) peranavolley::pv_read(z)$meta else if (grepl("ovs$", z, ignore.case = TRUE)) readRDS(z)$meta else dv_read(z, metadata_only = TRUE)$meta)
     team_list <- dplyr::select(do.call(bind_rows, lapply(out, function(z) z$teams)), "team_id", "team", "coach", "assistant", "shirt_colour") %>%
         mutate(team_id = stringr::str_to_upper(.data$team_id),
