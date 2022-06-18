@@ -154,7 +154,7 @@ ov_scouter_server <- function(app_data) {
         game_state <- do.call(reactiveValues, temp)
 
         ## court inset showing rotation and team lists
-        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, styling = app_data$styling, with_ball_coords = app_data$ball_path)
+        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_coords = app_data$ball_path)
         ## force a team rotation
         rotate_teams <- reactive(court_inset$rt)
         observe({

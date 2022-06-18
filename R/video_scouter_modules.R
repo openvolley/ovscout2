@@ -37,7 +37,7 @@ mod_courtrot2_ui <- function(id, with_ball_coords = TRUE) {
              )
 }
 
-mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, rally_state, styling, with_ball_coords = TRUE) {
+mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, rally_state, current_video_src, styling, with_ball_coords = TRUE) {
     ns <- session$ns
     beach <- is_beach(isolate(rdata$dvw))
     pseq <- if (beach) 1:2 else 1:6
@@ -167,7 +167,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                                                   game_state$home_team_end == "lower" ~ .data$x + 5))
             p <- p + geom_text(data = scxy, aes_string("x", "y", label = "score"), size = 6, fontface = "bold", vjust = 0)
         }
-        if (game_state$home_team_end != "lower") p <- p + scale_x_reverse() + scale_y_reverse()
+        if ((current_video_src() < 2 && game_state$home_team_end != "lower") || ((current_video_src() > 1 && game_state$home_team_end == "lower"))) p <- p + scale_x_reverse() + scale_y_reverse()
         p
     })
 
