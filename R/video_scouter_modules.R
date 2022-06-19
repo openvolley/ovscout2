@@ -51,6 +51,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         game_state$current_team <- game_state$serving
     })
 
+    ## do we need to flip the court plot? (noting that we flip it when the video changes, too)
     need_to_flip <- function(vsrc, home_team_end) {
         (vsrc < 2 && home_team_end != "lower") || (vsrc > 1 && home_team_end == "lower")
     }
@@ -191,7 +192,8 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                 if (nrow(segxy) > 0) {
                     ## court module is always plotted assuming that the home team is at the lower end
                     ## but the coordinates will be oriented to the actual video orientation, so flip if needed
-                    if (need_to_flip(current_video_src(), game_state$home_team_end)) segxy <- dv_flip_xy(segxy)
+                    ## all coords are recorded relative to video1 orientation, so we don't care which video is showing
+                    if (game_state$home_team_end != "lower") segxy <- dv_flip_xy(segxy)
                     p <- p + geom_path(data = segxy)
                 }
             }
