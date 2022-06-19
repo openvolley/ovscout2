@@ -79,10 +79,11 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
     })
 
     ## the possible court reference points
-    court_refs_data <- tibble(pos = c("nlb", "nrb", "nl3", "nr3", "lm", "rm", "fl3", "fr3", "flb", "frb", "lnt", "rnt"),
-                              lab = c("Near left baseline corner", "Near right baseline corner", "Left end of near 3m line", "Right end of near 3m line", "Left end of the midline", "Right end of the midline", "Left end of far 3m line", "Right end of far 3m line", "Far left baseline corner", "Far right baseline corner", "Left top of the net", "Right top of the net"),
-                              court_x = c(0.5, 3.5, 0.5, 3.5, 0.5, 3.5, 0.5, 3.5, 0.5, 3.5, 0.5, 3.5),
-                              court_y = c(0.5, 0.5, 2.5, 2.5, 3.5, 3.5, 4.5, 4.5, 6.5, 6.5, 3.5, 3.5))
+    ## don't include the top-of-net positions here, they will cause problems with the left join to floor positions
+    court_refs_data <- tibble(pos = c("nlb", "nrb", "nl3", "nr3", "lm", "rm", "fl3", "fr3", "flb", "frb"),##, "lnt", "rnt"),
+                              lab = c("Near left baseline corner", "Near right baseline corner", "Left end of near 3m line", "Right end of near 3m line", "Left end of the midline", "Right end of the midline", "Left end of far 3m line", "Right end of far 3m line", "Far left baseline corner", "Far right baseline corner"),##, "Left top of the net", "Right top of the net"),
+                              court_x = c(0.5, 3.5, 0.5, 3.5, 0.5, 3.5, 0.5, 3.5, 0.5, 3.5),##, 0.5, 3.5),
+                              court_y = c(0.5, 0.5, 2.5, 2.5, 3.5, 3.5, 4.5, 4.5, 6.5, 6.5))##, 3.5, 3.5))
 
     ## crvt holds the edited court ref data
     ## TODO add net_height, possible video width, height, framerate
@@ -92,10 +93,11 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
 
     ## populate crvt each time a popup is instantiated, from detection_ref if it has data
     observeEvent(did_sr_popup(), {
-        crvt$court <- if (!is.null(detection_ref()) && !is.null(detection_ref()$court_ref) && nrow(detection_ref()$court_ref) > 0)
+        crvt$court <- if (!is.null(detection_ref()) && !is.null(detection_ref()$court_ref) && nrow(detection_ref()$court_ref) > 0) {
                           left_join(detection_ref()$court_ref, court_refs_data[, c("court_x", "court_y", "pos")], by = c("court_x", "court_y")) ## add pos col
-                      else
+                      } else {
                           tibble(image_x = rep(NA_real_, 4), image_y = NA_real_, court_x = NA_real_, court_y = NA_real_, pos = NA_character_)
+                      }
         crvt$antenna <- if (!is.null(detection_ref()) && !is.null(detection_ref()$antenna) && nrow(detection_ref()$antenna) == 4)
                             detection_ref()$antenna
                             else
