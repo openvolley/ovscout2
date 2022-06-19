@@ -22,13 +22,9 @@ mod_teamslists <- function(input, output, session, rdata) {
     })
 }
 
-mod_courtrot2_ui <- function(id, with_ball_coords = TRUE) {
+mod_courtrot2_ui <- function(id) {
     ns <- NS(id)
     tags$div(style = "border-radius: 4px; padding: 4px",
-             if (with_ball_coords) fluidRow(style = "min-height: 34px;", ## min-height to retain layout when buttons are hidden
-                                       column(4, checkboxInput(ns("ballcoordsCI"), label = "Display ball coordinates", value = TRUE)),
-                                       column(4, actionButton(ns("cancel_ball_coords"), "Cancel ball coordinates")),
-                                       column(4, actionButton(ns("validate_ball_coords"), label = "Accept ball coordinates"))),
              fluidRow(column(12, plotOutput(ns("court_inset"), click = ns("plot_click"), height = "45vh")),),
              fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", icon("redo")))),
                       column(3, offset = 1, uiOutput(ns("switch_serving_ui"), inline = TRUE)),
@@ -37,7 +33,7 @@ mod_courtrot2_ui <- function(id, with_ball_coords = TRUE) {
              )
 }
 
-mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, rally_state, current_video_src, styling, with_ball_coords = TRUE) {
+mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, rally_state, current_video_src, styling, with_ball_path = TRUE) {
     ns <- session$ns
     beach <- is_beach(isolate(rdata$dvw))
     pseq <- if (beach) 1:2 else 1:6
@@ -55,19 +51,21 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         game_state$current_team <- game_state$serving
     })
 
+    need_to_flip <- function(vsrc, home_team_end) {
+        (vsrc < 2 && home_team_end != "lower") || (vsrc > 1 && home_team_end == "lower")
+    }
+
     rotate_teams <- reactiveValues(home = 0L, visiting = 0L)
     clickout <- reactiveVal(list(x = NA_real_, y = NA_real_))
     observeEvent(input$plot_click, {
         req(input$plot_click)
         ## input$plot_click gives the click location, but we want to flip this if the court direction has been reversed
         out <- data.frame(x = input$plot_click$x, y = input$plot_click$y)
-        if (game_state$home_team_end != "lower") out <- dv_flip_xy(out)
+        if (need_to_flip(current_video_src(), game_state$home_team_end)) out <- dv_flip_xy(out)
         clickout(out)
     })
 
     ## the court plot itself
-    ball_coords <- if (with_ball_coords) reactive({input$ballcoordsCI}) else reactive(FALSE)
-
     ## go to some effort to reduce redraws of the court plot
     plot_data <- reactive({
         htrot <- tibble(number = get_players(game_state, team = "*", dvw = rdata$dvw))
@@ -81,8 +79,8 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             ht_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             ht_libxy$pos <- c(5, 7)[seq_len(nrow(ht_libxy))]
-            ht_libxy <- cbind(dv_xy(ht_libxy$pos, end = "lower"), ht_libxy) %>% mutate(x = case_when(game_state$home_team_end != "lower" ~ .data$x - 1,
-                                                                                                     game_state$home_team_end == "lower" ~ .data$x + 3))
+            ht_libxy <- cbind(dv_xy(ht_libxy$pos, end = "lower"), ht_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), game_state$home_team_end) ~ .data$x - 1,
+                                                                                                     TRUE ~ .data$x + 3))
         }
         vt_setter <- get_setter(game_state, team = "a")
         libs <- get_liberos(game_state, team = "a", dvw = rdata$dvw)
@@ -90,8 +88,8 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             vt_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             vt_libxy$pos <- c(1, 9)[seq_len(nrow(vt_libxy))]
-            vt_libxy <- cbind(dv_xy(vt_libxy$pos, end = "upper"), vt_libxy) %>% mutate(x = case_when(game_state$home_team_end != "lower" ~ .data$x - 1,
-                                                                                                     game_state$home_team_end == "lower" ~ .data$x + 3))
+            vt_libxy <- cbind(dv_xy(vt_libxy$pos, end = "upper"), vt_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), game_state$home_team_end) ~ .data$x - 1,
+                                                                                                     TRUE ~ .data$x + 3))
         }
         list(htrot = htrot, vtrot = vtrot, ht_setter = ht_setter, vt_setter = vt_setter, ht_libxy = ht_libxy, vt_libxy = vt_libxy, serving = game_state$serving, home_score_start_of_point = game_state$home_score_start_of_point, visiting_score_start_of_point = game_state$visiting_score_start_of_point)
     })
@@ -163,24 +161,24 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                            x = c(-0.5, -0.5),
                            y = c(3, 4)
                            )
-            scxy <- scxy %>% mutate(x = case_when(game_state$home_team_end != "lower" ~ .data$x,
-                                                  game_state$home_team_end == "lower" ~ .data$x + 5))
+            scxy <- scxy %>% mutate(x = case_when(need_to_flip(current_video_src(), game_state$home_team_end) ~ .data$x,
+                                                  TRUE ~ .data$x + 5))
             p <- p + geom_text(data = scxy, aes_string("x", "y", label = "score"), size = 6, fontface = "bold", vjust = 0)
         }
-        if ((current_video_src() < 2 && game_state$home_team_end != "lower") || ((current_video_src() > 1 && game_state$home_team_end == "lower"))) p <- p + scale_x_reverse() + scale_y_reverse()
+        if (need_to_flip(current_video_src(), game_state$home_team_end)) p <- p + scale_x_reverse() + scale_y_reverse()
         p
     })
 
     ## keep track of the digest of the rally_codes() object so that we can trigger the plot update when it has actually changed AND only if we are showing ball coords
     rally_codes_digest <- reactiveVal("")
     observe({
-        if (with_ball_coords) rally_codes_digest(digest::digest(rally_codes()))
+        if (with_ball_path) rally_codes_digest(digest::digest(rally_codes()))
     })
     output$court_inset <- renderPlot({
         p <- base_plot()
         blah <- rally_codes_digest()
         isolate({
-            if (nrow(rally_codes()) > 0 && with_ball_coords) {
+            if (nrow(rally_codes()) > 0 && with_ball_path) {
                 ## plot the current rally actions
                 temp_rally_plays2 <- make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw)
                 temp_rally_plays <- plays2_to_plays(temp_rally_plays2, dvw = rdata$dvw, evaluation_decoder = skill_evaluation_decoder()) ## this is the default evaluation decoder, but it doesn't matter here unless we start e.g. colouring things by evaluation
@@ -193,7 +191,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                 if (nrow(segxy) > 0) {
                     ## court module is always plotted assuming that the home team is at the lower end
                     ## but the coordinates will be oriented to the actual video orientation, so flip if needed
-                    if (game_state$home_team_end != "lower") segxy <- dv_flip_xy(segxy)
+                    if (need_to_flip(current_video_src(), game_state$home_team_end)) segxy <- dv_flip_xy(segxy)
                     p <- p + geom_path(data = segxy)
                 }
             }
@@ -212,11 +210,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         game_state$home_team_end <- other_end(game_state$home_team_end)
         dojs("document.getElementById('court_inset_swap').blur();") ## un-focus from button
     })
-    accept_ball_coords <- reactiveVal(0L)
-    observeEvent(input$validate_ball_coords, {
-        accept_ball_coords(isolate(accept_ball_coords()) + 1L)
-    })
-    return(list(rt = rotate_teams, ball_coords_checkbox = ball_coords, accept_ball_coords = accept_ball_coords, click = clickout))
+    return(list(rt = rotate_teams, click = clickout))
 }
 
 mod_match_data_edit_ui <- function(id) {

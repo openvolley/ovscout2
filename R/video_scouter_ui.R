@@ -92,7 +92,7 @@ function dvjs_video_onstart() { vo_doneResizing(); }")),
                                        )
                               ),
                        column(3,
-                              introBox(wellPanel(mod_courtrot2_ui(id = "courtrot", with_ball_coords = FALSE)), data.step = 3, data.intro = "Team lineups and on-court rotations."),
+                              introBox(wellPanel(mod_courtrot2_ui(id = "courtrot")), data.step = 3, data.intro = "Team lineups and on-court rotations."),
                               introBox(mod_playslist_ui("playslist", height = "35vh", styling = app_data$styling), data.step = 4, data.intro = "List of actions. New entries appear here as they are scouted."),
                               uiOutput("error_message"))
                        ),

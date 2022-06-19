@@ -20,7 +20,7 @@ ov_scouter_server <- function(app_data) {
         }
 
         if (is.null(app_data$dvw$video2_offset)) {
-            ## keep the video offset in app_data$dvw (and rdata$dvw), so it gets saved and reloaded in the .ovs file
+            ## keep the video2 details in app_data$dvw (and rdata$dvw), so it gets saved and reloaded in the .ovs file
             if (is.null(app_data$video2_offset)) {
                 ## not provided as parm to ov_scouter call
                 app_data$dvw$video2_offset <- 0
@@ -28,6 +28,7 @@ ov_scouter_server <- function(app_data) {
                 app_data$dvw$video2_offset <- app_data$video2_offset
             }
         }
+        if (!is.null(app_data$video_src2)) app_data$dvw$video_file2 <- app_data$video_src2
         rdata <- reactiveValues(dvw = app_data$dvw)
 
         ## function to reference a video time measured on the time scale of video "from", to its equivalent time relative to video "to"
@@ -154,7 +155,7 @@ ov_scouter_server <- function(app_data) {
         game_state <- do.call(reactiveValues, temp)
 
         ## court inset showing rotation and team lists
-        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_coords = app_data$ball_path)
+        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_path = app_data$ball_path)
         ## force a team rotation
         rotate_teams <- reactive(court_inset$rt)
         observe({
@@ -196,24 +197,6 @@ ov_scouter_server <- function(app_data) {
         if (app_data$scoreboard) {
             tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata)
         }
-        ## court module clicking not used here yet
-        ##accept_ball_coords <- court_inset$accept_ball_coords ## the "accept" button
-        ##observe({
-        ##    if (nrow(court_inset$click_points$queue) > 1) {## && !is.null(playslist_mod$current_row()) && !is.na(playslist_mod$current_row())) {
-        ##        js_show2("courtrot-validate_ball_coords")
-        ##        js_show2("courtrot-cancel_ball_coords")
-        ##    } else {
-        ##        js_hide2("courtrot-validate_ball_coords")
-        ##        js_hide2("courtrot-cancel_ball_coords")
-        ##    }
-        ##})
-        ##observeEvent(accept_ball_coords(), {
-        ##    if (accept_ball_coords() > 0) { ## ignore the initial triggering of this on app startup
-        ##        warning("ball coords not implemented here yet")
-        ##    }
-        ##    ## and clear the clicked coordinates queue
-        ##    court_inset$clear_click_queue()
-        ##})
 
         playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show,
                                     plays_cols_renames = plays_cols_renames, display_option = app_data$playlist_display_option)
@@ -2158,7 +2141,8 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$general_help, introjs(session, options = list("nextLabel"="Next", "prevLabel"="Previous", "skipLabel"="Skip")))
         observeEvent(input$show_shortcuts, {
             showModal(modalDialog(title = "Keyboard shortcuts", easyClose = TRUE, size = "l",
-                                  if (app_data$with_video) tagList(tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s, [, or 9] forwards 1 frame"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s, [b or 7] backwards 1 frame"), tags$li("[q or 0] pause video")##, tags$li("[g or #] go to currently-selected event")
+                                  if (app_data$with_video) tagList(tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s, [, or 9] forwards 1 frame"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s, [b or 7] backwards 1 frame"), tags$li("[q or 0] pause video"),##, tags$li("[g or #] go to currently-selected event")
+                                                                                                                  tags$li("[s] switch videos (if two available)")
                                                                                                                   )),
                                   ## none of these are relevant yet
                                   ##fluidRow(column(6, tags$strong("Keyboard controls"),
