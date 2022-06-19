@@ -141,18 +141,39 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     if ("video_file2" %in% names(other_args)) {
         video_file2 <- other_args$video_file2
         other_args$video_file2 <- NULL
+    } else if (!is.null(dvw$video_file2)) {
+        ## from a saved ods file
+        video_file2 <- dvw$video_file2
     } else {
         video_file2 <- NULL
+    }
+    if (!is.null(video_file2)) {
+        if (is_youtube_id(video_file2)) video_file2 <- paste0("https://www.youtube.com/watch?v=", video_file2)
+        if (is_url(video_file2)) {
+            ## do nothing
+        } else if (!fs::file_exists(as.character(video_file2))) {
+            ## can't find the file, go looking for it
+            ## since this is the second video, we don't want to find a video file named the same as the dvw file (that is probably the first video) but the path to the video file might be wrong, it might be in wherever the dvw is
+            fake_dvw_filename <- file.path(dirname(dvw_filename), "blahblahnotafile.dvw")
+            video_file2 <- tryCatch(ovideo::ov_find_video_file(dvw_filename = fake_dvw_filename, video_filename = video_file2), error = function(e) NA_character_)
+            if (!is.na(video_file2)) video_file2 <- NULL
+        }
     }
     if ("video2_offset" %in% names(other_args)) {
         video2_offset <- other_args$video2_offset
         other_args$video2_offset <- NULL
+    } else if (!is.null(dvw$video2_offset)) {
+        ## from a saved ods file
+        video2_offset <- dvw$video2_offset
     } else {
         video2_offset <- NULL
     }
     if ("court_ref2" %in% names(other_args)) {
         court_ref2 <- other_args$court_ref2
         other_args$court_ref2 <- NULL
+    } else if (!is.null(dvw$court_ref2)) {
+        ## from a saved ods file
+        court_ref2 <- dvw$court_ref2
     } else {
         court_ref2 <- NULL
     }
