@@ -184,14 +184,12 @@ ov_scouter_server <- function(app_data) {
         detection_ref2 <- reactiveVal({ if (!is.null(app_data$court_ref2)) app_data$court_ref2 else NULL })
         courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", video_src = app_data$video_src2, detection_ref = detection_ref2, styling = app_data$styling) else NULL
         detection_ref <- reactive(if (current_video_src() < 2) detection_ref1() else detection_ref2()) ## whichever is associated with the current view
-        courtref <- reactiveValues(active = FALSE, crox = NULL)
+        courtref <- reactiveValues(active = FALSE)
         observe({
             if (current_video_src() < 2) {
                 courtref$active <- courtref1$active
-                courtref$crox <- courtref1$crox
             } else {
                 courtref$active <- courtref2$active
-                courtref$crox <- courtref2$crox
             }
         })
         if (app_data$scoreboard) {
@@ -663,8 +661,9 @@ ov_scouter_server <- function(app_data) {
                 ## need to plot SOMETHING else we don't get correct coordinates back
                 ##this <- selected_event()
                 p <- ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + gg_tight
-                if (isTRUE(input$show_courtref) && !is.null(courtref$crox())) {
-                    oxy <- courtref$crox()$courtxy
+                if (isTRUE(input$show_courtref)) {
+                    oxy <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = detection_ref()$court_ref, crop = TRUE)$courtxy
+                    oxy <- dplyr::rename(oxy, image_x = "x", image_y = "y")
                     ## account for aspect ratios
                     oxy$image_x <- ar_fix_x(oxy$image_x)
                     oxy$xend <- ar_fix_x(oxy$xend)

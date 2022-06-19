@@ -143,18 +143,6 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
         crvt$video_framerate <- if (!is.null(input$sr_video_framerate) && nzchar(input$sr_video_framerate)) as.numeric(input$sr_video_framerate) else NA_real_
     })
 
-    ## convert our crvt (edited ref data) into the court overlay data to plot
-    crox <- reactive({
-        tryCatch({
-            cr <- crvt$court
-            ## account for changes in dropdowns, i.e. the image location might now be assigned to a different court ref location
-            if (!is.null(cr)) cr <- left_join(dplyr::select(cr, -"court_x", -"court_y"), court_refs_data[, c("court_x", "court_y", "pos")], by = "pos")
-            out <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = cr, crop = TRUE)
-            out$courtxy <- dplyr::rename(out$courtxy, image_x = "x", image_y = "y")
-            out
-        }, error = function(e) NULL)
-    })
-
     output$srplot <- renderPlot({
         antenna_colour <- "magenta"
         court_colour <- "red"
@@ -163,8 +151,17 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
             p <- ggplot2::ggplot(mapping = aes_string(x = "image_x", y = "image_y")) +
                 ggplot2::annotation_custom(grid::rasterGrob(crimg()$image), xmin = 0, xmax = 1, ymin = 0, ymax = 1) +
                 ggplot2::coord_fixed(ratio = crimg()$height/crimg()$width) + ggplot2::xlim(c(0, 1)) + ggplot2::ylim(c(0, 1))
-            if (!is.null(crox())) {
-                p <- p + geom_segment(data = crox()$courtxy, aes_string(xend = "xend", yend = "yend"), color = court_colour) + ggplot2::theme_bw()
+            ## convert our crvt (edited ref data) into the court overlay data to plot
+            crox <- tryCatch({
+                cr <- crvt$court
+                ## account for changes in dropdowns, i.e. the image location might now be assigned to a different court ref location
+                if (!is.null(cr)) cr <- left_join(dplyr::select(cr, -"court_x", -"court_y"), court_refs_data[, c("court_x", "court_y", "pos")], by = "pos")
+                out <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = cr, crop = TRUE)
+                out$courtxy <- dplyr::rename(out$courtxy, image_x = "x", image_y = "y")
+                out
+            }, error = function(e) NULL)
+            if (!is.null(crox)) {
+                p <- p + geom_segment(data = crox$courtxy, aes_string(xend = "xend", yend = "yend"), color = court_colour) + ggplot2::theme_bw()
             }
             if (!is.null(crvt$court)) {
                 p <- p + geom_label(data = mutate(crvt$court, point_num = row_number()), ## double check that point_num always matches the UI inputs ordering
@@ -303,5 +300,5 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
             }
         }
     })
-    list(active = active, crox = crox)
+    list(active = active)
 }
