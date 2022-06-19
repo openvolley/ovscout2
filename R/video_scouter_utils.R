@@ -188,9 +188,11 @@ plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
     temp_point_id <- rep(NA, nrow(out))
     temp_point_id[1] <- pid
     temp_timeout <- rep(FALSE, nrow(out))##out$timeout
-    for (k in 2:nrow(out)) {
-        if (out$point[k-1] || temp_timeout[k] || temp_timeout[k-1]) pid <- pid+1
-        temp_point_id[k] <- pid
+    if (nrow(out) > 1) {
+        for (k in 2:nrow(out)) {
+            if (isTRUE(out$point[k-1]) || temp_timeout[k] || temp_timeout[k-1]) pid <- pid+1
+            temp_point_id[k] <- pid
+        }
     }
     out$point_id <- temp_point_id
     ## serving team
