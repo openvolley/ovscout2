@@ -42,8 +42,6 @@ At this stage it is entirely experimental. Beware!
     it can at each data entry step. It will learn a team’s patterns of
     play, so that it can suggest the most likely player to have
     attacked, passed or dug a certain ball
--   the interface can be tailored for simple or advanced scouting, with
-    more details in the latter
 
 This software is intended for scouts who do not have access to
 professional scouting software or who aren’t proficient with it. It is
@@ -52,6 +50,17 @@ apps, but provides more complete match data that is fully dvw
 compatible, and (we hope) is easy to use. It is unlikely to replace
 professional scouting software used by scouts who can already capture
 match data in real time.
+
+## Features
+
+-   a guided scouting interface that is easy to learn and ensures
+    consistent data collection
+-   the interface can be tailored for simple or advanced scouting, with
+    more details in the latter
+-   all contacts are recorded with precise locations (coordinates) as
+    well as zones and subzones
+-   experimental support for dual match video cameras (one from either
+    end of the court)
 
 ## Usage
 
@@ -64,13 +73,17 @@ ov_scouter_demo()
 To use with your own data:
 
 ``` r
-ov_scouter(video_file = "/path/to/video.mp4")
+ov_scouter(video_file = "/path/to/video.mp4", season_dir = "/path/to/existing/files.dvw")
 ```
 
 If you don’t provide the video file path, it will pop up a file
-navigator for you to select one. You can also provide it with a
-partially-scouted `.dvw` or `.ovs` file, to continue scouting where you
-left off.
+navigator for you to select one. The season directory (a directory
+containing existing .dvw or .ovs files) can also optionally be provided.
+If a new match is being scouted, the teams can be selected from those in
+the season directory. You can also provide it with a partially-scouted
+`.dvw` or `.ovs` file, to continue scouting where you left off.
+
+See `help("ov_scouter")` for more options.
 
 It relies on having the `ffmpeg` system utility for some functionality.
 You use `ovideo::ov_install_ffmpeg()` to install this if you don’t
