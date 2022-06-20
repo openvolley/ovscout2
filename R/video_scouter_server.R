@@ -729,10 +729,11 @@ ov_scouter_server <- function(app_data) {
             this_timebase <- as.numeric(sub(".*@", "", temp))
             if (length(this_timebase) < 1 || is.na(this_timebase) || !this_timebase %in% c(1, 2)) this_timebase <- current_video_src()
             if (length(this_timebase) < 1 || is.na(this_timebase) || !this_timebase %in% c(1, 2)) this_timebase <- 1
-            this_uuid <- sub(".*&", "", temp)
+            this_uuid <- sub("@.*", "", sub(".*&", "", temp))
             if (nzchar(this_uuid)) video_times[[this_uuid]] <<- round(rebase_time(as.numeric(sub("&.+", "", temp)), time_from = this_timebase), 2) ## video times to 2 dec places
         })
         retrieve_video_time <- function(id) {
+            id <- sub("@.*", "", id)
             if (is_uuid(id)) {
                 if (nzchar(id) && id %in% names(video_times)) video_times[[id]] else NA_real_
             } else {
