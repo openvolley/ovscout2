@@ -1704,7 +1704,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## handle the pre-selection of serve player and type
-        observeEvent(rally_state(), {
+        observeEvent(list(rally_state(), game_state$serving, game_state$home_p1, game_state$visiting_p1), {
             if (rally_state() == "click serve start") {
                 ## show the serve player and tempo pre-select buttons
                 do_serve_preselect()
