@@ -1787,14 +1787,14 @@ ov_scouter_server <- function(app_data) {
                     ## home players on court
                     ht_on <- get_players(game_state, team = "*", dvw = rdata$dvw)
                     ord <- order(ht_on)
-                    chc <- setNames(paste0(ht_on, "@", seq_along(ht_on)), ht_on)[ord]
+                    chc <- setNames(paste0(ht_on, "@", seq_along(ht_on)), player_nums_to(ht_on, team = "*", dvw = rdata$dvw))[ord]
                     ht <- TRUE
                     buts <- make_fat_radio_buttons(choices = chc, selected = NA, input_var = "new_setter")
                 } else {
                     ## visiting players on court
                     vt_on <- get_players(game_state, team = "a", dvw = rdata$dvw)
                     ord <- order(vt_on)
-                    chc <- setNames(paste0(vt_on, "@", seq_along(vt_on)), vt_on)[ord]
+                    chc <- setNames(paste0(vt_on, "@", seq_along(vt_on)), player_nums_to(vt_on, team = "a", dvw = rdata$dvw))[ord]
                     vt <- TRUE
                     buts <- make_fat_radio_buttons(choices = chc, selected = NA, input_var = "new_setter")
                 }
@@ -2093,10 +2093,39 @@ ov_scouter_server <- function(app_data) {
                         p_in <- as.numeric(input$vt_sub_in)
                     }
                     if (length(p_out) == 1 && length(p_in) == 1) {
-                        game_state <- game_state_make_substitution(game_state, team = substr(code, 1, 1), player_out = p_out, player_in = p_in, dvw = rdata$dvw)
+                        tm <- substr(code, 1, 1)
+                        current_setter <- get_setter(game_state, team = tm)
+                        game_state <- game_state_make_substitution(game_state, team = tm, player_out = p_out, player_in = p_in, dvw = rdata$dvw)
                         rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0(substr(code, 1, 1), "C", p_out, ".", p_in), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
                         ## if we just substituted the player about to serve, we need to update the serve preselect buttons
                         do_serve_preselect()
+                        ## did we substitute the setter?
+                        if (p_out %eq% current_setter && current_setter > 0) {
+                            ## yes we did
+                            ht <- vt <- FALSE
+                            if (tm %eq% "*") {
+                                ## home players on court
+                                ht_on <- get_players(game_state, team = "*", dvw = rdata$dvw)
+                                ord <- order(ht_on)
+                                chc <- setNames(paste0(ht_on, "@", seq_along(ht_on)), player_nums_to(ht_on, team = "*", dvw = rdata$dvw))[ord]
+                                ht <- TRUE
+                                buts <- make_fat_radio_buttons(choices = chc, selected = NA, input_var = "new_setter")
+                            } else {
+                                ## visiting players on court
+                                vt_on <- get_players(game_state, team = "a", dvw = rdata$dvw)
+                                ord <- order(vt_on)
+                                chc <- setNames(paste0(vt_on, "@", seq_along(vt_on)), player_nums_to(vt_on, team = "a", dvw = rdata$dvw))[ord]
+                                vt <- TRUE
+                                buts <- make_fat_radio_buttons(choices = chc, selected = NA, input_var = "new_setter")
+                            }
+                            showModal(vwModalDialog(title = paste0("On-court setter: ", if (ht) paste0(datavolley::home_team(rdata$dvw), " (home)") else paste0(datavolley::visiting_team(rdata$dvw), " (visiting)")), footer = NULL,
+                                                    tags$div(tags$p(tags$strong("New setter")), do.call(fixedRow, lapply(buts, function(but) column(2, but)))),
+                                                    tags$hr(),
+                                                    fixedRow(column(2, offset = 8, make_fat_buttons(choices = c("Assign setter" = if (ht) "*P" else "aP"), input_var = "manual_code", class = "continue")),
+                                                             column(2, actionButton("admin_dismiss", "Cancel", class = "cancel fatradio")))
+                                                    ))
+                            ok <- FALSE ## keep this modal showing for setter input
+                        }
                     } else {
                         ## players in/out not selected, ignore
                         ok <- FALSE
