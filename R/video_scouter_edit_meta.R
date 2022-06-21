@@ -51,6 +51,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$match$match_number <- input[[md_ns("match_edit_match_number")]]
         ## currently disabled dvw$meta$match$regulation <- input[[md_ns("match_edit_regulation")]]
         dvw$meta$match$zones_or_cones <- input[[md_ns("match_edit_zones_or_cones")]]
+        dvw$meta$more$scout <- input[[md_ns("more_edit_scout")]]
         do_reparse <- TRUE
     } else if (editing_active %eq% "change starting lineup") {
         le_ns <- function(id) paste0("lineup_editor-", id) ## to reference the UI elements in the lineup_editor module. Note the hard-coding of the 'lineup_editor' id
