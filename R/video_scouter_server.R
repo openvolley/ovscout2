@@ -1234,7 +1234,11 @@ ov_scouter_server <- function(app_data) {
             rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number - 1L, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
             game_state$home_score_start_of_point <- game_state$visiting_score_start_of_point <- 0L
             game_state$home_team_end <- other_end(game_state$home_team_end) ## TODO deal with 5th set
-            ## TODO choose the correct serving team
+            if ((!app_data$is_beach && game_state$set_number < 5) || (app_data$is_beach && game_state$set_number < 3)) {
+                ## serving team is the one that did not serve first in the previous set
+                temp <- na.omit(rdata$dvw$plays2$serving[rdata$dvw$plays2$set_number %eq% (game_state$set_number - 1L)])
+                if (length(temp) > 0) game_state$serving <- other(head(temp, 1))
+            }
             ## update match metadata
             rdata$dvw <- update_meta(rp2(rdata$dvw))
             remove_scout_modal()
