@@ -3,7 +3,7 @@ mod_courtref_ui <- function(id, button_label = "Court reference") {
     actionButton(ns("do_scref"), button_label)
 }
 
-mod_courtref <- function(input, output, session, video_src, detection_ref, styling) {
+mod_courtref <- function(input, output, session, video_src, detection_ref, include_net = FALSE, styling) {
     ns <- session$ns
     did_sr_popup <- reactiveVal(0L)
     active <- reactiveVal(FALSE)
@@ -127,10 +127,11 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
                               ## the four court ref points can vary
                               lapply(1:4, function(n) cr_dropdown(paste0("crdd", n), n = n, what = if (n <= nrow(cr)) cr$pos[n] else NULL)),
                               ## antenna points are fixed
-                              list(tags$div(tags$strong("Reference point 5"), "Left end of the midline"),
-                                   tags$div(tags$strong("Reference point 6"), "Right end of the midline"),
-                                   tags$div(tags$strong("Reference point 7"), "Top of net at right antenna"),
-                                   tags$div(tags$strong("Reference point 8"), "Top of net at left antenna"))
+                              if (isTRUE(include_net))
+                                  list(tags$div(tags$strong("Reference point 5"), "Left end of the midline"),
+                                       tags$div(tags$strong("Reference point 6"), "Right end of the midline"),
+                                       tags$div(tags$strong("Reference point 7"), "Top of net at right antenna"),
+                                       tags$div(tags$strong("Reference point 8"), "Top of net at left antenna"))
                           ))
     })
     ## watch these inputs
@@ -169,7 +170,7 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
                 p <- p + geom_label(data = mutate(crvt$court, point_num = row_number()), ## double check that point_num always matches the UI inputs ordering
                                     aes_string(label = "point_num"), color = "white", fill = court_colour)
             }
-            if (!is.null(crvt$antenna)) {
+            if (isTRUE(include_net) && !is.null(crvt$antenna)) {
                 plotx <- mutate(crvt$antenna, n = case_when(.data$antenna == "left" & .data$where == "floor" ~ 5L,
                                                             .data$antenna == "right" & .data$where == "floor" ~ 6L,
                                                             .data$antenna == "right" & .data$where == "net_top" ~ 7L,
@@ -251,12 +252,14 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, styli
                     ## don't use ns here?? why on earth does that not work??
                     crvt$court$pos[next_pt] <- input[[paste0("crdd", next_pt)]]
                     ## TODO court_x and court_y here need updating
-                } else if (is.null(crvt$antenna) || nrow(crvt$antenna) < 4) {
-                    warning("empty crvt$antenna??")
-                    stop("add new antenna row")
-                } else if (any(is.na(crvt$antenna$image_x))) {
-                    next_pt <- min(which(is.na(crvt$antenna$image_x)))
-                    crvt$antenna[next_pt, c("image_x", "image_y")] <- as.list(px)
+                } else if (isTRUE(include_net)) {
+                    if (is.null(crvt$antenna) || nrow(crvt$antenna) < 4) {
+                        warning("empty crvt$antenna??")
+                        stop("add new antenna row")
+                    } else if (any(is.na(crvt$antenna$image_x))) {
+                        next_pt <- min(which(is.na(crvt$antenna$image_x)))
+                        crvt$antenna[next_pt, c("image_x", "image_y")] <- as.list(px)
+                    }
                 }
             } else {
                 ##cat("drag or null start/end point\n")
