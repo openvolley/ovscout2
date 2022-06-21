@@ -336,6 +336,7 @@ ov_scouter_server <- function(app_data) {
         do_edit_commit <- function() {
             if (!is.null(editing$active)) {
                 if (editing$active %in% c("edit", "insert above", "insert below")) {
+                    ## NOTE this not used yet
                     ## user has changed EITHER input$code_entry or used the code_entry_guide
                     if (nzchar(input$code_entry)) {
                         newcode <- input$code_entry
@@ -377,7 +378,7 @@ ov_scouter_server <- function(app_data) {
                 }
                 editing$active <- NULL
                 removeModal()
-                deal_with_pause()
+                ##deal_with_pause() ## no need to unpause after any of these actions?
             }
         }
 
@@ -429,6 +430,7 @@ ov_scouter_server <- function(app_data) {
             meta_is_valid(ok)
             output$problem_ui <- renderUI({
                 if (!ok) {
+                    rally_state("fix required information before scouting can begin")
                     tags$div(class = "alert alert-info",
                              tags$h2("Information needed"),
                              tags$ul(
@@ -441,13 +443,13 @@ ov_scouter_server <- function(app_data) {
                              tags$p("Scouting cannot start until this information has been entered.")
                              )
                 } else {
+                    rally_state(if (video_state$paused) "click or unpause the video to start" else "click serve start")
                     NULL
                 }
             })
         })
 
         ## exteral video control buttons
-        ##observeEvent(input$pause_trigger, deal_with_pause())
         observeEvent(input$video_pause, deal_with_pause())
         observeEvent(input$video_rew_10, do_video("rew", 10))
         observeEvent(input$video_rew_2, do_video("rew", 2))
@@ -461,7 +463,7 @@ ov_scouter_server <- function(app_data) {
             if (isTRUE(scout_modal_active())) {
                 ## but do allow pause, if somehow it isn't already
                 do_video("pause")
-            } else if (meta_is_valid()) {
+            } else {##if (meta_is_valid()) {
                 ## don't allow unpause if the lineups are not valid, else it'll crash
                 if (video_state$paused) {
                     ## we are paused
@@ -762,7 +764,7 @@ ov_scouter_server <- function(app_data) {
 
         ## single click the video to register a tag location, or starting ball coordinates
         observeEvent(loop_trigger(), {
-            if (loop_trigger() > 0) {
+            if (loop_trigger() > 0 && rally_state() != "fix required information before scouting can begin") {
                 if (rally_state() == "click or unpause the video to start") {
                     if (meta_is_valid()) {
                         do_video("play")
@@ -1076,14 +1078,14 @@ ov_scouter_server <- function(app_data) {
                 } else {
                     stop("unknown rally state: ", rally_state())
                 }
-            }
-            if (debug > 0) {
-                if (nrow(rally_codes())) {
-                    cat("rally codes:\n")
-                    print_rally_codes(rally_codes())
-                    ##cat(str(rally_codes()))
+                if (debug > 0) {
+                    if (nrow(rally_codes())) {
+                        cat("rally codes:\n")
+                        print_rally_codes(rally_codes())
+                        ##cat(str(rally_codes()))
+                    }
+                    cat("rally state: ", rally_state(), "\n")
                 }
-                cat("rally state: ", rally_state(), "\n")
             }
         })
 
