@@ -100,6 +100,27 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         plot_data_digest(digest::digest(plot_data()))
     })
 
+    ss <- reactive({
+        sets_won <- c(0L, 0L) ## sets won by home, visiting teams
+        if (nrow(rdata$dvw$plays2) < 1 || !"code" %in% names(rdata$dvw$plays2)) return(c(0L, 0L))
+        set_end_rows <- grep("^\\*\\*[[:digit:]]set", rdata$dvw$plays2$code)
+        for (si in seq_along(set_end_rows)) {
+            set_plays2 <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == si)
+            temp <- do.call(rbind, stringr::str_match_all(set_plays2$code, "^[a\\*]p([[:digit:]]+):([[:digit:]]+)"))
+            scores <- c(max(as.numeric(temp[, 2]), na.rm = TRUE), max(as.numeric(temp[, 3]), na.rm = TRUE))
+            if (is_beach(rdata$dvw)) {
+                if (max(scores) >= 21 && abs(diff(scores)) >= 2) {
+                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
+                }
+            } else {
+                if ((si < 5 && max(scores) >= 25 && abs(diff(scores)) >= 2) || max(scores) >= 15 && abs(diff(scores)) >= 2) {
+                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
+                }
+            }
+        }
+        sets_won
+    })
+
     ## generate the ggplot object of the court with players, this doesn't change within a rally
     base_plot <- reactive({
         p <- ggplot(data = data.frame(x = c(-0.25, 4.25, 4.25, -0.25), y = c(-0.25, -0.25, 7.25, 7.25)), mapping = aes_string("x", "y")) +
@@ -156,15 +177,18 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         temp$y <- temp$y - 0.75 ## shift to behind baseline
         p <- p + geom_polygon(data = temp, fill = if (px$serving %eq% "*") "white" else NA, colour = "black")
 
-        ## add the score on the right side
+        ## add the point and set scores on the right side
         if (!is.null(px$home_score_start_of_point) && !is.null(px$visiting_score_start_of_point)) {
-            scxy <- tibble(score = c(px$home_score_start_of_point, px$visiting_score_start_of_point),
-                           x = c(-0.5, -0.5),
-                           y = c(3, 4)
-                           )
+            ## point scores
+            scxy <- tibble(x = c(-0.5, -0.5), y = c(3.15, 3.85), score = c(px$home_score_start_of_point, px$visiting_score_start_of_point))
+            ## set scores
             scxy <- scxy %>% mutate(x = case_when(need_to_flip(current_video_src(), game_state$home_team_end) ~ .data$x,
                                                   TRUE ~ .data$x + 5))
-            p <- p + geom_text(data = scxy, aes_string("x", "y", label = "score"), size = 6, fontface = "bold", vjust = 0)
+            p <- p + ggplot2::annotate(x = scxy$x, y = scxy$y, label = scxy$score, geom = "label", size = 9, fontface = "bold", vjust = 0.5)
+            if (length(ss()) == 2 && !any(is.na(ss()))) {
+                ssxy <- tibble(set_score = ss(), x = c(-0.5, -0.5), y = c(2.6, 4.4))
+                p <- p + ggplot2::annotate(x = ssxy$x, y = ssxy$y, label = ssxy$set_score, geom = "label", size = 6, fontface = "bold", vjust = 0.5)
+            }
         }
         if (need_to_flip(current_video_src(), game_state$home_team_end)) p <- p + scale_x_reverse() + scale_y_reverse()
         p
