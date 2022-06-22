@@ -16,6 +16,7 @@ ov_scouter(
   scouting_options = ov_scouter_options(),
   default_scouting_table = ov_default_scouting_table(),
   compound_table = ov_default_compound_table(),
+  shortcuts = ov_default_shortcuts(),
   launch_browser = TRUE,
   prompt_for_files = interactive(),
   ...
@@ -43,6 +44,8 @@ ov_scouter(
 \item{default_scouting_table}{tibble: the table of scouting defaults (skill type and evaluation)}
 
 \item{compound_table}{tibble: the table of compound codes}
+
+\item{shortcuts}{list: named list of keyboard shortcuts, as returned by \code{\link[=ov_default_shortcuts]{ov_default_shortcuts()}}}
 
 \item{launch_browser}{logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny:runApp]{shiny::runApp()}}'s \code{launch.browser} parameter)}
 

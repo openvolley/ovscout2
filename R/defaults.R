@@ -148,3 +148,28 @@ ov_default_scouting_table <- function() {
                    "E", FALSE, "H", "+",
                    "F", FALSE, "H", "+")
 }
+
+#' Default keyboard shortcuts for ov_scouter
+#'
+#' @return A named list
+#'
+#' @export
+ov_default_shortcuts <- function() {
+    list(hide_popup = c("z", "Z"),
+         pause = c("q", "0"),
+         pause_no_popup = c("Q"),
+         go_to_time = c("g", "G", "#"),
+         undo = c("u", "U"),
+         switch_video = c("s"),
+         video_rewind_1_30 = c("b", "7"),
+         video_rewind_0.1 = c("n", "1"),
+         video_rewind_2 = c("j", "4"),
+         video_rewind_10 = c("h", "$"),
+         video_forward_1_30 = c(",", "9"),
+         video_forward_0.1 = c("m", "3"),
+         video_forward_2 = c("l", "6"),
+         video_forward_10 = c(";", "^")
+         )
+}
+
+

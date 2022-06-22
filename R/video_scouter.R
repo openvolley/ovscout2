@@ -13,6 +13,7 @@
 #' @param scouting_options list: a named list with entries as per [ov_scouter_options()]
 #' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
 #' @param compound_table tibble: the table of compound codes
+#' @param shortcuts list: named list of keyboard shortcuts, as returned by [ov_default_shortcuts()]
 #' @param launch_browser logical: if `TRUE`, launch the app in the system's default web browser (passed to [shiny::runApp()]'s `launch.browser` parameter)
 #' @param prompt_for_files logical: if `dvw` was not specified, prompt the user to select the dvw file
 #' @param ... : extra parameters passed to [datavolley::dv_read()] (if `dvw` is a provided as a string) and/or to the shiny server and UI functions
@@ -23,7 +24,7 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), shortcuts = ov_default_shortcuts(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
     if (!missing(dvw) && identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = isTRUE(scoreboard), ball_path = isTRUE(ball_path), review_pane = isTRUE(review_pane), scouting_options = scouting_options, default_scouting_table = default_scouting_table, compound_table = compound_table, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
@@ -134,10 +135,13 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
         }
     }
 
+    ## make sure any unspecified options are given their defaults
     opts <- ov_scouter_options()
     for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
+    scts <- ov_default_shortcuts()
+    for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
     ## finally the shiny app
-    app_data <- c(list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, ui_header = tags$div()), other_args)
+    app_data <- c(list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, shortcuts = scts, ui_header = tags$div()), other_args)
     if ("video_file2" %in% names(other_args)) {
         video_file2 <- other_args$video_file2
         other_args$video_file2 <- NULL
@@ -331,8 +335,6 @@ ov_scouter_demo <- function(...) {
 }
 
 ## TODO
-## - if on first serve of the set, the click is at the wrong end according to game_state$home_end and game_state$serving == "*", then either auto-flip the court or pause and check with user
-## - outside of video pane, have "Rewind 5s", "Pause", "Enter manual code" buttons
 ## - propagate clicks to video itself? (controls)
 ## - have a popup with all buttons required to manually enter a skill code:
 ##   Team * a
@@ -340,12 +342,3 @@ ov_scouter_demo <- function(...) {
 ##   Skill S R etc but not including T C P etc
 ##   - and text boxes to enter T, C, P etc
 ## - player selection via the court inset, with players shown in their assumed playing locations ?
-## - allow starting libero to be specified in the lineup, and that libero shown first in selections by default
-
-## default/pre-selected choices:
-## - serves, guess serve type based on player's previous serves AND/OR time between serve and reception contacts
-## - reception evaluation (and serve evaluation) based on set contact xy and time between reception and set contacts
-## - passing player based on reception xy, rotation, and assumed passing system
-## - attacking player based on start xy, rotation, and assumed offensive system
-## - attack tempo based on time and distance between set and attack contacts
-## - number of blockers based on attack tempo and location (default to 1 on quick, 2 on medium, 3 on high  - make this configurable)

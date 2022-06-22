@@ -503,20 +503,20 @@ ov_scouter_server <- function(app_data) {
             }
             if (!is.null(mycmd)) {
                 ky <- intToUtf8(as.numeric(mycmd))
-                if (ky %in% c("z", "Z")) {
+                if (ky %in% app_data$shortcuts$hide_popup) {
                     ## temporarily hide the modal, so the video can be seen
                     ## but only for the admin, lineup modal or the ones that pop up during the rally, not the editing modals for teams or rosters
                     if (is.null(editing$active) || editing$active %in% c("admin", "change starting lineup")) dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
-                } else if (ky %in% c("q", "Q", "0")) {
+                } else if (ky %in% c(app_data$shortcuts$pause, app_data$shortcuts$pause_no_popup)) {
                     ## only accept this if we are not editing, or it's the admin modal being shown
                     if (is.null(editing$active) || editing$active %eq% "admin") {
                         ## video pause/unpause
                         ## Q (uppercase) does just pause, with no admin modal
-                        deal_with_pause(show_modal = ky != "Q")
+                        deal_with_pause(show_modal = !ky %in% app_data$shortcuts$pause_no_popup)
                     }
                 } else if (is.null(editing$active) && !courtref$active()) {
                     ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
-                    if (ky %in% c("g", "G", "#")) {
+                    if (ky %in% app_data$shortcuts$go_to_time) {
                         ## video go to currently-selected event
                         ## NB this is the current game_state time, not the time of the currently-selected event
                         ## TO FIX
@@ -528,18 +528,18 @@ ov_scouter_server <- function(app_data) {
                             if (debug > 1) cat("jumping to video time: ", vt, "\n")
                             do_video("set_time", rebase_time(vt, time_to = current_video_src()))
                         }
-                    } else if (ky %in% c("u", "U")) {
+                    } else if (ky %in% app_data$shortcuts$undo) {
                         ## undo
                         do_undo()
-                    } else if (ky %in% c("s")) {
+                    } else if (ky %in% app_data$shortcuts$switch_video) {
                         ## switch video
                         do_switch_video()
-                    } else if (ky %in% strsplit("nm13jhl;46$^b,79", "")[[1]]) {
+                    } else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)", names(app_data$shortcuts))])) {
                         if (is.null(editing$active)) {
                             ## video forward/backward nav
                             ## same as for other ovscout interface, although the fine control is not needed here?
-                            vidcmd <- if (ky %in% strsplit("1nhj4$b7", "")[[1]]) "rew" else "ff"
-                            dur <- if (ky %in% strsplit("h$;^", "")[[1]]) 10 else if (ky %in% strsplit("nm13", "")[[1]]) 0.1 else if (ky %in% strsplit("b7,9", "")[[1]]) 1/30 else 2
+                            vidcmd <- if (ky %in% unlist(app_data$shortcuts[grepl("^video_rewind", names(app_data$shortcuts))])) "rew" else "ff"
+                            dur <- if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_10", names(app_data$shortcuts))])) 10 else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_0.1", names(app_data$shortcuts))])) 0.1 else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_1_30", names(app_data$shortcuts))])) 1/30 else 2
                             do_video(vidcmd, dur)
                         }
                     }
@@ -608,7 +608,7 @@ ov_scouter_server <- function(app_data) {
                     mycmd <- strsplit(mycmd, "|", fixed = TRUE)[[1]] ## e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which
                     if (length(mycmd) == 5) {
                         ky <- mycmd[5]
-                        if (ky %in% c("90", "122")) {
+                        if (ky %in% utf8ToInt(paste0(app_data$shortcuts$hide_popup, collapse = ""))) {
                             ## z
                             ## re-show the modal after temporarily hiding
                             dojs("$('#shiny-modal-wrapper').show(); $('.modal-backdrop').show();")
