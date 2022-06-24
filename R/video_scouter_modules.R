@@ -344,40 +344,77 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                              DT::dataTableOutput(ns("ht_display_team")),
                              wellPanel(
                                  fluidRow(
-                                     column(1, textInput(ns("ht_P1"), label = "P1", value = if (!is.na(ht_def_lup[1])) ht_def_lup[1] else "", placeholder = "P1")),
-                                     column(1, textInput(ns("ht_P2"), label = "P2", value = if (!is.na(ht_def_lup[2])) ht_def_lup[2] else "", placeholder = "P2")),
-                                     column(1, textInput(ns("ht_P3"), label = "P3", value = if (!is.na(ht_def_lup[3])) ht_def_lup[3] else "", placeholder = "P3")),
-                                     column(1, textInput(ns("ht_P4"), label = "P4", value = if (!is.na(ht_def_lup[4])) ht_def_lup[4] else "", placeholder = "P4")),
-                                     column(1, textInput(ns("ht_P5"), label = "P5", value = if (!is.na(ht_def_lup[5])) ht_def_lup[5] else "", placeholder = "P5")),
-                                     column(1, textInput(ns("ht_P6"), label = "P6", value = if (!is.na(ht_def_lup[6])) ht_def_lup[6] else "", placeholder = "P6"))),
-                                 fluidRow(
-                                     column(1, textInput(ns("ht_setter"), label = "Setter", value = ht_setter, placeholder = "Setter")),
-                                     column(1, textInput(ns("ht_libero1"), label = "Libero 1", value = if (is.na(ht_def_lup[7]) && length(ht_libs) > 0) ht_libs[1] else if (!is.na(ht_def_lup[7]) && ht_def_lup[7] == -1) "" else if (!is.na(ht_def_lup[7])) ht_def_lup[7], placeholder = "Libero 1")),
-                                     column(1, textInput(ns("ht_libero2"), label = "Libero 2", value = if (is.na(ht_def_lup[8]) && length(ht_libs) > 1) ht_libs[2] else if (!is.na(ht_def_lup[8]) && ht_def_lup[8] == -1) "" else if (!is.na(ht_def_lup[8])) ht_def_lup[8], placeholder = "Libero 2"))
+                                     column(1, textInput(ns("ht_P4"), label = "P4", value = if (!is.na(ht_def_lup[4])) ht_def_lup[4] else "", placeholder = "P4"),
+                                            textInput(ns("ht_P5"), label = "P5", value = if (!is.na(ht_def_lup[5])) ht_def_lup[5] else "", placeholder = "P5")),
+                                     column(1, textInput(ns("ht_P3"), label = "P3", value = if (!is.na(ht_def_lup[3])) ht_def_lup[3] else "", placeholder = "P3"),
+                                            textInput(ns("ht_P6"), label = "P6", value = if (!is.na(ht_def_lup[6])) ht_def_lup[6] else "", placeholder = "P6")),
+                                     column(1, textInput(ns("ht_P2"), label = "P2", value = if (!is.na(ht_def_lup[2])) ht_def_lup[2] else "", placeholder = "P2"),
+                                            textInput(ns("ht_P1"), label = "P1", value = if (!is.na(ht_def_lup[1])) ht_def_lup[1] else "", placeholder = "P1")),
+                                     column(1, offset = 1, textInput(ns("ht_libero1"), label = "Libero 1", value = if (is.na(ht_def_lup[7]) && length(ht_libs) > 0) ht_libs[1] else if (!is.na(ht_def_lup[7]) && ht_def_lup[7] == -1) "" else if (!is.na(ht_def_lup[7])) ht_def_lup[7], placeholder = "Libero 1"),
+                                            textInput(ns("ht_setter"), label = "Setter", value = ht_setter, placeholder = "Setter")),
+                                     column(1, textInput(ns("ht_libero2"), label = "Libero 2", value = if (is.na(ht_def_lup[8]) && length(ht_libs) > 1) ht_libs[2] else if (!is.na(ht_def_lup[8]) && ht_def_lup[8] == -1) "" else if (!is.na(ht_def_lup[8])) ht_def_lup[8], placeholder = "Libero 2")),
+                                     column(1, offset = 1, tags$br(), actionButton(ns("rot_home_fwd"), tags$span("Rotate", icon("redo"))), actionButton(ns("rot_home_back"), tags$span("Rotate back", icon("undo"))))
                                  ),
                                  style = paste0("background: ", styling$h_court_colour)
                              )),
-                        tabPanel("Visiting team",
-                                 tags$style(paste0("#vt_display_team {border: 2px solid ", styling$v_court_colour, ";}")),
-                                 DT::dataTableOutput(ns("vt_display_team")),
-                                 wellPanel(
-                                     fluidRow(
-                                         column(1, textInput(ns("vt_P1"), label = "P1", value = if (!is.na(vt_def_lup[1])) vt_def_lup[1] else "", placeholder = "P1")),
-                                         column(1, textInput(ns("vt_P2"), label = "P2", value = if (!is.na(vt_def_lup[2])) vt_def_lup[2] else "", placeholder = "P2")),
-                                         column(1, textInput(ns("vt_P3"), label = "P3", value = if (!is.na(vt_def_lup[3])) vt_def_lup[3] else "", placeholder = "P3")),
-                                         column(1, textInput(ns("vt_P4"), label = "P4", value = if (!is.na(vt_def_lup[4])) vt_def_lup[4] else "", placeholder = "P4")),
-                                         column(1, textInput(ns("vt_P5"), label = "P5", value = if (!is.na(vt_def_lup[5])) vt_def_lup[5] else "", placeholder = "P5")),
-                                         column(1, textInput(ns("vt_P6"), label = "P6", value = if (!is.na(vt_def_lup[6])) vt_def_lup[6] else "", placeholder = "P6"))),
-                                     fluidRow(
-                                         column(1, textInput(ns("vt_setter"), label = "Setter", value = vt_setter, placeholder = "Setter")),
-                                         column(1, textInput(ns("vt_libero1"), label = "Libero 1", value = if (is.na(vt_def_lup[7]) && length(vt_libs) > 0) vt_libs[1] else if (!is.na(vt_def_lup[7]) && vt_def_lup[7] == -1) "" else if (!is.na(vt_def_lup[7])) vt_def_lup[7], placeholder = "Libero 1")),
-                                         column(1, textInput(ns("vt_libero2"), label = "Libero 2", value = if (is.na(vt_def_lup[8]) && length(vt_libs) > 1) vt_libs[2] else if (!is.na(vt_def_lup[8]) && vt_def_lup[8] == -1) "" else if (!is.na(vt_def_lup[8])) vt_def_lup[8], placeholder = "Libero 2"))
-                                     ),
-                                     style = paste0("background: ", styling$v_court_colour)
-                                 ))
-                    )
-                ))
-        })
+                    tabPanel("Visiting team",
+                             tags$style(paste0("#vt_display_team {border: 2px solid ", styling$v_court_colour, ";}")),
+                             DT::dataTableOutput(ns("vt_display_team")),
+                             wellPanel(
+                                 fluidRow(
+                                     column(1, textInput(ns("vt_P4"), label = "P4", value = if (!is.na(vt_def_lup[4])) vt_def_lup[4] else "", placeholder = "P4"),
+                                            textInput(ns("vt_P5"), label = "P5", value = if (!is.na(vt_def_lup[5])) vt_def_lup[5] else "", placeholder = "P5")),
+                                     column(1, textInput(ns("vt_P3"), label = "P3", value = if (!is.na(vt_def_lup[3])) vt_def_lup[3] else "", placeholder = "P3"),
+                                            textInput(ns("vt_P6"), label = "P6", value = if (!is.na(vt_def_lup[6])) vt_def_lup[6] else "", placeholder = "P6")),
+                                     column(1, textInput(ns("vt_P2"), label = "P2", value = if (!is.na(vt_def_lup[2])) vt_def_lup[2] else "", placeholder = "P2"),
+                                            textInput(ns("vt_P1"), label = "P1", value = if (!is.na(vt_def_lup[1])) vt_def_lup[1] else "", placeholder = "P1")),
+                                     column(1, offset = 1, textInput(ns("vt_libero1"), label = "Libero 1", value = if (is.na(vt_def_lup[7]) && length(vt_libs) > 0) vt_libs[1] else if (!is.na(vt_def_lup[7]) && vt_def_lup[7] == -1) "" else if (!is.na(vt_def_lup[7])) vt_def_lup[7], placeholder = "Libero 1"),
+                                            textInput(ns("vt_setter"), label = "Setter", value = vt_setter, placeholder = "Setter")),
+                                     column(1, textInput(ns("vt_libero2"), label = "Libero 2", value = if (is.na(vt_def_lup[8]) && length(vt_libs) > 1) vt_libs[2] else if (!is.na(vt_def_lup[8]) && vt_def_lup[8] == -1) "" else if (!is.na(vt_def_lup[8])) vt_def_lup[8], placeholder = "Libero 2")),
+                                     column(1, offset = 1, tags$br(), actionButton(ns("rot_visiting_fwd"), tags$span("Rotate", icon("redo"))), actionButton(ns("rot_visiting_back"), tags$span("Rotate back", icon("undo"))))
+                                 ),
+                                 style = paste0("background: ", styling$v_court_colour)
+                             ))
+                )
+            ))
+    })
+
+    observeEvent(input$rot_home_fwd, {
+        temp <- input$ht_P1
+        updateTextInput(session = session, inputId = "ht_P1", value = input$ht_P2)
+        updateTextInput(session = session, inputId = "ht_P2", value = input$ht_P3)
+        updateTextInput(session = session, inputId = "ht_P3", value = input$ht_P4)
+        updateTextInput(session = session, inputId = "ht_P4", value = input$ht_P5)
+        updateTextInput(session = session, inputId = "ht_P5", value = input$ht_P6)
+        updateTextInput(session = session, inputId = "ht_P6", value = temp)
+    })
+    observeEvent(input$rot_home_back, {
+        temp <- input$ht_P6
+        updateTextInput(session = session, inputId = "ht_P2", value = input$ht_P1)
+        updateTextInput(session = session, inputId = "ht_P3", value = input$ht_P2)
+        updateTextInput(session = session, inputId = "ht_P4", value = input$ht_P3)
+        updateTextInput(session = session, inputId = "ht_P5", value = input$ht_P4)
+        updateTextInput(session = session, inputId = "ht_P6", value = input$ht_P5)
+        updateTextInput(session = session, inputId = "ht_P1", value = temp)
+    })
+    observeEvent(input$rot_visiting_fwd, {
+        temp <- input$vt_P1
+        updateTextInput(session = session, inputId = "vt_P1", value = input$vt_P2)
+        updateTextInput(session = session, inputId = "vt_P2", value = input$vt_P3)
+        updateTextInput(session = session, inputId = "vt_P3", value = input$vt_P4)
+        updateTextInput(session = session, inputId = "vt_P4", value = input$vt_P5)
+        updateTextInput(session = session, inputId = "vt_P5", value = input$vt_P6)
+        updateTextInput(session = session, inputId = "vt_P6", value = temp)
+    })
+    observeEvent(input$rot_visiting_back, {
+        temp <- input$vt_P6
+        updateTextInput(session = session, inputId = "vt_P2", value = input$vt_P1)
+        updateTextInput(session = session, inputId = "vt_P3", value = input$vt_P2)
+        updateTextInput(session = session, inputId = "vt_P4", value = input$vt_P3)
+        updateTextInput(session = session, inputId = "vt_P5", value = input$vt_P4)
+        updateTextInput(session = session, inputId = "vt_P6", value = input$vt_P5)
+        updateTextInput(session = session, inputId = "vt_P1", value = temp)
+    })
 
     output$edit_lineup_commit_ui <- renderUI({
         htok <- nzchar(input$ht_P1) && nzchar(input$ht_P2)
