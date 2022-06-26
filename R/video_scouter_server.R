@@ -47,7 +47,11 @@ ov_scouter_server <- function(app_data) {
         have_second_video <- !is.null(app_data$video_src2)
         current_video_src <- reactiveVal(1L) ## start with video 1
         preview_video_src <- reactiveVal(1L)
-        dojs("Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());")
+        observe({
+            if (is.null(input$video_width) || is.na(input$video_width) || input$video_width < 1 || is.null(input$video_height) || is.na(input$video_height) || input$video_height < 1) {
+                dojs("Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());")
+            }
+        })
         get_src_type <- function(src) {
             type <- "local"
             if (is_youtube_url(src)) {
@@ -426,7 +430,8 @@ ov_scouter_server <- function(app_data) {
             ## check courtref
             courtref_ok <- !is.null(detection_ref1()$court_ref)
             if (have_second_video && courtref_ok && is.null(detection_ref2()$court_ref)) courtref_ok <- "Use the 'Video setup' button to define the court reference for video 2."
-            ok <- teams_ok && isTRUE(lineups_ok) && isTRUE(rosters_ok) && isTRUE(courtref_ok)
+            video_media_ok <- !is.null(input$dv_width) && !is.null(input$dv_height) && !is.null(input$video_width) && !is.null(input$video_height) && !is.na(input$dv_width) && !is.na(input$dv_height) && !is.na(input$video_width) && !is.na(input$video_height) && input$dv_width > 0 && input$dv_height > 0 && input$video_width > 0 && input$video_height > 0
+            ok <- teams_ok && isTRUE(lineups_ok) && isTRUE(rosters_ok) && isTRUE(courtref_ok) && video_media_ok
             meta_is_valid(ok)
             output$problem_ui <- renderUI({
                 if (!ok) {
@@ -437,13 +442,14 @@ ov_scouter_server <- function(app_data) {
                                       if (!isTRUE(courtref_ok)) tags$li(if (is.character(courtref_ok)) courtref_ok else paste0("Use the '", if (have_second_video) "Video setup" else "Court reference", "' button to define the court reference.")),
                                       if (!teams_ok) tags$li("Use the 'Select teams' button to choose from existing teams, or 'Edit teams' to enter new ones."),
                                       if (!isTRUE(rosters_ok)) tags$li(if (is.character(rosters_ok)) paste0(rosters_ok, " "), "Use the 'Edit teams' button to enter or adjust the team rosters."),
-                                      if (!isTRUE(lineups_ok)) tags$li(if (is.character(lineups_ok)) paste0(lineups_ok, " "), paste0("Use the 'Edit lineups' to enter or adjust the starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), "."))
+                                      if (!isTRUE(lineups_ok)) tags$li(if (is.character(lineups_ok)) paste0(lineups_ok, " "), paste0("Use the 'Edit lineups' to enter or adjust the starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), ".")),
+                                      if (!video_media_ok) tags$li("Wait for the video media information to be loaded.")
                                   ),
                              tags$hr(),
                              tags$p("Scouting cannot start until this information has been entered.")
                              )
                 } else {
-                    if (video_state$paused) rally_state("click or unpause the video to start")
+                    if (rally_state() == "fix required information before scouting can begin") rally_state(if (video_state$paused) "click or unpause the video to start" else "click serve start")
                     NULL
                 }
             })
@@ -709,7 +715,7 @@ ov_scouter_server <- function(app_data) {
             time_uuid <- uuid()
             game_state$current_time_uuid <- time_uuid
             do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
-            courtxy(vid_to_crt(input$video_click))
+            if (rally_state() != "click or unpause the video to start") courtxy(vid_to_crt(input$video_click))
             loop_trigger(loop_trigger() + 1L)
             ## TODO MAYBE also propagate the click to elements below the overlay?
         })
