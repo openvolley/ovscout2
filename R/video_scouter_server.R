@@ -1079,7 +1079,7 @@ ov_scouter_server <- function(app_data) {
                     stop("unknown rally state: ", rally_state())
                 }
                 if (debug > 0) {
-                    if (nrow(rally_codes())) {
+                    if (nrow(rally_codes()) > 0) {
                         cat("rally codes:\n")
                         print_rally_codes(rally_codes())
                         ##cat(str(rally_codes()))
