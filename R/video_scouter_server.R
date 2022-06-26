@@ -443,7 +443,7 @@ ov_scouter_server <- function(app_data) {
                              tags$p("Scouting cannot start until this information has been entered.")
                              )
                 } else {
-                    rally_state(if (video_state$paused) "click or unpause the video to start" else "click serve start")
+                    if (video_state$paused) rally_state("click or unpause the video to start")
                     NULL
                 }
             })
