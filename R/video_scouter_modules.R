@@ -181,12 +181,12 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         if (!is.null(px$home_score_start_of_point) && !is.null(px$visiting_score_start_of_point)) {
             ## point scores
             scxy <- tibble(x = c(-0.5, -0.5), y = c(3.15, 3.85), score = c(px$home_score_start_of_point, px$visiting_score_start_of_point))
-            ## set scores
-            scxy <- scxy %>% mutate(x = case_when(need_to_flip(current_video_src(), game_state$home_team_end) ~ .data$x,
-                                                  TRUE ~ .data$x + 5))
+            if (!need_to_flip(current_video_src(), game_state$home_team_end)) scxy$x <- scxy$x + 5
             p <- p + ggplot2::annotate(x = scxy$x, y = scxy$y, label = scxy$score, geom = "label", size = 9, fontface = "bold", vjust = 0.5)
             if (length(ss()) == 2 && !any(is.na(ss()))) {
+                ## set scores
                 ssxy <- tibble(set_score = ss(), x = c(-0.5, -0.5), y = c(2.6, 4.4))
+                if (!need_to_flip(current_video_src(), game_state$home_team_end)) ssxy$x <- ssxy$x + 5
                 p <- p + ggplot2::annotate(x = ssxy$x, y = ssxy$y, label = ssxy$set_score, geom = "label", size = 6, fontface = "bold", vjust = 0.5)
             }
         }
