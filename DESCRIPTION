@@ -29,6 +29,7 @@ Imports:
     ovideo (>= 0.17.2),
     peranavolley,
     R.utils,
+    rappdirs,
     rintrojs,
     servr (>= 0.15.1),
     shiny,

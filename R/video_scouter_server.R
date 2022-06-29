@@ -5,6 +5,21 @@ ov_scouter_server <- function(app_data) {
 
         shiny::onSessionEnded(shiny::stopApp)
 
+        ## are we running under shiny server, shiny (locally) or shiny (docker)?
+        RUN_ENV <- if (file.exists("/.dockerenv") || tryCatch(any(grepl("docker", readLines("/proc/1/cgroup"))), error = function(e) FALSE)) "shiny_docker" else if (nzchar(Sys.getenv("SHINY_PORT"))) "shiny_server" else "shiny_local"
+
+        ## user data directory
+        app_data$user_dir <- if (RUN_ENV == "shiny_local") file.path(rappdirs::user_data_dir(), "ovscout2") else tempfile()
+        if (!dir.exists(app_data$user_dir)) dir.create(app_data$user_dir)
+
+        ## on startup, clean up old auto-saved files
+        try({
+            d <- fs::dir_info(app_data$user_dir)
+            d <- d[grepl("^autosave", fs::path_file(d$path)), ] ## autosave files
+            d <- d$path[difftime(Sys.time(), d$modification_time, units = "days") > 7] ## older than 7 days
+            if (length(d)) fs::file_delete(d)
+        })
+
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "Score") ##"home_setter_position", "visiting_setter_position", "is_skill"
         plays_cols_renames <- c(Set = "set_number")##, hs = "home_setter_position", as = "visiting_setter_position")
 
@@ -2081,10 +2096,9 @@ ov_scouter_server <- function(app_data) {
                     dv_write2(update_meta(rp2(rdata$dvw)), file = file)
                 }, error = function(e) {
                     rds_ok <- FALSE
-                    if (!nzchar(Sys.getenv("SHINY_PORT"))) {
-                        ## this only makes sense if running locally, not deployed on a remote server
-                        ## if no port defined, assumed running under shiny within R, not under shiny server
-                        tf <- tempfile(fileext = ".rds")
+                    if (RUN_ENV == "shiny_local") {
+                        ## this only makes sense if running locally, not deployed on a server
+                        tf <- tempfile(tmpdir = app_data$user_dir, pattern = "autosave-", fileext = ".rds")
                         try({
                             saveRDS(rdata$dvw, file = tf)
                             rds_ok <- file.exists(tf) && file.size(tf) > 0
@@ -2109,10 +2123,9 @@ ov_scouter_server <- function(app_data) {
                     saveRDS(out, file)
                 }, error = function(e) {
                     rds_ok <- FALSE
-                    if (!nzchar(Sys.getenv("SHINY_PORT"))) {
-                        ## this only makes sense if running locally, not deployed on a remote server
-                        ## if no port defined, assumed running under shiny within R, not under shiny server
-                        tf <- tempfile(fileext = ".rds")
+                    if (RUN_ENV == "shiny_local") {
+                        ## this only makes sense if running locally, not deployed on a server
+                        tf <- tempfile(tmpdir = app_data$user_dir, pattern = "autosave-", fileext = ".rds")
                         try({
                             saveRDS(rdata$dvw, file = tf)
                             rds_ok <- file.exists(tf) && file.size(tf) > 0
@@ -2271,7 +2284,7 @@ ov_scouter_server <- function(app_data) {
                 dvw <- isolate(rdata$dvw)
                 dvw$plays <- NULL ## don't save this
                 dvw$game_state <- isolate(reactiveValuesToList(game_state))
-                tf <- tempfile(fileext = ".ovs")
+                tf <- tempfile(tmpdir = app_data$user_dir, pattern = "autosave-", fileext = ".ovs")
                 saveRDS(dvw, tf)
                 message("working file has been saved to: ", tf)
             }, error = function(e) {
