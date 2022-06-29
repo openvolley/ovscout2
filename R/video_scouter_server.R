@@ -1,6 +1,7 @@
 ov_scouter_server <- function(app_data) {
     function(input, output, session) {
         debug <- 1L
+        cstr <- function(z) capture.output(str(z))
 
         shiny::onSessionEnded(shiny::stopApp)
 
@@ -768,6 +769,10 @@ ov_scouter_server <- function(app_data) {
         fatradio_class_uuids <- reactiveValues()
         attack_other_opts <- reactiveVal(NULL)
 
+        ## helpers
+        default_skill_tempo <- function(skill) app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == skill]
+        default_skill_eval <- function(skill) app_data$default_scouting_table$evaluation_code[app_data$default_scouting_table$skill == skill]
+
         ## single click the video to register a tag location, or starting ball coordinates
         observeEvent(loop_trigger(), {
             if (loop_trigger() > 0 && rally_state() != "fix required information before scouting can begin") {
@@ -785,7 +790,7 @@ ov_scouter_server <- function(app_data) {
                     ## add placeholder serve code, will get updated on next click
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     ## serve type should have been selected in the preselect
-                    st <- if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
+                    st <- if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else default_skill_tempo("S")
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
                     ## time probably won't have resolved yet, so add it after next click
                     rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table)))
@@ -1013,8 +1018,18 @@ ov_scouter_server <- function(app_data) {
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
                     c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (play continues)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"), input_var = "c1") ## defaults to attack kill without dig error
                     ## TODO smarter guessing of that
-                    ae_buttons <- make_fat_radio_buttons(choices = c("Out long" = "O", "Out side" = "S", "In net" = "N", "Net contact" = "I", Antenna = "A", "Other/referee cal" = "Z"), selected = NA, input_var = "attack_error_type")
-                    ## Identify defending players
+                    ae_buttons <- make_fat_radio_buttons(choices = c("Out long" = "O", "Out side" = "S", "In net" = "N", "Net contact" = "I", Antenna = "A", "Other/referee call" = "Z"), selected = NA, input_var = "attack_error_type")
+                    ## blocking players
+                    blockp <- get_players(game_state, team = game_state$current_team, dvw = rdata$dvw)
+                    if (length(blockp) == 6) blockp <- blockp[2:4] ## front-row only
+                    blockp <- sort(blockp)
+                    names(blockp) <- player_nums_to(blockp, team = game_state$current_team, dvw = rdata$dvw)
+                    blockp <- c(blockp, Unknown = "Unknown")
+                    block_player_buttons <- make_fat_radio_buttons(choices = blockp, selected = NA, input_var = "c1_block_touch_player")
+                    ## also blocking players, to show for block fault/kill in different part of form
+                    ## define this here because selected is NA, whereas we make a default selection for c1_def_player below
+                    block1_player_buttons <- make_fat_radio_buttons(choices = blockp, selected = NA, input_var = "c1_def_player")
+                    ## identify defending players
                     dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
                     digp <- dig_pl_opts$choices
                     names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
@@ -1026,13 +1041,6 @@ ov_scouter_server <- function(app_data) {
                     names(coverp) <- player_nums_to(coverp, team = other(game_state$current_team), dvw = rdata$dvw)
                     coverp <- c(coverp, Unknown = "Unknown")
                     cover_player_buttons <- make_fat_radio_buttons(choices = coverp, selected = cover_pl_opts$selected, input_var = "c1_cover_player")
-                    ## blocking players
-                    blockp <- get_players(game_state, team = game_state$current_team, dvw = rdata$dvw)
-                    if (length(blockp) == 6) blockp <- blockp[2:4] ## front-row only
-                    blockp <- sort(blockp)
-                    names(blockp) <- player_nums_to(blockp, team = game_state$current_team, dvw = rdata$dvw)
-                    blockp <- c(blockp, Unknown = "Unknown")
-                    block_player_buttons <- make_fat_radio_buttons(choices = blockp, selected = NA, input_var = "c1_block_touch_player")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack outcome:")),
                                             do.call(fixedRow, lapply(c1_buttons[1:3], function(but) column(2, but))),
@@ -1041,13 +1049,17 @@ ov_scouter_server <- function(app_data) {
                                             do.call(fixedRow, lapply(c1_buttons[4:7], function(but) column(2, but))),
                                             tags$br(), tags$hr(),
                                             ## either dig players (defending team)
-                                            tags$div(id = "c1_digp_ui", style = "display:none;", tags$p(tags$strong("by player")),
+                                            tags$div(id = "c1_digp_ui", style = "display:none;", tags$p(tags$strong("Dig player")),
                                                      do.call(fixedRow, lapply(dig_player_buttons, function(but) column(1, but)))),
                                             ## or cover players (attacking team)
-                                            tags$div(id = "c1_coverp_ui", style = "display:none;", tags$p(tags$strong("Cover dig by player")),
+                                            tags$div(id = "c1_coverp_ui", style = "display:none;", tags$p(tags$strong("Cover dig player")),
                                                      do.call(fixedRow, lapply(cover_player_buttons, function(but) column(1, but)))),
-                                            tags$br(), tags$hr(), tags$div("WITH", tags$strong("Block touch"), "by player"), tags$br(),
-                                            do.call(fixedRow, lapply(block_player_buttons, function(but) column(2, but))),
+                                            ## or block players
+                                            tags$div(id = "c1_blockp_ui", style = "display:none;", tags$p(tags$strong("Block player")),
+                                                     do.call(fixedRow, lapply(block1_player_buttons, function(but) column(2, but)))),
+                                            tags$br(),
+                                            tags$div(id = "c1_touchp_ui", tags$hr(), tags$div("WITH", tags$strong("Block touch"), "by player"), tags$br(),
+                                                     do.call(fixedRow, lapply(block_player_buttons, function(but) column(2, but)))),
                                             tags$hr(),
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
                                                      column(2, offset = 8, actionButton("assign_c1", "Continue", class = "continue fatradio")))
@@ -1138,18 +1150,66 @@ ov_scouter_server <- function(app_data) {
         })
 
         observe({
+            ## c1 can be A#, A=, A!, D, D=, B#, B/
+            ## for A!, show cover players and block touch
+            ## D, D=, show def players and block touch
+            ## A# show block touch
+            ## A= hide all player selectors
+            ## B#, B/ show block1
+            ## cover player buttons (c1_coverp_ui), block player buttons (c1_blockp_ui), and dig player buttons (c1_digp_ui) are alternatives, only one of these should be shown at any one time
             if (!is.null(input$c1)) {
                 if (input$c1 %eq% "A!") {
                     js_show2("c1_coverp_ui")
+                    js_hide2("c1_blockp_ui")
                     js_hide2("c1_digp_ui")
-                } else if (input$c1 %in% c("D", "D=", "B#", "B/")) {
+                    js_show2("c1_touchp_ui")
+                } else if (input$c1 %in% c("D", "D=")) {
                     js_hide2("c1_coverp_ui")
+                    js_hide2("c1_blockp_ui")
                     js_show2("c1_digp_ui")
-                } else {
+                    js_show2("c1_touchp_ui")
+                } else if (input$c1 %in% c("B#", "B/")) {
+                    js_show2("c1_blockp_ui")
                     js_hide2("c1_coverp_ui")
                     js_hide2("c1_digp_ui")
+                    js_hide2("c1_touchp_ui")
+                } else if (input$c1 %in% c("A#")) {
+                    js_hide2("c1_coverp_ui")
+                    js_hide2("c1_digp_ui")
+                    js_hide2("c1_blockp_ui")
+                    js_show2("c1_touchp_ui")
+                } else {
+                    ## A=
+                    js_hide2("c1_coverp_ui")
+                    js_hide2("c1_digp_ui")
+                    js_hide2("c1_blockp_ui")
+                    js_hide2("c1_touchp_ui")
+                    if (!is.na(game_state$end_x) && !is.na(game_state$end_y)) {
+                        guess_att_err <- NA_character_
+                        if (game_state$end_x < 0.5 || game_state$end_x > 3.5) {
+                            ## out side
+                            guess_att_err <- "S"
+                        } else if (game_state$end_y < 0.5 || game_state$end_y > 6.5) {
+                            ## out long
+                            guess_att_err <- "O"
+                        } else if (game_state$end_y > 3.3 && game_state$end_y < 3.7) {
+                            ## ball end point is near the net
+                            guess_att_err <- "N"
+                        }
+                        if (!is.na(guess_att_err)) dojs(paste0("$('#",  digest::digest(paste0("but-attack_error_type-", guess_att_err)), "').click();"))
+                    }
                 }
                 if (input$c1 %eq% "A=") js_show2("ae_ui") else js_hide2("ae_ui")
+            }
+        })
+
+        observe({
+            if (!is.null(input$f1)) {
+                if (input$f1 %eq% "F=") {
+                    js_hide2("f1_digp_ui")
+                } else {
+                    js_show2("f1_digp_ui")
+                }
             }
         })
 
@@ -1264,7 +1324,7 @@ ov_scouter_server <- function(app_data) {
                     ## serve error
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     serve_err_type <- if (!is.null(input$serve_error_type)) input$serve_error_type else "="
-                    st <- if (!is.null(input$serve_type)) input$serve_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
+                    st <- if (!is.null(input$serve_type)) input$serve_type else default_skill_tempo("S")
                     remove_scout_modal()
                     special_code <- substr(serve_err_type, 2, 2)
                     if (special_code %eq% "N" && app_data$options$end_convention %eq% "actual") game_state$end_y <- 3.5 ## exactly on net
@@ -1282,7 +1342,7 @@ ov_scouter_server <- function(app_data) {
                     ## serve ace
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     pp <- if (!is.null(input$pass_player)) input$pass_player else 0L
-                    st <- if (!is.null(input$serve_type)) input$serve_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
+                    st <- if (!is.null(input$serve_type)) input$serve_type else default_skill_tempo("S")
                     remove_scout_modal()
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
                     esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
@@ -1301,7 +1361,7 @@ ov_scouter_server <- function(app_data) {
                 } else {
                     ## reception in play
                     sp <- if (!is.null(input$serve_preselect_player)) input$serve_preselect_player else if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
-                    st <- if (!is.null(input$serve_type)) input$serve_type else app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
+                    st <- if (!is.null(input$serve_type)) input$serve_type else default_skill_tempo("S")
                     pp <- if (!is.null(input$pass_player)) input$pass_player else 0L
                     remove_scout_modal()
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
@@ -1328,7 +1388,7 @@ ov_scouter_server <- function(app_data) {
             mid_xy <- c(NA_real_, NA_real_)
             if (!is.null(input$c1_block_touch_player)) {
                 if (input$c1 %in% c("A#", "A=", "D", "D=")) {
-                    beval <- if (input$c1 %eq% "A#") "=" else app_data$default_scouting_table$evaluation_code[app_data$default_scouting_table$skill == "B"]
+                    beval <- if (input$c1 %eq% "A#") "=" else default_skill_eval("B")
                     rc <- rally_codes()
                     Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
                     mid_xy <- infer_mid_coords(game_state = game_state)
@@ -1383,7 +1443,7 @@ ov_scouter_server <- function(app_data) {
                                       ## the block
                                       code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "!", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table),
                                       ## and the dig cover
-                                      code_trow(team = other(game_state$current_team), pnum = if (!is.na(input$c1_cover_player)) input$c1_cover_player else 0L, skill = "D", eval = app_data$default_scouting_table$evaluation_code[app_data$default_scouting_table$skill == "D"], sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table)
+                                      code_trow(team = other(game_state$current_team), pnum = if (!is.na(input$c1_cover_player)) input$c1_cover_player else 0L, skill = "D", eval = default_skill_eval("D"), sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table)
                                       ))
                 game_state$current_team <- other(game_state$current_team) ## attacking team now playing
                 rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
@@ -1402,6 +1462,8 @@ ov_scouter_server <- function(app_data) {
                     rc$esz[Aidx] <- esz[2]
                     rc$end_x[Aidx] <- game_state$end_x
                     rc$end_y[Aidx] <- game_state$end_y
+                    ## if the attack row has an incompatible evaluation, change it. It can't be /, and arguably can't be # or ! either but we'll leave these for the time being
+                    if (rc$eval[Aidx] %in% c("/")) rc$eval[Aidx] <- default_skill_eval("A")
                 }
                 ## TODO if we already have a block skill here, don't add a new one, just update the existing one ... though there should never already be block skill here
                 rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "/", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table))) ## TODO x,y?
@@ -1502,7 +1564,7 @@ ov_scouter_server <- function(app_data) {
             } else {
                 ## FD or FD=
                 digp <- if (!is.null(input$f1_def_player)) input$f1_def_player else 0L
-                eval <- app_data$default_scouting_table$evaluation_code[app_data$default_scouting_table$skill == "F"]
+                eval <- default_skill_eval("F")
                 end_t <- retrieve_video_time(game_state$end_t)
                 if (!is.na(Fidx)) {
                     rc$ez[Fidx] <- esz[1]
@@ -1689,7 +1751,7 @@ ov_scouter_server <- function(app_data) {
                         targ <- ""
                     }
                 }
-                if (nchar(tempo) != 1) tempo <- app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "A"] ## fallback
+                if (nchar(tempo) != 1) tempo <- default_skill_tempo("A") ## fallback
                 if (nchar(tempo) != 1) tempo <- "~" ## double-fallback
                 if (nchar(targ) != 1 || targ %eq% "-") targ <- "~"
                 ## update target in the preceding set row, if there was one
@@ -1734,7 +1796,7 @@ ov_scouter_server <- function(app_data) {
             serve_player_buttons <- make_fat_radio_buttons(choices = sort(other_sp), selected = sp, input_var = "serve_preselect_player")
             ## default serve type is either the most common serve type by this player, or the default serve type
             st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state, opts = app_data$options)
-            if (is.na(st_default)) st_default <- app_data$default_scouting_table$tempo[app_data$default_scouting_table$skill == "S"]
+            if (is.na(st_default)) st_default <- default_skill_tempo("S")
             chc <- app_data$options$skill_tempo_map %>% dplyr::filter(.data$skill == "Serve") %>% mutate(tempo = sub(" serve", "", .data$tempo))
             chc <- setNames(chc$tempo_code, chc$tempo)
             serve_type_buttons <- make_fat_radio_buttons(choices = chc, selected = st_default, input_var = "serve_preselect_type")
@@ -1884,7 +1946,7 @@ ov_scouter_server <- function(app_data) {
                 ## and the current team
                 game_state$current_team <- restore_current_team
                 ## rewind the video to the time of the last action, or if we've removed all actions then the prior time of the first one
-                do_video("set_time", if (nrow(rc) > 0) tail(rc$t, 1) else restore_t)
+                if (nrow(rc) > 0) do_video("set_time", tail(rc$t, 1)) else if (length(restore_t) == 1 && !is.na(restore_t)) do_video("set_time", restore_t) else do_video("rew", 3)
             } else {
                 ## undo the last code in plays2, this is trickier
                 ## we need the game_state and rally_state to reset to, these are in plays2
