@@ -64,7 +64,7 @@ function dvjs_video_onstart() { vo_doneResizing(); }")),
                                                     HTML(paste0("<video id=\"main_video\" style=\"width:100%; height:75vh;\" class=\"video-js\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": ", if (yt) paste0("[{ \"type\": \"video/youtube\", \"src\": \"", app_data$video_src, "\"}]") else paste0("[{ \"src\": \"", file.path(app_data$video_server_base_url, basename(app_data$video_src)), "\"}]"), " }'>\n",
                                                                 "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>"))
                                                     ),
-                                           tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay", click = "video_click", dblclick = "video_dblclick"), data.step = 5, data.intro = "Video of the game to scout."),
+                                           tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay"), data.step = 5, data.intro = "Video of the game to scout."),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
                               fluidRow(column(12,
                                               ## some elements commented out for now - BR
@@ -96,8 +96,7 @@ function dvjs_video_onstart() { vo_doneResizing(); }")),
                               introBox(mod_playslist_ui("playslist", height = "35vh", styling = app_data$styling), data.step = 4, data.intro = "List of actions. New entries appear here as they are scouted."),
                               uiOutput("error_message"))
                        ),
-tags$script("set_vspinner = function() { $('#review_player').addClass('loading'); }"),
-tags$script("remove_vspinner = function() { $('#review_player').removeClass('loading'); }"),
+tags$script("set_vspinner = function() { $('#review_player').addClass('loading'); }; remove_vspinner = function() { $('#review_player').removeClass('loading'); }; $('#video_overlay').click(function(e) { var rect = e.target.getBoundingClientRect(); var cx = e.clientX - rect.left; var cy = e.clientY - rect.top; Shiny.setInputValue('video_click', [cx, cy, rect.width, rect.height, new Date().getTime()]) });"),
 tags$style("video.loading { background: black; }"),
 tags$script("review_player_onerror = function(e) { $('#review_player').removeClass('loading'); try { var this_src = btoa(document.getElementById(e.target.id).getAttribute('src')); } catch { var this_src = ''; }; Shiny.setInputValue('video_error', e.target.id + '@' + this_src + '@' + e.target.error.code + '@' + new Date().getTime()); }"),
 tags$script(paste0("vidplayer = videojs('main_video'); revpl = new dvjs_controller('review_player','", if (yt) "youtube" else "local", "',true);  revpl.video_onfinished = function() { revpl.video_controller.current=0; revpl.video_play(); }"))

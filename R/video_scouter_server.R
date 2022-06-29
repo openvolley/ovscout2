@@ -728,10 +728,12 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$video_click, {
             ## when video clicked, get the corresponding video time and trigger the loop
             flash_screen() ## visual indicator that click has registered
+            ## calculate the normalized x,y coords
+            this_click <- if (length(input$video_click) > 4) list(x = input$video_click[1] / input$video_click[3], y = 1 - input$video_click[2] / input$video_click[4])
             time_uuid <- uuid()
             game_state$current_time_uuid <- time_uuid
             do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
-            if (rally_state() != "click or unpause the video to start") courtxy(vid_to_crt(input$video_click))
+            if (rally_state() != "click or unpause the video to start") courtxy(vid_to_crt(this_click))
             loop_trigger(loop_trigger() + 1L)
             ## TODO MAYBE also propagate the click to elements below the overlay?
         })
