@@ -11,14 +11,21 @@ ov_scouter_server <- function(app_data) {
         ## user data directory
         app_data$user_dir <- if (RUN_ENV == "shiny_local") file.path(rappdirs::user_data_dir(), "ovscout2") else tempfile()
         if (!dir.exists(app_data$user_dir)) dir.create(app_data$user_dir)
+        if (!dir.exists(file.path(app_data$user_dir, "autosave"))) dir.create(file.path(app_data$user_dir, "autosave"))
 
         ## on startup, clean up old auto-saved files
         try({
-            d <- fs::dir_info(app_data$user_dir)
-            d <- d[grepl("^autosave", fs::path_file(d$path)), ] ## autosave files
+            d <- fs::dir_info(file.path(app_data$user_dir, "autosave"))
             d <- d$path[difftime(Sys.time(), d$modification_time, units = "days") > 7] ## older than 7 days
             if (length(d)) fs::file_delete(d)
         })
+
+        ## do we have any saved preferences?
+        prefs <- reactiveValues(scout = "", show_courtref = FALSE) ## defaults, perhaps move to defaults.R
+        prefs_file <- file.path(app_data$user_dir, "preferences.rds")
+        saved_prefs <- if (file.exists(prefs_file)) readRDS(prefs_file) else list()
+        for (nm in names(saved_prefs)) prefs[[nm]] <- saved_prefs[[nm]]
+        if (is.null(app_data$dvw$meta$more$scout) || is.na(app_data$dvw$meta$more$scout) || !nzchar(app_data$dvw$meta$more$scout)) app_data$dvw$meta$more$scout <- prefs$scout
 
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "Score") ##"home_setter_position", "visiting_setter_position", "is_skill"
         plays_cols_renames <- c(Set = "set_number")##, hs = "home_setter_position", as = "visiting_setter_position")
@@ -641,12 +648,32 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## video overlay
-        output$show_courtref_ui <- renderUI(if (!is.null(detection_ref()$court_ref)) {
-                                                sel <- isolate(input$show_courtref)
-                                                checkboxInput("show_courtref", "Show court reference?", value = sel)
-                                            } else {
-                                                NULL
-                                            })
+        observeEvent(input$preferences, {
+            editing$active <- "preferences"
+            showModal(vwModalDialog(title = "Preferences", footer = NULL,
+                                    fluidRow(column(4, checkboxInput("prefs_show_courtref", "Show court reference?", value = prefs$show_courtref)),
+                                             column(4, textInput("prefs_scout", label = "Default scout name:", width = "15ex", placeholder = "Your name", value = prefs$scout))),
+                                    tags$br(),
+                                    tags$hr(),
+                                    fixedRow(column(2, actionButton("prefs_cancel", "Cancel", class = "cancel fatradio")),
+                                             column(2, offset = 8, actionButton("prefs_save", "Apply and save", class = "continue fatradio")))
+                                    ))
+        })
+        observeEvent(input$prefs_cancel, {
+            editing$active <- NULL
+            removeModal()
+        })
+        observeEvent(input$prefs_save, {
+            thisprefs <- list(scout = if (is.null(input$prefs_scout) || is.na(input$prefs_scout)) "" else input$prefs_scout,
+                              show_courtref = isTRUE(input$prefs_show_courtref))
+            ## save
+            tryCatch(saveRDS(thisprefs, prefs_file), error = function(e) warning("could not save prefs file to: ", prefs_file))
+            ## apply
+            for (nm in names(thisprefs)) prefs[[nm]] <- thisprefs[[nm]]
+            if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- prefs$scout
+            editing$active <- NULL
+            removeModal()
+        })
 
         ## account for aspect ratios
         ## the video overlay image (which receives the mouse clicks) will fill the whole video div element
@@ -656,7 +683,7 @@ ov_scouter_server <- function(app_data) {
         ar_fix_x <- function(x, direction = "to_image") {
             eAR <- input$dv_width / input$dv_height
             mAR <- input$video_width / input$video_height
-            if (eAR > mAR) {
+            if (length(eAR) && length(mAR) && eAR > mAR) {
                 ## element is wider than the actual media, we have letterboxing on the sides
                 visW <- mAR * input$dv_height
                 lw <- (input$dv_width - visW) / input$dv_width / 2 ## letterboxing each side as proportion of element (visible) width
@@ -668,7 +695,7 @@ ov_scouter_server <- function(app_data) {
         ar_fix_y <- function(y, direction = "to_image") {
             eAR <- input$dv_width / input$dv_height
             mAR <- input$video_width / input$video_height
-            if (mAR > eAR) {
+            if (length(eAR) && length(mAR) && mAR > eAR) {
                 ## media is wider than the element, we have letterboxing on the top/bottom
                 visH <- input$dv_width / mAR
                 lh <- (input$dv_height - visH) / input$dv_height / 2 ## letterboxing top/bottom as proportion of element (visible) height
@@ -685,7 +712,7 @@ ov_scouter_server <- function(app_data) {
                 ## need to plot SOMETHING else we don't get correct coordinates back
                 ##this <- selected_event()
                 p <- ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + gg_tight
-                if (isTRUE(input$show_courtref)) {
+                if (isTRUE(prefs$show_courtref)) {
                     oxy <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = detection_ref()$court_ref, crop = TRUE)$courtxy
                     oxy <- dplyr::rename(oxy, image_x = "x", image_y = "y")
                     ## account for aspect ratios
