@@ -655,11 +655,11 @@ ov_scouter_server <- function(app_data) {
                                              column(4, textInput("prefs_scout", label = "Default scout name:", width = "15ex", placeholder = "Your name", value = prefs$scout))),
                                     tags$br(),
                                     tags$hr(),
-                                    fixedRow(column(2, actionButton("prefs_cancel", "Cancel", class = "cancel fatradio")),
+                                    fixedRow(column(2, actionButton("just_cancel", "Cancel", class = "cancel fatradio")),
                                              column(2, offset = 8, actionButton("prefs_save", "Apply and save", class = "continue fatradio")))
                                     ))
         })
-        observeEvent(input$prefs_cancel, {
+        observeEvent(input$just_cancel, {
             editing$active <- NULL
             removeModal()
         })
@@ -2325,5 +2325,44 @@ ov_scouter_server <- function(app_data) {
             temp_vt <- na.omit(app_data$dvw$plays2$video_time)
             if (length(temp_vt) > 0) do_video("set_time", rebase_time(max(temp_vt), time_from = 1)) ## rebase here should not be necessary, unless somehow we've started on video 2
         }
+
+        ## reports
+        observeEvent(input$mr_generate, {
+            ## dvw from rds
+            temp_dvw_file <- tempfile(fileext = ".dvw")
+            dv_write2(update_meta(rp2(rdata$dvw)), file = temp_dvw_file)
+            servable_url <- NULL
+            tryCatch({
+                shiny::withProgress(message = "Generating match report", value = 0, {
+                    rargs <- list(x = temp_dvw_file, format = "paged_pdf", vote = FALSE, shiny_progress = TRUE, chrome_print_extra_args = if (RUN_ENV %eq% "shiny_local") NULL else c("--no-sandbox", "--disable-gpu"))
+                    if ("icon" %in% names(app_data) && file.exists(app_data$icon)) rargs$icon <- app_data$icon
+                    ##header_extra_pre = "<div style=\"position:absolute; bottom:-7mm; right:2mm; font-size:9px;\">\nReport via <https://openvolley.org/ovscout2>\n</div>\n"
+                    rcss <- volleyreport::vr_css()
+                    if ("report_css" %in% names(app_data) && is.list(app_data$report_css) && length(app_data$report_css) > 0) rcss <- modifyList(rcss, app_data$report_css)
+                    rargs$css <- rcss
+                    rfile <- do.call(volleyreport::vr_match_summary, rargs)
+                    unlink(temp_dvw_file)
+                    servable_file_abs_path <- file.path(app_data$reports_dir, basename(rfile))
+                    servable_url <- paste0("/reports/", basename(rfile))
+                    file.copy(rfile, servable_file_abs_path)
+                    ##onStop(function() try({ unlink(servable_file_abs_path); unlink(rfile) }, silent = TRUE))
+                    ##onSessionEnded(function() try({ unlink(servable_file_abs_path); unlink(rfile) }, silent = TRUE))
+                    editing$active <- "match report"
+                    showModal(vwModalDialog(title = "Match report", footer = NULL,
+                                            tags$iframe(style = "width:80%; height:100vh;", src = servable_url),
+                                    tags$br(),
+                                    tags$hr(),
+                                    fixedRow(column(2, offset = 10, actionButton("just_cancel", "Return to scouting", class = "continue fatradio")))
+                                    ))
+                })
+            }, error = function(e) {
+                    showModal(vwModalDialog(title = "Match report", footer = NULL,
+                                            tags$p("Sorry, something went wrong generating the PDF. (The error message was: ", conditionMessage(e), ")"),
+                                    tags$br(),
+                                    tags$hr(),
+                                    fixedRow(column(2, offset = 10, actionButton("just_cancel", "Return to scouting", class = "continue fatradio")))
+                                    ))
+            })
+        })
     }
 }

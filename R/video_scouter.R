@@ -141,7 +141,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     scts <- ov_default_shortcuts()
     for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
     ## finally the shiny app
-    app_data <- c(list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, shortcuts = scts, ui_header = tags$div()), other_args)
+    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, shortcuts = scts, ui_header = tags$div())
     if ("video_file2" %in% names(other_args)) {
         video_file2 <- other_args$video_file2
         other_args$video_file2 <- NULL
@@ -273,10 +273,20 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
                              libero = "yellow", libero_light = "#FFFF70", libero_dark = "#FFCD4C",
                              setter = "grey90",
                              playslist_highlight = "orange")
+    ## dir for reports
+    if ("reports_dir" %in% names(other_args)) {
+        if (!dir.exists(other_args$reports_dir)) stop("reports_dir does not exist")
+    } else {
+        app_data$reports_dir <- tempfile()
+        dir.create(app_data$reports_dir)
+    }
+
+    app_data <- c(app_data, other_args)
 
     this_app <- list(ui = ov_scouter_ui(app_data = app_data), server = ov_scouter_server(app_data = app_data))
     shiny::addResourcePath("css", system.file("extdata/css", package = "ovscout2"))
     shiny::addResourcePath("js", system.file("extdata/js", package = "ovscout2"))
+    shiny::addResourcePath("reports", app_data$reports_dir)
     shiny::runApp(this_app, display.mode = "normal", launch.browser = launch_browser)
 }
 

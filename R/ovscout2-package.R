@@ -13,6 +13,6 @@
 #' @importFrom stats aggregate na.omit setNames
 #' @importFrom stringr str_c str_count str_detect str_match str_pad str_remove str_split str_sub str_to_upper str_trim
 #' @importFrom uuid UUIDgenerate
-#' @importFrom utils capture.output flush.console head packageVersion str tail write.csv
+#' @importFrom utils capture.output flush.console head modifyList packageVersion str tail write.csv
 #' @importFrom rintrojs introjsUI introjs introBox
 NULL
