@@ -16,7 +16,7 @@ ov_scouter_ui <- function(app_data) {
                         tags$link(href = if (running_locally) "css/video-js.min.css" else "//vjs.zencdn.net/7.10.2/video-js.min.css", rel = "stylesheet"),
                         tags$script(src = if (running_locally) "js/video.min.js" else "//vjs.zencdn.net/7.10.2/video.min.js"),
                         if (yt) tags$script(src = "https://cdn.jsdelivr.net/npm/videojs-youtube@2.6.1/dist/Youtube.min.js"), ## for youtube
-                        tags$style(".video-js .vjs-big-play-button { display: none; } .bareslider { display:inline-block; margin-left:4px; margin-right:4px;} .bareslider .irs-max, .bareslider .irs-min, .bareslider .irs-single, .bareslider .irs-from, .bareslider .irs-to { display:none; } .bareslider .irs-handle { top:0px; } .bareslider .irs-line { top:7px;} .bareslider .irs-bar {top:8px;}"),
+                        tags$style(".video-js .vjs-big-play-button { display: none; } .bareslider { display:inline-block; margin-left:4px; margin-right:4px;} .bareslider .irs-max, .bareslider .irs-min, .bareslider .irs-single, .bareslider .irs-from, .bareslider .irs-to { display:none; } .bareslider .irs-handle { top:0px; } .bareslider .irs-line { top:7px;} .bareslider .irs-bar {top:8px;} #bsbar .btn { width:100%; margin-bottom:2px;}"),
                         ##key press handling
                         tags$script("$(document).on('keypress', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.setInputValue('cmd', e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
                         tags$script("$(document).on('keydown', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.setInputValue('controlkey', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
@@ -44,56 +44,58 @@ function dvjs_video_onstart() { vo_doneResizing(); }")),
               },
               tags$div(id = "review_pane", style = "position:absolute; top:20px; right:20px; width:27vw; -webkit-transform:translateZ(9999); z-index:9999; display:none;", ## start hidden
                             ovideo::ov_video_player(id = "review_player", type = "local", controls = FALSE, poster = "data:image/gif,AAAA", style = "border: 1px solid black; width: 100%;", muted = "true", onloadstart = "set_vspinner();", oncanplay = "remove_vspinner();", onerror = "review_player_onerror(event);")),
-              fluidRow(column(9,
+              fluidRow(column(1, tags$div(id = "bsbar",
+                                          actionButton("general_help", label = "General Help", icon = icon("question"), style = "margin-bottom: 8px;"),
+                                          introBox(actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward")),
+                                                   actionButton("video_rew_2", label = "Back 2s", icon = icon("step-backward")),
+                                                   actionButton("video_pause", label = "Pause", icon = icon("pause-circle")),
+                                                   actionButton("video_ff_2", label = "Forward 2s", icon = icon("step-forward")),
+                                                   actionButton("video_ff_10", label = "Forward 10s", icon = icon("step-forward")),
+                                                   tags$div(class = "bareslider", sliderInput("video_volume", label = "Volume", min = 0, max = 1, value = 0, width = "100%", ticks = FALSE), style = "width:100%"),
+                                                   actionButton("video_toggle_mute", label = "Unmute", icon = icon("volume-mute")),
+                                                   sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1), data.step = 4, data.intro = "Video controls. Also can be controlled by keyboard shortcuts."),
+                                          tags$hr(),
+                                          introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
+                                              if (!is.null(app_data$video_src2)) {
+                                                  tags$div(style = "display:inline-block;", shinyWidgets::dropdown(inputId = "video_setup", label = "Video setup", mod_courtref_ui(id = "courtref1"), mod_courtref_ui(id = "courtref2", button_label = HTML("Court reference<br />(video 2)")), actionButton("v2_offset", "Video time offset")))
+                                              } else {
+                                                  mod_courtref_ui(id = "courtref1")
+                                              },
+                                              mod_match_data_edit_ui(id = "match_data_editor"),
+                                              mod_team_select_ui(id = "team_selector"),
+                                              mod_team_edit_ui(id = "team_editor"),
+                                              mod_lineup_edit_ui(id = "lineup_editor"),
+                                              if (!is.null(app_data$video_src2)) actionButton("switch_video", "Switch video"),
+                                              data.step = 2, data.intro = "Click on these buttons if you want to edit the court reference, starting lineups, rosters, or match metadata. The court reference defines where the court is located in the video image."),
+                                          tags$hr(),
+                                          if (!is.null(app_data$dvw$plays2)) downloadButton("save_rds_button", "Save file"),
+                                          if (!is.null(app_data$dvw$plays2)) downloadButton("save_dvw_button", "Export to dvw"),
+                                          tags$hr(),
+                                          introBox(actionButton("preferences", "Preferences"),
+                                                   actionButton("show_shortcuts", tags$span(icon("keyboard"), HTML("Keyboard<br />shortcuts"))), data.step = 7, data.intro = "Set general preferences, and see the keyboard shortcuts.")
+                                          )),
+                       column(9,
                               fluidRow(column(8, tags$div(
-                                  actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward")),
-                                  actionButton("video_rew_2", label = "Back 2s", icon = icon("step-backward")),
-                                       actionButton("video_pause", label = "Pause", icon = icon("pause-circle")),
-                                  actionButton("video_ff_2", label = "Forward 2s", icon = icon("step-forward")),
-                                       actionButton("video_ff_10", label = "Forward 10s", icon = icon("step-forward")),
-                                       tags$div(class = "bareslider", sliderInput("video_volume", label = "Volume", min = 0, max = 1, value = 0, width = "60px", ticks = FALSE)),
-                                       actionButton("video_toggle_mute", label = "Unmute", icon = icon("volume-mute"))
-                                       )),
-                                      column(4, if (!is.null(app_data$dvw$plays2)) downloadButton("save_rds_button", "Save file"), downloadButton("save_dvw_button", "Export to dvw")),
-                                             ##column(2, shinyFiles::shinySaveButton("auto_save_file", label = "Auto save", title = "Save file as", filetype = "dvw"), tags$p(style = "font-size: small", "Auto save will automatically save a copy of the file after each rally"))
-                                      ),
+                                                      )),
+                                       column(4, ),
+                                       ##column(2, shinyFiles::shinySaveButton("auto_save_file", label = "Auto save", title = "Save file as", filetype = "dvw"), tags$p(style = "font-size: small", "Auto save will automatically save a copy of the file after each rally"))
+                                       ),
                               fluidRow(column(4, uiOutput("rally_state"))),
                               if (app_data$with_video)
                                   introBox(tags$div(id = "video_holder", style = "position:relative;",
                                                     if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc", styling = app_data$styling)),
-                                                    HTML(paste0("<video id=\"main_video\" style=\"width:100%; height:75vh;\" class=\"video-js\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": ", if (yt) paste0("[{ \"type\": \"video/youtube\", \"src\": \"", app_data$video_src, "\"}]") else paste0("[{ \"src\": \"", file.path(app_data$video_server_base_url, basename(app_data$video_src)), "\"}]"), " }'>\n",
+                                                    HTML(paste0("<video id=\"main_video\" style=\"width:100%; height:85vh;\" class=\"video-js\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": ", if (yt) paste0("[{ \"type\": \"video/youtube\", \"src\": \"", app_data$video_src, "\"}]") else paste0("[{ \"src\": \"", file.path(app_data$video_server_base_url, basename(app_data$video_src)), "\"}]"), " }'>\n",
                                                                 "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>"))
                                                     ),
-                                           tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay"), data.step = 5, data.intro = "Video of the game to scout."),
+                                           tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay"), data.step = 3, data.intro = "Video of the game to scout."),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
-                              fluidRow(column(12,
-                                              ## some elements commented out for now - BR
-                                              introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
-                                                  if (!is.null(app_data$video_src2)) {
-                                                      tags$div(style = "display:inline-block;", shinyWidgets::dropdown(inputId = "video_setup", label = "Video setup", mod_courtref_ui(id = "courtref1"), mod_courtref_ui(id = "courtref2", button_label = HTML("Court reference<br />(video 2)")), actionButton("v2_offset", "Video time offset")))
-                                                  } else {
-                                                      mod_courtref_ui(id = "courtref1")
-                                                  },
-                                                  mod_match_data_edit_ui(id = "match_data_editor"),
-                                                  mod_team_select_ui(id = "team_selector"),
-                                                  mod_team_edit_ui(id = "team_editor"),
-                                                  mod_lineup_edit_ui(id = "lineup_editor"),
-                                                  if (!is.null(app_data$video_src2)) actionButton("switch_video", "Switch video"),
-                                                  data.step = 2, data.intro = "Click on these buttons if you want to edit the court reference, starting lineups, rosters, or match metadata. The court reference defines where the court is located in the video image.")
-                                              )),
                               tags$div(style = "height: 14px;"),
-                              fluidRow(column(5, actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
-                                              actionButton("show_shortcuts", tags$span(icon("keyboard"), "Show keyboard shortcuts"), style="color: #fff; background-color: #B21212; border-color: #B21212"),
-                                              sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1),
-                                              actionButton("preferences", "Preferences")
-                                              ),
-                                       column(7, wellPanel(introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")))
-                                       )
+                              fluidRow(column(7, wellPanel(introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these."))))
                               ),
-                       column(3,
-                              introBox(wellPanel(mod_courtrot2_ui(id = "courtrot")), data.step = 3, data.intro = "Team lineups and on-court rotations."),
+                       column(2,
+                              introBox(wellPanel(mod_courtrot2_ui(id = "courtrot")), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
                               uiOutput("problem_ui"),
-                              introBox(mod_playslist_ui("playslist", height = "35vh", styling = app_data$styling), data.step = 4, data.intro = "List of actions. New entries appear here as they are scouted."),
+                              introBox(mod_playslist_ui("playslist", height = "35vh", styling = app_data$styling), data.step = 6, data.intro = "List of actions. New entries appear here as they are scouted."),
                               uiOutput("error_message"))
                        ),
 tags$script("set_vspinner = function() { $('#review_player').addClass('loading'); }; remove_vspinner = function() { $('#review_player').removeClass('loading'); }; $('#video_overlay').click(function(e) { var rect = e.target.getBoundingClientRect(); var cx = e.clientX - rect.left; var cy = e.clientY - rect.top; Shiny.setInputValue('video_click', [cx, cy, rect.width, rect.height, new Date().getTime()]) });"),

@@ -25,11 +25,11 @@ mod_teamslists <- function(input, output, session, rdata) {
 mod_courtrot2_ui <- function(id) {
     ns <- NS(id)
     tags$div(style = "border-radius: 4px; padding: 4px",
-             fluidRow(column(12, plotOutput(ns("court_inset"), click = ns("plot_click"), height = "45vh")),),
-             fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", icon("redo")))),
-                      column(3, offset = 1, uiOutput(ns("switch_serving_ui"), inline = TRUE)),
-                      column(2, offset = 1, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
-                      column(2, actionButton(ns("rotate_visiting"), tags$span("Visiting", icon("redo")))))
+             fluidRow(column(12, plotOutput(ns("court_inset"), click = ns("plot_click"), height = "45vh"))),
+             fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")))),
+                      column(3, uiOutput(ns("switch_serving_ui"), inline = TRUE)),
+                      column(2, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
+                      column(2, offset = 1, actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")))))
              )
 }
 
