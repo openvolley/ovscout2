@@ -25,7 +25,7 @@ ov_scouter_server <- function(app_data) {
         prefs_file <- file.path(app_data$user_dir, "preferences.rds")
         saved_prefs <- if (file.exists(prefs_file)) readRDS(prefs_file) else list()
         for (nm in names(saved_prefs)) prefs[[nm]] <- saved_prefs[[nm]]
-        if (is.null(app_data$dvw$meta$more$scout) || is.na(app_data$dvw$meta$more$scout) || !nzchar(app_data$dvw$meta$more$scout)) app_data$dvw$meta$more$scout <- prefs$scout
+        if (is.null(app_data$dvw$meta$more$scout) || is.na(app_data$dvw$meta$more$scout) || !nzchar(app_data$dvw$meta$more$scout)) app_data$dvw$meta$more$scout <- isolate(prefs$scout)
 
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "Score") ##"home_setter_position", "visiting_setter_position", "is_skill"
         plays_cols_renames <- c(Set = "set_number")##, hs = "home_setter_position", as = "visiting_setter_position")
