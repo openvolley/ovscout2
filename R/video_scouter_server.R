@@ -8,11 +8,6 @@ ov_scouter_server <- function(app_data) {
         ## are we running under shiny server, shiny (locally) or shiny (docker)?
         RUN_ENV <- if (file.exists("/.dockerenv") || tryCatch(any(grepl("docker", readLines("/proc/1/cgroup"))), error = function(e) FALSE)) "shiny_docker" else if (nzchar(Sys.getenv("SHINY_PORT"))) "shiny_server" else "shiny_local"
 
-        ## user data directory
-        app_data$user_dir <- if (RUN_ENV == "shiny_local") file.path(rappdirs::user_data_dir(), "ovscout2") else tempfile()
-        if (!dir.exists(app_data$user_dir)) dir.create(app_data$user_dir)
-        if (!dir.exists(file.path(app_data$user_dir, "autosave"))) dir.create(file.path(app_data$user_dir, "autosave"))
-
         ## on startup, clean up old auto-saved files
         try({
             d <- fs::dir_info(file.path(app_data$user_dir, "autosave"))
@@ -20,12 +15,7 @@ ov_scouter_server <- function(app_data) {
             if (length(d)) fs::file_delete(d)
         })
 
-        ## do we have any saved preferences?
-        prefs <- reactiveValues(scout = "", show_courtref = FALSE) ## defaults, perhaps move to defaults.R
-        prefs_file <- file.path(app_data$user_dir, "preferences.rds")
-        saved_prefs <- if (file.exists(prefs_file)) readRDS(prefs_file) else list()
-        for (nm in names(saved_prefs)) prefs[[nm]] <- saved_prefs[[nm]]
-        if (is.null(app_data$dvw$meta$more$scout) || is.na(app_data$dvw$meta$more$scout) || !nzchar(app_data$dvw$meta$more$scout)) app_data$dvw$meta$more$scout <- isolate(prefs$scout)
+        if (is.null(app_data$dvw$meta$more$scout) || is.na(app_data$dvw$meta$more$scout) || !nzchar(app_data$dvw$meta$more$scout)) app_data$dvw$meta$more$scout <- isolate(app_data$options$scout)
 
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "Score") ##"home_setter_position", "visiting_setter_position", "is_skill"
         plays_cols_renames <- c(Set = "set_number")##, hs = "home_setter_position", as = "visiting_setter_position")
@@ -52,7 +42,7 @@ ov_scouter_server <- function(app_data) {
             }
         }
         if (!is.null(app_data$video_src2)) app_data$dvw$video_file2 <- app_data$video_src2
-        rdata <- reactiveValues(dvw = app_data$dvw)
+        rdata <- reactiveValues(dvw = app_data$dvw, options = app_data$options)
 
         ## function to reference a video time measured on the time scale of video "from", to its equivalent time relative to video "to"
         rebase_time <- function(t, time_to = 1, time_from) {
@@ -647,12 +637,12 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
-        ## video overlay
+        ## options
         observeEvent(input$preferences, {
             editing$active <- "preferences"
             showModal(vwModalDialog(title = "Preferences", footer = NULL,
-                                    fluidRow(column(4, checkboxInput("prefs_show_courtref", "Show court reference?", value = prefs$show_courtref)),
-                                             column(4, textInput("prefs_scout", label = "Default scout name:", width = "15ex", placeholder = "Your name", value = prefs$scout))),
+                                    fluidRow(column(4, checkboxInput("prefs_show_courtref", "Show court reference?", value = rdata$options$show_courtref)),
+                                             column(4, textInput("prefs_scout", label = "Default scout name:", width = "15ex", placeholder = "Your name", value = rdata$options$scout))),
                                     tags$br(),
                                     tags$hr(),
                                     fixedRow(column(2, actionButton("just_cancel", "Cancel", class = "cancel fatradio")),
@@ -669,8 +659,8 @@ ov_scouter_server <- function(app_data) {
             ## save
             tryCatch(saveRDS(thisprefs, prefs_file), error = function(e) warning("could not save prefs file to: ", prefs_file))
             ## apply
-            for (nm in names(thisprefs)) prefs[[nm]] <- thisprefs[[nm]]
-            if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- prefs$scout
+            for (nm in names(thisprefs)) rdata$options[[nm]] <- thisprefs[[nm]]
+            if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- rdata$options$scout
             editing$active <- NULL
             removeModal()
         })
@@ -712,7 +702,7 @@ ov_scouter_server <- function(app_data) {
                 ## need to plot SOMETHING else we don't get correct coordinates back
                 ##this <- selected_event()
                 p <- ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + gg_tight
-                if (isTRUE(prefs$show_courtref)) {
+                if (isTRUE(rdata$options$show_courtref)) {
                     oxy <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = detection_ref()$court_ref, crop = TRUE)$courtxy
                     oxy <- dplyr::rename(oxy, image_x = "x", image_y = "y")
                     ## account for aspect ratios
@@ -850,12 +840,12 @@ ov_scouter_server <- function(app_data) {
                     ## pop up to find either serve error, or passing player
                     ## passing player options
                     ## game_state$current_team here is the receiving team
-                    pass_pl_opts <- guess_pass_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
+                    pass_pl_opts <- guess_pass_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     names(pass_pl_opts$choices) <- player_nums_to(pass_pl_opts$choices, team = game_state$current_team, dvw = rdata$dvw)
                     pass_pl_opts$choices <- c(pass_pl_opts$choices, Unknown = "Unknown")
 
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
-                    chc <- app_data$options$skill_tempo_map %>% dplyr::filter(.data$skill == "Serve") %>% mutate(tempo = sub(" serve", "", .data$tempo))
+                    chc <- rdata$options$skill_tempo_map %>% dplyr::filter(.data$skill == "Serve") %>% mutate(tempo = sub(" serve", "", .data$tempo))
                     chc <- setNames(chc$tempo_code, chc$tempo)
                     serve_type_buttons <- make_fat_radio_buttons(choices = chc, selected = input$serve_preselect_type, input_var = "serve_type")
                     guess_was_err <- NA
@@ -981,13 +971,13 @@ ov_scouter_server <- function(app_data) {
                     } else {
                         ph <- NA_character_
                     }
-                    if (app_data$options$attacks_by %eq% "codes") {
-                        ac <- guess_attack_code(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end, opts = app_data$options)
+                    if (rdata$options$attacks_by %eq% "codes") {
+                        ac <- guess_attack_code(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end, opts = rdata$options)
                         ac <- setNames(ac, ac)
-                        if (!isTRUE(app_data$options$transition_sets) && ph %eq% "Transition") {
+                        if (!isTRUE(rdata$options$transition_sets) && ph %eq% "Transition") {
                             ac <- head(ac, if (isTRUE(app_data$review_pane)) 4 else 7) ## wow, we don't have a lot here if we need to leave room for the three below plus space for the attack review pane
                             ## if we aren't scouting transition sets, then this "third" contact could be a setter dump or second-ball attack
-                            ac <- c(ac, c("Setter dump" = app_data$options$setter_dump_code, "Second-ball<br />attack" = app_data$options$second_ball_attack_code))
+                            ac <- c(ac, c("Setter dump" = rdata$options$setter_dump_code, "Second-ball<br />attack" = rdata$options$second_ball_attack_code))
                         } else {
                             ac <- head(ac, if (isTRUE(app_data$review_pane)) 6 else 9)
                         }
@@ -995,21 +985,21 @@ ov_scouter_server <- function(app_data) {
                         attack_other_opts(ac_others)
                     } else {
                         ac <- c("High ball" = "H", "Medium/fast<br />attack" = "M", "Quick attack" = "Q")##, "Other attack" = "O")
-                        if (!isTRUE(app_data$options$transition_sets) && ph %eq% "Transition") {
+                        if (!isTRUE(rdata$options$transition_sets) && ph %eq% "Transition") {
                             ## if we aren't scouting transition sets, then this "third" contact could be a setter dump or second-ball attack
-                            ac <- c(ac, c("Setter dump" = app_data$options$setter_dump_code, "Second-ball<br />attack" = app_data$options$second_ball_attack_code))
+                            ac <- c(ac, c("Setter dump" = rdata$options$setter_dump_code, "Second-ball<br />attack" = rdata$options$second_ball_attack_code))
                         }
                     }
                     n_ac <- length(ac)
                     n_ac2 <- 1L ## freeball and (maybe) set error
                     ac <- c(ac, "Freeball over" = "F")
-                    if (!isTRUE(app_data$options$transition_sets)) {
+                    if (!isTRUE(rdata$options$transition_sets)) {
                         ac <- c(ac, "Set error" = "E=")
                         n_ac2 <- 2L
                     }
                     c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR")), input_var = "c3")
                     fatradio_class_uuids$c3 <- attr(c3_buttons, "class")
-                    attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
+                    attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     ap <- sort(attack_pl_opts$choices)
                     names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
                     ap <- c(ap, Unknown = "Unknown")
@@ -1018,7 +1008,7 @@ ov_scouter_server <- function(app_data) {
                     ap <- c(ap, setNames(libs, player_nums_to(libs, team = game_state$current_team, dvw = rdata$dvw)))
                     attacker_buttons <- make_fat_radio_buttons(choices = ap, selected = attack_pl_opts$selected, input_var = "c3_player")
                     ## do we want to support "hole" block?
-                    if (isTRUE(app_data$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3), selected = if (!is.null(app_data$options$default_nblockers)) app_data$options$default_nblockers, input_var = "nblockers")
+                    if (isTRUE(rdata$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3), selected = if (!is.null(rdata$options$default_nblockers)) rdata$options$default_nblockers, input_var = "nblockers")
                     ## attack error, blocked, replay will be scouted on next entry
                     ## TODO other special codes ?
                     opp <- c(sort(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw)), sort(get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw)))
@@ -1028,7 +1018,7 @@ ov_scouter_server <- function(app_data) {
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack or freeball over:")),
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
-                                                                if (app_data$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))),
+                                                                if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))),
                                                                 lapply(c3_buttons[c(n_ac + seq_len(n_ac2))], function(but) column(1, but)))),
                                             tags$br(),
                                             tags$div(id = "c3_pl_ui", tags$p("by player"), tags$br(),
@@ -1036,8 +1026,8 @@ ov_scouter_server <- function(app_data) {
                                                      ),
                                             tags$br(),
                                             tags$div(id = "c3_bl_ui",
-                                                     if (isTRUE(app_data$options$nblockers)) tags$div("with", tags$br()),
-                                                     if (isTRUE(app_data$options$nblockers)) do.call(fixedRow, lapply(nblocker_buttons, function(but) column(2, but))),
+                                                     if (isTRUE(rdata$options$nblockers)) tags$div("with", tags$br()),
+                                                     if (isTRUE(rdata$options$nblockers)) do.call(fixedRow, lapply(nblocker_buttons, function(but) column(2, but))),
                                                      tags$br()),
                                             tags$hr(), tags$div("OR"), tags$br(),
                                             do.call(fixedRow, lapply(tail(c3_buttons, 3), function(but) column(2, but))),
@@ -1074,13 +1064,13 @@ ov_scouter_server <- function(app_data) {
                     ## define this here because selected is NA, whereas we make a default selection for c1_def_player below
                     block1_player_buttons <- make_fat_radio_buttons(choices = blockp, selected = NA, input_var = "c1_def_player")
                     ## identify defending players
-                    dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
+                    dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     digp <- dig_pl_opts$choices
                     names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
                     digp <- c(digp, Unknown = "Unknown")
                     dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "c1_def_player")
                     ## covering players (attacking team)
-                    cover_pl_opts <- guess_cover_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
+                    cover_pl_opts <- guess_cover_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     coverp <- cover_pl_opts$choices
                     names(coverp) <- player_nums_to(coverp, team = other(game_state$current_team), dvw = rdata$dvw)
                     coverp <- c(coverp, Unknown = "Unknown")
@@ -1121,7 +1111,7 @@ ov_scouter_server <- function(app_data) {
                     f1_buttons <- make_fat_radio_buttons(choices = c("Freeball over error" = "F=", "Freeball dig" = "FD", "Freeball dig error" = "FD="), selected = "FD", input_var = "f1")
                     ## Identify defending players
                     ## TODO use dedicated freeball-dig guessing?
-                    dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = app_data$options$team_system)
+                    dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     digp <- dig_pl_opts$choices
                     names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
                     digp <- c(digp, Unknown = "Unknown")
@@ -1371,7 +1361,7 @@ ov_scouter_server <- function(app_data) {
                     st <- if (!is.null(input$serve_type)) input$serve_type else default_skill_tempo("S")
                     remove_scout_modal()
                     special_code <- substr(serve_err_type, 2, 2)
-                    if (special_code %eq% "N" && app_data$options$end_convention %eq% "actual") game_state$end_y <- 3.5 ## exactly on net
+                    if (special_code %eq% "N" && rdata$options$end_convention %eq% "actual") game_state$end_y <- 3.5 ## exactly on net
                     esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
                     rc <- rally_codes()
                     Sidx <- which(rc$skill == "S")
@@ -1490,7 +1480,7 @@ ov_scouter_server <- function(app_data) {
                                       code_trow(team = other(game_state$current_team), pnum = if (!is.na(input$c1_cover_player)) input$c1_cover_player else 0L, skill = "D", eval = default_skill_eval("D"), sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table)
                                       ))
                 game_state$current_team <- other(game_state$current_team) ## attacking team now playing
-                rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
+                rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
             } else if (input$c1 %eq% "B/") {
                 rc <- rally_codes()
                 if (rc$skill[nrow(rc)] == "B") {
@@ -1567,7 +1557,7 @@ ov_scouter_server <- function(app_data) {
                 dx <- game_state$end_x
                 dy <- game_state$end_y
                 dz <- esz[1]
-                if (!is.null(input$c1_block_touch_player) && app_data$options$end_convention %eq% "intended") {
+                if (!is.null(input$c1_block_touch_player) && rdata$options$end_convention %eq% "intended") {
                     ## if we are scouting intended attack directions, and there was a block touch, then don't use a dig location
                     dx <- dy <- NA_real_
                     dz <- "~"
@@ -1577,7 +1567,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$point_won_by <- other(game_state$current_team)
                     rally_ended()
                 } else {
-                    rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
+                    rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
                 }
             }
             if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
@@ -1622,7 +1612,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$point_won_by <- other(game_state$current_team)
                     rally_ended()
                 } else {
-                    rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
+                    rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
                 }
             }
             if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
@@ -1658,12 +1648,12 @@ ov_scouter_server <- function(app_data) {
                 } else if (input$c2 %in% c("PP", "P2")) {
                     ## setter dump or second ball attack
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
-                    ## although we use PP and P2 in the R code here, we can use different combo codes in the dvw, following app_data$options$setter_dump_code and app_data$options$second_ball_attack_code
+                    ## although we use PP and P2 in the R code here, we can use different combo codes in the dvw, following rdata$options$setter_dump_code and rdata$options$second_ball_attack_code
                     trg <- if (input$c2 == "PP") "S" else "~"
                     ## update target in the preceding set row, if there was one
                     ##if (tail(rc$skill, 1) == "E") rc$target[nrow(rc)] <- trg
                     ## these only seem to be populated when setter calls are used TODO
-                    cmb <- if (input$c2 == "PP") app_data$options$setter_dump_code else app_data$options$second_ball_attack_code
+                    cmb <- if (input$c2 == "PP") rdata$options$setter_dump_code else rdata$options$second_ball_attack_code
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = cmb, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table)))
                     rally_state("click attack end point")
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
@@ -1694,7 +1684,7 @@ ov_scouter_server <- function(app_data) {
                     rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval)
                 }
                 op <- if (!is.null(input$c2_opp_player)) input$c2_opp_player else 0L
-                rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = app_data$options$overpass_attack_code, sz = esz[1], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table)))
+                rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = esz[1], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table)))
                 rally_state("click attack end point")
             } else if (input$c2 %in% c("aD", "aD=")) {
                 ## opposition dig on overpass
@@ -1711,7 +1701,7 @@ ov_scouter_server <- function(app_data) {
                     rally_ended()
                 } else {
                     game_state$current_team <- other(game_state$current_team)
-                    rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
+                    rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
                 }
             }
             if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
@@ -1730,7 +1720,7 @@ ov_scouter_server <- function(app_data) {
             if (input$c3 %in% c("aPR", "aD", "aD=")) {
                 ## adjust the prior skill, if it was a dig or reception then evaluation is "/", if it was a set then "-"
                 ## but we can only do this if we are scouting transition sets, otherwise we can be sure if it was e.g. D/ or a set over
-                if (isTRUE(app_data$options$transition_sets) && tail(rc$skill, 1) %in% c("R", "D", "E") && tail(rc$team, 1) %eq% game_state$current_team) {
+                if (isTRUE(rdata$options$transition_sets) && tail(rc$skill, 1) %in% c("R", "D", "E") && tail(rc$team, 1) %eq% game_state$current_team) {
                     new_eval <- if (tail(rc$skill, 1) %eq% "E") "-" else "/"
                     rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval)
                 }
@@ -1738,7 +1728,7 @@ ov_scouter_server <- function(app_data) {
             if (input$c3 %eq% "aPR") {
                 ## opposition overpass attack
                 op <- if (!is.null(input$c3_opp_player)) input$c3_opp_player else 0L
-                rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = app_data$options$overpass_attack_code, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table)))
+                rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = app_data$default_scouting_table)))
                 rally_state("click attack end point")
             } else if (input$c3 %in% c("aD", "aD=")) {
                 ## opposition dig on overpass
@@ -1749,7 +1739,7 @@ ov_scouter_server <- function(app_data) {
                     rally_ended()
                 } else {
                     game_state$current_team <- other(game_state$current_team)
-                    rally_state(if (isTRUE(app_data$options$transition_sets)) "click second contact" else "click third contact")
+                    rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
                 }
             } else if (input$c3 == "F") {
                 ## freeball over
@@ -1773,7 +1763,7 @@ ov_scouter_server <- function(app_data) {
                 ap <- if (!is.null(input$c3_player)) input$c3_player else 0L
                 ac <- input$c3
                 if (is.null(input$c3)) ac <- ""
-                if (app_data$options$attacks_by %eq% "codes") {
+                if (rdata$options$attacks_by %eq% "codes") {
                     if (nchar(ac) == 2) {
                         tempo <- tryCatch(rdata$dvw$meta$attacks$type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
                         targ <- tryCatch(rdata$dvw$meta$attacks$set_type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
@@ -1839,9 +1829,9 @@ ov_scouter_server <- function(app_data) {
             names(other_sp) <- player_nums_to(other_sp, team = game_state$serving, dvw = rdata$dvw)
             serve_player_buttons <- make_fat_radio_buttons(choices = sort(other_sp), selected = sp, input_var = "serve_preselect_player")
             ## default serve type is either the most common serve type by this player, or the default serve type
-            st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state, opts = app_data$options)
+            st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state, opts = rdata$options)
             if (is.na(st_default)) st_default <- default_skill_tempo("S")
-            chc <- app_data$options$skill_tempo_map %>% dplyr::filter(.data$skill == "Serve") %>% mutate(tempo = sub(" serve", "", .data$tempo))
+            chc <- rdata$options$skill_tempo_map %>% dplyr::filter(.data$skill == "Serve") %>% mutate(tempo = sub(" serve", "", .data$tempo))
             chc <- setNames(chc$tempo_code, chc$tempo)
             serve_type_buttons <- make_fat_radio_buttons(choices = chc, selected = st_default, input_var = "serve_preselect_type")
             output$serve_preselect <- renderUI(
@@ -2127,7 +2117,7 @@ ov_scouter_server <- function(app_data) {
                     rds_ok <- FALSE
                     if (RUN_ENV == "shiny_local") {
                         ## this only makes sense if running locally, not deployed on a server
-                        tf <- tempfile(tmpdir = app_data$user_dir, pattern = "autosave-", fileext = ".rds")
+                        tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".rds")
                         try({
                             saveRDS(rdata$dvw, file = tf)
                             rds_ok <- file.exists(tf) && file.size(tf) > 0
@@ -2154,7 +2144,7 @@ ov_scouter_server <- function(app_data) {
                     rds_ok <- FALSE
                     if (RUN_ENV == "shiny_local") {
                         ## this only makes sense if running locally, not deployed on a server
-                        tf <- tempfile(tmpdir = app_data$user_dir, pattern = "autosave-", fileext = ".rds")
+                        tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".rds")
                         try({
                             saveRDS(rdata$dvw, file = tf)
                             rds_ok <- file.exists(tf) && file.size(tf) > 0
@@ -2313,7 +2303,7 @@ ov_scouter_server <- function(app_data) {
                 dvw <- isolate(rdata$dvw)
                 dvw$plays <- NULL ## don't save this
                 dvw$game_state <- isolate(reactiveValuesToList(game_state))
-                tf <- tempfile(tmpdir = app_data$user_dir, pattern = "autosave-", fileext = ".ovs")
+                tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".ovs")
                 saveRDS(dvw, tf)
                 message("working file has been saved to: ", tf)
             }, error = function(e) {

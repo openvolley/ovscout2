@@ -25,6 +25,29 @@
 #'
 #' @export
 ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), shortcuts = ov_default_shortcuts(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+
+    ## user data directory
+    user_dir <- if (RUN_ENV == "shiny_local") file.path(rappdirs::user_data_dir(), "ovscout2") else tempfile()
+    if (!dir.exists(user_dir)) dir.create(user_dir)
+    if (!dir.exists(file.path(user_dir, "autosave"))) dir.create(file.path(user_dir, "autosave"))
+
+    ## do we have any saved preferences (options)?
+    opts_file <- file.path(user_dir, "options.rds")
+    saved_opts <- if (file.exists(opts_file)) readRDS(opts_file) else list()
+    ## if we didn't provide options explicitly, use saved ones (if any) as priority
+    if (missing(scouting_options)) {
+        for (nm in names(saved_opts)) scouting_options[[nm]] <- saved_opts[[nm]]
+    } else {
+        ## use the provided options, but fill any missing from saved ones
+        for (nm in names(saved_opts)) if (!nm %in% names(scouting_options)) scouting_options[[nm]] <- saved_opts[[nm]]
+    }
+
+    ## make sure any unspecified options are given their defaults
+    opts <- ov_scouter_options()
+    for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
+    scts <- ov_default_shortcuts()
+    for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
+
     if (!missing(dvw) && identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = isTRUE(scoreboard), ball_path = isTRUE(ball_path), review_pane = isTRUE(review_pane), scouting_options = scouting_options, default_scouting_table = default_scouting_table, compound_table = compound_table, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
@@ -135,13 +158,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
         }
     }
 
-    ## make sure any unspecified options are given their defaults
-    opts <- ov_scouter_options()
-    for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
-    scts <- ov_default_shortcuts()
-    for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
     ## finally the shiny app
-    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, shortcuts = scts, ui_header = tags$div())
+    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, shortcuts = scts, ui_header = tags$div(), user_dir = user_dir)
     if ("video_file2" %in% names(other_args)) {
         video_file2 <- other_args$video_file2
         other_args$video_file2 <- NULL
@@ -302,11 +320,13 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
 #' @param setter_dump_code string: the attack combination code for a setter dump
 #' @param second_ball_attack_code string: the attack combination code for a second-ball attack
 #' @param overpass_attack_code string: the attack combination code for an attack on an overpass
+#' @param scout_name string: the name of the scout (your name)
+#' @param show_courtref logical: if `TRUE`, show the court reference lines overlaid on the video
 #'
 #' @return A named list
 #'
 #' @export
-ov_scouter_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR") {
+ov_scouter_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR", scout_name = "", show_courtref = FALSE) {
     end_convention <- match.arg(end_convention, c("actual", "intended"))
     assert_that(is.flag(nblockers), !is.na(nblockers))
     if (!is.na(default_nblockers)) assert_that(default_nblockers %in% 1:3)
@@ -316,13 +336,15 @@ ov_scouter_options <- function(end_convention = "actual", nblockers = TRUE, defa
     assert_that(is.string(setter_dump_code))
     assert_that(is.string(second_ball_attack_code))
     assert_that(is.string(overpass_attack_code))
+    assert_that(is.string(scout_name))
+    assert_that(is.flag(show_courtref), !is.na(show_courtref))
     skill_tempo_map <- tribble(~skill, ~tempo_code, ~tempo,
                                "Serve", "Q", "Jump serve",
                                "Serve", "M", "Jump-float serve",
                                "Serve", "H", "Float serve",
                                "Serve", "T", "Topspin serve")
     ## or (some) beach conventions are T=jump-float, H=standing; VM use H=float far from the service line and T=float from the service line
-    list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, attacks_by = attacks_by, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code)
+    list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, attacks_by = attacks_by, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code, scout = scout_name, show_courtref = show_courtref)
 }
 
 

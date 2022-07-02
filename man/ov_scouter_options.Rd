@@ -13,7 +13,9 @@ ov_scouter_options(
   team_system = "SHM3",
   setter_dump_code = "PP",
   second_ball_attack_code = "P2",
-  overpass_attack_code = "PR"
+  overpass_attack_code = "PR",
+  scout_name = "",
+  show_courtref = FALSE
 )
 }
 \arguments{
@@ -37,6 +39,10 @@ ov_scouter_options(
 \item{second_ball_attack_code}{string: the attack combination code for a second-ball attack}
 
 \item{overpass_attack_code}{string: the attack combination code for an attack on an overpass}
+
+\item{scout_name}{string: the name of the scout (your name)}
+
+\item{show_courtref}{logical: if \code{TRUE}, show the court reference lines overlaid on the video}
 }
 \value{
 A named list
