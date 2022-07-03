@@ -309,7 +309,7 @@ update_meta <- function(x, set_ended = FALSE) {
     if (length(set_start_rows) == length(set_end_rows) && all(set_end_rows > set_start_rows)) {
         sets_won <- c(0L, 0L) ## sets won by home, visiting teams
         for (si in seq_along(set_start_rows)) {
-            message("updating scores for set ", si)
+            ##message("updating scores for set ", si)
             set_plays2 <- x$plays2[seq(set_start_rows[si], set_end_rows[si]), ]
             ## scores
             scores <- c(max(set_plays2$home_score_start_of_point, na.rm = TRUE), max(set_plays2$visiting_score_start_of_point, na.rm = TRUE))

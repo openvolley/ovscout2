@@ -9,6 +9,7 @@ ov_scouter(
   video_file,
   court_ref,
   season_dir,
+  auto_save_dir,
   scoreboard = TRUE,
   ball_path = FALSE,
   review_pane = TRUE,
@@ -30,6 +31,8 @@ ov_scouter(
 \item{court_ref}{data.frame or string: data.frame with the court reference (as returned by \code{\link[ovideo:ov_shiny_court_ref]{ovideo::ov_shiny_court_ref()}}) or the path to the rds file containing the output from this}
 
 \item{season_dir}{string: optional path to a directory with other dvw/ovs files from this season}
+
+\item{auto_save_dir}{string: optional path to a directory where the dvw will be saved automatically after each rally}
 
 \item{scoreboard}{logical: if \code{TRUE}, show a scoreboard in the top-right of the video pane}
 

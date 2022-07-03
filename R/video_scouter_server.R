@@ -2,6 +2,7 @@ ov_scouter_server <- function(app_data) {
     function(input, output, session) {
         debug <- 1L
         cstr <- function(z) capture.output(str(z))
+        have_warned_auto_save <- FALSE
 
         shiny::onSessionEnded(shiny::stopApp)
 
@@ -1321,6 +1322,18 @@ ov_scouter_server <- function(app_data) {
             game_state$start_x <- game_state$start_y <- game_state$end_x <- game_state$end_y <- NA_real_
             game_state$current_time_uuid <- ""
             game_state$point_won_by <- NA_character_
+            if (!is.null(app_data$auto_save_dir)) {
+                if (!dir.exists(app_data$auto_save_dir) && !have_warned_auto_save) {
+                    have_warned_auto_save <<- TRUE
+                    warning("auto-save dir does not exist, ignoring")
+                } else {
+                    tryCatch({
+                        temp_dvw_file <- file.path(app_data$auto_save_dir, paste0(save_file_basename(), "-live.dvw"))
+                        if (file.exists(temp_dvw_file)) unlink(temp_dvw_file)
+                        dv_write2(update_meta(rp2(rdata$dvw)), file = temp_dvw_file)
+                    }, error = function(e) warning("could not auto-save file"))
+                }
+            }
             rally_state("click serve start")
         }
 
