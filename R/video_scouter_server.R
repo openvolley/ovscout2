@@ -5,9 +5,6 @@ ov_scouter_server <- function(app_data) {
 
         shiny::onSessionEnded(shiny::stopApp)
 
-        ## are we running under shiny server, shiny (locally) or shiny (docker)?
-        RUN_ENV <- if (file.exists("/.dockerenv") || tryCatch(any(grepl("docker", readLines("/proc/1/cgroup"))), error = function(e) FALSE)) "shiny_docker" else if (nzchar(Sys.getenv("SHINY_PORT"))) "shiny_server" else "shiny_local"
-
         ## on startup, clean up old auto-saved files
         try({
             d <- fs::dir_info(file.path(app_data$user_dir, "autosave"))
@@ -642,7 +639,19 @@ ov_scouter_server <- function(app_data) {
             editing$active <- "preferences"
             showModal(vwModalDialog(title = "Preferences", footer = NULL,
                                     fluidRow(column(4, checkboxInput("prefs_show_courtref", "Show court reference?", value = rdata$options$show_courtref)),
-                                             column(4, textInput("prefs_scout", label = "Default scout name:", width = "15ex", placeholder = "Your name", value = rdata$options$scout))),
+                                             column(4, textInput("prefs_scout", label = "Default scout name:", placeholder = "Your name", value = rdata$options$scout)),
+                                             column(4, selectInput("prefs_end_convention", "End convention:", choices = c(Intended = "intended", Actual = "actual"), selected = rdata$options$end_convention))),
+                                    fluidRow(column(4, checkboxInput("prefs_nblockers", "Record the number of blockers?", value = rdata$options$nblockers)),
+                                             column(4, selectInput("prefs_default_nblockers", "Default number of blockers:", choices = c("No default" = NA, "No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3, "Hole block" = 4), selected = rdata$options$default_nblockers)),
+                                             column(4, checkboxInput("prefs_transition_sets", "Record sets in transition?", value = rdata$options$transition_sets))),
+                                    fluidRow(
+                                        column(4, textInput("prefs_setter_dump_code", "Setter tip attack code", placeholder = "PP", value = rdata$options$setter_dump_code)), ## string: the attack combination code for a setter dump
+                                        column(4, textInput("prefs_second_ball_attack_code", "Second-ball attack code", placeholder = "P2", value = rdata$options$second_ball_attack_code)), ## string: the attack combination code for a second-ball attack
+                                        column(4, textInput("prefs_overpass_attack_code", "Overpass attack code", placeholder = "PR", value = rdata$options$overpass_attack_code)) ## string: the attack combination code for an attack on an overpass
+                                    ),
+                                    fluidRow(column(4, selectInput("prefs_attacks_by", "Attacks by:", choices = c(Codes = "codes", Tempo = "tempo"), selected = rdata$options$attacks_by)),
+                                             ##column(4, selectInput("prefs_team_system", "Team system:", choices = c("SHM3" = "SHM3"), selected = rdata$options$team_system)),
+                                    ),
                                     tags$br(),
                                     tags$hr(),
                                     fixedRow(column(2, actionButton("just_cancel", "Cancel", class = "cancel fatradio")),
@@ -655,10 +664,16 @@ ov_scouter_server <- function(app_data) {
         })
         observeEvent(input$prefs_save, {
             thisprefs <- list(scout = if (is.null(input$prefs_scout) || is.na(input$prefs_scout)) "" else input$prefs_scout,
-                              show_courtref = isTRUE(input$prefs_show_courtref))
+                              show_courtref = isTRUE(input$prefs_show_courtref), end_convention = input$prefs_end_convention,
+                              nblockers = input$prefs_nblockers, default_nblockers = as.numeric(input$prefs_default_nblockers), transition_sets = input$prefs_transition_sets,
+                              attacks_by = input$prefs_attacks_by, ## team_system = input$prefs_team_system,
+                              setter_dump_code = if (nzchar(input$prefs_setter_dump_code)) input$prefs_setter_dump_code else ov_scouter_options()$setter_dump_code,
+                              second_ball_attack_code = if (nzchar(input$prefs_second_ball_attack_code)) input$prefs_second_ball_attack_code else ov_scouter_options()$second_ball_attack_code,
+                              overpass_attack_code = if (nzchar(input$prefs_overpass_attack_code)) input$prefs_overpass_attack_code else ov_scouter_options()$overpass_attack_code
+                              )
             ## save
-            tryCatch(saveRDS(thisprefs, prefs_file), error = function(e) warning("could not save prefs file to: ", prefs_file))
-            ## apply
+            tryCatch(saveRDS(thisprefs, app_data$options_file), error = function(e) warning("could not save preferences to file"))
+            ## apply any that require immediate action
             for (nm in names(thisprefs)) rdata$options[[nm]] <- thisprefs[[nm]]
             if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- rdata$options$scout
             editing$active <- NULL
@@ -1008,7 +1023,7 @@ ov_scouter_server <- function(app_data) {
                     ap <- c(ap, setNames(libs, player_nums_to(libs, team = game_state$current_team, dvw = rdata$dvw)))
                     attacker_buttons <- make_fat_radio_buttons(choices = ap, selected = attack_pl_opts$selected, input_var = "c3_player")
                     ## do we want to support "hole" block?
-                    if (isTRUE(rdata$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3), selected = if (!is.null(rdata$options$default_nblockers)) rdata$options$default_nblockers, input_var = "nblockers")
+                    if (isTRUE(rdata$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3, "Hole block" = 4), selected = if (!is.null(rdata$options$default_nblockers) && !is.na(rdata$options$default_nblockers)) rdata$options$default_nblockers, input_var = "nblockers")
                     ## attack error, blocked, replay will be scouted on next entry
                     ## TODO other special codes ?
                     opp <- c(sort(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw)), sort(get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw)))
@@ -2115,7 +2130,7 @@ ov_scouter_server <- function(app_data) {
                     dv_write2(update_meta(rp2(rdata$dvw)), file = file)
                 }, error = function(e) {
                     rds_ok <- FALSE
-                    if (RUN_ENV == "shiny_local") {
+                    if (app_data$run_env %eq% "shiny_local") {
                         ## this only makes sense if running locally, not deployed on a server
                         tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".rds")
                         try({
@@ -2142,7 +2157,7 @@ ov_scouter_server <- function(app_data) {
                     saveRDS(out, file)
                 }, error = function(e) {
                     rds_ok <- FALSE
-                    if (RUN_ENV == "shiny_local") {
+                    if (app_data$run_env %eq% "shiny_local") {
                         ## this only makes sense if running locally, not deployed on a server
                         tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".rds")
                         try({
@@ -2324,7 +2339,7 @@ ov_scouter_server <- function(app_data) {
             servable_url <- NULL
             tryCatch({
                 shiny::withProgress(message = "Generating match report", value = 0, {
-                    rargs <- list(x = temp_dvw_file, format = "paged_pdf", vote = FALSE, shiny_progress = TRUE, chrome_print_extra_args = if (RUN_ENV %eq% "shiny_local") NULL else c("--no-sandbox", "--disable-gpu"))
+                    rargs <- list(x = temp_dvw_file, format = "paged_pdf", vote = FALSE, shiny_progress = TRUE, chrome_print_extra_args = if (app_data$run_env %eq% "shiny_local") NULL else c("--no-sandbox", "--disable-gpu"))
                     if ("icon" %in% names(app_data) && file.exists(app_data$icon)) rargs$icon <- app_data$icon
                     ##header_extra_pre = "<div style=\"position:absolute; bottom:-7mm; right:2mm; font-size:9px;\">\nReport via <https://openvolley.org/ovscout2>\n</div>\n"
                     rcss <- volleyreport::vr_css()

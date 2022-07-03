@@ -27,7 +27,10 @@
 ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), shortcuts = ov_default_shortcuts(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     ## user data directory
-    user_dir <- if (RUN_ENV == "shiny_local") file.path(rappdirs::user_data_dir(), "ovscout2") else tempfile()
+    ## are we running under shiny server, shiny (locally) or shiny (docker)?
+    run_env <- if (file.exists("/.dockerenv") || tryCatch(any(grepl("docker", readLines("/proc/1/cgroup"))), error = function(e) FALSE)) "shiny_docker" else if (nzchar(Sys.getenv("SHINY_PORT"))) "shiny_server" else "shiny_local"
+
+    user_dir <- if (run_env %eq% "shiny_local") file.path(rappdirs::user_data_dir(), "ovscout2") else tempfile()
     if (!dir.exists(user_dir)) dir.create(user_dir)
     if (!dir.exists(file.path(user_dir, "autosave"))) dir.create(file.path(user_dir, "autosave"))
 
@@ -159,7 +162,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
     }
 
     ## finally the shiny app
-    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, default_scouting_table = default_scouting_table, compound_table = compound_table, shortcuts = scts, ui_header = tags$div(), user_dir = user_dir)
+    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, default_scouting_table = default_scouting_table, compound_table = compound_table, shortcuts = scts, ui_header = tags$div(), user_dir = user_dir, run_env = run_env)
     if ("video_file2" %in% names(other_args)) {
         video_file2 <- other_args$video_file2
         other_args$video_file2 <- NULL
@@ -329,7 +332,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, scoreboard = TRUE
 ov_scouter_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR", scout_name = "", show_courtref = FALSE) {
     end_convention <- match.arg(end_convention, c("actual", "intended"))
     assert_that(is.flag(nblockers), !is.na(nblockers))
-    if (!is.na(default_nblockers)) assert_that(default_nblockers %in% 1:3)
+    if (is.null(default_nblockers)) default_nblockers <- NA
+    assert_that(default_nblockers %in% c(NA, 1:4))
     assert_that(is.flag(transition_sets), !is.na(transition_sets))
     attacks_by <- match.arg(attacks_by, c("codes", "tempo"))
     team_system <- match.arg(team_system, c("SHM3"))

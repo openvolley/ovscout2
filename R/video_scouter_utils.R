@@ -624,6 +624,7 @@ make_fat_buttons <- function(choices, selected, input_var, extra_class = c(), as
     ids <- uuid(n = length(choices))
     ## the actual buttons
     if (missing(selected)) selected <- 1L
+    if (is.null(selected)) selected <- NA
     if (!is.na(selected)) selected <- if (selected %in% choices) which(choices == selected) else if (selected %in% names(choices)) which(names(choices) == selected) else if (!is.na(selected)) 1L
     clickfun <- if (nzchar(as_radio)) paste0(if (as_radio == "blankable") "var wa=$(this).hasClass('active');" else "var wa=false;", " $('.", cls, "').removeClass('active'); if (!wa) { $(this).addClass('active'); };") else "var wa=false;"
     buts <- lapply(seq_along(choices), function(i) tags$button(id = digest::digest(paste0("but-", input_var, "-", choices[[i]])), class = paste(c("btn", "btn-default", "fatradio", cls, extra_class, if (grepl("(L)", names(choices)[i], fixed = TRUE)) "libero", if (i %eq% selected && nzchar(as_radio)) "active"), collapse = " "), ##id = ids[i],
