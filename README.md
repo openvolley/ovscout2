@@ -86,5 +86,5 @@ the season directory. You can also provide it with a partially-scouted
 See `help("ov_scouter")` for more options.
 
 It relies on having the `ffmpeg` system utility for some functionality.
-You use `ovideo::ov_install_ffmpeg()` to install this if you don’t
+You can use `ovideo::ov_install_ffmpeg()` to install this if you don’t
 already have it (Windows and Linux only).

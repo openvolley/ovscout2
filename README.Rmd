@@ -69,4 +69,4 @@ If you don't provide the video file path, it will pop up a file navigator for yo
 
 See `help("ov_scouter")` for more options.
 
-It relies on having the `ffmpeg` system utility for some functionality. You use `ovideo::ov_install_ffmpeg()` to install this if you don't already have it (Windows and Linux only).
+It relies on having the `ffmpeg` system utility for some functionality. You can use `ovideo::ov_install_ffmpeg()` to install this if you don't already have it (Windows and Linux only).
