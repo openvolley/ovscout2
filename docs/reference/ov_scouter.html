@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">ovscout2</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.4.9999</span>
       </span>
     </div>
 
@@ -25,6 +25,16 @@
       <ul class="nav navbar-nav"><li>
   <a href="../reference/index.html">Reference</a>
 </li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Articles
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu"><li>
+      <a href="../articles/ovscout2-user-manual.html">User manual - ovscout2</a>
+    </li>
+  </ul></li>
       </ul><ul class="nav navbar-nav navbar-right"><li>
   <a href="https://github.com/openvolley/ovscout2/" class="external-link">
     <span class="fab fa-github fa-lg"></span>
@@ -54,12 +64,16 @@
   <span class="va">dvw</span>,
   <span class="va">video_file</span>,
   <span class="va">court_ref</span>,
+  <span class="va">season_dir</span>,
+  <span class="va">auto_save_dir</span>,
   scoreboard <span class="op">=</span> <span class="cn">TRUE</span>,
   ball_path <span class="op">=</span> <span class="cn">FALSE</span>,
   review_pane <span class="op">=</span> <span class="cn">TRUE</span>,
+  playlist_display_option <span class="op">=</span> <span class="st">"dv_codes"</span>,
   scouting_options <span class="op">=</span> <span class="fu"><a href="ov_scouter_options.html">ov_scouter_options</a></span><span class="op">(</span><span class="op">)</span>,
   default_scouting_table <span class="op">=</span> <span class="fu"><a href="ov_default_scouting_table.html">ov_default_scouting_table</a></span><span class="op">(</span><span class="op">)</span>,
   compound_table <span class="op">=</span> <span class="fu"><a href="ov_default_compound_table.html">ov_default_compound_table</a></span><span class="op">(</span><span class="op">)</span>,
+  shortcuts <span class="op">=</span> <span class="fu"><a href="ov_default_shortcuts.html">ov_default_shortcuts</a></span><span class="op">(</span><span class="op">)</span>,
   launch_browser <span class="op">=</span> <span class="cn">TRUE</span>,
   prompt_for_files <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,
   <span class="va">...</span>
@@ -69,24 +83,31 @@
     <div id="arguments">
     <h2>Arguments</h2>
     <dl><dt>dvw</dt>
-<dd><p>string or datavolley: either the path to a dvw file (which will be read by <code><a href="https://rdrr.io/pkg/datavolley/man/read_dv.html" class="external-link">datavolley::dv_read()</a></code>) or a datavolley object (e.g. as returned by <code><a href="dv_create.html">dv_create()</a></code>. Passing the file name (not the datavolley object) is required if any extra arguments are passed via <code>...</code>. <code>dvw</code> can also be an rds object, as saved by <code>ov_scouter()</code>
-If <code>dvw</code> is "demo", the app will be started with a demonstration data set</p></dd>
+<dd><p>string or datavolley: either the path to a dvw or ovs file or a datavolley object (e.g. as returned by <code><a href="dv_create.html">dv_create()</a></code>. Passing the file name (not the datavolley object) is required if any extra arguments are passed via <code>...</code>. <code>dvw</code> can also be an object as saved by <code>ov_scouter()</code> in ovs format. If <code>dvw</code> is "demo", the app will be started with a demonstration data set</p></dd>
 <dt>video_file</dt>
-<dd><p>string: optionally, the path to the video file. If not supplied (or <code>NULL</code>) the video file specified in the dvw file will be used. Provide <code>video_file = NA</code> to run the app without a video file</p></dd>
+<dd><p>string: optionally, the path to the video file. If not supplied (or <code>NULL</code>) the video file specified in the dvw file will be used. <code>video_file</code> can also be a URL (including a YouTube URL or video ID). NOTE that in this case, <code>court_ref</code> must be provided, it can't yet be entered interactively in the app</p></dd>
 <dt>court_ref</dt>
 <dd><p>data.frame or string: data.frame with the court reference (as returned by <code><a href="https://rdrr.io/pkg/ovideo/man/ov_shiny_court_ref.html" class="external-link">ovideo::ov_shiny_court_ref()</a></code>) or the path to the rds file containing the output from this</p></dd>
+<dt>season_dir</dt>
+<dd><p>string: optional path to a directory with other dvw/ovs files from this season</p></dd>
+<dt>auto_save_dir</dt>
+<dd><p>string: optional path to a directory where the dvw will be saved automatically after each rally</p></dd>
 <dt>scoreboard</dt>
 <dd><p>logical: if <code>TRUE</code>, show a scoreboard in the top-right of the video pane</p></dd>
 <dt>ball_path</dt>
 <dd><p>logical: if <code>TRUE</code>, show the ball path on the court inset diagram. Note that this will slow the app down slightly</p></dd>
 <dt>review_pane</dt>
 <dd><p>logical: if <code>TRUE</code>, entry popups will be accompanied by a small video pane that shows a loop of the video of the action in question</p></dd>
+<dt>playlist_display_option</dt>
+<dd><p>string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)</p></dd>
 <dt>scouting_options</dt>
 <dd><p>list: a named list with entries as per <code><a href="ov_scouter_options.html">ov_scouter_options()</a></code></p></dd>
 <dt>default_scouting_table</dt>
 <dd><p>tibble: the table of scouting defaults (skill type and evaluation)</p></dd>
 <dt>compound_table</dt>
 <dd><p>tibble: the table of compound codes</p></dd>
+<dt>shortcuts</dt>
+<dd><p>list: named list of keyboard shortcuts, as returned by <code><a href="ov_default_shortcuts.html">ov_default_shortcuts()</a></code></p></dd>
 <dt>launch_browser</dt>
 <dd><p>logical: if <code>TRUE</code>, launch the app in the system's default web browser (passed to <code><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">shiny::runApp()</a></code>'s <code>launch.browser</code> parameter)</p></dd>
 <dt>prompt_for_files</dt>

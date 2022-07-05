@@ -7,6 +7,12 @@
     <loc>/LICENSE-text.html</loc>
   </url>
   <url>
+    <loc>/articles/index.html</loc>
+  </url>
+  <url>
+    <loc>/articles/ovscout2-user-manual.html</loc>
+  </url>
+  <url>
     <loc>/authors.html</loc>
   </url>
   <url>
@@ -37,7 +43,13 @@
     <loc>/reference/ov_default_setter_calls_table.html</loc>
   </url>
   <url>
+    <loc>/reference/ov_default_shortcuts.html</loc>
+  </url>
+  <url>
     <loc>/reference/ov_default_winning_symbols.html</loc>
+  </url>
+  <url>
+    <loc>/reference/ov_install_lighttpd.html</loc>
   </url>
   <url>
     <loc>/reference/ov_scouter.html</loc>
