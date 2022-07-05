@@ -31,7 +31,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     ## are we running under shiny server, shiny (locally) or shiny (docker)?
     run_env <- if (file.exists("/.dockerenv") || tryCatch(any(grepl("docker", readLines("/proc/1/cgroup"))), error = function(e) FALSE)) "shiny_docker" else if (nzchar(Sys.getenv("SHINY_PORT"))) "shiny_server" else "shiny_local"
 
-    user_dir <- if (run_env %eq% "shiny_local") file.path(rappdirs::user_data_dir(), "ovscout2") else tempfile()
+    user_dir <- if (run_env %eq% "shiny_local") ovscout2_app_dir() else tempfile()
     if (!dir.exists(user_dir)) dir.create(user_dir)
     if (!dir.exists(file.path(user_dir, "autosave"))) dir.create(file.path(user_dir, "autosave"))
 
@@ -62,10 +62,10 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     if (missing(season_dir)) season_dir <- NULL
     if (missing(auto_save_dir)) auto_save_dir <- NULL
     if (!is.null(auto_save_dir) && !dir.exists(auto_save_dir)) stop("auto_save_dir does not exist")
+    ## start with season directory
+    if (is.null(season_dir) && prompt_for_files) season_dir <- tryCatch(dchoose(caption = "Choose season directory or cancel to skip", path = if (!missing(dvw) && !is.null(dvw) && dir.exists(fs::path_dir(fs::path(dvw)))) fs::path_dir(fs::path(dvw)) else getwd()), error = function(e) NULL)
     if ((missing(dvw) || is.null(dvw))) {
         if (prompt_for_files) {
-            ## start with season directory
-            if (is.null(season_dir)) season_dir <- tryCatch(dchoose(caption = "Choose season directory or cancel to skip"), error = function(e) NULL)
             dvw <- tryCatch({
                 fchoose(caption = "Choose dvw file or cancel to skip", path = if (!is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())
             }, error = function(e) NULL)
@@ -182,7 +182,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         } else if (!fs::file_exists(as.character(video_file2))) {
             ## can't find the file, go looking for it
             ## since this is the second video, we don't want to find a video file named the same as the dvw file (that is probably the first video) but the path to the video file might be wrong, it might be in wherever the dvw is
-            fake_dvw_filename <- file.path(dirname(dvw_filename), "blahblahnotafile.dvw")
+            fake_dvw_filename <- file.path(fs::path_dir(fs::path(dvw_filename)), "blahblahnotafile.dvw")
             video_file2 <- tryCatch(ovideo::ov_find_video_file(dvw_filename = fake_dvw_filename, video_filename = video_file2), error = function(e) NA_character_)
             if (!is.na(video_file2)) video_file2 <- NULL
         }
@@ -241,18 +241,19 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     app_data$playlist_display_option <- if (!missing(playlist_display_option)) playlist_display_option else 'dv_codes'
     app_data$season_dir <- if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else NULL ## minimal check of the season_dir
     if (app_data$with_video && !is_url(dvw$meta$video$file)) {
-        have_lighttpd <- FALSE
         video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001
-        tryCatch({
-            chk <- sys::exec_internal("lighttpd", "-version")
-            have_lighttpd <- TRUE
-        }, error = function(e) warning("could not find the lighttpd executable, install it with e.g. 'apt install lighttpd' on Ubuntu/Debian or from http://lighttpd.dtech.hu/ on Windows. Using \"servr\" video option"))
-        video_serve_method <- if (have_lighttpd) "lighttpd" else "servr"
+        lighttpd_exe <- ov_find_lighttpd()
+        if (!is.null(lighttpd_exe)) {
+            video_serve_method <- "lighttpd"
+        } else {
+            warning("could not find the lighttpd executable, install it with e.g. 'apt install lighttpd' on Ubuntu/Debian or from http://lighttpd.dtech.hu/ on Windows. Using \"servr\" video option, which might be less responsive")
+            video_serve_method <- "servr"
+        }
         if (video_serve_method == "lighttpd") {
             ## build config file to pass to lighttpd
             lighttpd_conf_file <- tempfile(fileext = ".conf")
-            cat("server.document-root = \"", dirname(app_data$video_src), "\"\nserver.port = \"", video_server_port, "\"\n", sep = "", file = lighttpd_conf_file, append = FALSE)
-            lighttpd_pid <- sys::exec_background("lighttpd", c("-D", "-f", lighttpd_conf_file), std_out = FALSE) ## start lighttpd not in background mode
+            cat("server.document-root = \"", fs::path_dir(fs::path(app_data$video_src)), "\"\nserver.port = \"", video_server_port, "\"\n", sep = "", file = lighttpd_conf_file, append = FALSE)
+            lighttpd_pid <- sys::exec_background(lighttpd_exe, c("-D", "-f", lighttpd_conf_file), std_out = FALSE) ## start lighttpd not in background mode
             lighttpd_cleanup <- function() {
                 message("cleaning up lighttpd")
                 try(tools::pskill(lighttpd_pid), silent = TRUE)
@@ -260,7 +261,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
             onStop(function() try({ lighttpd_cleanup() }, silent = TRUE))
         } else {
             ## start servr instance serving from the video source directory
-            blah <- servr::httd(dir = dirname(app_data$video_src), port = video_server_port, browser = FALSE, daemon = TRUE)
+            blah <- servr::httd(dir = fs::path_dir(fs::path(app_data$video_src)), port = video_server_port, browser = FALSE, daemon = TRUE)
             onStop(function() {
                 message("cleaning up servr")
                 servr::daemon_stop()

@@ -122,7 +122,7 @@ if (!ovideo::ov_ffmpeg_ok()) {
     if (DEBUG) cat("trying local ffmpeg path(s):", ffpaths, "\n")
     ffbin <- unlist(lapply(ffpaths, function(pth) dir(pth, recursive = TRUE, full.names = TRUE, pattern = "ffmpeg\\.exe")))
     if (length(ffbin) > 0) {
-        ffpath <- dirname(ffbin[1])
+        ffpath <- fs::path_dir(fs::path(ffbin[1]))
         Sys.setenv(path = paste0(ffpath, ";", Sys.getenv("path")))
         if (DEBUG) cat("setting system path to include local ffmpeg path:", Sys.getenv("path"), "\n")
     } else {
