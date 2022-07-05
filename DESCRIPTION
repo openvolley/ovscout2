@@ -42,8 +42,11 @@ Imports:
     volleyreport
 Suggests:
     covr,
+    knitr,
+    rmarkdown,
     rstudioapi,
     tcltk,
     testthat
 Remotes: openvolley/datavolley, openvolley/ovdata, openvolley/ovideo, openvolley/volleyreport
 RoxygenNote: 7.1.2
+VignetteBuilder: knitr
