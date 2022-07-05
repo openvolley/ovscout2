@@ -1,0 +1,4 @@
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+GITHUB_PAT=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
+Rscript "$DIR/ov_scouter-nonportable.R" "$DIR" demo
