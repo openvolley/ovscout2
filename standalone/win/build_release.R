@@ -68,7 +68,7 @@ if (res == 0L) {
     stop("zip failed with error code ", res)
 }
 
-file.copy(zipfile, "ovscout2-x64.zip")
+file.copy(zipfile, "ovscout2-win-x64.zip")
 
 setwd(pwd)
 .libPaths(old_libpaths)
@@ -83,4 +83,4 @@ if (is.null(rel_info) || !any(this_release %in% rel_info$tag)) {
     pb_new_release("openvolley/ovscout2", this_release)
     ## that might not work until issue resolved in piggyback pkg
 }
-pb_upload(zipfile, repo = "openvolley/ovscout2", name = "ovscout2-x64.zip")
+pb_upload(zipfile, repo = "openvolley/ovscout2", name = "ovscout2-win-x64.zip")
