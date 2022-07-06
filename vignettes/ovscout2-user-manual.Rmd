@@ -61,7 +61,7 @@ remotes::install_github("openvolley/ovscout2")
 
 ## Other system utilities
 
-Two other system utilities are recommended but not required:
+Two other system utilities are recommended but not required. Note that the standalone Windows bundle already includes these utilities &mdash; no further action is needed in that case.
 
 1. ffmpeg is used to extract frames from videos, and other video-related functions. If `ffmpeg` is not available, an internal fallback method is used for some functionality, but may be considerably slower. Install `ffmpeg` via your package manager, or (from within R, on Linux and Windows only) using `ovideo::ov_install_ffmpeg()`
 
