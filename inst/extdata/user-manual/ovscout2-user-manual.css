@@ -1,0 +1,10 @@
+/* avoid page break after first section */
+.front-matter-container, .main {
+  break-before: avoid;
+  break-after: avoid;
+}
+
+#TOC {
+    break-before: avoid;
+    margin-top: 1cm;
+}

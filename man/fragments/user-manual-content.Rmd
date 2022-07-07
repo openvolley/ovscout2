@@ -1,0 +1,206 @@
+ovscout2 is a free, open-source R/Shiny app for scouting volleyball matches. It provides industry-standard dvw files that can be used with the [openvolley](https://openvolley.org) suite of R packages, or with any other volleyball analytics software that takes dvw files as inputs.
+
+The app requires that you have a video of the match *from a fixed view point* (i.e. the camera does not move for the duration of the match). Such videos are usually taken from the "scout viewpoint" &mdash; behind one end of the court, at a reasonable height so that the entire court is clearly visible and players on court do not tend to occlude each other.
+
+The app is writen in R, but you do not necessarily need to be an R user to be able to use it. We provide script files to launch the app from the command line (although you will need to install R itself on some platforms, see below). If you are not an R user, see the "Standalone" section below for installation and startup.
+
+
+# Installation
+
+You need to be online for installation. The app initially needs to download and install some additional R packages (quite a few, in fact). Once the app has been installed and run once, it can be used offline thereafter if necessary.
+
+Also see the "Other system utilities" section, below.
+
+## Standalone
+
+The standalone installer allows you to run the app without having to do anything in R.
+
+### Windows
+
+1. Download the `ovscout2-win-x64.zip` file and unzip it to a convenient location.
+
+1. Run the `ov_scouter.bat` or `ov_scouter_demo.bat` file. The first run will take quite some time, because it will install a number of additional R packages. Subsequent startups will be much faster (it checks for updates on each startup, so might reinstall some packages on occasion).
+
+### Linux/Mac
+
+1. Install R, following https://cran.r-project.org/
+
+1. Download the `ovscout2-unix-x64.zip` file and unzip it to a convenient location.
+
+1. Run the `ov_scouter` or `ov_scouter_demo` script. The first run will take quite some time, because it will install a number of additional R packages. Subsequent startups will be much faster (it checks for updates on each startup, so might reinstall some packages on occasion).
+
+Note: not tested on Mac.
+
+## Installation from R
+
+1. [Install R](https://cran.r-project.org/), and optionally [RStudio](https://www.rstudio.com/products/rstudio/download/).
+
+2. From R:
+
+```{r eval = FALSE}
+install.packages("remotes") ## if needed
+remotes::install_github("openvolley/ovscout2")
+
+```
+
+## Other system utilities
+
+Two other system utilities are recommended but not required. Note that the standalone Windows bundle already includes these utilities &mdash; no further action is needed in that case.
+
+1. ffmpeg is used to extract frames from videos, and other video-related functions. If `ffmpeg` is not available, an internal fallback method is used for some functionality, but may be considerably slower. Install `ffmpeg` via your package manager, or (from within R, on Linux and Windows only) using `ovideo::ov_install_ffmpeg()`
+
+2. lighttpd https://www.lighttpd.net/ is a lightweight web server that is used to play the match video. Install (from within R, on Windows only) using `ovscout2::ov_install_lighttpd()` or manually from http://lighttpd.dtech.hu/ (for Windows) or via your package manager for other operating systems (see https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd).
+  If lighttpd is not installed, the app falls back to a built-in web server but this is a little slower and less responsive than lighttpd.
+
+
+# Startup and usage
+
+Some of startup options are the same regardless of whether you are using the standalone version or starting the app from within R:
+
+- the "season directory" is a folder containing dvw files from other matches. If you are scouting a new match and you provide a season directory, you can choose teams from other matches for the new match. This saves having to re-enter team and player details. The season directory will also be used as the starting point when selecting a video file
+
+- the video file is required
+
+- you can also optionally provide a .dvw or .ovs file (i.e. a partially-scouted file that you wish to continue scouting). If you do not provide a dvw file, the app creates a new, empty match file.
+
+## Startup &mdash; standalone
+
+Run the `ov_scouter.bat` (Windows) or `ov_scouter` (Linux/Mac) script. It will prompt you for a season directory, dvw file, and video file. The season directory and dvw file are optional (a new match file will be created if no dvw is provided) but the video is required.
+
+Options controlling the app behaviour and scouting preferences can be changed via the "Preferences" button in the app.
+
+## Startup &mdash; from R
+
+In each session you first need to load the `ovscout2` package:
+
+```{r eval = FALSE}
+library(ovscout2)
+
+```
+
+Then start the app. You can start it with no arguments:
+
+```{r eval = FALSE}
+ov_scouter()
+
+```
+
+... and it will prompt you (as for the standalone version) for a season directory, dvw file, and video file. The season directory and dvw file are optional (a new match file will be created if no dvw is provided) but the video is required.
+
+You can optionally provide those arguments explicitly. To start a new match for a certain video file, using teams from already-scouted matches in your season directory, you could do:
+
+```{r eval = FALSE}
+ov_scouter(video_file = "/path/to/video.mp4", season_dir = "/path/to/season_dir")
+
+```
+
+If you have already partially-scouted a match and saved that file, you can re-start scouting:
+```{r eval = FALSE}
+ov_scouter("/path/to/saved_file.ovs")
+
+```
+
+(In this case you do not need to provide the video file path, because that is saved within the .ovs file.)
+
+There are several other options that can be provided to the `ov_scouter()` function, including:
+
+- `auto_save_dir` is a directory into which the scouted file will be saved (in .dvw format) after each rally. You can use this to e.g. provide live updates to the coaching bench
+- `scoreboard` - show the scoreboard in the top right-hand corner of the video screen (true by default)
+- `ball_path` - show the ball path on the court diagram (false by default, because it slows the app down a little)
+- `review_pane` - show the video review pane on each data entry popup (true by default)
+- `playlist_display_option` - what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)
+- `shortcuts` - a named list that defines the keyboard shortcuts used in the app
+- `scouting_options`, `default_scouting_table`, `compound_table` - advanced options controlling details of the scouting process
+
+Options controlling the app behaviour and scouting preferences can be changed via the "Preferences" button in the app.
+
+# Starting a new match
+
+To scout a new match, start the app with the corresponding video file, then:
+
+1. Define the court reference via the "Court reference" button. This requires you to click on the four corners of the court in the video image, so that the app can map clicks in the video to real-world court coordinates
+
+1. Enter the match details via the "Edit match data" button (match date, venue, scout name, etc)
+
+1. Define the teams playing in the match. If you have provided a season directory (with existing .dvw or .ovs files in it) you can choose from the teams in those files. Otherwise you can enter new teams
+
+1. Enter the team lineups for set 1, including the libero(s) for each team. If two liberos are entered, then the app will assume that the first libero is on court during serve reception (i.e. the "passing" libero) and the second libero is on court while serving (the "defending" libero). If the team has two liberos but only one takes to the court per set, then just enter the libero who is actually going to play in that set
+
+# Scouting
+
+The scouting process is a guided one. Each contact is marked by clicking on the video at the time and point of contact, with the **point of contact being the point on the floor directly below the ball as it is being played**. This will often be between the player's feet as they dig or set the ball, or below them if they are jumping to spike.
+
+## Start by:
+
+- checking that the orientation of the court diagram (top right) matches the video. Swap it using the `r "\u21f5"` button if required
+
+- check that the correct team is serving (indicated by the white circle in the court diagram). Swap with the "Change serving team" button if required
+
+- unpause the video. The number of the serving player and their serve type (float/jump/etc) will be shown below the video panel. You can change the serve type before the serve, if you can see that it is wrong
+
+## First contact (serve)
+
+- click the serve (the point on the court below the ball) as it happens. The video will continue playing
+
+- click the reception location (if the ball is touched by a receiver) OR the point where the ball lands/hits the net (if it is an untouched ace or an error). The video will automatically pause and a dialog will pop up allowing you to select the receiving player and serve outcome (serve error, ace, or reception in play). You can also adjust the serve type if it was incorrect.
+  In some cases it isn't clear at this point if the serve was an ace or a "reception in play" (e.g. a shanked pass that players are chasing down, but we haven't yet seen if they are successful). In this case  click "Reception in play". It can be adjusted to an "Ace" at the next step, if necessary
+
+If you did not click the reception location correctly, or for some other reason want to go back and try again, click "Cancel and rewind". Otherwise click "Continue" and the video will resume playing.
+
+## Second contact (set)
+
+- click the location of the set (or second-contact action if it was something else, such as a setter tip. Remember that this is the point on the ground directly below the ball, not the ball itself). The video will pause and a data entry dialog will pop up
+
+- choose the correct second-contact action (by default this is a "Set" but it can also be a set error, setter tip, second-ball attack, or freeball over. If the reception turned out to be an error here (serve ace, with no second contact to scout) you can also select that here
+
+- check the pass quality. It will have been automatically given a grade, but in some situations you might need to override the automatic assessment
+
+- if the pass was an overpass, you can assign the appropriate opposition action (dig, dig error, or overpass attack) and player
+
+The second contact is by default a set, by the assigned setter on court. Once you are comfortable with the scouting process, and you see a second contact set by the setter, you can hold down shift while clicking the second contact. This causes the app to enter a set action (by the setter) with the automatically-assigned pass quality, without stopping the video or showing the data entry dialog, which makes this part of the scouting faster.
+
+Similarly to a reception error, in some cases it isn't immediately clear if the set is an error or not (e.g. an unhittable set, or a delayed double-contact call by the referee). Scout this as a set (by the appropriate player) and it can be converted to a set error in the next step if necessary.
+
+## Third contact (attack)
+
+The third contact is most commonly an attack (but can also be a freeball over or set error, or a play by the opposition on an overpass/overset.
+
+- click the contact location (remember that this is the point on the ground directly below the ball, not the ball itself). The video will pause and a data entry dialog will pop up
+
+If it is an attack:
+
+- enter the attacking player and either the attack combination code (if you are scouting with combo codes) or tempo
+
+- optionally (but recommended) enter the number of blockers on the attack
+
+Otherwise enter the appropriate action and player.
+
+## Attack end point
+
+After an attack or freeball over, click the end point (point where the ball lands, or the point on the court directly below the ball when it is played).
+
+Enter the appropriate details. An attack kill, dig or dig error can also involve a block touch &mdash; this can be recorded (see "With block touch by player ...").
+
+## Transition play
+
+Scouting now continues until the point ends, with attacks, digs, and other contacts being recorded. By default, *sets in transition are not scouted* (except for set errors, since a set error will end the rally). After an attack, we record the dig location and then straight to the counter-attack location, with no intervening set being scouted. You can choose to include transition sets if you are running the app from R (see `help("ov_scouter_options")`) but there is not a huge practical advantage in doing so (it does not enable much more in terms of analytics, but takes extra time to scout, so we have disabled these by default).
+
+## End of the point
+
+The point can be ended by entering a terminal action (kill or error), or if the point ends in a way that doesn't fit nicely with the available options, you can pause the video (press "q" or the pause button) and choose "Won current rally" for the appropriate team.
+
+## End of set
+
+When the set concludes, it will prompt you to confirm whether it is the end of the set. Confirm the end of the set and then enter the lineups for the next set ready to start scouting that one.
+
+## Timeouts and substitutions
+
+Pausing the video (press "q" or the pause button) will bring up a dialog that allows you to enter a timeout or substitution, or change the setter on court for a given team (e.g. if the team is playing a two-setter system, you will need to change the setter on court each time the setters swap).
+
+# Frequently asked questions
+
+## What's the difference between a .ovs file and a .dvw file?
+
+The .ovs file format is used internally by the app to store a match as it is being scouted. It is similar to a .dvw file, but contains more information than a .dvw file and in a different format. If you save a partially-scouted match and come back to it later to continue scouting, use the .ovs file format. (You can continue scouting from a partially-scouted file in .dvw format, but the "undo" functionality is limited).
+
+If you have finished scouting a match and wish to use that match file in other analysis software (including the openvolley R packages), export it to dvw format and use that.

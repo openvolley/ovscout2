@@ -1,0 +1,35 @@
+---
+params:
+  report_title: ""
+  report_author: ""
+  banner: "banner.png"
+  header_title: "User manual &mdash; ovscout2"
+  format: pdf
+  shiny_progress: FALSE
+  plot_font_size: 12
+title: "`r params$report_title`"
+author: "`r if (nzchar(params$report_author)) params$report_author else '<span></span>'`"
+output:
+  ovpaged::simple:
+    toc: true
+    number_sections: true
+    css: ovscout2-user-manual.css
+header-image: "`r params$banner`"
+header-title: "`r params$header_title`"
+base-font-size: 10pt
+---
+
+```{r chunkopts, eval = TRUE, echo = FALSE}
+
+default_dpi <- 175
+knitr::opts_chunk$set(eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE, tidy = FALSE, cache = FALSE, include = TRUE, dpi = default_dpi, fig.width = 10, fig.height = 5, fig.align = "center", results = "asis")
+
+```
+
+
+<div style="height:2cm;"></div>
+
+<h1 style="break-before:avoid;">Introduction</h1>
+
+```{r child = "../man/fragments/user-manual-content.Rmd"}
+```
