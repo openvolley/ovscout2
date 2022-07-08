@@ -159,6 +159,7 @@ ov_default_shortcuts <- function() {
          pause = c("q", "0"),
          pause_no_popup = c("Q"),
          go_to_time = c("g", "G", "#"),
+         edit_code = c("e", "E"),
          undo = c("u", "U"),
          switch_video = c("s"),
          video_rewind_1_30 = c("b", "7"),

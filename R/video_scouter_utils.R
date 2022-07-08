@@ -18,6 +18,7 @@ get_player_serve_type <- function(px, serving_player_num, game_state, opts) {
 
 make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
     pseq <- seq_len(if (dv_is_beach(dvw)) 2L else 6L)
+    if (is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
     if (is.data.frame(rally_codes)) {
         if (nrow(rally_codes) > 0) {
             codes <- codes_from_rc_rows(rally_codes)
@@ -73,7 +74,6 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
             rcv <- c(rcv, vector("list", n_extra))
         }
     }
-
     out <- tibble(code = codes, ## col 1
                   point_phase = NA_character_, ## col 2
                   attack_phase = NA_character_, ## col 3
@@ -86,8 +86,8 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
                   home_score_start_of_point = game_state$home_score_start_of_point,
                   visiting_score_start_of_point = game_state$visiting_score_start_of_point,
                   serving = game_state$serving)
-    out <- bind_cols(out, as.data.frame(reactiveValuesToList(game_state)[paste0("home_p", pseq)]))
-    out <- bind_cols(out, as.data.frame(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
+    out <- bind_cols(out, as.data.frame(game_state[paste0("home_p", pseq)]))
+    out <- bind_cols(out, as.data.frame(game_state[paste0("visiting_p", pseq)]))
     for (lib in c(paste0("ht_lib", 1:2), paste0("vt_lib", 1:2))) out[[lib]] <- if (!lib %in% names(game_state)) NA_integer_ else game_state[[lib]]
     out$phase <- phase
     out$rally_codes <- rcv

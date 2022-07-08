@@ -348,13 +348,63 @@ ov_scouter_server <- function(app_data) {
             do_edit_commit()
         })
 
+        get_current_rally_code <- function() {
+            tryCatch({
+                ridx <- playslist_mod$current_row()
+                ## if ridx is greater than the length of plays2 rows, then take it from rally_codes()
+                if (!is.null(ridx) && !is.na(ridx)) {
+                    if (ridx <= nrow(rdata$dvw$plays2)) rdata$dvw$plays2[ridx, ] else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) rally_codes()[ridx - nrow(rdata$dvw$plays2), ] else NULL
+                } else {
+                    NULL
+                }
+            }, error = function(e) NULL)
+        }
+
         do_edit_commit <- function() {
             if (!is.null(editing$active)) {
                 if (editing$active %in% c("edit", "insert above", "insert below")) {
-                    ## NOTE this not used yet
                     ## user has changed EITHER input$code_entry or used the code_entry_guide
-                    if (nzchar(input$code_entry)) {
-                        newcode <- input$code_entry
+                    ## infer code from code_entry_guide elements
+                    newcode1 <- lapply(seq_len(nrow(code_bits_tbl)), function(bi) {
+                        val <- input[[paste0("code_entry_", code_bits_tbl$bit[bi])]]
+                        if (is.null(val)) val <- ""
+                        wid <- code_bits_tbl$width[bi]
+                        if (nchar(val) < wid) val <- str_pad(val, wid, side = "right", pad = "~")
+                        val
+                    })
+                    newcode1 <- sub("~+$", "", paste(newcode1, collapse = ""))## trim trailing ~'s
+                    newcode2 <- input$code_entry
+                    if (editing$active %eq% "edit") {
+                        crc <- get_current_rally_code()
+                        ridx <- playslist_mod$current_row()
+                        if (!is.null(crc) && !is.null(ridx) && !is.na(ridx)) {
+                            ## user has changed EITHER input$code_entry or used the code_entry_guide
+                            changed1 <- (!newcode1 %eq% crc$code) && nzchar(newcode1)
+                            changed2 <- (!newcode2 %eq% crc$code) && nzchar(newcode2)
+                            if (!changed1 && changed2) {
+                                newcode <- newcode2
+                                ## if we entered via the text box, then run this through the code parser
+                                newcode <- sub("~+$", "", ov_code_interpret(newcode))
+                                ## TODO deal with a compound code that returns multiple codes here
+                            } else if (!changed1 && !changed2) {
+                                ## neither changed, nothing to do
+                                newcode <- NULL
+                            } else {
+                                newcode <- newcode1
+                            }
+                            crc$code <- newcode
+                            ## if ridx is greater than the length of plays2 rows, then put this in rally_codes()
+                            if (ridx <= nrow(rdata$dvw$plays2)) {
+                                newrc <- make_plays2(crc, game_state = crc$game_state[[1]], rally_ended = FALSE, dvw = rdata$dvw)
+                                rdata$dvw$plays2[ridx, ] <- newrc
+                            } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
+                                rc <- rally_codes()
+                                rc[ridx - nrow(rdata$dvw$plays2), ] <- crc
+                                rally_codes(rc)
+                            }
+                        }
+                    } else {
+                        newcode <- if (nzchar(newcode1)) newcode1 else newcode2
                         if (grepl("^[a\\*]?[[:digit:]][[:digit:]][SREABDF]", newcode)) {
                             ## this is a skill code
                             ## we are ignoring these, at least for now
@@ -362,21 +412,11 @@ ov_scouter_server <- function(app_data) {
                             warning("ignoring skill code: ", newcode)
                             newcode <- NULL
                         }
-                    } else {
-                        ## build code from code_entry_guide elements
-                        newcode1 <- lapply(seq_len(nrow(code_bits_tbl)), function(bi) {
-                            val <- input[[paste0("code_entry_", code_bits_tbl$bit[bi])]]
-                            if (is.null(val)) val <- ""
-                            wid <- code_bits_tbl$width[bi]
-                            if (nchar(val) < wid) val <- str_pad(val, wid, side = "right", pad = "~")
-                            val
-                        })
-                        newcode <- sub("~+$", "", paste(newcode1, collapse = ""))## trim trailing ~'s
-                    }
-                    if (editing$active %eq% "insert below" && !is.null(newcode)) {
-                        handle_manual_code(newcode)
-                    } else if (editing$active %in% c("edit", "insert above")) {
-                        ## not handled yet
+                        if (editing$active %eq% "insert below" && !is.null(newcode)) {
+                            handle_manual_code(newcode)
+                        } else if (editing$active %in% c("insert above")) {
+                            ## not handled yet
+                        }
                     }
                 } else {
                     changed <- code_make_change(editing$active, game_state = game_state, dvw = rdata$dvw, input = input,
@@ -535,12 +575,8 @@ ov_scouter_server <- function(app_data) {
                     ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
                     if (ky %in% app_data$shortcuts$go_to_time) {
                         ## video go to currently-selected event
-                        ## NB this is the current game_state time, not the time of the currently-selected event
-                        ## TO FIX
-                        vt <- game_state$video_time
-                        if (is.null(vt) || is.na(vt)) {
-                            vt <- max(rdata$dvw$plays$video_time, na.rm = TRUE)
-                        }
+                        ridx <- playslist_mod$current_row()
+                        vt <- if (!is.na(ridx) && !is.na(ridx)) rdata$dvw$plays$video_time[ridx] else NA
                         if (!is.null(vt) && !is.na(vt)) {
                             if (debug > 1) cat("jumping to video time: ", vt, "\n")
                             do_video("set_time", rebase_time(vt, time_to = current_video_src()))
@@ -551,6 +587,9 @@ ov_scouter_server <- function(app_data) {
                     } else if (ky %in% app_data$shortcuts$switch_video) {
                         ## switch video
                         do_switch_video()
+                    } else if (ky %in% app_data$shortcuts$edit_code) {
+                        ## edit_data_row()
+                        ## not enabled yet
                     } else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)", names(app_data$shortcuts))])) {
                         if (is.null(editing$active)) {
                             ## video forward/backward nav
@@ -2069,7 +2108,7 @@ ov_scouter_server <- function(app_data) {
             where <- tolower(where)
             if (!where %in% c("above", "below")) where <- "above" ## default
             ridx <- playslist_mod$current_row()
-            if (!is.null(ridx)) {
+            if (!is.null(ridx) && !is.na(ridx)) {
                 ##if (where == "above" && ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
                 ## otherwise (if inserting below) use the current row (ridx) as the template
                 editing$active <- paste0("insert ", where)
@@ -2077,14 +2116,27 @@ ov_scouter_server <- function(app_data) {
             }
         }
 
+        edit_data_row <- function() {
+            editing$active <- "edit"
+            show_manual_code_modal(editing$active)
+        }
+
         ## op "edit" will also need the row number passed to build_code_entry, not yet implemented
         show_manual_code_modal <- function(op, entry_guide = FALSE) {
             op <- match.arg(op, c("insert below", "insert above", "edit"))
-            showModal(modalDialog(title = if (grepl("insert", op)) paste0("Insert new code ", sub("insert ", "", op), " current row") else "Edit code", size = "l", footer = tags$div(actionButton("edit_commit", label = paste0(if (grepl("insert", op)) "Insert" else "Update", " code (or press Enter)")), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
-                                  if (entry_guide) "Enter code either in the top text box or in the individual boxes (but not both)",
-                                  textInput("code_entry", label = "Code:", value = ""), if (entry_guide) "or", if (entry_guide) build_code_entry_guide(sub(" .*", "", op))
-                                  ))
-            focus_in_code_entry("code_entry")
+            if (op == "edit") {
+                ridx <- playslist_mod$current_row()
+                entry_guide <- TRUE
+            } else {
+                ridx <- 1L
+            }
+            if (!is.null(ridx) && !is.na(ridx)) {
+                showModal(modalDialog(title = if (grepl("insert", op)) paste0("Insert new code ", sub("insert ", "", op), " current row") else "Edit code", size = "l", footer = tags$div(actionButton("edit_commit", label = paste0(if (grepl("insert", op)) "Insert" else "Update", " code (or press Enter)")), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
+                                      if (entry_guide) paste0(if (op == "edit") "Edit" else "Enter", " the code either in the top text box or in the individual boxes (but not both)"),
+                                      textInput("code_entry", label = "Code:", value = if (op == "edit") rdata$dvw$plays$code[ridx] else ""), if (entry_guide) "or", if (entry_guide) build_code_entry_guide(sub(" .*", "", op), thisrow = rdata$dvw$plays[ridx, ])
+                                      ))
+                focus_in_code_entry("code_entry")
+            }
         }
 
         build_code_entry_guide <- function(mode, thisrow) {
