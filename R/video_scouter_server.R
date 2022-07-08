@@ -13,7 +13,7 @@ ov_scouter_server <- function(app_data) {
             if (length(d)) fs::file_delete(d)
         })
 
-        if (is.null(app_data$dvw$meta$more$scout) || is.na(app_data$dvw$meta$more$scout) || !nzchar(app_data$dvw$meta$more$scout)) app_data$dvw$meta$more$scout <- isolate(app_data$scout)
+        if (is.null(app_data$dvw$meta$more$scout) || is.na(app_data$dvw$meta$more$scout) || !nzchar(app_data$dvw$meta$more$scout)) app_data$dvw$meta$more$scout <- isolate(app_data$scout_name)
 
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "Score") ##"home_setter_position", "visiting_setter_position", "is_skill"
         plays_cols_renames <- c(Set = "set_number")##, hs = "home_setter_position", as = "visiting_setter_position")
@@ -41,6 +41,7 @@ ov_scouter_server <- function(app_data) {
         }
         if (!is.null(app_data$video_src2)) app_data$dvw$video_file2 <- app_data$video_src2
         rdata <- reactiveValues(dvw = app_data$dvw, options = app_data$options)
+        prefs <- reactiveValues(scout_name = app_data$scout_name, show_courtref = app_data$show_courtref, scoreboard = app_data$scoreboard, ball_path = app_data$ball_path, playlist_display_option = app_data$playlist_display_option, review_pane = app_data$review_pane)
 
         ## function to reference a video time measured on the time scale of video "from", to its equivalent time relative to video "to"
         rebase_time <- function(t, time_to = 1, time_from) {
@@ -170,7 +171,7 @@ ov_scouter_server <- function(app_data) {
         game_state <- do.call(reactiveValues, temp)
 
         ## court inset showing rotation and team lists
-        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_path = app_data$ball_path)
+        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_path = prefs$ball_path)
         ## force a team rotation
         rotate_teams <- reactive(court_inset$rt)
         observe({
@@ -207,12 +208,12 @@ ov_scouter_server <- function(app_data) {
                 courtref$active <- courtref2$active
             }
         })
-        if (app_data$scoreboard) {
+        if (isolate(prefs$scoreboard)) { ##!!!
             tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata)
         }
 
         playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show,
-                                    plays_cols_renames = plays_cols_renames, display_option = app_data$playlist_display_option)
+                                    plays_cols_renames = plays_cols_renames, display_option = reactive(prefs$playlist_display_option))
 
         video_state <- reactiveValues(paused = TRUE, muted = TRUE) ## starts paused and muted
         editing <- reactiveValues(active = NULL)
@@ -678,10 +679,17 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$preferences, {
             editing$active <- "preferences"
             showModal(vwModalDialog(title = "Preferences", footer = NULL,
-                                    fluidRow(column(4, checkboxInput("prefs_show_courtref", "Show court reference?", value = rdata$show_courtref)),
-                                             column(4, textInput("prefs_scout", label = "Default scout name:", placeholder = "Your name", value = rdata$scout)),
+                                    tabsetPanel(id = "prefs_tabs",
+                                                tabPanel("App preferences",
+                                                         fluidRow(column(4, checkboxInput("prefs_show_courtref", "Show court reference?", value = prefs$show_courtref)),
+                                                                  column(4, textInput("prefs_scout", label = "Default scout name:", placeholder = "Your name", value = prefs$scout_name)),
+                                                                  column(4, checkboxInput("prefs_scoreboard", "Show scoreboard in the top-right of the video pane?", value = prefs$scoreboard))),
+                                                         fluidRow(column(4, checkboxInput("prefs_ball_path", "Show the ball path on the court inset diagram?", value = prefs$ball_path)),
+                                                                  column(4, selectInput("prefs_playlist_display_option", "Plays table style", choices = c("Scouted codes" = "dv_codes", "Commentary style" = "commentary"), selected = prefs$playlist_display_option)),
+                                                                  column(4, checkboxInput("prefs_review_pane", "Show review pane (video loop) in popups?", value = prefs$review_pane)))
+                                                         ),
+                                                tabPanel("Scouting options"##,
                                              ##column(4, selectInput("prefs_end_convention", "End convention:", choices = c(Intended = "intended", Actual = "actual"), selected = rdata$options$end_convention))
-                                             ),
                                     ##fluidRow(column(4, checkboxInput("prefs_nblockers", "Record the number of blockers?", value = rdata$options$nblockers)),
                                     ##         column(4, selectInput("prefs_default_nblockers", "Default number of blockers:", choices = c("No default" = NA, "No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3, "Hole block" = 4), selected = rdata$options$default_nblockers)),
                                     ##         column(4, checkboxInput("prefs_transition_sets", "Record sets in transition?", value = rdata$options$transition_sets))),
@@ -693,6 +701,8 @@ ov_scouter_server <- function(app_data) {
                                     ##fluidRow(column(4, selectInput("prefs_attacks_by", "Attacks by:", choices = c(Codes = "codes", Tempo = "tempo"), selected = rdata$options$attacks_by)),
                                     ##         ##column(4, selectInput("prefs_team_system", "Team system:", choices = c("SHM3" = "SHM3"), selected = rdata$options$team_system)),
                                     ##),
+                                                         )
+                                                ),
                                     tags$br(),
                                     tags$hr(),
                                     fixedRow(column(2, actionButton("just_cancel", "Cancel", class = "cancel fatradio")),
@@ -704,19 +714,21 @@ ov_scouter_server <- function(app_data) {
             removeModal()
         })
         observeEvent(input$prefs_save, {
-            thisprefs <- list(scout = if (is.null(input$prefs_scout) || is.na(input$prefs_scout)) "" else input$prefs_scout,
-                              show_courtref = isTRUE(input$prefs_show_courtref), end_convention = input$prefs_end_convention##,
+            thisprefs <- list(scout_name = if (is.null(input$prefs_scout) || is.na(input$prefs_scout)) "" else input$prefs_scout, show_courtref = isTRUE(input$prefs_show_courtref), scoreboard = isTRUE(input$prefs_scoreboard), ball_path = isTRUE(input$prefs_ball_path), playlist_display_option = input$prefs_playlist_display_option, review_pane = input$prefs_review_pane)
+
+                              ##end_convention = input$prefs_end_convention##,
                               ##nblockers = input$prefs_nblockers, default_nblockers = as.numeric(input$prefs_default_nblockers), transition_sets = input$prefs_transition_sets,
                               ##attacks_by = input$prefs_attacks_by, ## team_system = input$prefs_team_system,
                               ##setter_dump_code = if (nzchar(input$prefs_setter_dump_code)) input$prefs_setter_dump_code else ov_scouting_options()$setter_dump_code,
                               ##second_ball_attack_code = if (nzchar(input$prefs_second_ball_attack_code)) input$prefs_second_ball_attack_code else ov_scouting_options()$second_ball_attack_code,
                               ##overpass_attack_code = if (nzchar(input$prefs_overpass_attack_code)) input$prefs_overpass_attack_code else ov_scouting_options()$overpass_attack_code
-                              )
+
             ## save
             tryCatch(saveRDS(thisprefs, app_data$options_file), error = function(e) warning("could not save preferences to file"))
+            ## transfer to active prefs object
+            for (nm in names(thisprefs)) prefs[[nm]] <- thisprefs[[nm]]
             ## apply any that require immediate action
-            for (nm in names(thisprefs)) rdata[[nm]] <- thisprefs[[nm]]
-            if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- rdata$scout
+            if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- prefs$scout_name
             editing$active <- NULL
             removeModal()
         })
@@ -758,7 +770,7 @@ ov_scouter_server <- function(app_data) {
                 ## need to plot SOMETHING else we don't get correct coordinates back
                 ##this <- selected_event()
                 p <- ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + gg_tight
-                if (isTRUE(rdata$show_courtref)) {
+                if (isTRUE(prefs$show_courtref)) {
                     oxy <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = detection_ref()$court_ref, crop = TRUE)$courtxy
                     oxy <- dplyr::rename(oxy, image_x = "x", image_y = "y")
                     ## account for aspect ratios
@@ -848,12 +860,12 @@ ov_scouter_server <- function(app_data) {
         show_scout_modal <- function(...) {
             scout_modal_active(TRUE)
             showModal(...)
-            if (isTRUE(app_data$review_pane)) show_review_pane()
+            if (isTRUE(prefs$review_pane)) show_review_pane()
         }
         remove_scout_modal <- function() {
             scout_modal_active(FALSE)
             removeModal()
-            if (isTRUE(app_data$review_pane)) hide_review_pane()
+            if (isTRUE(prefs$review_pane)) hide_review_pane()
         }
 
         fatradio_class_uuids <- reactiveValues()
@@ -992,7 +1004,7 @@ ov_scouter_server <- function(app_data) {
                                                        do.call(fixedRow, c(list(column(2, tags$strong("Reception quality"))), lapply(c2_pq_buttons, function(but) column(1, but)))),
                                                        tags$br(), tags$hr(),
                                                        tags$p(tags$strong("Second contact:")),
-                                                       do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(if (isTRUE(app_data$review_pane)) 1 else 2, but))),
+                                                       do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(if (isTRUE(prefs$review_pane)) 1 else 2, but))),
                                                        tags$br(),
                                                        tags$div(id = "c2_more_ui", tags$p("by player"),
                                                                 tags$br(),
@@ -1031,11 +1043,11 @@ ov_scouter_server <- function(app_data) {
                         ac <- guess_attack_code(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end, opts = rdata$options)
                         ac <- setNames(ac, ac)
                         if (!isTRUE(rdata$options$transition_sets) && ph %eq% "Transition") {
-                            ac <- head(ac, if (isTRUE(app_data$review_pane)) 4 else 7) ## wow, we don't have a lot here if we need to leave room for the three below plus space for the attack review pane
+                            ac <- head(ac, if (isTRUE(prefs$review_pane)) 4 else 7) ## wow, we don't have a lot here if we need to leave room for the three below plus space for the attack review pane
                             ## if we aren't scouting transition sets, then this "third" contact could be a setter dump or second-ball attack
                             ac <- c(ac, c("Setter dump" = rdata$options$setter_dump_code, "Second-ball<br />attack" = rdata$options$second_ball_attack_code))
                         } else {
-                            ac <- head(ac, if (isTRUE(app_data$review_pane)) 6 else 9)
+                            ac <- head(ac, if (isTRUE(prefs$review_pane)) 6 else 9)
                         }
                         ac_others <- c("Choose other", setdiff(rdata$dvw$meta$attacks$code, ac), "Other attack")
                         attack_other_opts(ac_others)

@@ -175,7 +175,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     }
 
     ## finally the shiny app
-    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, shortcuts = scts, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout = scout_name, show_courtref = show_courtref)
+    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, shortcuts = scts, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout_name = scout_name, show_courtref = show_courtref)
     if ("video_file2" %in% names(other_args)) {
         video_file2 <- other_args$video_file2
         other_args$video_file2 <- NULL
@@ -360,7 +360,7 @@ ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, def
                                "Serve", "H", "Float serve",
                                "Serve", "T", "Topspin serve")
     ## or (some) beach conventions are T=jump-float, H=standing; VM use H=float far from the service line and T=float from the service line
-    list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, attacks_by = attacks_by, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code)
+    list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, attacks_by = attacks_by, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code, default_scouting_table = default_scouting_table, compound_table = compound_table)
 }
 
 
