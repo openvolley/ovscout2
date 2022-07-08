@@ -38,20 +38,27 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     if (!dir.exists(user_dir)) dir.create(user_dir)
     if (!dir.exists(file.path(user_dir, "autosave"))) dir.create(file.path(user_dir, "autosave"))
 
-    ## do we have any saved preferences (options)?
+    ## do we have any saved preferences?
+    ## these are app preferences, not scouting options
     opts_file <- file.path(user_dir, "options.rds")
     saved_opts <- if (file.exists(opts_file)) readRDS(opts_file) else list()
-    ## if we didn't provide options explicitly, use saved ones (if any) as priority
-    if (missing(scouting_options)) {
-        for (nm in names(saved_opts)) scouting_options[[nm]] <- saved_opts[[nm]]
-    } else {
-        ## use the provided options, but fill any missing from saved ones
-        for (nm in names(saved_opts)) if (!nm %in% names(scouting_options)) scouting_options[[nm]] <- saved_opts[[nm]]
-    }
-
-    ## make sure any unspecified options are given their defaults
+    #### if we didn't provide options explicitly, use saved ones (if any) as priority
+    ##if (missing(scouting_options)) {
+    ##    for (nm in names(saved_opts)) scouting_options[[nm]] <- saved_opts[[nm]]
+    ##} else {
+    ##    ## use the provided options, but fill any missing from saved ones
+    ##    for (nm in names(saved_opts)) if (!nm %in% names(scouting_options)) scouting_options[[nm]] <- saved_opts[[nm]]
+    ##}
+    if (missing(scoreboard) && "scoreboard" %in% names(saved_opts)) scoreboard <- saved_opts$scoreboard
+    if (missing(ball_path) && "ball_path" %in% names(saved_opts)) ball_path <- saved_opts$ball_path
+    if (missing(review_pane) && "review_pane" %in% names(saved_opts)) review_pane <- saved_opts$review_pane
+    if (missing(playlist_display_option) && "playlist_display_option" %in% names(saved_opts)) playlist_display_option <- saved_opts$playlist_display_option
+    if (missing(scout_name) && "scout_name" %in% names(saved_opts)) scout_name <- saved_opts$scout_name
+    if (missing(show_courtref) && "show_courtref" %in% names(saved_opts)) show_courtref <- saved_opts$show_courtref
+    ## make sure any unspecified scouting options are given their defaults
     opts <- ov_scouting_options()
     for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
+    ## same for shortcuts
     scts <- ov_default_shortcuts()
     for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
 
