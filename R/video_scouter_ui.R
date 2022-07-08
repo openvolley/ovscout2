@@ -84,7 +84,7 @@ function dvjs_video_onstart() { vo_doneResizing(); }")),
                               fluidRow(column(4, uiOutput("rally_state"))),
                               if (app_data$with_video)
                                   introBox(tags$div(id = "video_holder", style = "position:relative;",
-                                                    if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc", styling = app_data$styling)),
+                                                    if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc")),
                                                     HTML(paste0("<video id=\"main_video\" style=\"width:100%; height:85vh;\" class=\"video-js\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": ", if (yt) paste0("[{ \"type\": \"video/youtube\", \"src\": \"", app_data$video_src, "\"}]") else paste0("[{ \"src\": \"", file.path(app_data$video_server_base_url, basename(app_data$video_src)), "\"}]"), " }'>\n",
                                                                 "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>"))
                                                     ),

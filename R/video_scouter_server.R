@@ -208,9 +208,7 @@ ov_scouter_server <- function(app_data) {
                 courtref$active <- courtref2$active
             }
         })
-        if (isolate(prefs$scoreboard)) { ##!!!
-            tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata)
-        }
+        tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata, styling = app_data$styling, visible = reactive(prefs$scoreboard))
 
         playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show,
                                     plays_cols_renames = plays_cols_renames, display_option = reactive(prefs$playlist_display_option))

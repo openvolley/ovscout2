@@ -725,24 +725,14 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
 
 }
 
-mod_teamscores_ui <- function(id, styling) {
+mod_teamscores_ui <- function(id) {
     ns <- NS(id)
     tagList(tags$head(tags$style(paste0("@font-face { font-family:'DSEG14'; src: url('css/DSEG14Modern-Regular.woff2') format('woff2'), url('css/DSEG14Modern-Regular.woff') format('woff'); } .scoreboard { background-color:#00000080; border-radius:4px; padding:1px; } .ptscorenum, .setscorenum { padding: 2px; text-align: center; font-family:'DSEG14', sans-serif; } .ptscorenum { font-size:24px; } .setscorenum { font-size:17px; } #hnscore { padding: 2px; text-align: left; font-size:16px;} #vnscore { padding: 2px; text-align: right; font-size:16px;} #tsc_outer {position:absolute; right:14px; width:20vw; -webkit-transform: translateZ(10); z-index:10;}"))),
-            fluidRow(class = "scoreboard",
-                     column(6, style = paste0("background-color:", styling$h_court_colour),
-                            fixedRow(column(9, id = "hnscore", uiOutput(ns("hnaming"))),
-                                     column(3, class = "setscorenum", uiOutput(ns("hsetscoring")))),
-                            fixedRow(column(3, offset = 9, class = "ptscorenum", uiOutput(ns("hscoring"))))),
-                     column(6, style = paste0("background-color:", styling$v_court_colour),
-                            fixedRow(column(3, class = "setscorenum", uiOutput(ns("vsetscoring"))),
-                                     column(9, id = "vnscore", uiOutput(ns("vnaming")))),
-                            fixedRow(column(3, class = "ptscorenum", uiOutput(ns("vscoring"))))
-                            )
-                     )
+            uiOutput(ns("scoreboard"))
             )
 }
 
-mod_teamscores <- function(input, output, session, game_state, rdata) {
+mod_teamscores <- function(input, output, session, game_state, rdata, styling, visible = reactiveVal(TRUE)) {
     ns <- session$ns
     ss <- reactive({
         sets_won <- c(0L, 0L) ## sets won by home, visiting teams
@@ -765,24 +755,24 @@ mod_teamscores <- function(input, output, session, game_state, rdata) {
         sets_won
     })
 
-    output$hnaming <- renderUI({
-        tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"])
-    })
-    output$hscoring <- renderUI({
+
+    output$scoreboard <- renderUI({
         hs <- game_state$home_score_start_of_point
-        if (!is.na(hs)) tags$span(hs) else NULL
-    })
-    output$hsetscoring <- renderUI({
-        if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[1]) else NULL
-    })
-    output$vscoring <- renderUI({
         vs <- game_state$visiting_score_start_of_point
-        if (!is.na(vs)) tags$span(vs) else NULL
-    })
-    output$vsetscoring <- renderUI({
-        if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[2]) else NULL
-    })
-    output$vnaming <- renderUI({
-        tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"])
+        if (isTRUE(visible())) {
+            fluidRow(class = "scoreboard",
+                     column(6, style = paste0("background-color:", styling$h_court_colour),
+                            fixedRow(column(9, id = "hnscore", tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"])),
+                                     column(3, class = "setscorenum", if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[1]))),
+                            fixedRow(column(3, offset = 9, class = "ptscorenum", if (!is.na(hs)) tags$span(hs)))),
+                     column(6, style = paste0("background-color:", styling$v_court_colour),
+                            fixedRow(column(3, class = "setscorenum", if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[2])),
+                                     column(9, id = "vnscore", tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]))),
+                            fixedRow(column(3, class = "ptscorenum", if (!is.na(vs)) tags$span(vs)))
+                            )
+                     )
+        } else {
+            NULL
+        }
     })
 }
