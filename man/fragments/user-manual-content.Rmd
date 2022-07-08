@@ -183,7 +183,7 @@ Enter the appropriate details. An attack kill, dig or dig error can also involve
 
 ## Transition play
 
-Scouting now continues until the point ends, with attacks, digs, and other contacts being recorded. By default, *sets in transition are not scouted* (except for set errors, since a set error will end the rally). After an attack, we record the dig location and then straight to the counter-attack location, with no intervening set being scouted. You can choose to include transition sets if you are running the app from R (see `help("ov_scouter_options")`) but there is not a huge practical advantage in doing so (it does not enable much more in terms of analytics, but takes extra time to scout, so we have disabled these by default).
+Scouting now continues until the point ends, with attacks, digs, and other contacts being recorded. By default, *sets in transition are not scouted* (except for set errors, since a set error will end the rally). After an attack, we record the dig location and then straight to the counter-attack location, with no intervening set being scouted. You can choose to include transition sets if you are running the app from R (see `help("ov_scouting_options")`) but there is not a huge practical advantage in doing so (it does not enable much more in terms of analytics, but takes extra time to scout, so we have disabled these by default).
 
 ## End of the point
 

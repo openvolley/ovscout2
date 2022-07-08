@@ -11,7 +11,7 @@
 #' @param ball_path logical: if `TRUE`, show the ball path on the court inset diagram. Note that this will slow the app down slightly
 #' @param playlist_display_option string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)
 #' @param review_pane logical: if `TRUE`, entry popups will be accompanied by a small video pane that shows a loop of the video of the action in question
-#' @param scouting_options list: a named list with entries as per [ov_scouter_options()]
+#' @param scouting_options list: a named list with entries as per [ov_scouting_options()]
 #' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
 #' @param compound_table tibble: the table of compound codes
 #' @param shortcuts list: named list of keyboard shortcuts, as returned by [ov_default_shortcuts()]
@@ -25,7 +25,7 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouter_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), shortcuts = ov_default_shortcuts(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouting_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), shortcuts = ov_default_shortcuts(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     ## user data directory
     ## are we running under shiny server, shiny (locally) or shiny (docker)?
@@ -47,7 +47,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     }
 
     ## make sure any unspecified options are given their defaults
-    opts <- ov_scouter_options()
+    opts <- ov_scouting_options()
     for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
     scts <- ov_default_shortcuts()
     for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
@@ -333,7 +333,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 #' @return A named list
 #'
 #' @export
-ov_scouter_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR", scout_name = "", show_courtref = FALSE) {
+ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR", scout_name = "", show_courtref = FALSE) {
     end_convention <- match.arg(end_convention, c("actual", "intended"))
     assert_that(is.flag(nblockers), !is.na(nblockers))
     if (is.null(default_nblockers)) default_nblockers <- NA

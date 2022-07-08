@@ -707,9 +707,9 @@ ov_scouter_server <- function(app_data) {
                               show_courtref = isTRUE(input$prefs_show_courtref), end_convention = input$prefs_end_convention,
                               nblockers = input$prefs_nblockers, default_nblockers = as.numeric(input$prefs_default_nblockers), transition_sets = input$prefs_transition_sets,
                               attacks_by = input$prefs_attacks_by, ## team_system = input$prefs_team_system,
-                              setter_dump_code = if (nzchar(input$prefs_setter_dump_code)) input$prefs_setter_dump_code else ov_scouter_options()$setter_dump_code,
-                              second_ball_attack_code = if (nzchar(input$prefs_second_ball_attack_code)) input$prefs_second_ball_attack_code else ov_scouter_options()$second_ball_attack_code,
-                              overpass_attack_code = if (nzchar(input$prefs_overpass_attack_code)) input$prefs_overpass_attack_code else ov_scouter_options()$overpass_attack_code
+                              setter_dump_code = if (nzchar(input$prefs_setter_dump_code)) input$prefs_setter_dump_code else ov_scouting_options()$setter_dump_code,
+                              second_ball_attack_code = if (nzchar(input$prefs_second_ball_attack_code)) input$prefs_second_ball_attack_code else ov_scouting_options()$second_ball_attack_code,
+                              overpass_attack_code = if (nzchar(input$prefs_overpass_attack_code)) input$prefs_overpass_attack_code else ov_scouting_options()$overpass_attack_code
                               )
             ## save
             tryCatch(saveRDS(thisprefs, app_data$options_file), error = function(e) warning("could not save preferences to file"))
