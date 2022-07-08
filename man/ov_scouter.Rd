@@ -16,6 +16,8 @@ ov_scouter(
   playlist_display_option = "dv_codes",
   scouting_options = ov_scouting_options(),
   shortcuts = ov_default_shortcuts(),
+  scout_name = "",
+  show_courtref = FALSE,
   launch_browser = TRUE,
   prompt_for_files = interactive(),
   ...
@@ -43,6 +45,10 @@ ov_scouter(
 \item{scouting_options}{list: a named list with entries as per \code{\link[=ov_scouting_options]{ov_scouting_options()}}}
 
 \item{shortcuts}{list: named list of keyboard shortcuts, as returned by \code{\link[=ov_default_shortcuts]{ov_default_shortcuts()}}}
+
+\item{scout_name}{string: the name of the scout (your name)}
+
+\item{show_courtref}{logical: if \code{TRUE}, show the court reference lines overlaid on the video}
 
 \item{launch_browser}{logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny:runApp]{shiny::runApp()}}'s \code{launch.browser} parameter)}
 

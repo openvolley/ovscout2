@@ -13,7 +13,7 @@ ov_scouter_server <- function(app_data) {
             if (length(d)) fs::file_delete(d)
         })
 
-        if (is.null(app_data$dvw$meta$more$scout) || is.na(app_data$dvw$meta$more$scout) || !nzchar(app_data$dvw$meta$more$scout)) app_data$dvw$meta$more$scout <- isolate(app_data$options$scout)
+        if (is.null(app_data$dvw$meta$more$scout) || is.na(app_data$dvw$meta$more$scout) || !nzchar(app_data$dvw$meta$more$scout)) app_data$dvw$meta$more$scout <- isolate(app_data$scout)
 
         plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "Score") ##"home_setter_position", "visiting_setter_position", "is_skill"
         plays_cols_renames <- c(Set = "set_number")##, hs = "home_setter_position", as = "visiting_setter_position")
@@ -678,20 +678,21 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$preferences, {
             editing$active <- "preferences"
             showModal(vwModalDialog(title = "Preferences", footer = NULL,
-                                    fluidRow(column(4, checkboxInput("prefs_show_courtref", "Show court reference?", value = rdata$options$show_courtref)),
-                                             column(4, textInput("prefs_scout", label = "Default scout name:", placeholder = "Your name", value = rdata$options$scout)),
-                                             column(4, selectInput("prefs_end_convention", "End convention:", choices = c(Intended = "intended", Actual = "actual"), selected = rdata$options$end_convention))),
-                                    fluidRow(column(4, checkboxInput("prefs_nblockers", "Record the number of blockers?", value = rdata$options$nblockers)),
-                                             column(4, selectInput("prefs_default_nblockers", "Default number of blockers:", choices = c("No default" = NA, "No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3, "Hole block" = 4), selected = rdata$options$default_nblockers)),
-                                             column(4, checkboxInput("prefs_transition_sets", "Record sets in transition?", value = rdata$options$transition_sets))),
-                                    fluidRow(
-                                        column(4, textInput("prefs_setter_dump_code", "Setter tip attack code", placeholder = "PP", value = rdata$options$setter_dump_code)), ## string: the attack combination code for a setter dump
-                                        column(4, textInput("prefs_second_ball_attack_code", "Second-ball attack code", placeholder = "P2", value = rdata$options$second_ball_attack_code)), ## string: the attack combination code for a second-ball attack
-                                        column(4, textInput("prefs_overpass_attack_code", "Overpass attack code", placeholder = "PR", value = rdata$options$overpass_attack_code)) ## string: the attack combination code for an attack on an overpass
-                                    ),
-                                    fluidRow(column(4, selectInput("prefs_attacks_by", "Attacks by:", choices = c(Codes = "codes", Tempo = "tempo"), selected = rdata$options$attacks_by)),
-                                             ##column(4, selectInput("prefs_team_system", "Team system:", choices = c("SHM3" = "SHM3"), selected = rdata$options$team_system)),
-                                    ),
+                                    fluidRow(column(4, checkboxInput("prefs_show_courtref", "Show court reference?", value = rdata$show_courtref)),
+                                             column(4, textInput("prefs_scout", label = "Default scout name:", placeholder = "Your name", value = rdata$scout)),
+                                             ##column(4, selectInput("prefs_end_convention", "End convention:", choices = c(Intended = "intended", Actual = "actual"), selected = rdata$options$end_convention))
+                                             ),
+                                    ##fluidRow(column(4, checkboxInput("prefs_nblockers", "Record the number of blockers?", value = rdata$options$nblockers)),
+                                    ##         column(4, selectInput("prefs_default_nblockers", "Default number of blockers:", choices = c("No default" = NA, "No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3, "Hole block" = 4), selected = rdata$options$default_nblockers)),
+                                    ##         column(4, checkboxInput("prefs_transition_sets", "Record sets in transition?", value = rdata$options$transition_sets))),
+                                    ##fluidRow(
+                                    ##    column(4, textInput("prefs_setter_dump_code", "Setter tip attack code", placeholder = "PP", value = rdata$options$setter_dump_code)), ## string: the attack combination code for a setter dump
+                                    ##    column(4, textInput("prefs_second_ball_attack_code", "Second-ball attack code", placeholder = "P2", value = rdata$options$second_ball_attack_code)), ## string: the attack combination code for a second-ball attack
+                                    ##    column(4, textInput("prefs_overpass_attack_code", "Overpass attack code", placeholder = "PR", value = rdata$options$overpass_attack_code)) ## string: the attack combination code for an attack on an overpass
+                                    ##),
+                                    ##fluidRow(column(4, selectInput("prefs_attacks_by", "Attacks by:", choices = c(Codes = "codes", Tempo = "tempo"), selected = rdata$options$attacks_by)),
+                                    ##         ##column(4, selectInput("prefs_team_system", "Team system:", choices = c("SHM3" = "SHM3"), selected = rdata$options$team_system)),
+                                    ##),
                                     tags$br(),
                                     tags$hr(),
                                     fixedRow(column(2, actionButton("just_cancel", "Cancel", class = "cancel fatradio")),
@@ -704,18 +705,18 @@ ov_scouter_server <- function(app_data) {
         })
         observeEvent(input$prefs_save, {
             thisprefs <- list(scout = if (is.null(input$prefs_scout) || is.na(input$prefs_scout)) "" else input$prefs_scout,
-                              show_courtref = isTRUE(input$prefs_show_courtref), end_convention = input$prefs_end_convention,
-                              nblockers = input$prefs_nblockers, default_nblockers = as.numeric(input$prefs_default_nblockers), transition_sets = input$prefs_transition_sets,
-                              attacks_by = input$prefs_attacks_by, ## team_system = input$prefs_team_system,
-                              setter_dump_code = if (nzchar(input$prefs_setter_dump_code)) input$prefs_setter_dump_code else ov_scouting_options()$setter_dump_code,
-                              second_ball_attack_code = if (nzchar(input$prefs_second_ball_attack_code)) input$prefs_second_ball_attack_code else ov_scouting_options()$second_ball_attack_code,
-                              overpass_attack_code = if (nzchar(input$prefs_overpass_attack_code)) input$prefs_overpass_attack_code else ov_scouting_options()$overpass_attack_code
+                              show_courtref = isTRUE(input$prefs_show_courtref), end_convention = input$prefs_end_convention##,
+                              ##nblockers = input$prefs_nblockers, default_nblockers = as.numeric(input$prefs_default_nblockers), transition_sets = input$prefs_transition_sets,
+                              ##attacks_by = input$prefs_attacks_by, ## team_system = input$prefs_team_system,
+                              ##setter_dump_code = if (nzchar(input$prefs_setter_dump_code)) input$prefs_setter_dump_code else ov_scouting_options()$setter_dump_code,
+                              ##second_ball_attack_code = if (nzchar(input$prefs_second_ball_attack_code)) input$prefs_second_ball_attack_code else ov_scouting_options()$second_ball_attack_code,
+                              ##overpass_attack_code = if (nzchar(input$prefs_overpass_attack_code)) input$prefs_overpass_attack_code else ov_scouting_options()$overpass_attack_code
                               )
             ## save
             tryCatch(saveRDS(thisprefs, app_data$options_file), error = function(e) warning("could not save preferences to file"))
             ## apply any that require immediate action
-            for (nm in names(thisprefs)) rdata$options[[nm]] <- thisprefs[[nm]]
-            if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- rdata$options$scout
+            for (nm in names(thisprefs)) rdata[[nm]] <- thisprefs[[nm]]
+            if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- rdata$scout
             editing$active <- NULL
             removeModal()
         })
@@ -757,7 +758,7 @@ ov_scouter_server <- function(app_data) {
                 ## need to plot SOMETHING else we don't get correct coordinates back
                 ##this <- selected_event()
                 p <- ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + gg_tight
-                if (isTRUE(rdata$options$show_courtref)) {
+                if (isTRUE(rdata$show_courtref)) {
                     oxy <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = detection_ref()$court_ref, crop = TRUE)$courtxy
                     oxy <- dplyr::rename(oxy, image_x = "x", image_y = "y")
                     ## account for aspect ratios

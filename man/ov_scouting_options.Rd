@@ -15,9 +15,7 @@ ov_scouting_options(
   second_ball_attack_code = "P2",
   overpass_attack_code = "PR",
   default_scouting_table = ov_default_scouting_table(),
-  compound_table = ov_default_compound_table(),
-  scout_name = "",
-  show_courtref = FALSE
+  compound_table = ov_default_compound_table()
 )
 }
 \arguments{
@@ -45,10 +43,6 @@ ov_scouting_options(
 \item{default_scouting_table}{tibble: the table of scouting defaults (skill type and evaluation)}
 
 \item{compound_table}{tibble: the table of compound codes}
-
-\item{scout_name}{string: the name of the scout (your name)}
-
-\item{show_courtref}{logical: if \code{TRUE}, show the court reference lines overlaid on the video}
 }
 \value{
 A named list
