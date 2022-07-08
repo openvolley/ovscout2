@@ -12,8 +12,6 @@
 #' @param playlist_display_option string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)
 #' @param review_pane logical: if `TRUE`, entry popups will be accompanied by a small video pane that shows a loop of the video of the action in question
 #' @param scouting_options list: a named list with entries as per [ov_scouting_options()]
-#' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
-#' @param compound_table tibble: the table of compound codes
 #' @param shortcuts list: named list of keyboard shortcuts, as returned by [ov_default_shortcuts()]
 #' @param launch_browser logical: if `TRUE`, launch the app in the system's default web browser (passed to [shiny::runApp()]'s `launch.browser` parameter)
 #' @param prompt_for_files logical: if `dvw` was not specified, prompt the user to select the dvw file
@@ -25,7 +23,7 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouting_options(), default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), shortcuts = ov_default_shortcuts(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouting_options(), shortcuts = ov_default_shortcuts(), launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     ## user data directory
     ## are we running under shiny server, shiny (locally) or shiny (docker)?
@@ -52,7 +50,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     scts <- ov_default_shortcuts()
     for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
 
-    if (!missing(dvw) && identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = isTRUE(scoreboard), ball_path = isTRUE(ball_path), review_pane = isTRUE(review_pane), scouting_options = scouting_options, default_scouting_table = default_scouting_table, compound_table = compound_table, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
+    if (!missing(dvw) && identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = isTRUE(scoreboard), ball_path = isTRUE(ball_path), review_pane = isTRUE(review_pane), scouting_options = scouting_options, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     assert_that(playlist_display_option %in% c("dv_codes", "commentary"))
@@ -165,7 +163,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     }
 
     ## finally the shiny app
-    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, default_scouting_table = default_scouting_table, compound_table = compound_table, shortcuts = scts, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir)
+    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, shortcuts = scts, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir)
     if ("video_file2" %in% names(other_args)) {
         video_file2 <- other_args$video_file2
         other_args$video_file2 <- NULL
@@ -327,13 +325,15 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 #' @param setter_dump_code string: the attack combination code for a setter dump
 #' @param second_ball_attack_code string: the attack combination code for a second-ball attack
 #' @param overpass_attack_code string: the attack combination code for an attack on an overpass
+#' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
+#' @param compound_table tibble: the table of compound codes
 #' @param scout_name string: the name of the scout (your name)
 #' @param show_courtref logical: if `TRUE`, show the court reference lines overlaid on the video
 #'
 #' @return A named list
 #'
 #' @export
-ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR", scout_name = "", show_courtref = FALSE) {
+ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR", default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), scout_name = "", show_courtref = FALSE) {
     end_convention <- match.arg(end_convention, c("actual", "intended"))
     assert_that(is.flag(nblockers), !is.na(nblockers))
     if (is.null(default_nblockers)) default_nblockers <- NA

@@ -14,6 +14,8 @@ ov_scouting_options(
   setter_dump_code = "PP",
   second_ball_attack_code = "P2",
   overpass_attack_code = "PR",
+  default_scouting_table = ov_default_scouting_table(),
+  compound_table = ov_default_compound_table(),
   scout_name = "",
   show_courtref = FALSE
 )
@@ -39,6 +41,10 @@ ov_scouting_options(
 \item{second_ball_attack_code}{string: the attack combination code for a second-ball attack}
 
 \item{overpass_attack_code}{string: the attack combination code for an attack on an overpass}
+
+\item{default_scouting_table}{tibble: the table of scouting defaults (skill type and evaluation)}
+
+\item{compound_table}{tibble: the table of compound codes}
 
 \item{scout_name}{string: the name of the scout (your name)}
 

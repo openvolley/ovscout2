@@ -15,8 +15,6 @@ ov_scouter(
   review_pane = TRUE,
   playlist_display_option = "dv_codes",
   scouting_options = ov_scouting_options(),
-  default_scouting_table = ov_default_scouting_table(),
-  compound_table = ov_default_compound_table(),
   shortcuts = ov_default_shortcuts(),
   launch_browser = TRUE,
   prompt_for_files = interactive(),
@@ -43,10 +41,6 @@ ov_scouter(
 \item{playlist_display_option}{string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)}
 
 \item{scouting_options}{list: a named list with entries as per \code{\link[=ov_scouting_options]{ov_scouting_options()}}}
-
-\item{default_scouting_table}{tibble: the table of scouting defaults (skill type and evaluation)}
-
-\item{compound_table}{tibble: the table of compound codes}
 
 \item{shortcuts}{list: named list of keyboard shortcuts, as returned by \code{\link[=ov_default_shortcuts]{ov_default_shortcuts()}}}
 
