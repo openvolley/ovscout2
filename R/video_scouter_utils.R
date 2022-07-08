@@ -18,7 +18,7 @@ get_player_serve_type <- function(px, serving_player_num, game_state, opts) {
 
 make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
     pseq <- seq_len(if (dv_is_beach(dvw)) 2L else 6L)
-    if (is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
+    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
     if (is.data.frame(rally_codes)) {
         if (nrow(rally_codes) > 0) {
             codes <- codes_from_rc_rows(rally_codes)
