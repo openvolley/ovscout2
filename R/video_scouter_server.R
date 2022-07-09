@@ -679,26 +679,32 @@ ov_scouter_server <- function(app_data) {
             showModal(vwModalDialog(title = "Preferences", footer = NULL,
                                     tabsetPanel(id = "prefs_tabs",
                                                 tabPanel("App preferences",
-                                                         fluidRow(column(4, checkboxInput("prefs_show_courtref", "Show court reference?", value = prefs$show_courtref)),
-                                                                  column(4, textInput("prefs_scout", label = "Default scout name:", placeholder = "Your name", value = prefs$scout_name)),
-                                                                  column(4, checkboxInput("prefs_scoreboard", "Show scoreboard in the top-right of the video pane?", value = prefs$scoreboard))),
-                                                         fluidRow(column(4, checkboxInput("prefs_ball_path", "Show the ball path on the court inset diagram?", value = prefs$ball_path)),
-                                                                  column(4, selectInput("prefs_playlist_display_option", "Plays table style", choices = c("Scouted codes" = "dv_codes", "Commentary style" = "commentary"), selected = prefs$playlist_display_option)),
-                                                                  column(4, checkboxInput("prefs_review_pane", "Show review pane (video loop) in popups?", value = prefs$review_pane)))
+                                                         tags$hr(), tags$br(),
+                                                         fluidRow(column(3, checkboxInput("prefs_show_courtref", "Show court reference?", value = prefs$show_courtref)),
+                                                                  column(3, textInput("prefs_scout", label = "Default scout name:", placeholder = "Your name", value = prefs$scout_name)),
+                                                                  column(3, checkboxInput("prefs_scoreboard", "Show scoreboard in the top-right of the video pane?", value = prefs$scoreboard))),
+                                                         tags$br(),
+                                                         fluidRow(column(3, checkboxInput("prefs_ball_path", "Show the ball path on the court inset diagram?", value = prefs$ball_path)),
+                                                                  column(3, selectInput("prefs_playlist_display_option", "Plays table style", choices = c("Scouted codes" = "dv_codes", "Commentary style" = "commentary"), selected = prefs$playlist_display_option)),
+                                                                  column(3, checkboxInput("prefs_review_pane", "Show review pane (video loop) in popups?", value = prefs$review_pane)))
                                                          ),
-                                                tabPanel("Scouting options"##,
-                                             ##column(4, selectInput("prefs_end_convention", "End convention:", choices = c(Intended = "intended", Actual = "actual"), selected = rdata$options$end_convention))
-                                    ##fluidRow(column(4, checkboxInput("prefs_nblockers", "Record the number of blockers?", value = rdata$options$nblockers)),
-                                    ##         column(4, selectInput("prefs_default_nblockers", "Default number of blockers:", choices = c("No default" = NA, "No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3, "Hole block" = 4), selected = rdata$options$default_nblockers)),
-                                    ##         column(4, checkboxInput("prefs_transition_sets", "Record sets in transition?", value = rdata$options$transition_sets))),
-                                    ##fluidRow(
-                                    ##    column(4, textInput("prefs_setter_dump_code", "Setter tip attack code", placeholder = "PP", value = rdata$options$setter_dump_code)), ## string: the attack combination code for a setter dump
-                                    ##    column(4, textInput("prefs_second_ball_attack_code", "Second-ball attack code", placeholder = "P2", value = rdata$options$second_ball_attack_code)), ## string: the attack combination code for a second-ball attack
-                                    ##    column(4, textInput("prefs_overpass_attack_code", "Overpass attack code", placeholder = "PR", value = rdata$options$overpass_attack_code)) ## string: the attack combination code for an attack on an overpass
-                                    ##),
-                                    ##fluidRow(column(4, selectInput("prefs_attacks_by", "Attacks by:", choices = c(Codes = "codes", Tempo = "tempo"), selected = rdata$options$attacks_by)),
-                                    ##         ##column(4, selectInput("prefs_team_system", "Team system:", choices = c("SHM3" = "SHM3"), selected = rdata$options$team_system)),
-                                    ##),
+                                                tabPanel("Scouting options",
+                                                         tags$hr(), tags$br(), tags$p("Warning: changing scouting options once a match is already partially-scouted could lead to inconsistent files."),
+                                                         tags$hr(),
+                                                         fluidRow(column(3, selectInput("scopts_end_convention", tags$span(title = HTML("Is the end coordinate of an attack or serve the actual end location (where the ball contacted the floor or out of bounds area), or the intended one. The actual might differ from the intended if there is a block touch or the ball hit the net. If 'actual', and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing)."), "End convention:", icon("question-circle")), choices = c(Intended = "intended", Actual = "actual"), selected = rdata$options$end_convention)),
+                                                                  column(3, checkboxInput("scopts_nblockers", tags$span(title = HTML("Record the number of blockers on each attack?"), "Record the number of blockers?", icon("question-circle")), value = rdata$options$nblockers)),
+                                                                  column(3, selectInput("scopts_default_nblockers", tags$span(title = HTML("If we are scouting the number of blockers, what number should we default to?"), "Default number of blockers:", icon("question-circle")), choices = c("No default" = NA, "No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3, "Hole block" = 4), selected = rdata$options$default_nblockers))),
+                                                         tags$br(),
+                                                         fluidRow(column(3, checkboxInput("scopts_transition_sets", tags$span(title = HTML("If transition sets are not recorded, then just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted."), "Record sets in transition?", icon("question-circle")), value = rdata$options$transition_sets)),
+                                                                  column(3, selectInput("scopts_attacks_by", tags$span(title = HTML("Classify attacks by 'Code' (X5, V5, etc) or just 'Tempo' (high, medium, quick)."), "Attacks by:", icon("question-circle")), choices = c(Codes = "codes", Tempo = "tempo"), selected = rdata$options$attacks_by))##,
+                                                                  ##column(3, selectInput("scopts_team_system", tags$span(title = HTML("the assumed system that teams are using to assign e.g. passing and hitting responsibilities. 'SHM3' is a setter-hitter-middle rotation, with 3 passers (the libero and two outside hitters)."), "Team system:", icon("question-circle")), choices = c("SHM3" = "SHM3"), selected = rdata$options$team_system))
+                                                                  ),
+                                                         tags$br(),
+                                                         fluidRow(column(3, textInput("scopts_setter_dump_code", tags$span(title = HTML("The attack combination code for a setter dump"), "Setter tip attack code:", icon("question-circle")), placeholder = "PP", value = rdata$options$setter_dump_code)), ## string: the attack combination code for a setter dump
+                                                                  column(3, textInput("scopts_second_ball_attack_code", tags$span(title = HTML("The attack combination code for a second-ball attack"), "Second-ball attack code:", icon("question-circle")), placeholder = "P2", value = rdata$options$second_ball_attack_code)), ## string: the attack combination code for a second-ball attack
+                                                                  column(3, textInput("scopts_overpass_attack_code", tags$span(title = HTML("The attack combination code for an attack on an overpass"), "Overpass attack code:", icon("question-circle")), placeholder = "PR", value = rdata$options$overpass_attack_code))) ## string: the attack combination code for an attack on an overpass
+## TODO @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
+## TODO @param compound_table tibble: the table of compound codes
                                                          )
                                                 ),
                                     tags$br(),
@@ -713,20 +719,18 @@ ov_scouter_server <- function(app_data) {
         })
         observeEvent(input$prefs_save, {
             thisprefs <- list(scout_name = if (is.null(input$prefs_scout) || is.na(input$prefs_scout)) "" else input$prefs_scout, show_courtref = isTRUE(input$prefs_show_courtref), scoreboard = isTRUE(input$prefs_scoreboard), ball_path = isTRUE(input$prefs_ball_path), playlist_display_option = input$prefs_playlist_display_option, review_pane = input$prefs_review_pane)
+            this_opts <- list(end_convention = input$scopts_end_convention, nblockers = input$scopts_nblockers, default_nblockers = as.numeric(input$scopts_default_nblockers), transition_sets = input$scopts_transition_sets, attacks_by = input$scopts_attacks_by, team_system = input$scopts_team_system, setter_dump_code = if (nzchar(input$scopts_setter_dump_code)) input$scopts_setter_dump_code else ov_scouting_options()$setter_dump_code, second_ball_attack_code = if (nzchar(input$scopts_second_ball_attack_code)) input$scopts_second_ball_attack_code else ov_scouting_options()$second_ball_attack_code, overpass_attack_code = if (nzchar(input$scopts_overpass_attack_code)) input$scopts_overpass_attack_code else ov_scouting_options()$overpass_attack_code)
 
-                              ##end_convention = input$prefs_end_convention##,
-                              ##nblockers = input$prefs_nblockers, default_nblockers = as.numeric(input$prefs_default_nblockers), transition_sets = input$prefs_transition_sets,
-                              ##attacks_by = input$prefs_attacks_by, ## team_system = input$prefs_team_system,
-                              ##setter_dump_code = if (nzchar(input$prefs_setter_dump_code)) input$prefs_setter_dump_code else ov_scouting_options()$setter_dump_code,
-                              ##second_ball_attack_code = if (nzchar(input$prefs_second_ball_attack_code)) input$prefs_second_ball_attack_code else ov_scouting_options()$second_ball_attack_code,
-                              ##overpass_attack_code = if (nzchar(input$prefs_overpass_attack_code)) input$prefs_overpass_attack_code else ov_scouting_options()$overpass_attack_code
-
-            ## save
+            ## save prefs
             tryCatch(saveRDS(thisprefs, app_data$options_file), error = function(e) warning("could not save preferences to file"))
             ## transfer to active prefs object
             for (nm in names(thisprefs)) prefs[[nm]] <- thisprefs[[nm]]
             ## apply any that require immediate action
             if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- prefs$scout_name
+
+            ## apply scouting opts
+            for (nm in names(this_opts)) rdata$options[[nm]] <- this_opts[[nm]]
+
             editing$active <- NULL
             removeModal()
         })
