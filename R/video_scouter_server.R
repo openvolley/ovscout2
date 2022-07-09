@@ -2210,7 +2210,9 @@ ov_scouter_server <- function(app_data) {
                         ## this only makes sense if running locally, not deployed on a server
                         tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".rds")
                         try({
-                            saveRDS(rdata$dvw, file = tf)
+                            temp <- rdata$dvw
+                            temp$scouting_options <- isolate(rdata$options)
+                            saveRDS(temp, file = tf)
                             rds_ok <- file.exists(tf) && file.size(tf) > 0
                         }, silent = TRUE)
                     }
@@ -2230,6 +2232,7 @@ ov_scouter_server <- function(app_data) {
                     out <- update_meta(rp2(rdata$dvw))
                     out$plays <- NULL ## don't save this
                     out$game_state <- isolate(reactiveValuesToList(game_state))
+                    out$scouting_options <- isolate(rdata$options)
                     saveRDS(out, file)
                 }, error = function(e) {
                     rds_ok <- FALSE
@@ -2237,7 +2240,9 @@ ov_scouter_server <- function(app_data) {
                         ## this only makes sense if running locally, not deployed on a server
                         tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".rds")
                         try({
-                            saveRDS(rdata$dvw, file = tf)
+                            out <- rdata$dvw
+                            out$scouting_options <- isolate(rdata$options)
+                            saveRDS(out, file = tf)
                             rds_ok <- file.exists(tf) && file.size(tf) > 0
                         }, silent = TRUE)
                     }
@@ -2394,6 +2399,7 @@ ov_scouter_server <- function(app_data) {
                 dvw <- isolate(rdata$dvw)
                 dvw$plays <- NULL ## don't save this
                 dvw$game_state <- isolate(reactiveValuesToList(game_state))
+                dvw$scouting_options <- isolate(rdata$options)
                 tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".ovs")
                 saveRDS(dvw, tf)
                 message("working file has been saved to: ", tf)

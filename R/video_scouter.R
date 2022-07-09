@@ -43,24 +43,12 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     opts_file <- file.path(user_dir, "options.rds")
     saved_opts <- if (file.exists(opts_file)) readRDS(opts_file) else list()
     #### if we didn't provide options explicitly, use saved ones (if any) as priority
-    ##if (missing(scouting_options)) {
-    ##    for (nm in names(saved_opts)) scouting_options[[nm]] <- saved_opts[[nm]]
-    ##} else {
-    ##    ## use the provided options, but fill any missing from saved ones
-    ##    for (nm in names(saved_opts)) if (!nm %in% names(scouting_options)) scouting_options[[nm]] <- saved_opts[[nm]]
-    ##}
     if (missing(scoreboard) && "scoreboard" %in% names(saved_opts)) scoreboard <- saved_opts$scoreboard
     if (missing(ball_path) && "ball_path" %in% names(saved_opts)) ball_path <- saved_opts$ball_path
     if (missing(review_pane) && "review_pane" %in% names(saved_opts)) review_pane <- saved_opts$review_pane
     if (missing(playlist_display_option) && "playlist_display_option" %in% names(saved_opts)) playlist_display_option <- saved_opts$playlist_display_option
     if (missing(scout_name) && "scout_name" %in% names(saved_opts)) scout_name <- saved_opts$scout_name
     if (missing(show_courtref) && "show_courtref" %in% names(saved_opts)) show_courtref <- saved_opts$show_courtref
-    ## make sure any unspecified scouting options are given their defaults
-    opts <- ov_scouting_options()
-    for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
-    ## same for shortcuts
-    scts <- ov_default_shortcuts()
-    for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
 
     if (!missing(dvw) && identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = isTRUE(scoreboard), ball_path = isTRUE(ball_path), review_pane = isTRUE(review_pane), scouting_options = scouting_options, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
@@ -173,6 +161,21 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
             stop("court_ref is not of the expected format")
         }
     }
+
+    ## sort out scouting options
+    ## start with defaults
+    opts <- ov_scouting_options()
+    ## override with scouting options from the saved dvw, if it has them
+    if (!is.null(dvw$scouting_options)) {
+        for (nm in names(dvw$scouting_options)) opts[[nm]] <- dvw$scouting_options[[nm]]
+    }
+    ## and finally if the user has specifically provided scouting options, use those
+    if (!missing(scouting_options)) {
+        for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
+    }
+    ## same with shortcuts
+    scts <- ov_default_shortcuts()
+    for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
 
     ## finally the shiny app
     app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, shortcuts = scts, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout_name = scout_name, show_courtref = show_courtref)
