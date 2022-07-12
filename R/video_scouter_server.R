@@ -566,7 +566,7 @@ ov_scouter_server <- function(app_data) {
                 if (ky %in% app_data$shortcuts$hide_popup) {
                     ## temporarily hide the modal, so the video can be seen
                     ## but only for the admin, lineup modal or the ones that pop up during the rally, not the editing modals for teams or rosters
-                    if (is.null(editing$active) || editing$active %in% c("admin", "change starting lineup")) dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();")
+                    if (is.null(editing$active) || editing$active %in% c("admin", "change starting lineup")) hide_popup()
                 } else if (ky %in% c(app_data$shortcuts$pause, app_data$shortcuts$pause_no_popup)) {
                     ## only accept this if we are not editing, or it's the admin modal being shown
                     if (is.null(editing$active) || editing$active %eq% "admin") {
@@ -670,12 +670,21 @@ ov_scouter_server <- function(app_data) {
                         if (ky %in% utf8ToInt(paste0(app_data$shortcuts$hide_popup, collapse = ""))) {
                             ## z
                             ## re-show the modal after temporarily hiding
-                            dojs("$('#shiny-modal-wrapper').show(); $('.modal-backdrop').show();")
+                            unhide_popup()
                         }
                     }
                 }
             }
         })
+
+        hide_popup <- function() {
+            dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();") ## popup
+            if (review_pane_active()) js_hide2("review_pane") ## review pane
+        }
+        unhide_popup <- function() {
+            dojs("$('#shiny-modal-wrapper').show(); $('.modal-backdrop').show();")
+            if (review_pane_active()) js_show2("review_pane")
+        }
 
         ## options
         observeEvent(input$preferences, {
@@ -2046,16 +2055,19 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
+        review_pane_active <- reactiveVal(FALSE)
         show_review_pane <- function() {
             ## use the current video time from the main video
             ## construct the playlist js by hand, because we need to inject the current video time
             revsrc <- get_src_type(if (current_video_src() == 1L) app_data$video_src else app_data$video_src2)
             dojs(paste0("var start_t=vidplayer.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", revsrc$src, "','start_time':start_t,'duration':4,'type':'", revsrc$type, "'}], 'review_player', '", revsrc$type, "', true); revpl.set_playback_rate(1.4);"))
             js_show2("review_pane")
+            review_pane_active(TRUE)
         }
         hide_review_pane <- function() {
             js_hide2("review_pane")
             dojs("revpl.video_stop();")
+            review_pane_active(FALSE)
         }
 
         observeEvent(input$undo, {
