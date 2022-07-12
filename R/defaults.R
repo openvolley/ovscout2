@@ -164,11 +164,11 @@ ov_default_shortcuts <- function() {
          switch_video = c("s"),
          video_rewind_1_30 = c("b", "7"),
          video_rewind_0.1 = c("n", "1"),
-         video_rewind_2 = c("j", "4"),
+         video_rewind_2 = c("j", "4", "a"),
          video_rewind_10 = c("h", "$"),
          video_forward_1_30 = c(",", "9"),
          video_forward_0.1 = c("m", "3"),
-         video_forward_2 = c("l", "6"),
+         video_forward_2 = c("l", "6", "d"),
          video_forward_10 = c(";", "^")
          )
 }
