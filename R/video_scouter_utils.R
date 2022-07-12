@@ -36,7 +36,7 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
                     rec_tm <- substr(codes[i], 1, 1)
                 } else if (i > 1 && phase[i - 1] %eq% "Reception" && (substr(codes[i], 1, 1) %eq% rec_tm || grepl("^[a\\*][[:digit:]][[:digit:]]B", codes[i]))) {
                     phase[i] <- "Reception"
-                } else if (!is.na(phase[i - 1])) {
+                } else if (i > 1 && !is.na(phase[i - 1])) {
                     phase[i] <- "Transition"
                 }
             }
@@ -660,6 +660,7 @@ infer_mid_coords <- function(game_state, start_x, start_y, end_x, end_y) {
 }
 
 get_teams_from_dvw_dir <- function(season) {
+    if (is.null(season) || is.na(season) || !dir.exists(season)) return(tibble())
     myfiles <- dir(season, pattern = "\\.(dvw|psvb|ovs)$", ignore.case = TRUE, full.names = TRUE)
     if (length(myfiles) < 1) return(tibble())
     ## remove duplicate files (might be saved in both dvw and ovs, for example)

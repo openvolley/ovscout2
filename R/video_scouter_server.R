@@ -352,7 +352,7 @@ ov_scouter_server <- function(app_data) {
                 ridx <- playslist_mod$current_row()
                 ## if ridx is greater than the length of plays2 rows, then take it from rally_codes()
                 if (!is.null(ridx) && !is.na(ridx)) {
-                    if (ridx <= nrow(rdata$dvw$plays2)) rdata$dvw$plays2[ridx, ] else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) rally_codes()[ridx - nrow(rdata$dvw$plays2), ] else NULL
+                    if (ridx <= nrow(rdata$dvw$plays2)) rdata$dvw$plays2$rally_codes[[ridx]] else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) rally_codes()[ridx - nrow(rdata$dvw$plays2), ] else NULL
                 } else {
                     NULL
                 }
@@ -374,12 +374,13 @@ ov_scouter_server <- function(app_data) {
                     newcode1 <- sub("~+$", "", paste(newcode1, collapse = ""))## trim trailing ~'s
                     newcode2 <- input$code_entry
                     if (editing$active %eq% "edit") {
-                        crc <- get_current_rally_code()
+                        crc <- get_current_rally_code() ## this is from rally_codes BUT this won't have the actual scout code unless it was a non-skill code, hrumph
+                        old_code <- if (is.null(crc$code) || is.na(crc$code)) rdata$dvw$plays$code[playslist_mod$current_row()] else crc$code
                         ridx <- playslist_mod$current_row()
                         if (!is.null(crc) && !is.null(ridx) && !is.na(ridx)) {
                             ## user has changed EITHER input$code_entry or used the code_entry_guide
-                            changed1 <- (!newcode1 %eq% crc$code) && nzchar(newcode1)
-                            changed2 <- (!newcode2 %eq% crc$code) && nzchar(newcode2)
+                            changed1 <- (!newcode1 %eq% old_code) && nzchar(newcode1)
+                            changed2 <- (!newcode2 %eq% old_code) && nzchar(newcode2)
                             if (!changed1 && changed2) {
                                 newcode <- newcode2
                                 ## if we entered via the text box, then run this through the code parser
@@ -391,15 +392,18 @@ ov_scouter_server <- function(app_data) {
                             } else {
                                 newcode <- newcode1
                             }
-                            crc$code <- newcode
-                            ## if ridx is greater than the length of plays2 rows, then put this in rally_codes()
-                            if (ridx <= nrow(rdata$dvw$plays2)) {
-                                newrc <- make_plays2(crc, game_state = crc$game_state[[1]], rally_ended = FALSE, dvw = rdata$dvw)
-                                rdata$dvw$plays2[ridx, ] <- newrc
-                            } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
-                                rc <- rally_codes()
-                                rc[ridx - nrow(rdata$dvw$plays2), ] <- crc
-                                rally_codes(rc)
+                            if (!is.null(newcode)) {
+                                crc$code <- newcode
+                                ## if ridx is greater than the length of plays2 rows, then put this in rally_codes()
+                                if (ridx <= nrow(rdata$dvw$plays2)) {
+                                    newrc <- make_plays2(crc, game_state = crc$game_state[[1]], rally_ended = FALSE, dvw = rdata$dvw)
+                                    rdata$dvw$plays2[ridx, ] <- newrc
+                                } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
+                                    rc <- rally_codes()
+                                    rc[ridx - nrow(rdata$dvw$plays2), ] <- crc
+                                    rally_codes(rc)
+                                    ## TODO check that this works, because the code in rally_codes should be used but just need to check
+                                }
                             }
                         }
                     } else {
