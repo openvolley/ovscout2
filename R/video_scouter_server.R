@@ -778,28 +778,50 @@ ov_scouter_server <- function(app_data) {
             }
         }
         overlay_points <- reactiveVal(NULL)
+        overlay_court_lines <- reactive({
+            oxy <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = detection_ref()$court_ref, crop = TRUE)$courtxy
+            dplyr::rename(oxy, image_x = "x", image_y = "y")
+        })
         observe({
             output$video_overlay <- renderPlot({
                 ## test - red diagonal line across the overlay plot
                 ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red") + gg_tight
-                ## need to plot SOMETHING else we don't get correct coordinates back
-                ##this <- selected_event()
-                p <- ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + gg_tight
-                if (isTRUE(prefs$show_courtref)) {
-                    oxy <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = detection_ref()$court_ref, crop = TRUE)$courtxy
-                    oxy <- dplyr::rename(oxy, image_x = "x", image_y = "y")
-                    ## account for aspect ratios
-                    oxy$image_x <- ar_fix_x(oxy$image_x)
-                    oxy$xend <- ar_fix_x(oxy$xend)
-                    oxy$image_y <- ar_fix_y(oxy$image_y)
-                    oxy$yend <- ar_fix_y(oxy$yend)
-                    p <- p + geom_segment(data = oxy, aes_string(x = "image_x", y = "image_y", xend = "xend", yend = "yend"), color = app_data$styling$court_lines_colour)
+                if (FALSE) {
+                    p <- ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + gg_tight
+                    if (isTRUE(prefs$show_courtref)) {
+                        oxy <- overlay_court_lines()
+                        ## account for aspect ratios
+                        oxy$image_x <- ar_fix_x(oxy$image_x)
+                        oxy$xend <- ar_fix_x(oxy$xend)
+                        oxy$image_y <- ar_fix_y(oxy$image_y)
+                        oxy$yend <- ar_fix_y(oxy$yend)
+                        p <- p + geom_segment(data = oxy, aes_string(x = "image_x", y = "image_y", xend = "xend", yend = "yend"), color = app_data$styling$court_lines_colour)
+                    }
+                    if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
+                        ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
+                        p <- p + geom_point(data = ixy, fill = "dodgerblue", pch = 21, col = "white", size = 6)
+                    }
+                    p
+                } else {
+                    ## use base plotting, will be faster
+                    ## TODO move the court overlay to video_overlay_img
+                    opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
+                    plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
+                    if (isTRUE(prefs$show_courtref)) {
+                        oxy <- overlay_court_lines()
+                        ## account for aspect ratios
+                        oxy$image_x <- ar_fix_x(oxy$image_x)
+                        oxy$xend <- ar_fix_x(oxy$xend)
+                        oxy$image_y <- ar_fix_y(oxy$image_y)
+                        oxy$yend <- ar_fix_y(oxy$yend)
+                        segments(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
+                    }
+                    if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
+                        ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
+                        points(ixy$x, ixy$y, bg = "dodgerblue", pch = 21, col = "white", cex = 2.5)
+                    }
+                    par(opar)
                 }
-                if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
-                    ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
-                    p <- p + geom_point(data = ixy, fill = "dodgerblue", pch = 21, col = "white", size = 6)
-                }
-                p
             }, bg = "transparent", width = vo_width(), height = vo_height())
         })
         vid_to_crt <- function(obj) {
