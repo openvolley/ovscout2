@@ -1228,7 +1228,7 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(courtxy())
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
-                    f1_buttons <- make_fat_radio_buttons(choices = c("Freeball over error" = "F=", "Freeball dig" = "FD", "Freeball dig error" = "FD="), selected = "FD", input_var = "f1")
+                    f1_buttons <- make_fat_radio_buttons(choices = c("Freeball over error" = "F=", "Freeball dig" = "FD", "Freeball dig error" = "FD=", "Opp. overpass attack" = "aPR"), selected = "FD", input_var = "f1")
                     ## Identify defending players
                     ## TODO use dedicated freeball-dig guessing?
                     dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
@@ -1710,7 +1710,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         observeEvent(input$assign_f1, {
-            ## possible values for input$f1 are currently: F=, FD, FD=
+            ## possible values for input$f1 are currently: F=, FD, FD=, aPR
             esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
             rc <- rally_codes()
             Fidx <- if (rc$skill[nrow(rc)] == "F") nrow(rc) else NA_integer_
@@ -1728,23 +1728,30 @@ ov_scouter_server <- function(app_data) {
                 game_state$point_won_by <- game_state$current_team
                 rally_ended()
             } else {
-                ## FD or FD=
+                ## FD, FD=, or aPR
                 digp <- if (!is.null(input$f1_def_player)) input$f1_def_player else 0L
-                eval <- default_skill_eval("F")
+                was_f <- grepl("^F", input$f1) ## was a freeball dig or freeball dig error
                 end_t <- retrieve_video_time(game_state$end_t)
                 if (!is.na(Fidx)) {
                     rc$ez[Fidx] <- esz[1]
                     rc$esz[Fidx] <- esz[2]
                     rc$end_x[Fidx] <- game_state$end_x
                     rc$end_y[Fidx] <- game_state$end_y
-                    rc$eval[Fidx] <- if (input$f1 %eq% "FD") "-" else "+"
+                    rc$eval[Fidx] <- if (input$f1 %eq% "FD=") "+" else "-"
                 }
-                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "F", eval = eval, sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
-                if (input$f1 == "FD=") {
-                    game_state$point_won_by <- other(game_state$current_team)
-                    rally_ended()
+                if (was_f) {
+                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "F", sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                    if (input$f1 == "FD=") {
+                        game_state$point_won_by <- other(game_state$current_team)
+                        rally_ended()
+                    } else {
+                        ## FD
+                        rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
+                    }
                 } else {
-                    rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
+                    ## aPR
+                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                    rally_state("click attack end point")
                 }
             }
             if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
