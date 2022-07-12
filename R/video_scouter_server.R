@@ -2291,13 +2291,7 @@ ov_scouter_server <- function(app_data) {
                     rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
                 } else if (code %in% c("*p", "ap")) {
                     game_state$point_won_by <- substr(code, 1, 1)
-                    if (length(rally_codes()) > 0) {
-                        ## add any already-entered rally codes
-                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
-                    }
-                    ## and then the point-won-by code
-                    rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(character(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw)))
-                    do_rally_end_things()
+                    rally_ended()
                 } else if (code %in% c("*C", "aC")) {
                     ## substitution
                     if (code %eq% "*C") {
