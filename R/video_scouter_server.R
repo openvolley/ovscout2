@@ -1166,8 +1166,7 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(courtxy())
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
-                    c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (play continues)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"), input_var = "c1") ## defaults to attack kill without dig error
-                    ## TODO smarter guessing of that
+                    c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (play continues)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"), selected = "D", input_var = "c1") ## defaults to dig
                     ae_buttons <- make_fat_radio_buttons(choices = c("Out long" = "O", "Out side" = "S", "In net" = "N", "Net contact" = "I", Antenna = "A", "Other/referee call" = "Z"), selected = NA, input_var = "attack_error_type")
                     ## blocking players
                     blockp <- get_players(game_state, team = game_state$current_team, dvw = rdata$dvw)
@@ -1191,6 +1190,10 @@ ov_scouter_server <- function(app_data) {
                     names(coverp) <- player_nums_to(coverp, team = other(game_state$current_team), dvw = rdata$dvw)
                     coverp <- c(coverp, Unknown = "Unknown")
                     cover_player_buttons <- make_fat_radio_buttons(choices = coverp, selected = cover_pl_opts$selected, input_var = "c1_cover_player")
+                    if (isTRUE(input$shiftkey)) {
+                        ## accept dig (by unknown player) with no block touch, with no popup
+                        ## TODO (if this seems sensible!)
+                    } ## else {
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
                                             tags$p(tags$strong("Attack outcome:")),
                                             do.call(fixedRow, lapply(c1_buttons[1:3], function(but) column(2, but))),
@@ -1199,7 +1202,7 @@ ov_scouter_server <- function(app_data) {
                                             do.call(fixedRow, lapply(c1_buttons[4:7], function(but) column(2, but))),
                                             tags$br(), tags$hr(),
                                             ## either dig players (defending team)
-                                            tags$div(id = "c1_digp_ui", style = "display:none;", tags$p(tags$strong("Dig player")),
+                                            tags$div(id = "c1_digp_ui", tags$p(tags$strong("Dig player")),
                                                      do.call(fixedRow, lapply(dig_player_buttons, function(but) column(1, but)))),
                                             ## or cover players (attacking team)
                                             tags$div(id = "c1_coverp_ui", style = "display:none;", tags$p(tags$strong("Cover dig player")),
@@ -1214,6 +1217,7 @@ ov_scouter_server <- function(app_data) {
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
                                                      column(2, offset = 8, actionButton("assign_c1", "Continue", class = "continue fatradio")))
                                             ))
+                    ##}
                 } else if (rally_state() == "click freeball end point") {
                     ## freeball dig, freeball dig error, freeball error (in theory could be blocked, blocked for replay, block touch (freeball kill))
                     do_video("pause")
