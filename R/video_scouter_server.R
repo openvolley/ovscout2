@@ -821,9 +821,20 @@ ov_scouter_server <- function(app_data) {
             flash_screen() ## visual indicator that click has registered
             ## calculate the normalized x,y coords
             this_click <- if (length(input$video_click) > 4) list(x = input$video_click[1] / input$video_click[3], y = 1 - input$video_click[2] / input$video_click[4])
+            ## and video time
             time_uuid <- uuid()
             game_state$current_time_uuid <- time_uuid
-            do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
+            click_time <- as.numeric(input$video_click[5])
+            if (click_time >= 0) {
+                ## got the video time as part of the click packet, stash it
+                this_timebase <- current_video_src()
+                if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- 1
+                video_times[[time_uuid]] <<- round(rebase_time(click_time, time_from = this_timebase), 2) ## video times to 2 dec places
+            } else {
+                ## invalid time received, ask again
+                warning("invalid click time\n")
+                do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
+            }
             if (rally_state() != "click or unpause the video to start") courtxy(vid_to_crt(this_click))
             loop_trigger(loop_trigger() + 1L)
             ## TODO MAYBE also propagate the click to elements below the overlay?
@@ -844,8 +855,8 @@ ov_scouter_server <- function(app_data) {
             ## when a time comes in, stash it under its uuid
             temp <- input$video_time
             this_timebase <- as.numeric(sub(".*@", "", temp))
-            if (length(this_timebase) < 1 || is.na(this_timebase) || !this_timebase %in% c(1, 2)) this_timebase <- current_video_src()
-            if (length(this_timebase) < 1 || is.na(this_timebase) || !this_timebase %in% c(1, 2)) this_timebase <- 1
+            if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- current_video_src()
+            if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- 1
             this_uuid <- sub("@.*", "", sub(".*&", "", temp))
             if (nzchar(this_uuid)) video_times[[this_uuid]] <<- round(rebase_time(as.numeric(sub("&.+", "", temp)), time_from = this_timebase), 2) ## video times to 2 dec places
         })
