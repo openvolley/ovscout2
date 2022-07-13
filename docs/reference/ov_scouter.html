@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">ovscout2</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.4.9999</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.5</span>
       </span>
     </div>
 
@@ -71,9 +71,9 @@
   review_pane <span class="op">=</span> <span class="cn">TRUE</span>,
   playlist_display_option <span class="op">=</span> <span class="st">"dv_codes"</span>,
   scouting_options <span class="op">=</span> <span class="fu"><a href="ov_scouting_options.html">ov_scouting_options</a></span><span class="op">(</span><span class="op">)</span>,
-  default_scouting_table <span class="op">=</span> <span class="fu"><a href="ov_default_scouting_table.html">ov_default_scouting_table</a></span><span class="op">(</span><span class="op">)</span>,
-  compound_table <span class="op">=</span> <span class="fu"><a href="ov_default_compound_table.html">ov_default_compound_table</a></span><span class="op">(</span><span class="op">)</span>,
   shortcuts <span class="op">=</span> <span class="fu"><a href="ov_default_shortcuts.html">ov_default_shortcuts</a></span><span class="op">(</span><span class="op">)</span>,
+  scout_name <span class="op">=</span> <span class="st">""</span>,
+  show_courtref <span class="op">=</span> <span class="cn">FALSE</span>,
   launch_browser <span class="op">=</span> <span class="cn">TRUE</span>,
   prompt_for_files <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,
   <span class="va">...</span>
@@ -102,12 +102,12 @@
 <dd><p>string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)</p></dd>
 <dt>scouting_options</dt>
 <dd><p>list: a named list with entries as per <code><a href="ov_scouting_options.html">ov_scouting_options()</a></code></p></dd>
-<dt>default_scouting_table</dt>
-<dd><p>tibble: the table of scouting defaults (skill type and evaluation)</p></dd>
-<dt>compound_table</dt>
-<dd><p>tibble: the table of compound codes</p></dd>
 <dt>shortcuts</dt>
 <dd><p>list: named list of keyboard shortcuts, as returned by <code><a href="ov_default_shortcuts.html">ov_default_shortcuts()</a></code></p></dd>
+<dt>scout_name</dt>
+<dd><p>string: the name of the scout (your name)</p></dd>
+<dt>show_courtref</dt>
+<dd><p>logical: if <code>TRUE</code>, show the court reference lines overlaid on the video</p></dd>
 <dt>launch_browser</dt>
 <dd><p>logical: if <code>TRUE</code>, launch the app in the system's default web browser (passed to <code><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">shiny::runApp()</a></code>'s <code>launch.browser</code> parameter)</p></dd>
 <dt>prompt_for_files</dt>

@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">ovscout2</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.4.9999</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.5</span>
       </span>
     </div>
 
@@ -70,8 +70,8 @@
   setter_dump_code <span class="op">=</span> <span class="st">"PP"</span>,
   second_ball_attack_code <span class="op">=</span> <span class="st">"P2"</span>,
   overpass_attack_code <span class="op">=</span> <span class="st">"PR"</span>,
-  scout_name <span class="op">=</span> <span class="st">""</span>,
-  show_courtref <span class="op">=</span> <span class="cn">FALSE</span>
+  default_scouting_table <span class="op">=</span> <span class="fu"><a href="ov_default_scouting_table.html">ov_default_scouting_table</a></span><span class="op">(</span><span class="op">)</span>,
+  compound_table <span class="op">=</span> <span class="fu"><a href="ov_default_compound_table.html">ov_default_compound_table</a></span><span class="op">(</span><span class="op">)</span>
 <span class="op">)</span></code></pre></div>
     </div>
 
@@ -96,10 +96,10 @@
 <dd><p>string: the attack combination code for a second-ball attack</p></dd>
 <dt>overpass_attack_code</dt>
 <dd><p>string: the attack combination code for an attack on an overpass</p></dd>
-<dt>scout_name</dt>
-<dd><p>string: the name of the scout (your name)</p></dd>
-<dt>show_courtref</dt>
-<dd><p>logical: if <code>TRUE</code>, show the court reference lines overlaid on the video</p></dd>
+<dt>default_scouting_table</dt>
+<dd><p>tibble: the table of scouting defaults (skill type and evaluation)</p></dd>
+<dt>compound_table</dt>
+<dd><p>tibble: the table of compound codes</p></dd>
 </dl></div>
     <div id="value">
     <h2>Value</h2>
