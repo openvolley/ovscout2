@@ -42,7 +42,7 @@ for (pkg in names(depsl)) {
 ##    })
 ##}
 
-github_deps <- c("openvolley/ovscout2@dev")
+github_deps <- c("openvolley/ovscout2")
 for (pkg in github_deps) {
     tryCatch({
         remotes::install_github(pkg, upgrade = if (!requireNamespace("ovscout2", quietly = TRUE)) "never" else "always")
