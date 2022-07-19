@@ -706,8 +706,8 @@ get_teams_from_dvw_dir <- function(season) {
                        firstname = stringr::str_to_title(.data$firstname),
                        role = stringr::str_to_lower(.data$role)) %>% dplyr::distinct()
 
-        player_table_tid <- aggregate(.~player_id+lastname+firstname+number, player_table_tid, paste)
-
+        player_table_tid <- player_table_tid %>% group_by(.data$player_id, .data$lastname, .data$firstname, .data$number) %>% mutate(role = case_when(is.na(.data$role) ~ "", TRUE ~ .data$role)) %>% dplyr::summarize(role = paste(.data$role)) %>% ungroup
+        print(dplyr::glimpse(player_table_tid))
         team_list$player_table[team_list$team_id == t_id] <- list(player_table_tid)
 
     }
