@@ -628,9 +628,7 @@ ov_scouter_server <- function(app_data) {
                             ## esc
                             if (isTRUE(scout_modal_active())) {
                                 ## if we have a scouting modal showing, treat this as cancel and rewind
-                                do_video("rew", 3)
-                                do_video("play")
-                                remove_scout_modal()
+                                do_cancel_rew()
                             } else if (is.null(editing$active) || !editing$active %in% "teams") {
                                 do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
                                 editing$active <- NULL
@@ -856,7 +854,7 @@ ov_scouter_server <- function(app_data) {
             time_uuid <- uuid()
             game_state$current_time_uuid <- time_uuid
             click_time <- as.numeric(input$video_click[5])
-            if (click_time >= 0) {
+            if (!is.na(click_time) && click_time >= 0) {
                 ## got the video time as part of the click packet, stash it
                 this_timebase <- current_video_src()
                 if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- 1
@@ -875,7 +873,7 @@ ov_scouter_server <- function(app_data) {
             flash_screen() ## visual indicator that click has registered
             time_uuid <- uuid()
             game_state$current_time_uuid <- time_uuid
-            do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
+            do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@1 or @2)
             courtxy(court_inset$click())
             loop_trigger(loop_trigger() + 1L)
         })
@@ -1451,11 +1449,14 @@ ov_scouter_server <- function(app_data) {
         })
 
         observeEvent(input$cancelrew, {
+            do_cancel_rew()
+        })
+        do_cancel_rew <- function() {
             do_video("rew", 3)
             do_video("play")
+            if (nrow(overlay_points()) > 0) overlay_points(head(overlay_points(), -1))
             remove_scout_modal()
-        })
-
+        }
         observeEvent(input$cancel, {
             do_video("play")
             remove_scout_modal()
@@ -2166,6 +2167,7 @@ ov_scouter_server <- function(app_data) {
                 rally_codes(new_rc)
                 do_video("set_time", tail(new_rc$t, 1))
             }
+            if (nrow(overlay_points() > 0)) overlay_points(head(overlay_points(), -1))
             if (nrow(rally_codes()) > 0 && !all(is.na(rally_codes()$t))) {
                 ## set time to last action minus play_overlap
                 new_vt <- max(rally_codes()$t, na.rm = TRUE) - app_data$play_overlap
