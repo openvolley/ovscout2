@@ -919,6 +919,9 @@ ov_scouter_server <- function(app_data) {
             removeModal()
             if (isTRUE(prefs$review_pane)) hide_review_pane()
         }
+        mcols <- reactive({
+            if (isTRUE(prefs$review_pane) || isTRUE(app_data$extra_ball_tracking)) 8L else 12L
+        })
 
         fatradio_class_uuids <- reactiveValues()
         attack_other_opts <- reactiveVal(NULL)
@@ -1012,7 +1015,7 @@ ov_scouter_server <- function(app_data) {
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "pass_player")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                                    tags$p(tags$strong("Serve type:")),
-                                                   do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),
+                                                   do.call(fixedRow, lapply(serve_type_buttons, function(but) column(if (mcols() / length(serve_type_buttons) >= 2) 2 else 1, but))),
                                                    tags$hr(),
                                                    tags$div("AND"),
                                                    tags$br(),
@@ -1078,7 +1081,7 @@ ov_scouter_server <- function(app_data) {
                                                        do.call(fixedRow, c(list(column(2, tags$strong("Reception quality"))), lapply(c2_pq_buttons, function(but) column(1, but)))),
                                                        tags$br(), tags$hr(),
                                                        tags$p(tags$strong("Second contact:")),
-                                                       do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(if (isTRUE(prefs$review_pane)) 1 else 2, but))),
+                                                       do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(if (mcols() < 12) 1 else 2, but))),
                                                        tags$br(),
                                                        tags$div(id = "c2_more_ui", tags$p("by player"),
                                                                 tags$br(),
@@ -1118,11 +1121,11 @@ ov_scouter_server <- function(app_data) {
                         ac <- guess_attack_code(game_state, dvw = rdata$dvw, opts = rdata$options)
                         ac <- setNames(ac, ac)
                         if (!isTRUE(rdata$options$transition_sets) && ph %eq% "Transition") {
-                            ac <- head(ac, if (isTRUE(prefs$review_pane)) 4 else 7) ## wow, we don't have a lot here if we need to leave room for the three below plus space for the attack review pane
+                            ac <- head(ac, if (mcols() < 12) 5 else 9) ## wow, we don't have a lot here if we need to leave room for the three below plus space for the attack review pane
                             ## if we aren't scouting transition sets, then this "third" contact could be a setter dump or second-ball attack
                             ac <- c(ac, c("Setter dump" = rdata$options$setter_dump_code, "Second-ball<br />attack" = rdata$options$second_ball_attack_code))
                         } else {
-                            ac <- head(ac, if (isTRUE(prefs$review_pane)) 6 else 9)
+                            ac <- head(ac, if (mcols() < 12) 7 else 11)
                         }
                         ac_others <- c("Choose other", setdiff(rdata$dvw$meta$attacks$code, ac), "Other attack")
                         attack_other_opts(ac_others)
@@ -1134,12 +1137,9 @@ ov_scouter_server <- function(app_data) {
                         }
                     }
                     n_ac <- length(ac)
-                    n_ac2 <- 1L ## freeball and (maybe) set error
-                    ac <- c(ac, "Freeball over" = "F")
-                    if (!isTRUE(rdata$options$transition_sets)) {
-                        ac <- c(ac, "Set error" = "E=")
-                        n_ac2 <- 2L
-                    }
+                    ## always offer set error option
+                    n_ac2 <- 2L
+                    ac <- c(ac, "Freeball over" = "F", "Set error" = "E=")
                     c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR")), input_var = "c3")
                     fatradio_class_uuids$c3 <- attr(c3_buttons, "class")
                     attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
@@ -1161,8 +1161,9 @@ ov_scouter_server <- function(app_data) {
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                             tags$p(tags$strong("Attack or freeball over:")),
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
-                                                                if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))),
-                                                                lapply(c3_buttons[c(n_ac + seq_len(n_ac2))], function(but) column(1, but)))),
+                                                                if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))))),
+                                            tags$br(),
+                                            do.call(fixedRow, lapply(c3_buttons[c(n_ac + seq_len(n_ac2))], function(but) column(2, but))),
                                             tags$br(),
                                             tags$div(id = "c3_pl_ui", tags$p("by player"), tags$br(),
                                                      do.call(fixedRow, lapply(attacker_buttons, function(but) column(1, but)))
