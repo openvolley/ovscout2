@@ -2182,6 +2182,7 @@ ov_scouter_server <- function(app_data) {
         }
 
         rv_clickdrag <- reactiveValues(mousedown = NULL, mousedown_time = NULL, closest_down = NULL, mouseup = NULL)
+        last_rv_mouse_pos <- reactiveVal(NULL)
         observeEvent(input$did_rv_mousedown, {
             ##cat("rv mouse down\n")
             if (!is.null(detection_ref()$court_ref)) {
@@ -2216,12 +2217,10 @@ ov_scouter_server <- function(app_data) {
             rv_clickdrag$closest_down <- NULL
         })
 
-        last_rv_mouse_pos <- reactiveVal(NULL)
         observeEvent(input$rv_hover, {
             ##cat("rv plot hover\n")
             ## triggered when mouse moved over the plot. Use this to track drag position
-            px <- list(x = input$rv_hover$x, y = input$rv_hover$y)
-            if (!is.null(px) && !is.null(rv_clickdrag$mousedown)) last_rv_mouse_pos(px)
+            if (!is.null(input$rv_hover)) last_rv_mouse_pos(list(x = input$rv_hover$x, y = input$rv_hover$y))
         })
         last_rv_refresh_time <- NA_real_
         observe({
@@ -2233,6 +2232,7 @@ ov_scouter_server <- function(app_data) {
                 ## if a click, use the click position, else use the last_rv_mouse_pos (but this might lag the actual click pos, because of the hover lag)
                 closest <- NA_integer_
                 if (!was_mouse_drag(rv_clickdrag) && !is.null(input$rv_click)) {
+                    ##cat("was click\n")
                     px <- input$rv_click
                     ## find the closest point, using court space for the distance
                     cpx <- vid_to_crt(px, arfix = FALSE)
