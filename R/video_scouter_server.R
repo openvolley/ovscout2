@@ -4,7 +4,12 @@ ov_scouter_server <- function(app_data) {
         cstr <- function(z) capture.output(str(z))
         have_warned_auto_save <- FALSE
 
-        shiny::onSessionEnded(shiny::stopApp)
+        extra_db_con <- if (!is.null(app_data$extra_db)) tryCatch(DBI::dbConnect(duckdb::duckdb(app_data$extra_db)), error = function(e) NULL)
+
+        shiny::onSessionEnded(function() {
+            if (!is.null(extra_db_con)) try(DBI::dbDisconnect(extra_db_con, shutdown = TRUE), silent = TRUE)
+            shiny::stopApp()
+        })
 
         ## on startup, clean up old auto-saved files
         try({
@@ -590,6 +595,9 @@ ov_scouter_server <- function(app_data) {
                     } else if (ky %in% app_data$shortcuts$switch_video) {
                         ## switch video
                         do_switch_video()
+                    } else if (ky %in% app_data$shortcuts$contact) {
+                        ## player contact with the ball
+                        do_contact()
                     } else if (ky %in% app_data$shortcuts$edit_code) {
                         ## edit_data_row()
                         ## not enabled yet
@@ -884,6 +892,46 @@ ov_scouter_server <- function(app_data) {
             game_state$current_time_uuid <- time_uuid
             do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@1 or @2)
             courtxy(court_inset$click())
+            loop_trigger(loop_trigger() + 1L)
+        })
+        do_contact <- function() {
+            ## keyboard entry indicating a contact at this time
+            ## ask the browser for the current video time
+            dojs("Shiny.setInputValue('contact', [vidplayer.currentTime(), new Date().getTime()])")
+        }
+        observeEvent(input$contact, {
+            flash_screen() ## visual indicator that click has registered
+            time_uuid <- uuid()
+            game_state$current_time_uuid <- time_uuid
+            click_time <- as.numeric(input$contact[1])
+            ##cat("contact click_time: ", click_time, "\n")
+            if (!is.na(click_time) && click_time >= 0) {
+                ## got the video time as part of the click packet, stash it
+                this_timebase <- current_video_src()
+                if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- 1
+                click_time <- round(rebase_time(click_time, time_from = this_timebase), 2) ## video times to 2 dec places
+                video_times[[time_uuid]] <<- click_time
+            } else {
+                ## invalid time received, ask again
+                ## note that we won't be able to get an x,y position below either
+                click_time <- NULL
+                warning("invalid click time\n")
+                do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@1 or @2)
+            }
+            ## get xy position
+            thisx <- thisy <- NA_real_
+            if (isTRUE(app_data$extra_ball_tracking) && !is.null(click_time)) {
+                ## extract from db
+                try({
+                    this <- tbl(extra_db_con, "ball_track") %>% dplyr::filter(abs(.data$video_time - click_time) < 0.25) %>% collect
+                    if (nrow(this) > 1) this <- this[which.min(abs(this$video_time - click_time)), ]
+                    if (nrow(this) == 1) {
+                        thisx <- this$x
+                        thisy <- this$y
+                    }
+                })
+            }
+            courtxy(data.frame(x = thisx, y = thisy))
             loop_trigger(loop_trigger() + 1L)
         })
 

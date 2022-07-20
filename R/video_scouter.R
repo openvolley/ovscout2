@@ -245,7 +245,21 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
             app_data$court_ref2 <- court_ref2
         }
     }
-    app_data$serving <- "*" ## HACK for testing
+
+    ## ball tracking, experimental!
+    app_data$extra_db <- NULL
+    app_data$extra_ball_tracking <- FALSE
+    if (!is_url(app_data$video_src)) {
+        look_for <- paste0(fs::path_ext_remove(app_data$video_src), "_extra.duckdb")
+        con <- if (file.exists(look_for)) tryCatch(DBI::dbConnect(duckdb::duckdb(look_for)), error = function(e) NULL) else NULL
+        if (!is.null(con)) {
+            app_data$extra_db <- look_for
+            app_data$extra_ball_tracking <- tryCatch("ball_track" %in% DBI::dbListTables(con), error = function(e) FALSE)
+            DBI::dbDisconnect(con, shutdown = TRUE)
+        }
+    }
+
+    app_data$serving <- "*"
     app_data$play_overlap <- 0.5 ## amount (in seconds) to rewind before restarting the video, after pausing to enter data
     app_data$evaluation_decoder <- skill_evaluation_decoder() ## to expose as a parameter, perhaps
     app_data$scoreboard <- isTRUE(scoreboard)

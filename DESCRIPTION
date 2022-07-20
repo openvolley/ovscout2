@@ -1,6 +1,6 @@
 Package: ovscout2
 Title: An R Shiny App for Scouting Volleyball Match Files
-Version: 0.0.4.9999
+Version: 0.0.7.9999
 Authors@R: c(person(given = "Ben", family = "Raymond", role = c("aut", "cre"), email = "ben@untan.gl"),
              person(given = "Adrien", family = "Ickowicz", role = "aut"),
              person("openvolley.org", role = "org"))
@@ -15,8 +15,11 @@ Depends: datavolley (> 0.12.999)
 Imports:
     assertthat,
     data.table,
+    DBI,
+    dbplyr,
     dplyr,
     digest,
+    duckdb,
     DT,
     fs,
     ggplot2,
@@ -47,6 +50,6 @@ Suggests:
     rstudioapi,
     tcltk,
     testthat
-Remotes: openvolley/datavolley, openvolley/ovdata, openvolley/ovideo, openvolley/volleyreport
+Remotes: openvolley/datavolley, openvolley/ovdata, openvolley/ovideo, openvolley/peranavolley, openvolley/volleyreport
 RoxygenNote: 7.1.2
 VignetteBuilder: knitr
