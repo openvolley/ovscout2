@@ -98,7 +98,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$v2_offset, {
             prevsrc <- get_src_type(if (preview_video_src() == 1L) app_data$video_src else app_data$video_src2)
             editing$active <- "video offset"
-            showModal(vwModalDialog(title = "Video setup", footer = NULL,
+            showModal(vwModalDialog(title = "Video setup", footer = NULL, width = 100,
                                     uiOutput("preview_header"),
                                     HTML(paste0("<video id=\"video_preview\" style=\"width:100%; height:50vh;\" class=\"video-js\" data-setup='{ ", if (prevsrc$type == "youtube") "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": true, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": ", if (prevsrc$type == "youtube") paste0("[{ \"type\": \"video/youtube\", \"src\": \"", prevsrc$src, "\"}]") else paste0("[{ \"src\": \"", prevsrc$src, "\"}]"), " }'>\n", "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>")),
                                     fluidRow(column(4, offset = 2, numericInput("v2_offset_value", "Video 2 offset (s):", value = rdata$dvw$video2_offset)),
@@ -689,7 +689,7 @@ ov_scouter_server <- function(app_data) {
         ## options
         observeEvent(input$preferences, {
             editing$active <- "preferences"
-            showModal(vwModalDialog(title = "Preferences", footer = NULL,
+            showModal(vwModalDialog(title = "Preferences", footer = NULL, width = 100,
                                     tabsetPanel(id = "prefs_tabs",
                                                 tabPanel("App preferences",
                                                          tags$hr(), tags$br(),
@@ -985,7 +985,7 @@ ov_scouter_server <- function(app_data) {
                     serve_outcome_initial_buttons <- make_fat_radio_buttons(choices = c("Serve error" = "=", "Reception error (serve ace)" = "S#", "Reception in play" = "R~"), input_var = "serve_initial_outcome", selected = if (!is.na(guess_was_err)) "=" else "R~")
                     serve_error_type_buttons <- make_fat_radio_buttons(choices = c("In net" = "=N", "Foot fault/referee call" = "=Z", "Out long" = "=O", "Out left" = "=L", "Out right" = "=R"), selected = if (!is.na(guess_was_err)) guess_was_err else NA, input_var = "serve_error_type", as_radio = "blankable")
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "pass_player")
-                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                                    tags$p(tags$strong("Serve type:")),
                                                    do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),
                                                    tags$hr(),
@@ -1048,7 +1048,7 @@ ov_scouter_server <- function(app_data) {
                         rally_state("click third contact")
                         do_video("play")
                     } else {
-                        show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
+                        show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                                        do.call(fixedRow, c(list(column(2, tags$strong("Reception quality"))), lapply(c2_pq_buttons, function(but) column(1, but)))),
                                                        tags$br(), tags$hr(),
                                                        tags$p(tags$strong("Second contact:")),
@@ -1131,7 +1131,7 @@ ov_scouter_server <- function(app_data) {
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
                     opp_player_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c3_opp_player")
-                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                             tags$p(tags$strong("Attack or freeball over:")),
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
                                                                 if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))),
@@ -1194,7 +1194,7 @@ ov_scouter_server <- function(app_data) {
                         ## accept dig (by unknown player) with no block touch, with no popup
                         ## TODO (if this seems sensible!)
                     } ## else {
-                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                             tags$p(tags$strong("Attack outcome:")),
                                             do.call(fixedRow, lapply(c1_buttons[1:3], function(but) column(2, but))),
                                             tags$br(), tags$div(id = "ae_ui", style = "display:none;", do.call(fixedRow, lapply(ae_buttons, function(but) column(2, but)))),
@@ -1236,7 +1236,7 @@ ov_scouter_server <- function(app_data) {
                     names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
                     digp <- c(digp, Unknown = "Unknown")
                     dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "f1_def_player")
-                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL,
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                             tags$p(tags$strong("Freeball outcome:")),
                                             do.call(fixedRow, lapply(f1_buttons, function(but) column(2, but))),
                                             tags$br(), tags$hr(),
@@ -1991,7 +1991,7 @@ ov_scouter_server <- function(app_data) {
             vt_other <- setdiff(vt_other, get_liberos(game_state, team = "a", dvw = rdata$dvw))
             vt_can_sub <- length(vt_other) > 0
 
-            showModal(vwModalDialog(title = "Miscellaneous", footer = NULL,
+            showModal(vwModalDialog(title = "Miscellaneous", footer = NULL, width = 100,
                                     tags$p(tags$strong("Match actions")),
                                     fluidRow(column(2, actionButton("undo", "Undo last rally action", class = "undo fatradio")),
                                              column(2, actionButton("enter_code", "Enter scout code", class = "fatradio"), tags$span(style = "font-size:small;", "Only non-skill codes are supported")),
@@ -2039,7 +2039,7 @@ ov_scouter_server <- function(app_data) {
                     vt <- TRUE
                     buts <- make_fat_radio_buttons(choices = chc, selected = NA, input_var = "new_setter")
                 }
-                showModal(vwModalDialog(title = paste0("On-court setter: ", if (ht) paste0(datavolley::home_team(rdata$dvw), " (home)") else paste0(datavolley::visiting_team(rdata$dvw), " (visiting)")), footer = NULL,
+                showModal(vwModalDialog(title = paste0("On-court setter: ", if (ht) paste0(datavolley::home_team(rdata$dvw), " (home)") else paste0(datavolley::visiting_team(rdata$dvw), " (visiting)")), footer = NULL, width = 100,
                                         tags$div(tags$p(tags$strong("New setter")), do.call(fixedRow, lapply(buts, function(but) column(2, but)))),
                                         tags$hr(),
                                         fixedRow(column(2, offset = 8, make_fat_buttons(choices = c("Assign setter" = if (ht) "*P" else "aP"), input_var = "manual_code", class = "continue")),
@@ -2072,7 +2072,7 @@ ov_scouter_server <- function(app_data) {
                     vt_sub_in <- make_fat_radio_buttons(choices = vt_other, selected = NA, input_var = "vt_sub_in")
                     vt_sub <- TRUE
                 }
-                showModal(vwModalDialog(title = paste0("Substitution: ", if (ht_sub) paste0(datavolley::home_team(rdata$dvw), " (home)") else paste0(datavolley::visiting_team(rdata$dvw), " (visiting)")), footer = NULL,
+                showModal(vwModalDialog(title = paste0("Substitution: ", if (ht_sub) paste0(datavolley::home_team(rdata$dvw), " (home)") else paste0(datavolley::visiting_team(rdata$dvw), " (visiting)")), footer = NULL, width = 100,
                                         if (ht_sub) tags$div(tags$p(tags$strong("Player out")),
                                                              do.call(fixedRow, lapply(ht_sub_out, function(but) column(2, but))),
                                                              tags$p(tags$strong("Player in")),
@@ -2372,7 +2372,7 @@ ov_scouter_server <- function(app_data) {
                                 vt <- TRUE
                                 buts <- make_fat_radio_buttons(choices = chc, selected = NA, input_var = "new_setter")
                             }
-                            showModal(vwModalDialog(title = paste0("On-court setter: ", if (ht) paste0(datavolley::home_team(rdata$dvw), " (home)") else paste0(datavolley::visiting_team(rdata$dvw), " (visiting)")), footer = NULL,
+                            showModal(vwModalDialog(title = paste0("On-court setter: ", if (ht) paste0(datavolley::home_team(rdata$dvw), " (home)") else paste0(datavolley::visiting_team(rdata$dvw), " (visiting)")), footer = NULL, width = 100,
                                                     tags$div(tags$p(tags$strong("New setter")), do.call(fixedRow, lapply(buts, function(but) column(2, but)))),
                                                     tags$hr(),
                                                     fixedRow(column(2, offset = 8, make_fat_buttons(choices = c("Assign setter" = if (ht) "*P" else "aP"), input_var = "manual_code", class = "continue")),
@@ -2493,7 +2493,7 @@ ov_scouter_server <- function(app_data) {
                     ##onStop(function() try({ unlink(servable_file_abs_path); unlink(rfile) }, silent = TRUE))
                     ##onSessionEnded(function() try({ unlink(servable_file_abs_path); unlink(rfile) }, silent = TRUE))
                     editing$active <- "match report"
-                    showModal(vwModalDialog(title = "Match report", footer = NULL,
+                    showModal(vwModalDialog(title = "Match report", footer = NULL, width = 100,
                                             tags$iframe(style = "width:80%; height:100vh;", src = servable_url),
                                     tags$br(),
                                     tags$hr(),
@@ -2501,7 +2501,7 @@ ov_scouter_server <- function(app_data) {
                                     ))
                 })
             }, error = function(e) {
-                    showModal(vwModalDialog(title = "Match report", footer = NULL,
+                    showModal(vwModalDialog(title = "Match report", footer = NULL, width = 100,
                                             tags$p("Sorry, something went wrong generating the PDF. (The error message was: ", conditionMessage(e), ")"),
                                     tags$br(),
                                     tags$hr(),
