@@ -926,6 +926,25 @@ ov_scouter_server <- function(app_data) {
         default_skill_tempo <- function(skill) rdata$options$default_scouting_table$tempo[rdata$options$default_scouting_table$skill == skill]
         default_skill_eval <- function(skill) rdata$options$default_scouting_table$evaluation_code[rdata$options$default_scouting_table$skill == skill]
 
+        ## if we need the court xy position, but it doesn't exist, this function does something sensible. Prompts the user to enter it? Uses a placeholder position?
+        resolve_courtxy <- function() {
+            xy <- as.data.frame(courtxy())
+            xy$valid <- TRUE
+            ## if inputs are NA or missing, then valid is FALSE and placeholder point goes in middle of team's court (or middle of baseline if a serve)
+            ## this should only ever be a single row?
+            naidx <- is.na(xy$x) | is.na(xy$y)
+            xy$valid[naidx] <- FALSE
+            xy$x[naidx] <- 2.0
+            if (rally_state() == "click serve start") {
+                ## point on baseline
+                xy$y[naidx] <- if ((game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower")) 6.5 else 0.5
+            } else {
+                ## middle of court
+                xy$y[naidx] <- if ((game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower")) 5.0 else 2.0
+            }
+            xy
+        }
+
         ## single click the video to register a tag location, or starting ball coordinates
         observeEvent(loop_trigger(), {
             if (loop_trigger() > 0 && rally_state() != "fix required information before scouting can begin") {
@@ -936,10 +955,11 @@ ov_scouter_server <- function(app_data) {
                     }
                 } else if (rally_state() == "click serve start") {
                     ## click was the serve position
-                    game_state$start_x <- courtxy()$x[1]
-                    game_state$start_y <- courtxy()$y[1]
+                    sxy <- resolve_courtxy()
+                    game_state$start_x <- sxy$x[1]
+                    game_state$start_y <- sxy$y[1]
                     game_state$start_t <- game_state$current_time_uuid
-                    overlay_points(courtxy())
+                    overlay_points(sxy)
                     ## add placeholder serve code, will get updated on next click
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     ## serve type should have been selected in the preselect
@@ -952,10 +972,11 @@ ov_scouter_server <- function(app_data) {
                 } else if (rally_state() == "click serve end") {
                     do_video("pause")
                     ## click was the end-of-serve position, either error or reception
-                    game_state$end_x <- courtxy()$x[1]
-                    game_state$end_y <- courtxy()$y[1]
+                    sxy <- resolve_courtxy()
+                    game_state$end_x <- sxy$x[1]
+                    game_state$end_y <- sxy$y[1]
                     game_state$end_t <- game_state$current_time_uuid
-                    overlay_points(rbind(overlay_points(), courtxy()))
+                    overlay_points(rbind(overlay_points(), sxy))
                     ## pop up to find either serve error, or passing player
                     ## passing player options
                     ## game_state$current_team here is the receiving team
@@ -1010,10 +1031,11 @@ ov_scouter_server <- function(app_data) {
                     ## we get a clue if it's the receiving/digging team or their opposition by the side of the court that has been clicked
                     do_video("pause")
                     ## click was the set contact position, or the freeball start position
-                    game_state$start_x <- courtxy()$x[1]
-                    game_state$start_y <- courtxy()$y[1]
+                    sxy <- resolve_courtxy()
+                    game_state$start_x <- sxy$x[1]
+                    game_state$start_y <- sxy$y[1]
                     game_state$start_t <- game_state$current_time_uuid
-                    overlay_points(courtxy())
+                    overlay_points(sxy)
                     ## popup
                     ## TODO maybe also setter call here
                     ## allow user to override auto-assigned reception quality
@@ -1078,10 +1100,11 @@ ov_scouter_server <- function(app_data) {
                     ## or dig/freeball dig by on overset, or PR
                     do_video("pause")
                     ## click was the attack contact position, or the freeball start position
-                    game_state$start_x <- courtxy()$x[1]
-                    game_state$start_y <- courtxy()$y[1]
+                    sxy <- resolve_courtxy()
+                    game_state$start_x <- sxy$x[1]
+                    game_state$start_y <- sxy$y[1]
                     game_state$start_t <- game_state$current_time_uuid
-                    overlay_points(courtxy())
+                    overlay_points(sxy)
                     ## popup
                     ## figure current phase
                     if (nrow(rally_codes()) > 0) {
@@ -1163,10 +1186,11 @@ ov_scouter_server <- function(app_data) {
                     ## allow attack kill with no dig error?
                     do_video("pause")
                     ## click was the dig or attack kill or error position
-                    game_state$end_x <- courtxy()$x[1]
-                    game_state$end_y <- courtxy()$y[1]
+                    sxy <- resolve_courtxy()
+                    game_state$end_x <- sxy$x[1]
+                    game_state$end_y <- sxy$y[1]
                     game_state$end_t <- game_state$current_time_uuid
-                    overlay_points(courtxy())
+                    overlay_points(sxy)
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
                     c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (play continues)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"), selected = "D", input_var = "c1") ## defaults to dig
@@ -1225,10 +1249,11 @@ ov_scouter_server <- function(app_data) {
                     ## freeball dig, freeball dig error, freeball error (in theory could be blocked, blocked for replay, block touch (freeball kill))
                     do_video("pause")
                     ## click was the dig or freeball end
-                    game_state$end_x <- courtxy()$x[1]
-                    game_state$end_y <- courtxy()$y[1]
+                    sxy <- resolve_courtxy()
+                    game_state$end_x <- sxy$x[1]
+                    game_state$end_y <- sxy$y[1]
                     game_state$end_t <- game_state$current_time_uuid
-                    overlay_points(courtxy())
+                    overlay_points(sxy)
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
                     f1_buttons <- make_fat_radio_buttons(choices = c("Freeball over error" = "F=", "Freeball dig" = "FD", "Freeball dig error" = "FD=", "Opp. overpass attack" = "aPR"), selected = "FD", input_var = "f1")
