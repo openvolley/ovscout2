@@ -2426,30 +2426,39 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$general_help, introjs(session, options = list("nextLabel"="Next", "prevLabel"="Previous", "skipLabel"="Skip")))
         observeEvent(input$show_shortcuts, {
-            showModal(modalDialog(title = "Keyboard shortcuts", easyClose = TRUE, size = "l",
-                                  if (app_data$with_video) tagList(tags$p(tags$strong("Video controls")), tags$ul(tags$li("[l or 6] forward 2s, [; or ^] forward 10s, [m or 3] forwards 0.1s, [, or 9] forwards 1 frame"), tags$li("[j or 4] backward 2s, [h or $] backward 10s, [n or 1] backwards 0.1s, [b or 7] backwards 1 frame"), tags$li("[q or 0] pause video"),##, tags$li("[g or #] go to currently-selected event")
-                                                                                                                  tags$li("[s] switch videos (if two available)")
-                                                                                                                  )),
-                                  ## none of these are relevant yet
-                                  ##fluidRow(column(6, tags$strong("Keyboard controls"),
-                                  ##         tags$ul(tags$li("[r or 5] sync selected event video time"),
-                                  ##                 tags$li("[i or 8] move to previous skill row"),
-                                  ##                 tags$li("[k or 2] move to next skill row"),
-                                  ##                 tags$li("[e or E] edit current code"),
-                                  ##                 tags$li("[del] delete current code"),
-                                  ##                 tags$li("[ins] insert new code above current"),
-                                  ##                 tags$li("[Shift-ins] insert new code below current"),
-                                  ##                 tags$li("[F1] home team rotate +1"),
-                                  ##                 tags$li("[F2] insert setting codes before every attack"),
-                                  ##                 tags$li("[F4] delete all setting codes (except errors)"),
-                                  ##                 tags$li("[F6] insert digging codes after every attack"),
-                                  ##                 tags$li("[F8] delete all digging codes"),
-                                  ##                 tags$li("[F10] visiting team rotate +1"),
-                                  ##                 )),
-                                  ##         column(6, if (app_data$with_video) tagList(tags$strong("Tagging"), tags$ul(tags$li("[left-click the court inset then press 't'] add a tag with the clicked court location. Alternatively, the location can be entered by left-clicking the video, if the court reference data has been provided"),
-                                  ##                                                   tags$li("[T] open the tag manager (download or clear tag data)"))),
-                                  ##                tags$strong("Ball coordinates"), tags$ul(tags$li("[left-click the court inset] register the start/mid/end ball positions"),
-                                  ##                                                         tags$li("[accept ball coordinates] to add coordinates to the currently selected item"))))
+            c_or <- function(...) paste0(..., collapse = " or ")
+            showModal(
+                modalDialog(title = "Keyboard shortcuts", easyClose = TRUE, size = "l",
+                            if (app_data$with_video) {
+                                tagList(tags$p(tags$strong("Video controls")),
+                                        tags$ul(
+                                                 tags$li(paste0("[", c_or(app_data$shortcuts$video_forward_2), "] forward 2s, [", c_or(app_data$shortcuts$video_forward_10), "] forward 10s, [", c_or(app_data$shortcuts$video_forward_0.1), "] forwards 0.1s, [", c_or(app_data$shortcuts$video_forward_1_30), "] forwards 1 frame")),
+                                                 tags$li(paste0("[", c_or(app_data$shortcuts$video_rewind_2), "] backward 2s, [", c_or(app_data$shortcuts$video_rewind_10), "] backward 10s, [", c_or(app_data$shortcuts$video_rewind_0.1), "] backwards 0.1s, [", c_or(app_data$shortcuts$video_rewind_1_30), "] backwards 1 frame")),
+                                                 tags$li(paste0("[", c_or(app_data$shortcuts$pause), "] pause video")),
+                                                 tags$li(paste0("[", c_or(app_data$shortcuts$go_to_time), "] go to currently-selected event")),
+                                                 tags$li(paste0("[", c_or(app_data$shortcuts$switch_video), "] switch videos (if two available)"))
+                                             ))
+                            },
+                            ## none of these are relevant yet
+                            ##fluidRow(column(6, tags$strong("Keyboard controls"),
+                            ##         tags$ul(tags$li("[r or 5] sync selected event video time"),
+                            ##                 tags$li("[i or 8] move to previous skill row"),
+                            ##                 tags$li("[k or 2] move to next skill row"),
+                            ##                 tags$li("[e or E] edit current code"),
+                            ##                 tags$li("[del] delete current code"),
+                            ##                 tags$li("[ins] insert new code above current"),
+                            ##                 tags$li("[Shift-ins] insert new code below current"),
+                            ##                 tags$li("[F1] home team rotate +1"),
+                            ##                 tags$li("[F2] insert setting codes before every attack"),
+                            ##                 tags$li("[F4] delete all setting codes (except errors)"),
+                            ##                 tags$li("[F6] insert digging codes after every attack"),
+                            ##                 tags$li("[F8] delete all digging codes"),
+                            ##                 tags$li("[F10] visiting team rotate +1"),
+                            ##                 )),
+                            ##         column(6, if (app_data$with_video) tagList(tags$strong("Tagging"), tags$ul(tags$li("[left-click the court inset then press 't'] add a tag with the clicked court location. Alternatively, the location can be entered by left-clicking the video, if the court reference data has been provided"),
+                            ##                                                   tags$li("[T] open the tag manager (download or clear tag data)"))),
+                            ##                tags$strong("Ball coordinates"), tags$ul(tags$li("[left-click the court inset] register the start/mid/end ball positions"),
+                            ##                                                         tags$li("[accept ball coordinates] to add coordinates to the currently selected item"))))
                                   ))
         })
 
