@@ -816,7 +816,8 @@ ov_scouter_server <- function(app_data) {
                     }
                     if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
                         ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
-                        points(ixy$x, ixy$y, bg = "dodgerblue", pch = 21, col = "white", cex = 2.5)
+                        points(ixy$x[overlay_points()$valid], ixy$y[overlay_points()$valid], bg = "dodgerblue", pch = 21, col = "white", cex = 2.5)
+                        points(ixy$x[!overlay_points()$valid], ixy$y[!overlay_points()$valid], bg = "firebrick", pch = 21, col = "white", cex = 2.5)
                     }
                     par(opar)
                 }
