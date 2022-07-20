@@ -822,23 +822,28 @@ ov_scouter_server <- function(app_data) {
                 }
             }, bg = "transparent", width = vo_width(), height = vo_height())
         })
-        vid_to_crt <- function(obj) {
+        vid_to_crt <- function(obj, arfix = TRUE) {
             courtxy <- data.frame(x = rep(NA_real_, length(obj$x)), y = rep(NA_real_, length(obj$x)))
             if (!is.null(detection_ref()$court_ref) && length(obj$x) > 0) {
-                ## account for aspect ratios
-                thisx <- ar_fix_x(obj$x, direction = "to_court")
-                thisy <- ar_fix_y(obj$y, direction = "to_court")
+                thisx <- obj$x; thisy <- obj$y
+                if (arfix) {
+                    ## account for aspect ratios
+                    thisx <- ar_fix_x(obj$x, direction = "to_court")
+                    thisy <- ar_fix_y(obj$y, direction = "to_court")
+                }
                 courtxy <- ovideo::ov_transform_points(thisx, thisy, ref = detection_ref()$court_ref, direction = "to_court")
             }
             courtxy
         }
-        crt_to_vid <- function(obj) {
+        crt_to_vid <- function(obj, arfix = TRUE) {
             imagexy <- data.frame(image_x = rep(NA_real_, length(obj$x)), image_y = rep(NA_real_, length(obj$x)))
             if (!is.null(detection_ref()$court_ref) && length(obj$x) > 0) {
                 imagexy <- setNames(ovideo::ov_transform_points(obj$x, obj$y, ref = detection_ref()$court_ref, direction = "to_image"), c("image_x", "image_y"))
-                ## account for aspect ratios
-                imagexy$image_x <- ar_fix_x(imagexy$image_x)
-                imagexy$image_y <- ar_fix_y(imagexy$image_y)
+                if (arfix) {
+                    ## account for aspect ratios
+                    imagexy$image_x <- ar_fix_x(imagexy$image_x)
+                    imagexy$image_y <- ar_fix_y(imagexy$image_y)
+                }
             }
             imagexy
         }
