@@ -641,6 +641,9 @@ ov_scouter_server <- function(app_data) {
                             ## if editing, treat as update
                             if (!is.null(editing$active) && !editing$active %eq% "teams") {
                                 do_edit_commit()
+                            } else if (isTRUE(scout_modal_active())) {
+                                ## if we have a scouting modal showing, and a valid accept_fun entry, run that function
+                                if (!is.null(accept_fun())) try(get(accept_fun(), mode = "function")())
                             }
                             ## but not for team editing, because pressing enter in the DT fires this too
                         }
@@ -916,6 +919,7 @@ ov_scouter_server <- function(app_data) {
         }
         remove_scout_modal <- function() {
             scout_modal_active(FALSE)
+            accept_fun(NULL)
             removeModal()
             if (isTRUE(prefs$review_pane)) hide_review_pane()
         }
@@ -949,6 +953,7 @@ ov_scouter_server <- function(app_data) {
             xy
         }
 
+        accept_fun <- reactiveVal(NULL) ## use this to determine what function should be run when the "Continue" button on a modal is clicked, or the enter key is used to shortcut it
         ## single click the video to register a tag location, or starting ball coordinates
         observeEvent(loop_trigger(), {
             if (loop_trigger() > 0 && rally_state() != "fix required information before scouting can begin") {
@@ -1013,6 +1018,7 @@ ov_scouter_server <- function(app_data) {
                     serve_outcome_initial_buttons <- make_fat_radio_buttons(choices = c("Serve error" = "=", "Reception error (serve ace)" = "S#", "Reception in play" = "R~"), input_var = "serve_initial_outcome", selected = if (!is.na(guess_was_err)) "=" else "R~")
                     serve_error_type_buttons <- make_fat_radio_buttons(choices = c("In net" = "=N", "Foot fault/referee call" = "=Z", "Out long" = "=O", "Out left" = "=L", "Out right" = "=R"), selected = if (!is.na(guess_was_err)) guess_was_err else NA, input_var = "serve_error_type", as_radio = "blankable")
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "pass_player")
+                    accept_fun("do_assign_serve_outcome")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                                    tags$p(tags$strong("Serve type:")),
                                                    do.call(fixedRow, lapply(serve_type_buttons, function(but) column(if (mcols() / length(serve_type_buttons) >= 2) 2 else 1, but))),
@@ -1077,6 +1083,7 @@ ov_scouter_server <- function(app_data) {
                         rally_state("click third contact")
                         do_video("play")
                     } else {
+                        accept_fun("do_assign_c2")
                         show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                                        do.call(fixedRow, c(list(column(2, tags$strong("Reception quality"))), lapply(c2_pq_buttons, function(but) column(1, but)))),
                                                        tags$br(), tags$hr(),
@@ -1158,6 +1165,7 @@ ov_scouter_server <- function(app_data) {
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
                     opp_player_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c3_opp_player")
+                    accept_fun("do_assign_c3")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                             tags$p(tags$strong("Attack or freeball over:")),
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
@@ -1223,6 +1231,7 @@ ov_scouter_server <- function(app_data) {
                         ## accept dig (by unknown player) with no block touch, with no popup
                         ## TODO (if this seems sensible!)
                     } ## else {
+                    accept_fun("do_assign_c1")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                             tags$p(tags$strong("Attack outcome:")),
                                             do.call(fixedRow, lapply(c1_buttons[1:3], function(but) column(2, but))),
@@ -1266,6 +1275,7 @@ ov_scouter_server <- function(app_data) {
                     names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
                     digp <- c(digp, Unknown = "Unknown")
                     dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "f1_def_player")
+                    accept_fun("do_assign_f1")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                             tags$p(tags$strong("Freeball outcome:")),
                                             do.call(fixedRow, lapply(f1_buttons, function(but) column(2, but))),
@@ -1515,7 +1525,9 @@ ov_scouter_server <- function(app_data) {
             rally_state("click serve start")
         })
 
-        observeEvent(input$assign_serve_outcome, {
+        observeEvent(input$assign_serve_outcome, do_assign_serve_outcome())
+
+        do_assign_serve_outcome <- function() {
             if (is.null(input$serve_initial_outcome)) {
                 ## wtf? should not happen
             } else {
@@ -1579,9 +1591,10 @@ ov_scouter_server <- function(app_data) {
                 }
                 if (rally_state() != "confirm end of set") do_video("play")
             }
-        })
+        }
 
-        observeEvent(input$assign_c1, {
+        observeEvent(input$assign_c1, do_assign_c1())
+        do_assign_c1 <- function() {
             ## possible values for input$c1 are currently: A#, A=, A!, D, D=, B/, B#
             ## A#, A=, D, D= can be preceded by a block touch (but not B#, B/ and A!). A= is unlikely but theoretically possible
             mid_xy <- c(NA_real_, NA_real_)
@@ -1740,9 +1753,10 @@ ov_scouter_server <- function(app_data) {
                 remove_scout_modal()
                 do_video("play")
             }
-        })
+        }
 
-        observeEvent(input$assign_f1, {
+        observeEvent(input$assign_f1, do_assign_f1())
+        do_assign_f1 <- function() {
             ## possible values for input$f1 are currently: F=, FD, FD=, aPR
             esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
             rc <- rally_codes()
@@ -1792,9 +1806,10 @@ ov_scouter_server <- function(app_data) {
                 remove_scout_modal()
                 do_video("play")
             }
-        })
+        }
 
-        observeEvent(input$assign_c2, {
+        observeEvent(input$assign_c2, do_assign_c2())
+        do_assign_c2 <- function() {
             ## set uses end position for zone/subzone
             esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
             passq <- if (!is.null(input$c2_pq)) input$c2_pq else guess_pass_quality(game_state, dvw = rdata$dvw)
@@ -1881,9 +1896,10 @@ ov_scouter_server <- function(app_data) {
                 remove_scout_modal()
                 do_video("play")
             }
-        })
+        }
 
-        observeEvent(input$assign_c3, {
+        observeEvent(input$assign_c3, do_assign_c3())
+        do_assign_c3 <- function() {
             ## possible values for input$c3 are: an attack code, Other attack, "F" Freeball or "E=" set error (if not scouting transition sets)
             ##    "Opp. dig" = "aD", "Opp. overpass attack" = "aPR"
             start_t <- retrieve_video_time(game_state$start_t)
@@ -1977,7 +1993,7 @@ ov_scouter_server <- function(app_data) {
                 remove_scout_modal()
                 do_video("play")
             }
-        })
+        }
 
         output$rally_state <- renderUI({
             tags$div(id = "rallystate", tags$strong("Rally state: "), rally_state())
