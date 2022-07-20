@@ -1014,7 +1014,7 @@ ov_scouter_server <- function(app_data) {
                     ## popup
                     ## TODO maybe also setter call here
                     ## allow user to override auto-assigned reception quality
-                    passq <- guess_pass_quality(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end)
+                    passq <- guess_pass_quality(game_state, dvw = rdata$dvw)
                     c2_pq_buttons <- make_fat_radio_buttons(choices = c(Overpass = "/", Poor = "-", OK = "!", Good = "+", Perfect = "#"), selected = passq, input_var = "c2_pq")
                     c2_buttons <- make_fat_radio_buttons(
                         choices = c(Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball<br />attack" = "P2", "Freeball over" = "F", "Reception error<br />(serve ace)" = "R=", ## rcv team actions
@@ -1036,7 +1036,7 @@ ov_scouter_server <- function(app_data) {
                     if (isTRUE(input$shiftkey)) {
                         ## accept set by setter on court, with no popup
                         esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
-                        passq <- guess_pass_quality(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end)
+                        passq <- guess_pass_quality(game_state, dvw = rdata$dvw)
                         rc <- rally_codes()
                         rc$eval[rc$skill %eq% "R"] <- passq
                         ## find corresponding serve evaluation code
@@ -1088,7 +1088,7 @@ ov_scouter_server <- function(app_data) {
                         ph <- NA_character_
                     }
                     if (rdata$options$attacks_by %eq% "codes") {
-                        ac <- guess_attack_code(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end, opts = rdata$options)
+                        ac <- guess_attack_code(game_state, dvw = rdata$dvw, opts = rdata$options)
                         ac <- setNames(ac, ac)
                         if (!isTRUE(rdata$options$transition_sets) && ph %eq% "Transition") {
                             ac <- head(ac, if (isTRUE(prefs$review_pane)) 4 else 7) ## wow, we don't have a lot here if we need to leave room for the three below plus space for the attack review pane
@@ -1764,7 +1764,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$assign_c2, {
             ## set uses end position for zone/subzone
             esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
-            passq <- if (!is.null(input$c2_pq)) input$c2_pq else guess_pass_quality(game_state, dvw = rdata$dvw, home_end = game_state$home_team_end)
+            passq <- if (!is.null(input$c2_pq)) input$c2_pq else guess_pass_quality(game_state, dvw = rdata$dvw)
             rc <- rally_codes()
             rc$eval[rc$skill %eq% "R"] <- passq
             ## find corresponding serve evaluation code

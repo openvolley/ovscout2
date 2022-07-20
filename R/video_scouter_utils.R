@@ -402,14 +402,14 @@ guess_pass_player_options <- function(game_state, dvw, system) {
     list(choices = pp, selected = plsel)
 }
 
-guess_pass_quality <- function(game_state, dvw, home_end) {
+guess_pass_quality <- function(game_state, dvw) {
     if (is_beach(dvw)) {
         ## TODO
         message("beach, defaulting to '+' pass quality")
         return("+")
     }
     ## reference clicks to lower court
-    do_flip_click <- (game_state$current_team == "*" && home_end == "upper") || (game_state$current_team == "a" && home_end == "lower")
+    do_flip_click <- (game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower")
     thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
     ## sets use "start" coordinates but "end" zone/subzone
     esz <- paste(dv_xy2subzone(game_state$start_x, game_state$start_y), collapse = "")
@@ -486,12 +486,12 @@ guess_attack_player_options <- function(game_state, dvw, system) {
     list(choices = pp, selected = plsel)
 }
 
-guess_attack_code <- function(game_state, dvw, home_end, opts) {
+guess_attack_code <- function(game_state, dvw, opts) {
     exclude_codes <- if (!missing(opts) && !is.null(opts$setter_dump_code)) opts$setter_dump_code else "PP"
     exclude_codes <- c(exclude_codes, if (!missing(opts) && !is.null(opts$second_ball_attack_code)) opts$second_ball_attack_code else "P2")
     exclude_codes <- c(exclude_codes, if (!missing(opts) && !is.null(opts$overpass_attack_code)) opts$overpass_attack_code else "PR")
     atbl <- dvw$meta$attacks %>% dplyr::filter(!.data$code %in% exclude_codes)
-    do_flip_click <- (game_state$current_team == "*" && home_end == "upper") || (game_state$current_team == "a" && home_end == "lower")
+    do_flip_click <- (game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower")
     thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
     ## the start location in the attack table is a bit in front of the 3m line for back-row attacks
     ## shift our y-location forwards a bit to reduce risk of our front-row click looking like it's nearest to a back-row location
@@ -626,9 +626,9 @@ make_fat_buttons <- function(choices, selected, input_var, extra_class = c(), as
     if (missing(selected)) selected <- 1L
     if (is.null(selected)) selected <- NA
     if (!is.na(selected)) selected <- if (selected %in% choices) which(choices == selected) else if (selected %in% names(choices)) which(names(choices) == selected) else if (!is.na(selected)) 1L
+    if (length(selected) > 1) selected <- selected[1]
     clickfun <- if (nzchar(as_radio)) paste0(if (as_radio == "blankable") "var wa=$(this).hasClass('active');" else "var wa=false;", " $('.", cls, "').removeClass('active'); if (!wa) { $(this).addClass('active'); };") else "var wa=false;"
-    buts <- lapply(seq_along(choices), function(i) tags$button(id = digest::digest(paste0("but-", input_var, "-", choices[[i]])), class = paste(c("btn", "btn-default", "fatradio", cls, extra_class, if (grepl("(L)", names(choices)[i], fixed = TRUE)) "libero", if (i %eq% selected && nzchar(as_radio)) "active"), collapse = " "), ##id = ids[i],
-      HTML(names(choices)[i]), onclick = paste0(clickfun, " if (!wa) { Shiny.setInputValue('", input_var, "', '", choices[[i]], "', {priority: 'event'}) } else { Shiny.setInputValue('", input_var, "', null, {priority: 'event'}) }"), ...))
+    buts <- lapply(seq_along(choices), function(i) tags$button(id = digest::digest(paste0("but-", input_var, "-", choices[[i]])), class = paste(c("btn", "btn-default", "fatradio", cls, extra_class, if (grepl("(L)", names(choices)[i], fixed = TRUE)) "libero", if ((i %eq% selected) && nzchar(as_radio)) "active"), collapse = " "), HTML(names(choices)[i]), onclick = paste0(clickfun, " if (!wa) { Shiny.setInputValue('", input_var, "', '", choices[[i]], "', {priority: 'event'}) } else { Shiny.setInputValue('", input_var, "', null, {priority: 'event'}) }"), ...))
     ## set the initial value of the associated input variable, or clear it
     dojs(paste0("Shiny.setInputValue(\"", input_var, "\", ", if (!is.na(selected) && nzchar(as_radio)) paste0("\"", choices[[selected]], "\"") else "null", ")"))
     attr(buts, "class") <- cls
@@ -706,8 +706,7 @@ get_teams_from_dvw_dir <- function(season) {
                        firstname = stringr::str_to_title(.data$firstname),
                        role = stringr::str_to_lower(.data$role)) %>% dplyr::distinct()
 
-        player_table_tid <- aggregate(.~player_id+lastname+firstname+number, player_table_tid, paste)
-
+        player_table_tid <- player_table_tid %>% group_by(.data$player_id, .data$lastname, .data$firstname, .data$number) %>% mutate(role = case_when(is.na(.data$role) ~ "", TRUE ~ .data$role)) %>% dplyr::summarize(role = paste(.data$role)) %>% ungroup
         team_list$player_table[team_list$team_id == t_id] <- list(player_table_tid)
 
     }
@@ -753,4 +752,14 @@ fchoose <- function(caption, path) {
         }
     }
     fchoosefun(caption = caption, path = path)
+}
+
+was_mouse_drag <- function(start, dragtime = 500) {
+    ## start should be a clickdrag object e.g. from the court ref module
+    ## dragtime is the time that must have passed since the initial mouse click, in msx
+    if (is.null(start) || is.null(start$mousedown)) {
+        FALSE
+    } else {
+        (R.utils::System$currentTimeMillis() - start$mousedown_time) > dragtime
+    }
 }

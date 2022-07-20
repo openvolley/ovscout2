@@ -202,7 +202,6 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, inclu
         ##cat("mouse down\n")
         closest <- NULL
         if (!is.null(input$sr_plot_hover)) {
-            ## somehow the click location is slightly out of whack with the hover location
             ##px <- c(input$sr_plot_click$x, input$sr_plot_click$y)
             px <- c(input$sr_plot_hover$x, input$sr_plot_hover$y)
             isolate({
@@ -221,27 +220,15 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, inclu
         sr_clickdrag$closest_down <- closest
     })
 
-    was_drag <- function(start, end) {
-        ## start should be the sr_clickdrag object
-        if (is.null(start) || is.null(start$mousedown) || is.null(end)) {
-            FALSE
-        } else {
-            ##cat("start: ", start$mousedown, "\n")
-            ##cat("end: ", end, "\n")
-            ##sqrt(sum(start$mousedown - end)^2) > 0.005
-            ## using position change (above) is fairly rubbish
-            ## use time since start-click
-            (R.utils::System$currentTimeMillis() - start$mousedown_time) > 500 ## more than half a second
-        }
-    }
-
     observeEvent(input$did_sr_plot_mouseup, {
         ##cat("mouse up\n")
         ## was it a click and not a drag?
         if (!is.null(sr_clickdrag$mousedown)) {
             isolate(px <- last_mouse_pos())
-            if (is.null(px) || !was_drag(sr_clickdrag, px)) {
+            if (is.null(px) || !was_mouse_drag(sr_clickdrag)) {
                 ##cat("click\n")
+                ## if a click, use the click position, else use the last_rv_mouse_pos (but this might lag the actual click pos, because of the hover lag)
+                if (!was_mouse_drag(sr_clickdrag) && !is.null(input$sr_plot_click)) px <- input$sr_plot_click
                 ## enter new point if there is an empty slot, or ignore
                 if (is.null(crvt$court) || nrow(crvt$court) < 4) {
                     warning("empty crvt$court??")
@@ -281,7 +268,7 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, inclu
     last_refresh_time <- NA_real_
     observe({
         px <- last_mouse_pos() ##c(input$sr_plot_hover$x, input$sr_plot_hover$y)
-        if (!is.null(px) && !is.null(sr_clickdrag$mousedown) && was_drag(sr_clickdrag, px)) {
+        if (!is.null(px) && !is.null(sr_clickdrag$mousedown) && was_mouse_drag(sr_clickdrag)) {
             ##cat("was drag\n")
             ## did previously click, so now dragging a point
             now_time <- R.utils::System$currentTimeMillis()
