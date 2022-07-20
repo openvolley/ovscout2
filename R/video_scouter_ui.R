@@ -22,18 +22,17 @@ ov_scouter_ui <- function(app_data) {
                         tags$script("$(document).on('keydown', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.setInputValue('controlkey', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
                         tags$script("$(document).on('keyup', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.setInputValue('controlkeyup', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
                         tags$script("document.addEventListener('click', function (e) { Shiny.setInputValue('shiftkey', e.shiftKey) }); $(document).on('shiny:sessioninitialized',function() { Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth()); });"),
-                        tags$script("var rsztmr; $(window).resize(function() { clearTimeout(rsztmr); rsztmr = setTimeout(doneResizing, 500); }); function doneResizing() { Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth()); Shiny.setInputValue('rv_height', $('#review_player').innerHeight());}"),
+                        ##tags$script("var rsztmr; $(window).resize(function() { clearTimeout(rsztmr); rsztmr = setTimeout(doneResizing, 500); }); function doneResizing() { Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth()); Shiny.setInputValue('rv_height', $('#review_player').innerHeight());}"),
                         if (app_data$with_video) tags$script(HTML("var vo_rsztmr;
 var vo_doneResizing = function() {
-    Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); Shiny.setInputValue('vo_voffset', $('#video_holder').innerHeight()); Shiny.setInputValue('rv_height', $('#review_player').innerHeight());
+    Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth()); Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); Shiny.setInputValue('vo_voffset', $('#video_holder').innerHeight()); Shiny.setInputValue('rv_height', $('#review_player').innerHeight());
 }
 $(document).on('shiny:sessioninitialized', function() {
     vo_doneResizing();
     $(window).resize(function() {
       clearTimeout(vo_rsztmr);
       vo_rsztmr = setTimeout(vo_doneResizing, 500); });
-});
-function dvjs_video_onstart() { vo_doneResizing(); }")),
+});")), ##function dvjs_video_onstart() { vo_doneResizing(); }
                         tags$title("Volleyball scout and video sync")
                         ),
               if (!is.null(app_data$ui_header)) {
