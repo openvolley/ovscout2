@@ -2171,17 +2171,15 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(detection_ref()$court_ref)) {
                 closest <- NULL
                 if (!is.null(input$rv_hover)) {
-                    px <- c(input$rv_hover$x, input$rv_hover$y)
-                    isolate({
-                        ## find the closest point, using court space for the distance
-                        cpx <- vid_to_crt(px, arfix = FALSE)
-                        if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
-                            closest <- which.min(sqrt((overlay_points()$x - cpx[1])^2 + (overlay_points()$y - cpx[2])^2))
-                            if (length(closest) < 1) closest <- NA_integer_
-                        } else {
-                            closest <- NA_integer_
-                        }
-                    })
+                    px <- list(x = input$rv_hover$x, y = input$rv_hover$y)
+                    ## find the closest point, using court space for the distance
+                    cpx <- vid_to_crt(px, arfix = FALSE)
+                    if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
+                        closest <- which.min((overlay_points()$x - cpx$x[1])^2 + (overlay_points()$y - cpx$y[1])^2)
+                        if (length(closest) < 1) closest <- NA_integer_
+                    } else {
+                        closest <- NA_integer_
+                    }
                 } else {
                     px <- NULL
                 }
@@ -2205,26 +2203,43 @@ ov_scouter_server <- function(app_data) {
         last_rv_mouse_pos <- reactiveVal(NULL)
         observeEvent(input$rv_hover, {
             ##cat("rv plot hover\n")
-            ## triggered when mouse moved over the plot
+            ## triggered when mouse moved over the plot. Use this to track drag position
             px <- list(x = input$rv_hover$x, y = input$rv_hover$y)
-            if (!is.null(px)) last_rv_mouse_pos(px)
+            if (!is.null(px) && !is.null(rv_clickdrag$mousedown)) last_rv_mouse_pos(px)
         })
         last_rv_refresh_time <- NA_real_
         observe({
+            ## here we handle either a click (find the nearest point, and move it to the click location)
+            ##  or a drag (move the point that was closest to the drag start point, to the click location)
             px <- last_rv_mouse_pos()
-            ##cat("rv ps: ", cstr(px), "\n")
-            if (!is.null(px) && !is.null(rv_clickdrag$mousedown)) {
+            if (!is.null(px)) {
                 ##cat("was rv drag or click\n")
                 ## if a click, use the click position, else use the last_rv_mouse_pos (but this might lag the actual click pos, because of the hover lag)
-                if (!was_mouse_drag(rv_clickdrag) && !is.null(input$rv_click)) px <- input$rv_click
+                closest <- NA_integer_
+                if (!was_mouse_drag(rv_clickdrag) && !is.null(input$rv_click)) {
+                    px <- input$rv_click
+                    ## find the closest point, using court space for the distance
+                    cpx <- vid_to_crt(px, arfix = FALSE)
+                    if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
+                        closest <- which.min((overlay_points()$x - cpx$x[1])^2 + (overlay_points()$y - cpx$y[1])^2)
+                        if (length(closest) < 1) closest <- NA_integer_
+                    } else {
+                        closest <- NA_integer_
+                    }
+                } else {
+                    ##cat("was drag\n")
+                    closest <- rv_clickdrag$closest_down
+                }
                 now_time <- R.utils::System$currentTimeMillis() ## use this to reduce redraw rate when dragging
                 if (!was_mouse_drag(rv_clickdrag) || (is.na(last_rv_refresh_time) || (now_time - last_rv_refresh_time) > 100)) {
                     last_rv_refresh_time <<- now_time
-                    if (!is.null(overlay_points()) && nrow(overlay_points()) > 0 && length(rv_clickdrag$closest_down) > 0 && !is.na(rv_clickdrag$closest_down)) {
+                    if (!is.null(overlay_points()) && nrow(overlay_points()) > 0 && length(closest) && !is.na(closest)) {
                         ## convert px from image to court space
                         px <- vid_to_crt(px, arfix = FALSE)
                         op <- isolate(overlay_points())
-                        op[rv_clickdrag$closest_down, ] <- list(x = px$x, y = px$y)
+                        op$x[closest] <- px$x
+                        op$y[closest] <- px$y
+                        op$valid[closest] <- TRUE
                         courtxy(op)
                         overlay_points(op)
                     }
