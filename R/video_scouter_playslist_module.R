@@ -130,12 +130,13 @@ mod_playslist_ui <- function(id, height = "40vh", styling) {
 
 mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, plays_cols_renames, display_option = reactiveVal("dv_codes"), height = "40vh") {
     ns <- session$ns
+    jsns <- ns4js(ns)
     plays_do_rename <- function(z) names_first_to_capital(dplyr::rename(z, plays_cols_renames))
     selected_row <- reactiveVal(NULL)
 
     js_with_retry <- function(f, need_n_rows = 1, tries = 10) {
-        tries_var <- gsub("-", "_", ns("tries"))
-        fn_var <- gsub("-", "_", ns("retryfn"))
+        tries_var <- jsns("tries")
+        fn_var <- jsns("retryfn")
         dojs(paste0(tries_var, " = 0; var ", fn_var, "=function(){ var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); if (rows != null && rows.length >", need_n_rows - 1, ") { ", f, " } else { if (", tries_var, " < ", tries, ") { ", tries_var, "++; setTimeout(", fn_var, ", 100) }}}; ", fn_var, "();"))
     }
 

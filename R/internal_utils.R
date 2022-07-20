@@ -136,3 +136,6 @@ get_os <- function() {
         stop("unknown operating system: ", os)
     os
 }
+
+## take a namespacing function (e.g. shiny::NS), but make it safe for use with e.g. js variable or function names
+ns4js <- function(fun) function(z) gsub("-", "_", fun(z))
