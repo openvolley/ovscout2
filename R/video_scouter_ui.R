@@ -93,8 +93,8 @@ $(document).on('shiny:sessioninitialized', function() {
                               tags$div(style = "height: 14px;"),
                               fluidRow(column(7, wellPanel(introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these."))))
                               ),
-                       column(2,
-                              introBox(wellPanel(mod_courtrot2_ui(id = "courtrot")), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
+                       column(2, style = "padding-left:5px; padding-right:5px",
+                              introBox(mod_courtrot2_ui(id = "courtrot"), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
                               uiOutput("problem_ui"),
                               introBox(mod_playslist_ui("playslist", height = "35vh", styling = app_data$styling), data.step = 6, data.intro = "List of actions. New entries appear here as they are scouted."),
                               uiOutput("error_message"))
