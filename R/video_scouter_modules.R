@@ -24,13 +24,14 @@ mod_teamslists <- function(input, output, session, rdata) {
 
 mod_courtrot2_ui <- function(id) {
     ns <- NS(id)
-    tags$div(style = "border-radius: 4px; padding: 4px",
-             fluidRow(column(12, plotOutput(ns("court_inset"), click = ns("plot_click"), height = "45vh"))),
-             fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")))),
-                      column(3, uiOutput(ns("switch_serving_ui"), inline = TRUE)),
-                      column(2, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
-                      column(2, offset = 1, actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")))))
-             )
+    tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;}"))),
+            tags$div(style = "border-radius: 4px; padding: 4px",
+                     plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:45vh;"),##, height = "45vh"))),
+                     fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")))),
+                              column(3, uiOutput(ns("switch_serving_ui"), inline = TRUE)),
+                              column(2, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
+                              column(2, offset = 1, actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")))))
+                     ))
 }
 
 mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, rally_state, current_video_src, styling, with_ball_path = TRUE) {
@@ -223,7 +224,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             }
         })
         p
-    })
+    }, height = 950, width = 600, res = 180)
 
     observeEvent(input$rotate_home, {
         rotate_teams$home <- 1L
