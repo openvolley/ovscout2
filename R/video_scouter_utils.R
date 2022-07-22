@@ -141,7 +141,8 @@ game_state_make_substitution <- function(game_state, team, player_out, player_in
     team <- match.arg(team, c("*", "a"))
     pseq <- seq_len(if (dv_is_beach(dvw)) 2L else 6L)
     lup_cols <- if (team == "*") paste0("home_p", pseq) else paste0("visiting_p", pseq)
-    this_lup <- as.numeric(reactiveValuesToList(game_state)[lup_cols])
+    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
+    this_lup <- as.numeric(game_state[lup_cols])
     available_players <- if (team == "*") dvw$meta$players_h$number else dvw$meta$players_v$number
     available_players <- na.omit(available_players)
     if (!player_out %in% this_lup) {
@@ -233,7 +234,7 @@ code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target 
     ## abbreviated parameter names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
     ## providing 'code' is a special case
     na2t <- function(z, width = 1) if (is.na(z)) { if (width == 1) "~" else paste0(rep("~", width), collapse = "") } else z
-    if (inherits(game_state, "reactivevalues")) game_state <- reactiveValuesToList(game_state)
+    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
     if (!is.na(code)) {
         NAc <- NA_character_
         tibble(team = NAc, pnum = NAc, skill = NAc, tempo = NAc, eval = NAc, combo = NAc, target = NAc, sz = NAc, ez = NAc, esz = NAc, x_type = NAc, num_p = NAc, special = NAc, custom = NAc, code = code, t = t, start_x = start_x, start_y = start_y, mid_x = mid_x, mid_y = mid_y, end_x = end_x, end_y = end_y, rally_state = rally_state, game_state = list(game_state), current_team = game_state$current_team)
@@ -291,10 +292,11 @@ get_setter_pos <- function(game_state, team) {
 get_setter <- function(game_state, team) {
     pseq <- seq_len(6L) ## indoor only
     if (missing(team)) team <- game_state$current_team
+    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
     if (team == "*") {
-        tryCatch(as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)])[game_state$home_setter_position], error = function(e) 0L)
+        tryCatch(as.numeric(game_state[paste0("home_p", pseq)])[game_state$home_setter_position], error = function(e) 0L)
     } else if (team == "a") {
-        tryCatch(as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)])[game_state$visiting_setter_position], error = function(e) 0L)
+        tryCatch(as.numeric(game_state[paste0("visiting_p", pseq)])[game_state$visiting_setter_position], error = function(e) 0L)
     } else {
         0L
     }
@@ -331,10 +333,11 @@ get_liberos <- function(game_state, team, dvw) {
 get_players <- function(game_state, team, dvw) {
     pseq <- seq_len(if (is_beach(dvw)) 2L else 6L)
     if (missing(team)) team <- game_state$current_team
+    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
     if (team == "*") {
-        tryCatch(as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]), error = function(e) rep(NA_integer_, length(pseq)))
+        tryCatch(as.numeric(game_state[paste0("home_p", pseq)]), error = function(e) rep(NA_integer_, length(pseq)))
     } else if (team == "a") {
-        tryCatch(as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]), error = function(e) rep(NA_integer_, length(pseq)))
+        tryCatch(as.numeric(game_state[paste0("visiting_p", pseq)]), error = function(e) rep(NA_integer_, length(pseq)))
     } else {
         rep(NA_integer_, length(pseq))
     }
@@ -397,8 +400,9 @@ guess_pass_player_options <- function(game_state, dvw, system) {
     plsel_tmp <- names(sort(passing_responsibility_posterior, decreasing = TRUE))
     poc <- paste0(home_visiting, "_p", pseq) ## players on court
 
-    pp <- c(sort(as.numeric(reactiveValuesToList(game_state)[poc])), sort(libs))
-    plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(reactiveValuesToList(game_state)[plsel_tmp[1]])
+    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
+    pp <- c(sort(as.numeric(game_state[poc])), sort(libs))
+    plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(game_state[plsel_tmp[1]])
     list(choices = pp, selected = plsel)
 }
 
@@ -436,6 +440,7 @@ guess_pass_quality <- function(game_state, dvw) {
 guess_attack_player_options <- function(game_state, dvw, system) {
     beach <- is_beach(dvw)
     pseq <- seq_len(if (beach) 2L else 6L)
+    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
     if (beach) {
         warning("guess_attack_player_options for beach not yet coded")
         ## placeholder code
@@ -444,8 +449,8 @@ guess_attack_player_options <- function(game_state, dvw, system) {
         } else {
             poc <- paste0("visiting_p", pseq)
         }
-        pp <- as.numeric(reactiveValuesToList(game_state)[poc])
-        plsel <- as.numeric(reactiveValuesToList(game_state)[poc[1]])
+        pp <- as.numeric(game_state[poc])
+        plsel <- as.numeric(game_state[poc[1]])
         return(list(choices = pp, selected = plsel))
     }
     ## else for indoor
@@ -481,8 +486,8 @@ guess_attack_player_options <- function(game_state, dvw, system) {
         attacking_responsibility_posterior <-  attacking_responsibility_posterior / sum(attacking_responsibility_posterior)
     }
     poc <- names(sort(attacking_responsibility_posterior, decreasing = TRUE))
-    pp <- sort(as.numeric(reactiveValuesToList(game_state)[poc]))
-    plsel <- as.numeric(reactiveValuesToList(game_state)[poc[1]])
+    pp <- sort(as.numeric(game_state[poc]))
+    plsel <- as.numeric(game_state[poc[1]])
     list(choices = pp, selected = plsel)
 }
 
@@ -527,6 +532,7 @@ guess_dig_player_options <- function(game_state, dvw, system) {
     if (beach) {
         warning("guess_dig_player_options for beach not yet tested")
     }
+    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
     if (!game_state$current_team %in% c("*", "a")) return(list(choices = numeric(), selected = c()))
     defending_team <- game_state$current_team
     home_visiting <- if (game_state$current_team %eq% "a") "visiting" else "home"
@@ -562,8 +568,8 @@ guess_dig_player_options <- function(game_state, dvw, system) {
     }
     plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
     poc <- paste0(home_visiting, "_p", pseq)
-    pp <- c(sort(as.numeric(reactiveValuesToList(game_state)[poc])), sort(libs))
-    plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(reactiveValuesToList(game_state)[plsel_tmp[1]])
+    pp <- c(sort(as.numeric(game_state[poc])), sort(libs))
+    plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(game_state[plsel_tmp[1]])
     list(choices = pp, selected = plsel)
 }
 
@@ -573,6 +579,7 @@ guess_cover_player_options <- function(game_state, dvw, system) {
     if (beach) {
         warning("guess_cover_player_options for beach not yet tested")
     }
+    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
     if (!game_state$current_team %in% c("*", "a")) return(list(choices = numeric(), selected = c()))
     attacking_team <- other(game_state$current_team)
     ## e.g. if current (defending) team is "*", attacking team is "a"
@@ -609,8 +616,8 @@ guess_cover_player_options <- function(game_state, dvw, system) {
     }
     plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
     poc <- paste0(home_visiting, "_p", pseq)
-    pp <- c(sort(as.numeric(reactiveValuesToList(game_state)[poc])), sort(libs))
-    plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(reactiveValuesToList(game_state)[plsel_tmp[1]])
+    pp <- c(sort(as.numeric(game_state[poc])), sort(libs))
+    plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(game_state[plsel_tmp[1]])
     list(choices = pp, selected = plsel)
 }
 
