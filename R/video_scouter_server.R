@@ -176,7 +176,7 @@ ov_scouter_server <- function(app_data) {
         game_state <- do.call(reactiveValues, temp)
 
         ## court inset showing rotation and team lists
-        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_path = prefs$ball_path)
+        court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_path = reactive(prefs$ball_path))
         ## force a team rotation
         rotate_teams <- reactive(court_inset$rt)
         observe({
@@ -647,13 +647,14 @@ ov_scouter_server <- function(app_data) {
                         } else if (ky %eq% 13) {
                             ## enter
                             ## if editing, treat as update
+                            ## but not for team editing, because pressing enter in the DT fires this too
                             if (!is.null(editing$active) && !editing$active %eq% "teams") {
                                 do_edit_commit()
                             } else if (isTRUE(scout_modal_active())) {
                                 ## if we have a scouting modal showing, and a valid accept_fun entry, run that function
                                 if (!is.null(accept_fun())) try(get(accept_fun(), mode = "function")())
                             }
-                            ## but not for team editing, because pressing enter in the DT fires this too
+                            ## need to stop this propagating to the browser, else it risks e.g. re-firing the most recently used button - done in UI code
                         }
                     }
                 }
