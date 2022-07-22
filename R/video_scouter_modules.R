@@ -25,28 +25,31 @@ mod_teamslists <- function(input, output, session, rdata) {
 mod_courtrot2_ui <- function(id) {
     ns <- NS(id)
     tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;}"))),
-            tags$div(style = "border-radius: 4px; padding: 4px",
+            tags$div(style = "border-radius: 4px; padding: 4px;",
                      plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:45vh;"),##, height = "45vh"))),
                      fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")))),
-                              column(3, uiOutput(ns("switch_serving_ui"), inline = TRUE)),
+                              column(3, actionButton(ns("switch_serving"), HTML("Switch<br />serving team"))),
                               column(2, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
                               column(2, offset = 1, actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")))))
                      ))
 }
 
-mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, rally_state, current_video_src, styling, with_ball_path = TRUE) {
+mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, rally_state, current_video_src, styling, with_ball_path = function() FALSE) {
     ns <- session$ns
     beach <- is_beach(isolate(rdata$dvw))
     pseq <- if (beach) 1:2 else 1:6
 
-    output$switch_serving_ui <- renderUI({
+    observe({
         if (rally_state() %in% c("click or unpause the video to start", "click serve start")) {
-            actionButton(ns("switch_serving"), HTML("Switch<br />serving team"))
+            js_show2(ns("court_inset_swap"))
+            js_show2(ns("switch_serving"))
         } else {
             ## can't switch serving team once the rally has started
-            NULL
+            js_hide2(ns("court_inset_swap"))
+            js_hide2(ns("switch_serving"))
         }
     })
+
     observeEvent(input$switch_serving, {
         game_state$serving <- other(game_state$serving)
         game_state$current_team <- game_state$serving
@@ -70,30 +73,36 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     ## the court plot itself
     ## go to some effort to reduce redraws of the court plot
     plot_data <- reactive({
-        htrot <- tibble(number = get_players(game_state, team = "*", dvw = rdata$dvw))
+        ## watch these
+        blah <- list(game_state$home_team_end, game_state$serving, game_state$home_score_start_of_point, game_state$visiting_score_start_of_point,
+                     game_state$home_p1, game_state$home_p2, game_state$visiting_p1, game_state$visiting_p2)
+        if (!beach) blah <- c(blah, list(game_state$home_p3, game_state$home_p4, game_state$home_p5, game_state$home_p6, game_state$visiting_p3, game_state$visiting_p4, game_state$visiting_p5, game_state$visiting_p6, game_state$home_setter_position, game_state$visiting_setter_position, game_state$ht_lib1, game_state$ht_lib2, game_state$vt_lib1, game_state$vt_lib2))
+        gs <- isolate(reactiveValuesToList(game_state))
+
+        htrot <- tibble(number = get_players(gs, team = "*", dvw = rdata$dvw))
         htrot <- dplyr::left_join(htrot, dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
-        vtrot <- tibble(number = get_players(game_state, team = "a", dvw = rdata$dvw))
+        vtrot <- tibble(number = get_players(gs, team = "a", dvw = rdata$dvw))
         vtrot <- dplyr::left_join(vtrot, dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
-        ht_setter <- get_setter(game_state, team = "*")
+        ht_setter <- get_setter(gs, team = "*")
         ht_libxy <- vt_libxy <- NULL
-        libs <- get_liberos(game_state, team = "*", dvw = rdata$dvw)
+        libs <- get_liberos(gs, team = "*", dvw = rdata$dvw)
         if (length(libs)) {
             ht_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             ht_libxy$pos <- c(5, 7)[seq_len(nrow(ht_libxy))]
-            ht_libxy <- cbind(dv_xy(ht_libxy$pos, end = "lower"), ht_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), game_state$home_team_end) ~ .data$x - 1,
+            ht_libxy <- cbind(dv_xy(ht_libxy$pos, end = "lower"), ht_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), gs$home_team_end) ~ .data$x - 1,
                                                                                                      TRUE ~ .data$x + 3))
         }
-        vt_setter <- get_setter(game_state, team = "a")
-        libs <- get_liberos(game_state, team = "a", dvw = rdata$dvw)
+        vt_setter <- get_setter(gs, team = "a")
+        libs <- get_liberos(gs, team = "a", dvw = rdata$dvw)
         if (length(libs)) {
             vt_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             vt_libxy$pos <- c(1, 9)[seq_len(nrow(vt_libxy))]
-            vt_libxy <- cbind(dv_xy(vt_libxy$pos, end = "upper"), vt_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), game_state$home_team_end) ~ .data$x - 1,
+            vt_libxy <- cbind(dv_xy(vt_libxy$pos, end = "upper"), vt_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), gs$home_team_end) ~ .data$x - 1,
                                                                                                      TRUE ~ .data$x + 3))
         }
-        list(htrot = htrot, vtrot = vtrot, ht_setter = ht_setter, vt_setter = vt_setter, ht_libxy = ht_libxy, vt_libxy = vt_libxy, serving = game_state$serving, home_score_start_of_point = game_state$home_score_start_of_point, visiting_score_start_of_point = game_state$visiting_score_start_of_point)
+        list(htrot = htrot, vtrot = vtrot, ht_setter = ht_setter, vt_setter = vt_setter, ht_libxy = ht_libxy, vt_libxy = vt_libxy, serving = gs$serving, home_score_start_of_point = gs$home_score_start_of_point, visiting_score_start_of_point = gs$visiting_score_start_of_point)
     })
     ## keep track of the digest of the plot_data() object so that we can trigger downstream actions when it has actually changed
     plot_data_digest <- reactiveVal("")
@@ -198,13 +207,13 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     ## keep track of the digest of the rally_codes() object so that we can trigger the plot update when it has actually changed AND only if we are showing ball coords
     rally_codes_digest <- reactiveVal("")
     observe({
-        if (with_ball_path) rally_codes_digest(digest::digest(rally_codes()))
+        if (with_ball_path()) rally_codes_digest(digest::digest(rally_codes()))
     })
     output$court_inset <- renderPlot({
         p <- base_plot()
         blah <- rally_codes_digest()
         isolate({
-            if (nrow(rally_codes()) > 0 && with_ball_path) {
+            if (nrow(rally_codes()) > 0 && with_ball_path()) {
                 ## plot the current rally actions
                 temp_rally_plays2 <- make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw)
                 temp_rally_plays <- plays2_to_plays(temp_rally_plays2, dvw = rdata$dvw, evaluation_decoder = skill_evaluation_decoder()) ## this is the default evaluation decoder, but it doesn't matter here unless we start e.g. colouring things by evaluation
@@ -233,10 +242,8 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         rotate_teams$visiting <- 1L
     })
 
-    observeEvent(input$court_inset_swap, {
-        game_state$home_team_end <- other_end(game_state$home_team_end)
-        dojs("document.getElementById('court_inset_swap').blur();") ## un-focus from button
-    })
+    observeEvent(input$court_inset_swap, game_state$home_team_end <- other_end(game_state$home_team_end))
+
     return(list(rt = rotate_teams, click = clickout))
 }
 
