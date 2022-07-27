@@ -157,7 +157,8 @@ ov_scouter_server <- function(app_data) {
         }
         if (!"serving" %in% names(temp) || is.na(temp$serving)) temp$serving <- "*" ## default to home team serving - maybe allow this as a parm to ov_scouter (maybe TODO)
         temp$current_team <- temp$serving
-        temp$start_x <- temp$start_y <- temp$end_x <- temp$end_y <- NA_real_
+        temp$start_x <- temp$start_y <- temp$mid_x <- temp$mid_y <- temp$end_x <- temp$end_y <- NA_real_
+        temp$startxy_valid <- temp$midxy_valid <- temp$endxy_valid <- FALSE
         temp$current_time_uuid <- ""
         ## liberos
         if (!"ht_lib1" %in% names(temp)) temp$ht_lib1 <- NA_character_
@@ -796,43 +797,24 @@ ov_scouter_server <- function(app_data) {
             output$video_overlay <- renderPlot({
                 ## test - red diagonal line across the overlay plot
                 ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red") + gg_tight
-                if (FALSE) {
-                    p <- ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + gg_tight
-                    if (isTRUE(prefs$show_courtref)) {
-                        oxy <- overlay_court_lines()
-                        ## account for aspect ratios
-                        oxy$image_x <- ar_fix_x(oxy$image_x)
-                        oxy$xend <- ar_fix_x(oxy$xend)
-                        oxy$image_y <- ar_fix_y(oxy$image_y)
-                        oxy$yend <- ar_fix_y(oxy$yend)
-                        p <- p + geom_segment(data = oxy, aes_string(x = "image_x", y = "image_y", xend = "xend", yend = "yend"), color = app_data$styling$court_lines_colour)
-                    }
-                    if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
-                        ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
-                        p <- p + geom_point(data = ixy, fill = "dodgerblue", pch = 21, col = "white", size = 6)
-                    }
-                    p
-                } else {
-                    ## use base plotting, will be faster
-                    ## TODO move the court overlay to video_overlay_img
-                    opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
-                    plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
-                    if (isTRUE(prefs$show_courtref)) {
-                        oxy <- overlay_court_lines()
-                        ## account for aspect ratios
-                        oxy$image_x <- ar_fix_x(oxy$image_x)
-                        oxy$xend <- ar_fix_x(oxy$xend)
-                        oxy$image_y <- ar_fix_y(oxy$image_y)
-                        oxy$yend <- ar_fix_y(oxy$yend)
-                        segments(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
-                    }
-                    if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
-                        ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
-                        points(ixy$x[overlay_points()$valid], ixy$y[overlay_points()$valid], bg = "dodgerblue", pch = 21, col = "white", cex = 2.5)
-                        points(ixy$x[!overlay_points()$valid], ixy$y[!overlay_points()$valid], bg = "firebrick", pch = 21, col = "white", cex = 2.5)
-                    }
-                    par(opar)
+                ## TODO move the court overlay to video_overlay_img
+                opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
+                plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
+                if (isTRUE(prefs$show_courtref)) {
+                    oxy <- overlay_court_lines()
+                    ## account for aspect ratios
+                    oxy$image_x <- ar_fix_x(oxy$image_x)
+                    oxy$xend <- ar_fix_x(oxy$xend)
+                    oxy$image_y <- ar_fix_y(oxy$image_y)
+                    oxy$yend <- ar_fix_y(oxy$yend)
+                    segments(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
                 }
+                if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
+                    ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
+                    points(ixy$x[overlay_points()$valid], ixy$y[overlay_points()$valid], bg = "dodgerblue", pch = 21, col = "white", cex = 2.5)
+                    points(ixy$x[!overlay_points()$valid], ixy$y[!overlay_points()$valid], bg = "firebrick", pch = 21, col = "white", cex = 2.5)
+                }
+                par(opar)
             }, bg = "transparent", width = vo_width(), height = vo_height())
         })
         vid_to_crt <- function(obj, arfix = TRUE) {
@@ -1017,12 +999,13 @@ ov_scouter_server <- function(app_data) {
                     game_state$start_x <- sxy$x[1]
                     game_state$start_y <- sxy$y[1]
                     game_state$start_t <- game_state$current_time_uuid
+                    game_state$startxy_valid <- sxy$valid[1]
                     overlay_points(sxy)
                     ## add placeholder serve code, will get updated on next click
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     ## serve type should have been selected in the preselect
                     st <- if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else default_skill_tempo("S")
-                    sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
+                    sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE) else NA_integer_
                     ## time probably won't have resolved yet, so add it after next click
                     rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     game_state$current_team <- other(game_state$serving)
@@ -1034,6 +1017,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$end_x <- sxy$x[1]
                     game_state$end_y <- sxy$y[1]
                     game_state$end_t <- game_state$current_time_uuid
+                    game_state$endxy_valid <- sxy$valid[1]
                     overlay_points(rbind(overlay_points(), sxy))
                     ## pop up to find either serve error, or passing player
                     ## passing player options
@@ -1094,6 +1078,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$start_x <- sxy$x[1]
                     game_state$start_y <- sxy$y[1]
                     game_state$start_t <- game_state$current_time_uuid
+                    game_state$startxy_valid <- sxy$valid[1]
                     overlay_points(sxy)
                     ## popup
                     ## TODO maybe also setter call here
@@ -1119,7 +1104,7 @@ ov_scouter_server <- function(app_data) {
                     opp_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c2_opp_player")
                     if (isTRUE(input$shiftkey)) {
                         ## accept set by setter on court, with no popup
-                        esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
+                        esz <- if (isTRUE(game_state$startxy_valid)) as.character(dv_xy2subzone(game_state$start_x, game_state$start_y)) else c("~", "~")
                         passq <- guess_pass_quality(game_state, dvw = rdata$dvw)
                         rc <- rally_codes()
                         rc$eval[rc$skill %eq% "R"] <- passq
@@ -1164,6 +1149,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$start_x <- sxy$x[1]
                     game_state$start_y <- sxy$y[1]
                     game_state$start_t <- game_state$current_time_uuid
+                    game_state$startxy_valid <- sxy$valid[1]
                     overlay_points(sxy)
                     ## popup
                     ## figure current phase
@@ -1249,6 +1235,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$end_x <- sxy$x[1]
                     game_state$end_y <- sxy$y[1]
                     game_state$end_t <- game_state$current_time_uuid
+                    game_state$startxy_valid <- sxy$valid[1]
                     overlay_points(sxy)
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
@@ -1313,6 +1300,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$end_x <- sxy$x[1]
                     game_state$end_y <- sxy$y[1]
                     game_state$end_t <- game_state$current_time_uuid
+                    game_state$startxy_valid <- sxy$valid[1]
                     overlay_points(sxy)
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
@@ -1588,7 +1576,7 @@ ov_scouter_server <- function(app_data) {
                     remove_scout_modal()
                     special_code <- substr(serve_err_type, 2, 2)
                     if (special_code %eq% "N" && rdata$options$end_convention %eq% "actual") game_state$end_y <- 3.5 ## exactly on net
-                    esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
+                    esz <- if (isTRUE(game_state$endxy_valid)) as.character(dv_xy2subzone(game_state$end_x, game_state$end_y)) else c("~", "~")
                     rc <- rally_codes()
                     Sidx <- which(rc$skill == "S")
                     if (length(Sidx) == 1) {
@@ -1604,8 +1592,8 @@ ov_scouter_server <- function(app_data) {
                     pp <- if (!is.null(input$pass_player)) input$pass_player else 0L
                     st <- if (!is.null(input$serve_type)) input$serve_type else default_skill_tempo("S")
                     remove_scout_modal()
-                    sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
-                    esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
+                    sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE) else NA_integer_
+                    esz <- if (isTRUE(game_state$endxy_valid)) as.character(dv_xy2subzone(game_state$end_x, game_state$end_y)) else c("~", "~")
                     start_t <- retrieve_video_time(game_state$start_t)
                     end_t <- retrieve_video_time(game_state$end_t)
                     rc <- rally_codes()
@@ -1624,8 +1612,8 @@ ov_scouter_server <- function(app_data) {
                     st <- if (!is.null(input$serve_type)) input$serve_type else default_skill_tempo("S")
                     pp <- if (!is.null(input$pass_player)) input$pass_player else 0L
                     remove_scout_modal()
-                    sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
-                    esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
+                    sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE) else NA_integer_
+                    esz <- if (isTRUE(game_state$endxy_valid)) as.character(dv_xy2subzone(game_state$end_x, game_state$end_y)) else c("~", "~")
                     start_t <- retrieve_video_time(game_state$start_t)
                     end_t <- retrieve_video_time(game_state$end_t)
                     rc <- rally_codes()
@@ -1656,7 +1644,7 @@ ov_scouter_server <- function(app_data) {
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = input$c1_block_touch_player, skill = "B", eval = beval, tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table))) ## TODO x,y?
                 }
             }
-            esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
+            esz <- if (isTRUE(game_state$endxy_valid)) as.character(dv_xy2subzone(game_state$end_x, game_state$end_y)) else c("~", "~")
             if (input$c1 %in% c("A#", "A=")) {
                 ##end_t <- retrieve_video_time(game_state$end_t)
                 eval <- substr(input$c1, 2, 2)
@@ -1807,7 +1795,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$assign_f1, do_assign_f1())
         do_assign_f1 <- function() {
             ## possible values for input$f1 are currently: F=, FD, FD=, aPR
-            esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
+            esz <- if (isTRUE(game_state$endxy_valid)) as.character(dv_xy2subzone(game_state$end_x, game_state$end_y)) else c("~", "~")
             rc <- rally_codes()
             Fidx <- if (rc$skill[nrow(rc)] == "F") nrow(rc) else NA_integer_
             if (input$f1 %eq% "F=") {
@@ -1860,7 +1848,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$assign_c2, do_assign_c2())
         do_assign_c2 <- function() {
             ## set uses end position for zone/subzone
-            esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
+            esz <- if (isTRUE(game_state$startxy_valid)) as.character(dv_xy2subzone(game_state$start_x, game_state$start_y)) else c("~", "~")
             passq <- if (!is.null(input$c2_pq)) input$c2_pq else guess_pass_quality(game_state, dvw = rdata$dvw)
             rc <- rally_codes()
             rc$eval[rc$skill %eq% "R"] <- passq
@@ -1883,7 +1871,7 @@ ov_scouter_server <- function(app_data) {
                     rally_ended()
                 } else if (input$c2 %in% c("PP", "P2")) {
                     ## setter dump or second ball attack
-                    sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
+                    sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y) else NA_integer_
                     ## although we use PP and P2 in the R code here, we can use different combo codes in the dvw, following rdata$options$setter_dump_code and rdata$options$second_ball_attack_code
                     trg <- if (input$c2 == "PP") "S" else "~"
                     ## update target in the preceding set row, if there was one
@@ -1895,7 +1883,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                 } else if (input$c2 == "F") {
                     ## freeball over
-                    sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
+                    sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y) else NA_integer_
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "F", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     ## TODO add end pos to this on next contact
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
@@ -1952,7 +1940,7 @@ ov_scouter_server <- function(app_data) {
             ## possible values for input$c3 are: an attack code, Other attack, "F" Freeball or "E=" set error (if not scouting transition sets)
             ##    "Opp. dig" = "aD", "Opp. overpass attack" = "aPR"
             start_t <- retrieve_video_time(game_state$start_t)
-            sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
+            sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y) else NA_integer_
             rc <- rally_codes()
             if (input$c3 %in% c("aPR", "aD", "aD=")) {
                 ## adjust the prior skill, if it was a dig or reception then evaluation is "/", if it was a set then "-"
@@ -1991,7 +1979,7 @@ ov_scouter_server <- function(app_data) {
                     rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = "=")
                     rally_codes(rc)
                 } else {
-                    esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
+                    esz <- if (isTRUE(game_state$startxy_valid)) as.character(dv_xy2subzone(game_state$start_x, game_state$start_y)) else c("~", "~")
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = if (!is.null(input$c3_player)) input$c3_player else 0L, skill = "E", eval = "=", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                 }
                 game_state$point_won_by <- other(game_state$current_team)
