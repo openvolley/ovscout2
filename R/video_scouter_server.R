@@ -971,6 +971,7 @@ ov_scouter_server <- function(app_data) {
             xy$valid <- TRUE
             ## if inputs are NA or missing, then valid is FALSE and placeholder point goes in middle of team's court (or middle of baseline if a serve)
             ## this should only ever be a single row?
+            xy <- xy[1, , drop = FALSE]
             naidx <- is.na(xy$x) | is.na(xy$y)
             xy$valid[naidx] <- FALSE
             xy$x[naidx] <- 2.0
@@ -1000,6 +1001,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$start_y <- sxy$y[1]
                     game_state$start_t <- game_state$current_time_uuid
                     game_state$startxy_valid <- sxy$valid[1]
+                    sxy$start_end <- "start"
                     overlay_points(sxy)
                     ## add placeholder serve code, will get updated on next click
                     sp <- if (!is.null(input$serve_preselect_player)) input$serve_preselect_player else if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
@@ -1018,6 +1020,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$end_y <- sxy$y[1]
                     game_state$end_t <- game_state$current_time_uuid
                     game_state$endxy_valid <- sxy$valid[1]
+                    sxy$start_end <- "end"
                     overlay_points(rbind(overlay_points(), sxy))
                     ## pop up to find either serve error, or passing player
                     ## passing player options
@@ -1079,6 +1082,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$start_y <- sxy$y[1]
                     game_state$start_t <- game_state$current_time_uuid
                     game_state$startxy_valid <- sxy$valid[1]
+                    sxy$start_end <- "start"
                     overlay_points(sxy)
                     ## popup
                     ## TODO maybe also setter call here
@@ -1150,6 +1154,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$start_y <- sxy$y[1]
                     game_state$start_t <- game_state$current_time_uuid
                     game_state$startxy_valid <- sxy$valid[1]
+                    sxy$start_end <- "start"
                     overlay_points(sxy)
                     ## popup
                     ## figure current phase
@@ -1235,7 +1240,8 @@ ov_scouter_server <- function(app_data) {
                     game_state$end_x <- sxy$x[1]
                     game_state$end_y <- sxy$y[1]
                     game_state$end_t <- game_state$current_time_uuid
-                    game_state$startxy_valid <- sxy$valid[1]
+                    game_state$endxy_valid <- sxy$valid[1]
+                    sxy$start_end <- "end"
                     overlay_points(sxy)
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
@@ -1300,7 +1306,8 @@ ov_scouter_server <- function(app_data) {
                     game_state$end_x <- sxy$x[1]
                     game_state$end_y <- sxy$y[1]
                     game_state$end_t <- game_state$current_time_uuid
-                    game_state$startxy_valid <- sxy$valid[1]
+                    game_state$endxy_valid <- sxy$valid[1]
+                    sxy$start_end <- "end"
                     overlay_points(sxy)
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
@@ -2293,8 +2300,18 @@ ov_scouter_server <- function(app_data) {
                         op$x[closest] <- px$x
                         op$y[closest] <- px$y
                         op$valid[closest] <- TRUE
-                        courtxy(op)
                         overlay_points(op)
+                        ## but also game_state
+##                        cat("op is: ", cstr(op), ", updating row ", closest, "\n")
+                        if (op$start_end[closest] %eq% "start") {
+                            game_state$start_x <- px$x
+                            game_state$start_y <- px$y
+                            game_state$startxy_valid <- TRUE
+                        } else if (op$start_end[closest] %eq% "end") {
+                            game_state$end_x <- px$x
+                            game_state$end_y <- px$y
+                            game_state$endxy_valid <- TRUE
+                        }
                     }
                 } else {
                     ## was drag but redraw delay time hasn't passed yet
