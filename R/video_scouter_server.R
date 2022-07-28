@@ -1002,7 +1002,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$startxy_valid <- sxy$valid[1]
                     overlay_points(sxy)
                     ## add placeholder serve code, will get updated on next click
-                    sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
+                    sp <- if (!is.null(input$serve_preselect_player)) input$serve_preselect_player else if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     ## serve type should have been selected in the preselect
                     st <- if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else default_skill_tempo("S")
                     sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE) else NA_integer_
