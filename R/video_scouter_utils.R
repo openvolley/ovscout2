@@ -230,11 +230,25 @@ codes_from_rc_rows <- function(rc) {
 }
 
 ## the code parm here can be used to provide a direct scout code, useful if e.g. the tibble row isn't a scouted skill
-code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, mid_x = NA_real_, mid_y = NA_real_, end_x = NA_real_, end_y = NA_real_, code = NA_character_, rally_state, game_state, default_scouting_table) {
+code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, mid_x = NA_real_, mid_y = NA_real_, end_x = NA_real_, end_y = NA_real_, code = NA_character_, rally_state, startxy_valid, midxy_valid, endxy_valid, game_state, default_scouting_table) {
     ## abbreviated parameter names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
     ## providing 'code' is a special case
     na2t <- function(z, width = 1) if (is.na(z)) { if (width == 1) "~" else paste0(rep("~", width), collapse = "") } else z
     if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
+    if (missing(startxy_valid)) startxy_valid <- game_state$startxy_valid
+    if (missing(midxy_valid)) midxy_valid <- game_state$midxy_valid
+    if (missing(endxy_valid)) endxy_valid <- game_state$endxy_valid
+    if (!isTRUE(startxy_valid)) {
+        start_x <- start_y <- NA_real_
+        sz <- "~"
+    }
+    if (!isTRUE(midxy_valid)) {
+        mid_x <- mid_y <- NA_real_
+    }
+    if (!isTRUE(endxy_valid)) {
+        end_x <- end_y <- NA_real_
+        ez <- esz <- "~"
+    }
     if (!is.na(code)) {
         NAc <- NA_character_
         tibble(team = NAc, pnum = NAc, skill = NAc, tempo = NAc, eval = NAc, combo = NAc, target = NAc, sz = NAc, ez = NAc, esz = NAc, x_type = NAc, num_p = NAc, special = NAc, custom = NAc, code = code, t = t, start_x = start_x, start_y = start_y, mid_x = mid_x, mid_y = mid_y, end_x = end_x, end_y = end_y, rally_state = rally_state, game_state = list(game_state), current_team = game_state$current_team)
@@ -247,10 +261,12 @@ code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target 
     }
 }
 
-update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, code, t, start_x, start_y, mid_x, mid_y, end_x, end_y) {
-    new_ez <- if (!missing(ez)) ez else trow$ez
+update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, code, t, start_x, start_y, mid_x, mid_y, end_x, end_y, game_state) {
+    ## the only things we take from the input game_state parm are the *xy_valid entries
+    ## start/end positions passed in here will be ignored if the corresponding *xy_valid entry is FALSE
+    new_ez <- if (!missing(ez) && isTRUE(game_state$endxy_valid)) ez else trow$ez
     new_esz <- trow$esz
-    if (!missing(esz)) {
+    if (!missing(esz) && isTRUE(game_state$endxy_valid)) {
         if (nchar(esz) == 2) {
             new_ez <- substr(esz, 1, 1)
             new_esz <- substr(esz, 2, 2)
@@ -258,6 +274,11 @@ update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target
             new_esz <- if (nchar(esz) > 0) substr(esz, 1, 1) else "~" ## first char only
         }
     }
+    ## the existing game_state gets re-used, but update the *xy_valid entries
+    gs <- trow$game_state[[1]]
+    if (!missing(sz) || !missing(start_x) || !missing(start_y)) gs$startxy_valid <- game_state$startxy_valid
+    if (!missing(mid_x) || !missing(mid_y)) gs$midxy_valid <- game_state$midxy_valid
+    if (!missing(ez) || !missing(esz) || !missing(end_x) || !missing(end_y)) gs$endxy_valid <- game_state$endxy_valid
     code_trow(team = if (!missing(team)) team else trow$team,
               pnum = if (!missing(pnum)) pnum else trow$pnum,
               skill = if (!missing(skill)) skill else trow$skill,
@@ -265,7 +286,7 @@ update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target
               eval = if (!missing(eval)) eval else trow$eval,
               combo = if (!missing(combo)) combo else trow$combo,
               target = if (!missing(target)) target else trow$target,
-              sz = if (!missing(sz)) sz else trow$sz,
+              sz = if (!missing(sz) && isTRUE(game_state$startxy_valid)) sz else trow$sz,
               ez = new_ez,
               esz = new_esz,
               x_type = if (!missing(x_type)) x_type else trow$x_type,
@@ -274,14 +295,14 @@ update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target
               custom = if (!missing(custom)) custom else trow$custom,
               code = if (!missing(code)) code else trow$code,
               t = if (!missing(t)) t else trow$t,
-              start_x = if (!missing(start_x)) start_x else trow$start_x,
-              start_y = if (!missing(start_y)) start_y else trow$start_y,
-              mid_x = if (!missing(mid_x)) mid_x else trow$mid_x,
-              mid_y = if (!missing(mid_y)) mid_y else trow$mid_y,
-              end_x = if (!missing(end_x)) end_x else trow$end_x,
-              end_y = if (!missing(end_y)) end_y else trow$end_y,
+              start_x = if (!missing(start_x) && isTRUE(game_state$startxy_valid)) start_x else trow$start_x,
+              start_y = if (!missing(start_y) && isTRUE(game_state$startxy_valid)) start_y else trow$start_y,
+              mid_x = if (!missing(mid_x) && isTRUE(game_state$midxy_valid)) mid_x else trow$mid_x,
+              mid_y = if (!missing(mid_y) && isTRUE(game_state$midxy_valid)) mid_y else trow$mid_y,
+              end_x = if (!missing(end_x) && isTRUE(game_state$endxy_valid)) end_x else trow$end_x,
+              end_y = if (!missing(end_y) && isTRUE(game_state$endxy_valid)) end_y else trow$end_y,
               rally_state = trow$rally_state,
-              game_state = trow$game_state[[1]])
+              game_state = gs)
 }
 
 get_setter_pos <- function(game_state, team) {
