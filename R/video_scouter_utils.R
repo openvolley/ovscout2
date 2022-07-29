@@ -230,18 +230,20 @@ codes_from_rc_rows <- function(rc) {
 }
 
 ## the code parm here can be used to provide a direct scout code, useful if e.g. the tibble row isn't a scouted skill
-code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, mid_x = NA_real_, mid_y = NA_real_, end_x = NA_real_, end_y = NA_real_, code = NA_character_, rally_state, startxy_valid, midxy_valid, endxy_valid, game_state, default_scouting_table) {
+code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, mid_x = NA_real_, mid_y = NA_real_, end_x = NA_real_, end_y = NA_real_, code = NA_character_, rally_state, startxy_valid, start_zone_valid, midxy_valid, endxy_valid, game_state, default_scouting_table) {
     ## abbreviated parameter names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
     ## providing 'code' is a special case
     na2t <- function(z, width = 1) if (is.na(z)) { if (width == 1) "~" else paste0(rep("~", width), collapse = "") } else z
     if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
     if (missing(startxy_valid)) startxy_valid <- game_state$startxy_valid
+    if (missing(start_zone_valid)) start_zone_valid <- game_state$startxy_valid
     if (missing(midxy_valid)) midxy_valid <- game_state$midxy_valid
     if (missing(endxy_valid)) endxy_valid <- game_state$endxy_valid
     if (!isTRUE(startxy_valid)) {
         start_x <- start_y <- NA_real_
-        sz <- "~"
     }
+    ## treat start zone validity separately from startxy (coords), because the zone might be valid (e.g. inferred from combo code) even if the coords are not valid
+    if (!isTRUE(start_zone_valid)) sz <- "~"
     if (!isTRUE(midxy_valid)) {
         mid_x <- mid_y <- NA_real_
     }
