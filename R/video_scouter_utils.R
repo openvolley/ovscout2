@@ -263,12 +263,13 @@ code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target 
     }
 }
 
-update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, code, t, start_x, start_y, mid_x, mid_y, end_x, end_y, game_state) {
+update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, code, t, start_x, start_y, mid_x, mid_y, end_x, end_y, start_zone_valid, game_state) {
+    if (missing(start_zone_valid)) start_zone_valid <- game_state$startxy_valid
     ## the only things we take from the input game_state parm are the *xy_valid entries
     ## start/end positions passed in here will be ignored if the corresponding *xy_valid entry is FALSE
-    new_ez <- if (!missing(ez) && isTRUE(game_state$endxy_valid)) ez else trow$ez
+    new_ez <- if (!missing(ez) && !is.null(ez) && isTRUE(game_state$endxy_valid)) ez else trow$ez
     new_esz <- trow$esz
-    if (!missing(esz) && isTRUE(game_state$endxy_valid)) {
+    if (!missing(esz) && !is.null(esz) && isTRUE(game_state$endxy_valid)) {
         if (nchar(esz) == 2) {
             new_ez <- substr(esz, 1, 1)
             new_esz <- substr(esz, 2, 2)
@@ -278,31 +279,32 @@ update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target
     }
     ## the existing game_state gets re-used, but update the *xy_valid entries
     gs <- trow$game_state[[1]]
-    if (!missing(sz) || !missing(start_x) || !missing(start_y)) gs$startxy_valid <- game_state$startxy_valid
-    if (!missing(mid_x) || !missing(mid_y)) gs$midxy_valid <- game_state$midxy_valid
-    if (!missing(ez) || !missing(esz) || !missing(end_x) || !missing(end_y)) gs$endxy_valid <- game_state$endxy_valid
-    code_trow(team = if (!missing(team)) team else trow$team,
-              pnum = if (!missing(pnum)) pnum else trow$pnum,
-              skill = if (!missing(skill)) skill else trow$skill,
-              tempo = if (!missing(tempo)) tempo else trow$tempo,
-              eval = if (!missing(eval)) eval else trow$eval,
-              combo = if (!missing(combo)) combo else trow$combo,
-              target = if (!missing(target)) target else trow$target,
-              sz = if (!missing(sz) && isTRUE(game_state$startxy_valid)) sz else trow$sz,
+    if (##(!missing(sz) && !is.null(sz)) || ## sz might be provided (from e.g. attack combo code) even though coords are invalid
+        (!missing(start_x) && !is.null(start_x)) || (!missing(start_y) && !is.null(start_y))) gs$startxy_valid <- game_state$startxy_valid
+    if ((!missing(mid_x) && !is.null(mid_x)) || (!missing(mid_y) && !is.null(mid_y))) gs$midxy_valid <- game_state$midxy_valid
+    if ((!missing(ez) && !is.null(ez)) || (!missing(esz) && !is.null(esz)) || (!missing(end_x) && !is.null(end_x)) || (!missing(end_y) && !is.null(end_y))) gs$endxy_valid <- game_state$endxy_valid
+    code_trow(team = if (!missing(team) && !is.null(team)) team else trow$team,
+              pnum = if (!missing(pnum) && !is.null(pnum)) pnum else trow$pnum,
+              skill = if (!missing(skill) && !is.null(skill)) skill else trow$skill,
+              tempo = if (!missing(tempo) && !is.null(tempo)) tempo else trow$tempo,
+              eval = if (!missing(eval) && !is.null(eval)) eval else trow$eval,
+              combo = if (!missing(combo) && !is.null(combo)) combo else trow$combo,
+              target = if (!missing(target) && !is.null(target)) target else trow$target,
+              sz = if (!missing(sz) && !is.null(sz) && isTRUE(start_zone_valid)) sz else trow$sz,
               ez = new_ez,
               esz = new_esz,
-              x_type = if (!missing(x_type)) x_type else trow$x_type,
-              num_p = if (!missing(num_p)) num_p else trow$num_p,
-              special = if (!missing(special)) special else trow$special,
-              custom = if (!missing(custom)) custom else trow$custom,
-              code = if (!missing(code)) code else trow$code,
-              t = if (!missing(t)) t else trow$t,
-              start_x = if (!missing(start_x) && isTRUE(game_state$startxy_valid)) start_x else trow$start_x,
-              start_y = if (!missing(start_y) && isTRUE(game_state$startxy_valid)) start_y else trow$start_y,
-              mid_x = if (!missing(mid_x) && isTRUE(game_state$midxy_valid)) mid_x else trow$mid_x,
-              mid_y = if (!missing(mid_y) && isTRUE(game_state$midxy_valid)) mid_y else trow$mid_y,
-              end_x = if (!missing(end_x) && isTRUE(game_state$endxy_valid)) end_x else trow$end_x,
-              end_y = if (!missing(end_y) && isTRUE(game_state$endxy_valid)) end_y else trow$end_y,
+              x_type = if (!missing(x_type) && !is.null(x_type)) x_type else trow$x_type,
+              num_p = if (!missing(num_p) && !is.null(num_p)) num_p else trow$num_p,
+              special = if (!missing(special) && !is.null(special)) special else trow$special,
+              custom = if (!missing(custom) && !is.null(custom)) custom else trow$custom,
+              code = if (!missing(code) && !is.null(code)) code else trow$code,
+              t = if (!missing(t) && !is.null(t)) t else trow$t,
+              start_x = if (!missing(start_x) && !is.null(start_x) && isTRUE(game_state$startxy_valid)) start_x else trow$start_x,
+              start_y = if (!missing(start_y) && !is.null(start_y) && isTRUE(game_state$startxy_valid)) start_y else trow$start_y,
+              mid_x = if (!missing(mid_x) && !is.null(mid_x) && isTRUE(game_state$midxy_valid)) mid_x else trow$mid_x,
+              mid_y = if (!missing(mid_y) && !is.null(mid_y) && isTRUE(game_state$midxy_valid)) mid_y else trow$mid_y,
+              end_x = if (!missing(end_x) && !is.null(end_x) && isTRUE(game_state$endxy_valid)) end_x else trow$end_x,
+              end_y = if (!missing(end_y) && !is.null(end_y) && isTRUE(game_state$endxy_valid)) end_y else trow$end_y,
               rally_state = trow$rally_state,
               game_state = gs)
 }
