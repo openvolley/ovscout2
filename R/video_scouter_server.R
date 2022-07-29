@@ -1972,9 +1972,9 @@ ov_scouter_server <- function(app_data) {
                     ## delayed reception error (e.g. shanked pass)
                     ## just adjust the S & R evaluations and end the point
                     Sidx <- which(rc$skill == "S")
-                    if (length(Sidx) == 1) rc[Sidx, ] <- update_code_trow(rc[Sidx, ], eval = "#")
+                    if (length(Sidx) == 1) rc[Sidx, ] <- update_code_trow(rc[Sidx, ], eval = "#", game_state = game_state)
                     Ridx <- which(rc$skill == "R")
-                    if (length(Ridx) == 1) rc[Ridx, ] <- update_code_trow(rc[Ridx, ], eval = "=")
+                    if (length(Ridx) == 1) rc[Ridx, ] <- update_code_trow(rc[Ridx, ], eval = "=", game_state = game_state)
                     rally_codes(rc)
                     game_state$current_team <- game_state$serving
                     game_state$point_won_by <- game_state$serving
@@ -1985,7 +1985,7 @@ ov_scouter_server <- function(app_data) {
                 ## adjust the prior skill, if it was a dig or reception then evaluation is "/", if it was a set then "-"
                 if (tail(rc$skill, 1) %in% c("R", "D", "E") && tail(rc$team, 1) %eq% game_state$current_team) {
                     new_eval <- if (tail(rc$skill, 1) %eq% "E") "-" else "/"
-                    rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval)
+                    rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval, game_state = game_state)
                 }
                 op <- if (!is.null(input$c2_opp_player)) input$c2_opp_player else 0L
                 ## esz here actually came from start_x and start_y above
@@ -1997,7 +1997,7 @@ ov_scouter_server <- function(app_data) {
                 ## adjust the prior skill, if it was a dig or reception then evaluation is "/", if it was a set then "-"
                 if (tail(rc$skill, 1) %in% c("R", "D", "E") && tail(rc$team, 1) %eq% game_state$current_team) {
                     new_eval <- if (tail(rc$skill, 1) %eq% "E") "-" else "/"
-                    rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval)
+                    rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval, game_state = game_state)
                 }
                 op <- if (!is.null(input$c2_opp_player)) input$c2_opp_player else 0L
                 rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "D", eval = if (input$c2 %eq% "aD=") "=" else "~", sz = esz[1], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
@@ -2028,7 +2028,7 @@ ov_scouter_server <- function(app_data) {
                 ## but we can only do this if we are scouting transition sets, otherwise we can be sure if it was e.g. D/ or a set over
                 if (isTRUE(rdata$options$transition_sets) && tail(rc$skill, 1) %in% c("R", "D", "E") && tail(rc$team, 1) %eq% game_state$current_team) {
                     new_eval <- if (tail(rc$skill, 1) %eq% "E") "-" else "/"
-                    rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval)
+                    rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval, game_state = game_state)
                 }
             }
             if (input$c3 %eq% "aPR") {
@@ -2057,7 +2057,7 @@ ov_scouter_server <- function(app_data) {
                 ## set error
                 ## this is the third contact, so we should modify the existing set if we have scouted a set
                 if (tail(rc$skill, 1) %eq% "E") {
-                    rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = "=")
+                    rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = "=", game_state = game_state)
                     rally_codes(rc)
                 } else {
                     esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
@@ -2105,7 +2105,7 @@ ov_scouter_server <- function(app_data) {
                 ##if (tail(rc$skill, 1) == "E") rc$target[nrow(rc)] <- targ
                 ## these only seem to be populated when setter calls are used TODO
                 ## update set tempo
-                if (tail(rc$skill, 1) == "E" && tempo != "~") rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], tempo = tempo)
+                if (tail(rc$skill, 1) == "E" && tempo != "~") rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], tempo = tempo, game_state = game_state)
                 nb <- input$nblockers
                 if (is.null(nb) || !nb %in% 0:3) nb <- "~"
                 rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = ap, skill = "A", tempo = tempo, combo = ac, sz = sz, num_p = nb, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, start_zone_valid = szvalid, default_scouting_table = rdata$options$default_scouting_table)))
