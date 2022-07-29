@@ -483,11 +483,8 @@ guess_attack_player_options <- function(game_state, dvw, system) {
     attacking_team <- game_state$current_team
     home_visiting <- if (game_state$current_team %eq% "*") "home" else "visiting"
     setter_rot <- game_state[[paste0(home_visiting, "_setter_position")]]
-    this_y <- game_state$start_y
     ## adjust the y-coordinate: back row attacks are likely to be clicked just in front of the 3m line, and dv_xy2zone will assign them a front-row zone
-    ##cat("attack y was: ", this_y)
-    y_margin <- 0.33 ## in court units, so 0.33 * 3 = about 1m in real court coordinates
-    if (this_y < (2.5 + y_margin)) this_y <- this_y - y_margin else if (this_y > (4.5 - y_margin)) this_y <- this_y + y_margin
+    this_y <- adjusted_backrow_pos(game_state = game_state)$y
     ##cat(", now:", this_y, "\n")
     attacking_zone <- dv_xy2zone(game_state$start_x, this_y)
     ##cat("attack zone: ", attacking_zone, "\n")
@@ -526,7 +523,7 @@ guess_attack_code <- function(game_state, dvw, opts) {
     ## the start location in the attack table is a bit in front of the 3m line for back-row attacks
     ## shift our y-location forwards a bit to reduce risk of our front-row click looking like it's nearest to a back-row location
     ## TODO, better solution than this
-    thisxy[2] <- thisxy[2] + 0.33 ## 0.33 = about 1m in real court space. See same adjustment in guess_attack_player_options
+    thisxy[2] <- thisxy[2] + backrow_y_margin ## 0.33 = about 1m in real court space. See same adjustment in guess_attack_player_options
     d <- sqrt((atbl$start_x - thisxy[1])^2 + (atbl$start_y - thisxy[2])^2)
     ## if setter is back row, slides are unlikely
     ## TODO what happens with beach?
@@ -680,15 +677,23 @@ flash_screen <- function() dojs("$('#video_overlay_img').css('background-color',
 gg_tight <- list(theme(legend.position = "none", panel.background = element_rect(fill = "transparent", colour = NA), plot.background = element_rect(fill = "transparent", color = NA), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.spacing = unit(0, "null"), plot.margin = rep(unit(0, "null"), 4), axis.ticks = element_blank(), axis.ticks.length = unit(0, "null"), axis.text.x = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank(), axis.title.y = element_blank()), scale_x_continuous(limits = c(0, 1), expand = c(0, 0)), scale_y_continuous(limits = c(0, 1), expand = c(0, 0)))
 
 infer_mid_coords <- function(game_state, start_x, start_y, end_x, end_y) {
-    if (!missing(game_state)) {
-        if (missing(start_x)) start_x <- game_state$start_x
-        if (missing(start_y)) start_y <- game_state$start_y
-        if (missing(end_x)) end_x <- game_state$end_x
-        if (missing(end_y)) end_y <- game_state$end_y
-    }
+    if (missing(start_x)) start_x <- game_state$start_x
+    if (missing(start_y)) start_y <- game_state$start_y
+    if (missing(end_x)) end_x <- game_state$end_x
+    if (missing(end_y)) end_y <- game_state$end_y
+    if (!isTRUE(game_state$startxy_valid)) { start_x <- start_y <- NA_real_ }
+    if (!isTRUE(game_state$endxy_valid)) { end_x <- end_y <- NA_real_ }
     ## assume that ball has either bounced off the block as if it were a perpendicular surface (for A!), or not deviated from the block (for block touches, not used for this yet)
     mid_x <- start_x + (end_x - start_x) * abs(start_y - 3.5) / (abs(start_y - 3.5) + abs(end_y - 3.5))
-    c(mid_x, 3.5)
+    c(mid_x, if (!is.na(mid_x)) 3.5 else NA_real_)
+}
+
+## clicking a back-row attack will often have the click in front of the 3m line, but we want the start zone of these attacks to be considered as the backrow zone
+backrow_y_margin <- 0.33 ## how much in front of the line do we allow? 0.33 in court units is about 1m in real court space
+adjusted_backrow_pos <- function(x, y, game_state) {
+    adjy <- if (missing(y)) game_state$start_y else y
+    if (adjy < (2.5 + backrow_y_margin)) adjy <- adjy - backrow_y_margin else if (adjy > (4.5 - backrow_y_margin)) adjy <- adjy + backrow_y_margin
+    list(zone = dv_xy2zone(if (missing(x)) game_state$start_x else x, adjy), y = adjy)
 }
 
 get_teams_from_dvw_dir <- function(season) {
