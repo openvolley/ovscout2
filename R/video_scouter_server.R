@@ -1007,8 +1007,8 @@ ov_scouter_server <- function(app_data) {
                     sp <- if (!is.null(input$serve_preselect_player)) input$serve_preselect_player else if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     ## serve type should have been selected in the preselect
                     st <- if (!is.null(input$serve_preselect_type)) input$serve_preselect_type else default_skill_tempo("S")
-                    sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE) else NA_integer_
-                    ## time probably won't have resolved yet, so add it after next click
+                    sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
+                    ## time might not have resolved yet if it is coming from the asynchronous handler, so add it after next click
                     rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     game_state$current_team <- other(game_state$serving)
                     rally_state("click serve end")
@@ -1108,7 +1108,7 @@ ov_scouter_server <- function(app_data) {
                     opp_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c2_opp_player")
                     if (isTRUE(input$shiftkey)) {
                         ## accept set by setter on court, with no popup
-                        esz <- if (isTRUE(game_state$startxy_valid)) as.character(dv_xy2subzone(game_state$start_x, game_state$start_y)) else c("~", "~")
+                        esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
                         passq <- guess_pass_quality(game_state, dvw = rdata$dvw)
                         rc <- rally_codes()
                         rc$eval[rc$skill %eq% "R"] <- passq
@@ -1117,7 +1117,8 @@ ov_scouter_server <- function(app_data) {
                         if (nchar(seval) != 1) seval <- "~"
                         rc$eval[rc$skill %eq% "S"] <- seval
                         start_t <- retrieve_video_time(game_state$start_t)
-                        rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = soc, skill = "E", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                        ## note that the position gets assigned to the start coordinates, but end zone/subzone
+                        rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = soc, skill = "E", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                         rally_state("click third contact")
                         do_video("play")
                     } else {
@@ -1242,7 +1243,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$end_t <- game_state$current_time_uuid
                     game_state$endxy_valid <- sxy$valid[1]
                     sxy$start_end <- "end"
-                    overlay_points(sxy)
+                    overlay_points(rbind(overlay_points(), sxy)) ## show start and end
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
                     c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (play continues)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"), selected = "D", input_var = "c1") ## defaults to dig
@@ -1308,7 +1309,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$end_t <- game_state$current_time_uuid
                     game_state$endxy_valid <- sxy$valid[1]
                     sxy$start_end <- "end"
-                    overlay_points(sxy)
+                    overlay_points(rbind(overlay_points(), sxy)) ## show start and end
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
                     f1_buttons <- make_fat_radio_buttons(choices = c("Freeball over error" = "F=", "Freeball dig" = "FD", "Freeball dig error" = "FD=", "Opp. overpass attack" = "aPR"), selected = "FD", input_var = "f1")
@@ -1575,38 +1576,35 @@ ov_scouter_server <- function(app_data) {
             if (is.null(input$serve_initial_outcome)) {
                 ## wtf? should not happen
             } else {
+                sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
+                esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
+                rc <- rally_codes()
+                ## serving player
+                sp <- if (!is.null(input$serve_preselect_player)) input$serve_preselect_player else if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
+                ## serve type (tempo)
+                st <- if (!is.null(input$serve_type)) input$serve_type else default_skill_tempo("S")
+                start_t <- retrieve_video_time(game_state$start_t)
+                end_t <- retrieve_video_time(game_state$end_t)
+                Sidx <- which(rc$skill == "S")
                 if (input$serve_initial_outcome %eq% "=") {
                     ## serve error
-                    sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     serve_err_type <- if (!is.null(input$serve_error_type)) input$serve_error_type else "="
-                    st <- if (!is.null(input$serve_type)) input$serve_type else default_skill_tempo("S")
                     remove_scout_modal()
                     special_code <- substr(serve_err_type, 2, 2)
                     if (special_code %eq% "N" && rdata$options$end_convention %eq% "actual") game_state$end_y <- 3.5 ## exactly on net
-                    esz <- if (isTRUE(game_state$endxy_valid)) as.character(dv_xy2subzone(game_state$end_x, game_state$end_y)) else c("~", "~")
-                    rc <- rally_codes()
-                    Sidx <- which(rc$skill == "S")
                     if (length(Sidx) == 1) {
                         ## update the serve code entry
-                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, eval = "=", ez = esz[1], esz = esz[2], special = if (nzchar(special_code)) special_code else "~", t = retrieve_video_time(game_state$start_t), end_x = game_state$end_x, end_y = game_state$end_y)
+                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, eval = "=", sz = sz, ez = esz[1], esz = esz[2], special = if (nzchar(special_code)) special_code else "~", t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, game_state = game_state)
                     }
                     rally_codes(rc)
                     game_state$point_won_by <- other(game_state$serving)
                     rally_ended()
                 } else if (input$serve_initial_outcome %eq% "S#") {
                     ## serve ace
-                    sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                     pp <- if (!is.null(input$pass_player)) input$pass_player else 0L
-                    st <- if (!is.null(input$serve_type)) input$serve_type else default_skill_tempo("S")
                     remove_scout_modal()
-                    sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE) else NA_integer_
-                    esz <- if (isTRUE(game_state$endxy_valid)) as.character(dv_xy2subzone(game_state$end_x, game_state$end_y)) else c("~", "~")
-                    start_t <- retrieve_video_time(game_state$start_t)
-                    end_t <- retrieve_video_time(game_state$end_t)
-                    rc <- rally_codes()
-                    Sidx <- which(rc$skill == "S")
                     if (length(Sidx) == 1) {
-                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, eval = "#", ez = esz[1], esz = esz[2], t = start_t, end_x = game_state$end_x, end_y = game_state$end_y)
+                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, eval = "#", sz = sz, ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, game_state = game_state)
                     }
                     rally_codes(bind_rows(rc, code_trow(team = other(game_state$serving), pnum = pp, skill = "R", eval = "=", tempo = st, sz = sz, ez = esz[1], esz = esz[2], t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
 
@@ -1615,19 +1613,11 @@ ov_scouter_server <- function(app_data) {
                     rally_ended()
                 } else {
                     ## reception in play
-                    sp <- if (!is.null(input$serve_preselect_player)) input$serve_preselect_player else if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
-                    st <- if (!is.null(input$serve_type)) input$serve_type else default_skill_tempo("S")
                     pp <- if (!is.null(input$pass_player)) input$pass_player else 0L
                     remove_scout_modal()
-                    sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE) else NA_integer_
-                    esz <- if (isTRUE(game_state$endxy_valid)) as.character(dv_xy2subzone(game_state$end_x, game_state$end_y)) else c("~", "~")
-                    start_t <- retrieve_video_time(game_state$start_t)
-                    end_t <- retrieve_video_time(game_state$end_t)
-                    rc <- rally_codes()
-                    Sidx <- which(rc$skill == "S")
                     if (length(Sidx) == 1) {
                         ## update the serve code entry
-                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, ez = esz[1], esz = esz[2], t = start_t, end_x = game_state$end_x, end_y = game_state$end_y)
+                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, ez = esz[1], esz = esz[2], t = start_t, end_x = game_state$end_x, end_y = game_state$end_y, game_state = game_state)
                     }
                     rally_codes(bind_rows(rc, code_trow(team = other(game_state$serving), pnum = pp, skill = "R", tempo = st, sz = sz, ez = esz[1], esz = esz[2], t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     rally_state("click second contact")
@@ -1642,31 +1632,61 @@ ov_scouter_server <- function(app_data) {
             ## possible values for input$c1 are currently: A#, A=, A!, D, D=, B/, B#
             ## A#, A=, D, D= can be preceded by a block touch (but not B#, B/ and A!). A= is unlikely but theoretically possible
             mid_xy <- c(NA_real_, NA_real_)
+            game_state$midxy_valid <- FALSE
             if (!is.null(input$c1_block_touch_player)) {
                 if (input$c1 %in% c("A#", "A=", "D", "D=")) {
                     beval <- if (input$c1 %eq% "A#") "=" else default_skill_eval("B")
                     rc <- rally_codes()
                     Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
-                    mid_xy <- infer_mid_coords(game_state = game_state)
+                    mid_xy <- infer_mid_coords(game_state = game_state) ## will be NAs if start or end are invalid
+                    game_state$midxy_valid <- !any(is.na(mid_xy))
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = input$c1_block_touch_player, skill = "B", eval = beval, tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table))) ## TODO x,y?
                 }
             }
-            esz <- if (isTRUE(game_state$endxy_valid)) as.character(dv_xy2subzone(game_state$end_x, game_state$end_y)) else c("~", "~")
+            esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
+            rc <- rally_codes()
             if (input$c1 %in% c("A#", "A=")) {
                 ##end_t <- retrieve_video_time(game_state$end_t)
                 eval <- substr(input$c1, 2, 2)
                 ## find the attack, should be either the previous skill, or one previous to that with a block in between
-                rc <- rally_codes()
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
                 if (!is.na(Aidx)) {
-                    rc$ez[Aidx] <- esz[1]
-                    rc$esz[Aidx] <- esz[2]
-                    rc$end_x[Aidx] <- game_state$end_x
-                    rc$end_y[Aidx] <- game_state$end_y
-                    rc$mid_x[Aidx] <- mid_xy[1]
-                    rc$mid_y[Aidx] <- mid_xy[2]
-                    rc$eval[Aidx] <- eval
-                    if (!is.null(input$attack_error_type)) rc$special[Aidx] <- input$attack_error_type
+                    if (FALSE) {
+                        sz <- rc$sz[Aidx] ## default to existing start zone
+                        if (isTRUE(game_state$startxy_valid)) {
+                            ## update start pos, it may have been edited by the user
+                            if (!rdata$options$attacks_by %eq% "codes") {
+                                ## don't change start zone if using attack combo codes
+                                sz <- as.character(adjusted_backrow_pos(game_state = game_state)$zone) ## preceding skill was attack, so use adjusted zone
+                            }
+                            rc$sz[Aidx] <- sz
+                            rc$start_x[Aidx] <- game_state$start_x
+                            rc$start_y[Aidx] <- game_state$start_y
+                        }
+                        if (isTRUE(game_state$endxy_valid)) {
+                            rc$ez[Aidx] <- esz[1]
+                            rc$esz[Aidx] <- esz[2]
+                            rc$end_x[Aidx] <- game_state$end_x
+                            rc$end_y[Aidx] <- game_state$end_y
+                        }
+                        rc$mid_x[Aidx] <- mid_xy[1]
+                        rc$mid_y[Aidx] <- mid_xy[2]
+                        rc$eval[Aidx] <- eval
+                        if (!is.null(input$attack_error_type)) rc$special[Aidx] <- input$attack_error_type
+                        cat("revised A row is: \n"); print(dplyr::glimpse(rc[Aidx, ]))
+                    } else {
+                        ## that can be replaced by
+                        ## update start pos, it may have been edited by the user, but don't change start zone if using attack combo codes
+                        sz <- if (isTRUE(game_state$startxy_valid) && !rdata$options$attacks_by %eq% "codes") {
+                                  as.character(adjusted_backrow_pos(game_state = game_state)$zone) ## preceding skill was attack, so use adjusted zone
+                              } else {
+                                  rc$sz[Aidx] ## keep same
+                              }
+                        temp <- update_code_trow(rc[Aidx, ], eval = eval, sz = sz, ez = esz[1], esz = esz[2], special = if (!is.null(input$attack_error_type)) input$attack_error_type else "~", start_x = game_state$start_x, start_y = game_state$start_y, mid_x = game_state$mid_x, mid_y = game_state$mid_y, end_x = game_state$end_x, end_y = game_state$end_y, start_zone_valid = TRUE, game_state = game_state)
+                        rc[Aidx, ] <- temp
+                        ##cat("but maybe could be: \n"); print(dplyr::glimpse(temp))
+                        ##cat("all equal?\n"); print(all.equal(rc[Aidx, ], temp))
+                    }
                     rally_codes(rc)
                 }
                 ## "current" team here is the digging team
@@ -1675,7 +1695,6 @@ ov_scouter_server <- function(app_data) {
             } else if (input$c1 %eq% "A!") {
                 ## blocked for reattack
                 end_t <- retrieve_video_time(game_state$end_t)
-                rc <- rally_codes()
                 if (rc$skill[nrow(rc)] == "B") {
                     ## already a block skill (though this should not ever happen!). Delete it, to be replaced
                     rc <- head(rc, -1)
@@ -1686,25 +1705,37 @@ ov_scouter_server <- function(app_data) {
                 bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
                 if (!is.na(Aidx)) {
                     ## adjust the attack row
+                    sz <- rc$sz[Aidx] ## default to existing start zone
+                    if (isTRUE(game_state$startxy_valid)) {
+                        ## update start pos, it may have been edited by the user
+                        if (!rdata$options$attacks_by %eq% "codes") {
+                            ## don't change start zone if using attack combo codes
+                            sz <- as.character(adjusted_backrow_pos(game_state = game_state)$zone) ## preceding skill was attack, so use adjusted zone
+                        }
+                        rc$sz[Aidx] <- sz
+                        rc$start_x[Aidx] <- game_state$start_x
+                        rc$start_y[Aidx] <- game_state$start_y
+                    }
                     rc$eval[Aidx] <- "!"
-                    rc$ez[Aidx] <- esz[1]
-                    rc$esz[Aidx] <- esz[2]
+                    if (isTRUE(game_state$endxy_valid)) {
+                        rc$ez[Aidx] <- esz[1]
+                        rc$esz[Aidx] <- esz[2]
+                        rc$end_x[Aidx] <- game_state$end_x
+                        rc$end_y[Aidx] <- game_state$end_y
+                    }
                     rc$mid_x[Aidx] <- mid_xy[1]
                     rc$mid_y[Aidx] <- mid_xy[2]
-                    rc$end_x[Aidx] <- game_state$end_x
-                    rc$end_y[Aidx] <- game_state$end_y
                 }
                 ## "current" team here is the digging/blocking team
                 rally_codes(bind_rows(rc,
                                       ## the block
                                       code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "!", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table),
                                       ## and the dig cover
-                                      code_trow(team = other(game_state$current_team), pnum = if (!is.na(input$c1_cover_player)) input$c1_cover_player else 0L, skill = "D", eval = default_skill_eval("D"), sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)
+                                      code_trow(team = other(game_state$current_team), pnum = if (!is.na(input$c1_cover_player)) input$c1_cover_player else 0L, skill = "D", eval = default_skill_eval("D"), sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)
                                       ))
                 game_state$current_team <- other(game_state$current_team) ## attacking team now playing
                 rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
             } else if (input$c1 %eq% "B/") {
-                rc <- rally_codes()
                 if (rc$skill[nrow(rc)] == "B") {
                     ## already a block skill (though this should not ever happen!). Delete it, to be replaced
                     rc <- head(rc, -1)
@@ -1714,10 +1745,23 @@ ov_scouter_server <- function(app_data) {
                 bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
                 if (!is.na(Aidx)) {
                     ## adjust the attack row
-                    rc$ez[Aidx] <- esz[1]
-                    rc$esz[Aidx] <- esz[2]
-                    rc$end_x[Aidx] <- game_state$end_x
-                    rc$end_y[Aidx] <- game_state$end_y
+                    sz <- rc$sz[Aidx] ## default to existing start zone
+                    if (isTRUE(game_state$startxy_valid)) {
+                        ## update start pos, it may have been edited by the user
+                        if (!rdata$options$attacks_by %eq% "codes") {
+                            ## don't change start zone if using attack combo codes
+                            sz <- as.character(adjusted_backrow_pos(game_state = game_state)$zone) ## preceding skill was attack, so use adjusted zone
+                        }
+                        rc$sz[Aidx] <- sz
+                        rc$start_x[Aidx] <- game_state$start_x
+                        rc$start_y[Aidx] <- game_state$start_y
+                    }
+                    if (isTRUE(game_state$endxy_valid)) {
+                        rc$ez[Aidx] <- esz[1]
+                        rc$esz[Aidx] <- esz[2]
+                        rc$end_x[Aidx] <- game_state$end_x
+                        rc$end_y[Aidx] <- game_state$end_y
+                    }
                     ## if the attack row has an incompatible evaluation, change it. It can't be /, and arguably can't be # or ! either but we'll leave these for the time being
                     if (rc$eval[Aidx] %in% c("/")) rc$eval[Aidx] <- default_skill_eval("A")
                 }
@@ -1726,7 +1770,6 @@ ov_scouter_server <- function(app_data) {
                 game_state$point_won_by <- other(game_state$current_team) ## "current" team here is the digging team
                 rally_ended()
             } else if (input$c1 %eq% "B#") {
-                rc <- rally_codes()
                 if (rc$skill[nrow(rc)] == "B") {
                     ## already a block skill (though this should not ever happen!). Delete it, to be replaced
                     rc <- head(rc, -1)
@@ -1736,10 +1779,23 @@ ov_scouter_server <- function(app_data) {
                 bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
                 if (!is.na(Aidx)) {
                     ## adjust the attack row
-                    rc$ez[Aidx] <- esz[1]
-                    rc$esz[Aidx] <- esz[2]
-                    rc$end_x[Aidx] <- game_state$end_x
-                    rc$end_y[Aidx] <- game_state$end_y
+                    sz <- rc$sz[Aidx] ## default to existing start zone
+                    if (isTRUE(game_state$startxy_valid)) {
+                        ## update start pos, it may have been edited by the user
+                        if (!rdata$options$attacks_by %eq% "codes") {
+                            ## don't change start zone if using attack combo codes
+                            sz <- as.character(adjusted_backrow_pos(game_state = game_state)$zone) ## preceding skill was attack, so use adjusted zone
+                        }
+                        rc$sz[Aidx] <- sz
+                        rc$start_x[Aidx] <- game_state$start_x
+                        rc$start_y[Aidx] <- game_state$start_y
+                    }
+                    if (isTRUE(game_state$endxy_valid)) {
+                        rc$ez[Aidx] <- esz[1]
+                        rc$esz[Aidx] <- esz[2]
+                        rc$end_x[Aidx] <- game_state$end_x
+                        rc$end_y[Aidx] <- game_state$end_y
+                    }
                     rc$mid_x[Aidx] <- mid_xy[1]
                     rc$mid_y[Aidx] <- mid_xy[2]
                     rc$eval[Aidx] <- "/"
@@ -1751,14 +1807,26 @@ ov_scouter_server <- function(app_data) {
                 ## D or D=
                 digp <- if (!is.null(input$c1_def_player)) input$c1_def_player else 0L
                 end_t <- retrieve_video_time(game_state$end_t)
-                rc <- rally_codes()
                 ## was the previous skill an attack, or one previous to that an attack with a block in between
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
                 if (!is.na(Aidx)) {
-                    rc$ez[Aidx] <- esz[1]
-                    rc$esz[Aidx] <- esz[2]
-                    rc$end_x[Aidx] <- game_state$end_x
-                    rc$end_y[Aidx] <- game_state$end_y
+                    sz <- rc$sz[Aidx] ## default to existing start zone
+                    if (isTRUE(game_state$startxy_valid)) {
+                        ## update start pos, it may have been edited by the user
+                        if (!rdata$options$attacks_by %eq% "codes") {
+                            ## don't change start zone if using attack combo codes
+                            sz <- as.character(adjusted_backrow_pos(game_state = game_state)$zone) ## preceding skill was attack, so use adjusted zone
+                        }
+                        rc$sz[Aidx] <- sz
+                        rc$start_x[Aidx] <- game_state$start_x
+                        rc$start_y[Aidx] <- game_state$start_y
+                    }
+                    if (isTRUE(game_state$endxy_valid)) {
+                        rc$ez[Aidx] <- esz[1]
+                        rc$esz[Aidx] <- esz[2]
+                        rc$end_x[Aidx] <- game_state$end_x
+                        rc$end_y[Aidx] <- game_state$end_y
+                    }
                     rc$mid_x[Aidx] <- mid_xy[1]
                     rc$mid_y[Aidx] <- mid_xy[2]
                     tempo <- rc$tempo[Aidx]
@@ -1784,7 +1852,7 @@ ov_scouter_server <- function(app_data) {
                     dx <- dy <- NA_real_
                     dz <- "~"
                 }
-                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "D", eval = eval, tempo = tempo, sz = dz, t = end_t, start_x = dx, start_y = dy, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "D", eval = eval, tempo = tempo, sz = dz, t = end_t, start_x = dx, start_y = dy, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                 if (input$c1 == "D=") {
                     game_state$point_won_by <- other(game_state$current_team)
                     rally_ended()
@@ -1804,14 +1872,23 @@ ov_scouter_server <- function(app_data) {
             ## possible values for input$f1 are currently: F=, FD, FD=, aPR
             esz <- if (isTRUE(game_state$endxy_valid)) as.character(dv_xy2subzone(game_state$end_x, game_state$end_y)) else c("~", "~")
             rc <- rally_codes()
+            ## find the freeball, should be the previous skill
             Fidx <- if (rc$skill[nrow(rc)] == "F") nrow(rc) else NA_integer_
-            if (input$f1 %eq% "F=") {
-                ## find the freeball, should be the previous skill
-                if (!is.na(Fidx)) {
+            if (!is.na(Fidx)) {
+                if (isTRUE(game_state$startxy_valid)) {
+                    rc$sz[Fidx] <- dv_xy2zone(game_state$start_x, game_state$start_y)
+                    rc$start_x[Fidx] <- game_state$start_x
+                    rc$start_y[Fidx] <- game_state$start_y
+                }
+                if (isTRUE(game_state$endxy_valid)) {
                     rc$ez[Fidx] <- esz[1]
                     rc$esz[Fidx] <- esz[2]
                     rc$end_x[Fidx] <- game_state$end_x
                     rc$end_y[Fidx] <- game_state$end_y
+                }
+            }
+            if (input$f1 %eq% "F=") {
+                if (!is.na(Fidx)) {
                     rc$eval[Fidx] <- "="
                     rally_codes(rc)
                 }
@@ -1824,14 +1901,10 @@ ov_scouter_server <- function(app_data) {
                 was_f <- grepl("^F", input$f1) ## was a freeball dig or freeball dig error
                 end_t <- retrieve_video_time(game_state$end_t)
                 if (!is.na(Fidx)) {
-                    rc$ez[Fidx] <- esz[1]
-                    rc$esz[Fidx] <- esz[2]
-                    rc$end_x[Fidx] <- game_state$end_x
-                    rc$end_y[Fidx] <- game_state$end_y
                     rc$eval[Fidx] <- if (input$f1 %eq% "FD=") "+" else "-"
                 }
                 if (was_f) {
-                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "F", sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "F", sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                     if (input$f1 == "FD=") {
                         game_state$point_won_by <- other(game_state$current_team)
                         rally_ended()
@@ -1841,7 +1914,7 @@ ov_scouter_server <- function(app_data) {
                     }
                 } else {
                     ## aPR
-                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                     rally_state("click attack end point")
                 }
             }
@@ -1869,16 +1942,16 @@ ov_scouter_server <- function(app_data) {
             if (input$c2 %in% c("E", "E=", "PP", "P2", "F", "R=")) {
                 sp <- input$c2_player
                 if (input$c2 == "E") {
-                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "E", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "E", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                     rally_state("click third contact")
                 } else if (input$c2 == "E=") {
                     ## set error
-                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "E", eval = "=", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "E", eval = "=", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                     game_state$point_won_by <- other(game_state$current_team)
                     rally_ended()
                 } else if (input$c2 %in% c("PP", "P2")) {
                     ## setter dump or second ball attack
-                    sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y) else NA_integer_
+                    sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
                     ## although we use PP and P2 in the R code here, we can use different combo codes in the dvw, following rdata$options$setter_dump_code and rdata$options$second_ball_attack_code
                     trg <- if (input$c2 == "PP") "S" else "~"
                     ## update target in the preceding set row, if there was one
@@ -1890,7 +1963,7 @@ ov_scouter_server <- function(app_data) {
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                 } else if (input$c2 == "F") {
                     ## freeball over
-                    sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y) else NA_integer_
+                    sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "F", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     ## TODO add end pos to this on next contact
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
@@ -1915,6 +1988,7 @@ ov_scouter_server <- function(app_data) {
                     rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval)
                 }
                 op <- if (!is.null(input$c2_opp_player)) input$c2_opp_player else 0L
+                ## esz here actually came from start_x and start_y above
                 rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = esz[1], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                 rally_state("click attack end point")
             } else if (input$c2 %in% c("aD", "aD=")) {
@@ -1947,7 +2021,7 @@ ov_scouter_server <- function(app_data) {
             ## possible values for input$c3 are: an attack code, Other attack, "F" Freeball or "E=" set error (if not scouting transition sets)
             ##    "Opp. dig" = "aD", "Opp. overpass attack" = "aPR"
             start_t <- retrieve_video_time(game_state$start_t)
-            sz <- if (isTRUE(game_state$startxy_valid)) dv_xy2zone(game_state$start_x, game_state$start_y) else NA_integer_
+            sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
             rc <- rally_codes()
             if (input$c3 %in% c("aPR", "aD", "aD=")) {
                 ## adjust the prior skill, if it was a dig or reception then evaluation is "/", if it was a set then "-"
@@ -1986,8 +2060,8 @@ ov_scouter_server <- function(app_data) {
                     rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = "=")
                     rally_codes(rc)
                 } else {
-                    esz <- if (isTRUE(game_state$startxy_valid)) as.character(dv_xy2subzone(game_state$start_x, game_state$start_y)) else c("~", "~")
-                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = if (!is.null(input$c3_player)) input$c3_player else 0L, skill = "E", eval = "=", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                    esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
+                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = if (!is.null(input$c3_player)) input$c3_player else 0L, skill = "E", eval = "=", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                 }
                 game_state$point_won_by <- other(game_state$current_team)
                 rally_ended()
@@ -1995,19 +2069,26 @@ ov_scouter_server <- function(app_data) {
                 ap <- if (!is.null(input$c3_player)) input$c3_player else 0L
                 ac <- input$c3
                 if (is.null(input$c3)) ac <- ""
+                ## if the attack was by code, then the start zone is valid even if the coords are not, because zone is inferred from code not coords
+                szvalid <- game_state$startxy_valid
                 if (rdata$options$attacks_by %eq% "codes") {
                     if (nchar(ac) == 2) {
                         tempo <- tryCatch(rdata$dvw$meta$attacks$type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
                         targ <- tryCatch(rdata$dvw$meta$attacks$set_type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
                         ## use the start zone from the attacks combo table
                         newsz <- tryCatch(rdata$dvw$meta$attacks$attacker_position[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) NA_integer_)
-                        if (newsz %in% 1:9) sz <- newsz
+                        if (newsz %in% 1:9) {
+                            sz <- newsz
+                            szvalid <- TRUE ## inferred from combo code
+                        }
                     } else {
                         ## other attack
                         ac <- "~~" ## no combo code
                         tempo <- targ <- "" ## filled below
+                        sz <- adjusted_backrow_pos(game_state = game_state)$zone
                     }
                 } else {
+                    sz <- adjusted_backrow_pos(game_state = game_state)$zone
                     if (ac %in% c("PP", "P2")) {
                         tempo <- tryCatch(rdata$dvw$meta$attacks$type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
                         targ <- tryCatch(rdata$dvw$meta$attacks$set_type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
@@ -2027,8 +2108,7 @@ ov_scouter_server <- function(app_data) {
                 if (tail(rc$skill, 1) == "E" && tempo != "~") rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], tempo = tempo)
                 nb <- input$nblockers
                 if (is.null(nb) || !nb %in% 0:3) nb <- "~"
-                ##if (nchar(input$c3) == 2) {
-                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = ap, skill = "A", tempo = tempo, combo = ac, sz = sz, num_p = nb, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = ap, skill = "A", tempo = tempo, combo = ac, sz = sz, num_p = nb, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, start_zone_valid = szvalid, default_scouting_table = rdata$options$default_scouting_table)))
                 rally_state("click attack end point")
                 game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
             }
