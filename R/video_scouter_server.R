@@ -1207,8 +1207,7 @@ ov_scouter_server <- function(app_data) {
                     opp <- c(opp, Unknown = "Unknown")
                     opp_player_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c3_opp_player")
                     accept_fun("do_assign_c3")
-                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
-                                            tags$p(tags$strong("Attack or freeball over:")),
+                    show_scout_modal(vwModalDialog(title = "Details: attack or freeball over", footer = NULL, width = 100,
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
                                                                 if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))))),
                                             tags$br(),
