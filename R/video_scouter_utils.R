@@ -141,8 +141,7 @@ game_state_make_substitution <- function(game_state, team, player_out, player_in
     team <- match.arg(team, c("*", "a"))
     pseq <- seq_len(if (dv_is_beach(dvw)) 2L else 6L)
     lup_cols <- if (team == "*") paste0("home_p", pseq) else paste0("visiting_p", pseq)
-    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
-    this_lup <- as.numeric(game_state[lup_cols])
+    this_lup <- as.numeric(reactiveValuesToList(game_state)[lup_cols])
     available_players <- if (team == "*") dvw$meta$players_h$number else dvw$meta$players_v$number
     available_players <- na.omit(available_players)
     if (!player_out %in% this_lup) {
