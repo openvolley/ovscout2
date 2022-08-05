@@ -1541,7 +1541,7 @@ ov_scouter_server <- function(app_data) {
         do_cancel_rew <- function() {
             do_video("rew", 3)
             do_video("play")
-            if (nrow(overlay_points()) > 0) overlay_points(head(overlay_points(), -1))
+            if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) overlay_points(head(overlay_points(), -1))
             remove_scout_modal()
         }
         observeEvent(input$cancel, {
@@ -2465,7 +2465,7 @@ ov_scouter_server <- function(app_data) {
                 rally_codes(new_rc)
                 do_video("set_time", tail(new_rc$t, 1))
             }
-            if (nrow(overlay_points() > 0)) overlay_points(head(overlay_points(), -1))
+            if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) overlay_points(head(overlay_points(), -1))
             if (nrow(rally_codes()) > 0 && !all(is.na(rally_codes()$t))) {
                 ## set time to last action minus play_overlap
                 new_vt <- max(rally_codes()$t, na.rm = TRUE) - app_data$play_overlap
