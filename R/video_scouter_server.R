@@ -1211,7 +1211,9 @@ ov_scouter_server <- function(app_data) {
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
                                                                 if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))))),
                                             tags$br(),
-                                            do.call(fixedRow, lapply(c3_buttons[c(n_ac + seq_len(n_ac2))], function(but) column(2, but))),
+                                            ## the freeball over and set error buttons, shift them to the right
+                                            fixedRow(column(2, offset = 4, c3_buttons[n_ac + 1L]), column(2, c3_buttons[n_ac + 2L])),
+                                            ##do.call(fixedRow, lapply(c3_buttons[c(n_ac + seq_len(n_ac2))], function(but) column(2, but))),
                                             tags$br(),
                                             tags$div(id = "c3_pl_ui", tags$p("by player"), tags$br(),
                                                      do.call(fixedRow, lapply(attacker_buttons, function(but) column(1, but)))
@@ -1277,7 +1279,7 @@ ov_scouter_server <- function(app_data) {
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
                                             tags$p(tags$strong("Attack outcome:")),
                                             do.call(fixedRow, lapply(c1_buttons[1:3], function(but) column(2, but))),
-                                            tags$br(), tags$div(id = "ae_ui", style = "display:none;", do.call(fixedRow, lapply(ae_buttons, function(but) column(2, but)))),
+                                            tags$br(), tags$div(id = "ae_ui", style = "display:none;", do.call(fixedRow, lapply(ae_buttons, function(but) column(1, but)))),
                                             tags$div("OR", tags$strong("Defence outcome:")),
                                             do.call(fixedRow, lapply(c1_buttons[4:7], function(but) column(2, but))),
                                             tags$br(), tags$hr(),
