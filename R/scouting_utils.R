@@ -585,7 +585,10 @@ make_players <- function(players, which = "home") {
     if (!"player_id" %in% names(players)) players$player_id <- make_player_id(players$lastname, players$firstname)
     if (!"role" %in% names(players)) players$role <- "unknown"
     if (!"nickname" %in% names(players)) players$nickname <- ""
-    if (!"special_role" %in% names(players)) players <- mutate(players, special_role = case_when(tolower(.data$role) %eq% "libero" ~ "L", TRUE ~ ""))
+    if (!"special_role" %in% names(players)) players$special_role <- ""
+    ## reset liberos and reassign (but keep e.g. "C" captain)
+    players$special_role <- gsub("L", "", players$special_role)
+    players$special_role[tolower(players$role) %eq% "libero"] <- paste0(players$special_role[tolower(players$role) %eq% "libero"], "L")
     if (!"foreign" %in% names(players)) players$foreign <- FALSE
     for (nm in paste0("starting_position_set", 1:5)) if (!nm %in% names(players)) players[[nm]] <- NA_character_
     temp <- tibble(X1 = 0,
