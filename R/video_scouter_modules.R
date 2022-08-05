@@ -428,16 +428,22 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
         htok <- nzchar(input$ht_P1) && nzchar(input$ht_P2)
         if (!beach) {
             htok <- htok && nzchar(input$ht_P3) && nzchar(input$ht_P4) && nzchar(input$ht_P5) && nzchar(input$ht_P6) && nzchar(input$ht_setter)
+            htok <- htok && length(unique(c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6))) == 6
             htok <- htok && input$ht_setter %in% c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6)
             if (nzchar(input$ht_libero1)) htok <- htok && !input$ht_libero1 %in% c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6)
             if (nzchar(input$ht_libero2)) htok <- htok && !input$ht_libero2 %in% c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6)
+        } else {
+            htok <- htok && length(unique(c(input$ht_P1, input$ht_P2))) == 2
         }
         vtok <- nzchar(input$vt_P1) && nzchar(input$vt_P2)
         if (!beach) {
             vtok <- vtok && nzchar(input$vt_P3) && nzchar(input$vt_P4) && nzchar(input$vt_P5) && nzchar(input$vt_P6) && nzchar(input$vt_setter)
+            vtok <- vtok && length(unique(c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6))) == 6
             vtok <- vtok && input$vt_setter %in% c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6)
             if (nzchar(input$vt_libero1)) vtok <- vtok && !input$vt_libero1 %in% c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6)
             if (nzchar(input$vt_libero2)) vtok <- vtok && !input$vt_libero2 %in% c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6)
+        } else {
+            vtok <- vtok && length(unique(c(input$vt_P1, input$vt_P2))) == 2
         }
         if (htok && vtok) actionButton("edit_commit", label = "Update teams lineups", class = "continue") else NULL
     })
