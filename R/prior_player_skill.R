@@ -133,6 +133,22 @@ player_responsibility_fn <- function(system = "SHM3", skill, setter_position, zo
         } else if (skill == "Cover") {
             warning("cover responsibility not coded yet")
             ret <- NA_character_
+        } else if (skill == "Freeball dig") {
+            loc <- length(libs) > 0 ## libero on court
+            if (isTRUE(serving) && setter_position %in% c(2, 5)) {
+                ## the middle is on court (serving) so we have no libero
+                loc <- FALSE
+            }
+            ln <- if (loc) "libero" else NA_character_
+            ret <- case_when(setter_position %in% c(1, 4) ~ case_when(zone %in% c(1,9,2) ~ paste0(home_visiting,"_p5"),
+                                                                      loc ~ ln,
+                                                                      TRUE ~ paste0(home_visiting,"_p6")),
+                             setter_position %in% c(2, 5) ~ case_when(zone %in% c(1,9,2) ~ paste0(home_visiting,"_p6"),
+                                                                      loc ~ ln,
+                                                                      TRUE ~ paste0(home_visiting,"_p1")),
+                             setter_position %in% c(3, 6) ~ case_when(zone %in% c(1,9,2) ~ paste0(home_visiting,"_p1"),
+                                                                      loc ~ ln,
+                                                                      TRUE ~ paste0(home_visiting,"_p5")))
         }
     } else {
         stop("unrecognized system: ", system)
