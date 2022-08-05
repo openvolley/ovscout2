@@ -335,7 +335,7 @@ get_liberos <- function(game_state, team, dvw) {
         ## if those aren't specified, we take the liberos from the player lists
         if (team == "*") {
             if (!all(paste0("ht_lib", 1:2) %in% names(game_state)) || (is.na(game_state$ht_lib1) && is.na(game_state$ht_lib2))) {
-                na.omit(dvw$meta$players_h$number[dvw$meta$players_h$special_role %eq% "L"])
+                na.omit(dvw$meta$players_h$number[grepl("L", dvw$meta$players_h$special_role)])
             } else {
                 out <- c(game_state$ht_lib1, game_state$ht_lib2)
                 ## note that -1 means no libero used
@@ -343,7 +343,7 @@ get_liberos <- function(game_state, team, dvw) {
             }
         } else if (team == "a") {
             if (!all(paste0("vt_lib", 1:2) %in% names(game_state)) || (is.na(game_state$vt_lib1) && is.na(game_state$vt_lib2))) {
-                na.omit(dvw$meta$players_v$number[dvw$meta$players_v$special_role %eq% "L"])
+                na.omit(dvw$meta$players_v$number[grepl("L", dvw$meta$players_v$special_role)])
             } else {
                 out <- c(game_state$vt_lib1, game_state$vt_lib2)
                 out[!is.na(out) & out >= 0]
@@ -377,7 +377,7 @@ player_nums_to <- function(nums, team, dvw, to = "number lastname") {
         temp$name
     } else if (to == "number lastname") {
         temp$lastname[is.na(temp$lastname)] <- ""
-        temp$lastname[temp$special_role %eq% "L"] <- paste0(temp$lastname[temp$special_role %eq% "L"], " (L)")
+        temp$lastname[grepl("L", temp$special_role)] <- paste0(temp$lastname[grepl("L", temp$special_role)], " (L)")
         paste(temp$number, temp$lastname, sep = "<br />")
     } else {
         character()
@@ -388,7 +388,9 @@ player_nums_to <- function(nums, team, dvw, to = "number lastname") {
 ## First, we identify the rotation, and check if passing has occured in the past from a serve at that location.
 ## If yes, the passer (currently on court) with the most receptions will be proposed in priority.
 ## If no, we assume S-H-M rotation, and articulate the 3-player passing line with each taking left-middle-right channel.
-guess_pass_player_options <- function(game_state, dvw, system) {
+## if weighted = TRUE, we use all passes for a given rotation, and weight them according to their distance from the current pass location
+## if weighted = FALSE, we only consider passes in the end zone of the current pass
+guess_pass_player_options <- function(game_state, dvw, system, weighted = TRUE) {
     beach <- is_beach(dvw)
     pseq <- seq_len(if (beach) 2L else 6L)
     if (!game_state$serving %in% c("*", "a")) return(list(choices = numeric(), selected = c()))
@@ -406,21 +408,17 @@ guess_pass_player_options <- function(game_state, dvw, system) {
     if (!is.na(passing_responsibility)) passing_responsibility_prior[passing_responsibility] <- 1
 
     ## Update the probability with the history of the game
-    passing_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Reception",
-                                     .data[[paste0(home_visiting, "_setter_position")]] %eq% as.character(passing_rot),
-                                     .data$end_zone %eq% passing_zone,
-                                     .data$team %eq% passing_team)
-
-    passing_responsibility_posterior <- passing_responsibility_prior
-    if (nrow(passing_history) > 0) {
-        passing_history <- dplyr::select(passing_history, "team", "player_number", paste0(home_visiting, "_p", pseq)) %>%
-            tidyr::pivot_longer(cols = paste0(home_visiting, "_p", pseq)) %>%
-            dplyr::filter(.data$value %eq% .data$player_number) %>%
-            dplyr::group_by(.data$name) %>%
-            dplyr::summarise(n_reception = dplyr::n()) %>% dplyr::ungroup()
-        passing_responsibility_posterior[passing_history$name] <- passing_responsibility_prior[passing_history$name] + passing_history$n_reception
-        passing_responsibility_posterior <-  passing_responsibility_posterior / sum(passing_responsibility_posterior)
+    if (!weighted) {
+        passing_history <- dplyr::filter(dvw$plays, .data$skill == "Reception", .data[[paste0(home_visiting, "_setter_position")]] == passing_rot,
+                                         .data$end_zone == passing_zone, .data$team == passing_team)
+    } else {
+        passing_history <- dplyr::filter(dvw$plays, .data$skill == "Reception", .data[[paste0(home_visiting, "_setter_position")]] == passing_rot,
+                                         .data$team == passing_team)
     }
+    passing_responsibility_posterior <- do_responsibility_posterior(history = passing_history, game_state = game_state, prior = passing_responsibility_prior, home_visiting = home_visiting, weighted = weighted, current_team = passing_team, start_end = "end", pseq = pseq)
+    ##cat("passing responsibility posterior\n")
+    ##print(passing_responsibility_posterior)
+
     plsel_tmp <- names(sort(passing_responsibility_posterior, decreasing = TRUE))
     poc <- paste0(home_visiting, "_p", pseq) ## players on court
 
@@ -438,7 +436,7 @@ guess_pass_quality <- function(game_state, dvw) {
     }
     ## reference clicks to lower court
     do_flip_click <- (game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower")
-    thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
+    thisxy <- if (isTRUE(do_flip_click)) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
     ## sets use "start" coordinates but "end" zone/subzone
     esz <- paste(dv_xy2subzone(game_state$start_x, game_state$start_y), collapse = "")
     ## TODO account for time since previous contact, and better boundaries here
@@ -495,8 +493,8 @@ guess_attack_player_options <- function(game_state, dvw, system) {
 
     ## Update the probability with the history of the game
     ##  this also needs to account for the attacking team being in sideout/breakpoint
-    attacking_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Attack" & .data[[paste0(home_visiting, "_setter_position")]] %eq% as.character(setter_rot) &
-                                                  .data$start_zone %eq% attacking_zone & .data$team %eq% attacking_team & .data$serving_team == game_state$serving)
+    attacking_history <- dplyr::filter(dvw$plays, .data$skill == "Attack", .data[[paste0(home_visiting, "_setter_position")]] == setter_rot,
+                                       .data$start_zone == attacking_zone, .data$team == attacking_team, .data$serving_team == game_state$serving)
 
     attacking_responsibility_posterior <- attacking_responsibility_prior
     if (nrow(attacking_history) > 0) {
@@ -504,7 +502,7 @@ guess_attack_player_options <- function(game_state, dvw, system) {
             dplyr::filter(.data$value %eq% .data$player_number) %>%
             dplyr::group_by(.data$name) %>% dplyr::summarize(n_attacks = dplyr::n()) %>% dplyr::ungroup()
         attacking_responsibility_posterior[attacking_history$name] <- attacking_responsibility_prior[attacking_history$name] + attacking_history$n_attacks
-        attacking_responsibility_posterior <-  attacking_responsibility_posterior / sum(attacking_responsibility_posterior)
+        attacking_responsibility_posterior <-  rescale_posterior(attacking_responsibility_posterior)
     }
     poc <- names(sort(attacking_responsibility_posterior, decreasing = TRUE))
     pp <- sort(as.numeric(game_state[poc]))
@@ -518,7 +516,7 @@ guess_attack_code <- function(game_state, dvw, opts) {
     exclude_codes <- c(exclude_codes, if (!missing(opts) && !is.null(opts$overpass_attack_code)) opts$overpass_attack_code else "PR")
     atbl <- dvw$meta$attacks %>% dplyr::filter(!.data$code %in% exclude_codes)
     do_flip_click <- (game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower")
-    thisxy <- if (do_flip_click) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
+    thisxy <- if (isTRUE(do_flip_click)) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
     ## the start location in the attack table is a bit in front of the 3m line for back-row attacks
     ## shift our y-location forwards a bit to reduce risk of our front-row click looking like it's nearest to a back-row location
     ## TODO, better solution than this
@@ -547,7 +545,9 @@ guess_attack_code <- function(game_state, dvw, opts) {
 ## First, we identify the rotation, and check if defense has occurred in the past from that location / rotation & opp attack
 ## If yes, the defender (currently on court) with the most digs will be proposed in priority.
 ## If no, we assume S-H-M rotation, and articulate the perimeter defense system.
-guess_dig_player_options <- function(game_state, dvw, system) {
+## if weighted = TRUE, we use all digs for a given rotation, and weight them according to their distance from the current pass location
+## if weighted = FALSE, we only consider digs in the end zone of the current dig
+guess_dig_player_options <- function(game_state, dvw, system, weighted = TRUE) {
     beach <- is_beach(dvw)
     pseq <- seq_len(if (beach) 2L else 6L)
     if (beach) {
@@ -567,26 +567,24 @@ guess_dig_player_options <- function(game_state, dvw, system) {
     dig_responsibility <- player_responsibility_fn(system = system, skill = "Dig", setter_position = setter_rot, zone = defending_zone, libs = libs,
                                                    home_visiting = home_visiting, opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% defending_team)
 
-    dig_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0(home_visiting, "_p", pseq)))
+    dig_responsibility_prior <- setNames(rep(0, length(pseq) + 1L), c(paste0(home_visiting, "_p", pseq), "libero"))
     if (!is.na(dig_responsibility)) dig_responsibility_prior[dig_responsibility] <- 1
 
     ## Update the probability with the history of the game
-    digging_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Dig",
-                                     .data[[paste0(home_visiting, "_setter_position")]] %eq% as.character(setter_rot),
-                                     .data$start_zone %eq% attacking_zone,
-                                     .data$end_zone %eq% defending_zone,
-                                     .data$team %eq% defending_team)
-
-    dig_responsibility_posterior <- dig_responsibility_prior
-    if (nrow(digging_history) > 0) {
-        digging_history <- dplyr::select(digging_history, "team", "player_number", paste0(home_visiting, "_p", pseq)) %>%
-            tidyr::pivot_longer(cols = paste0(home_visiting, "_p", pseq)) %>%
-            dplyr::filter(.data$value %eq% .data$player_number) %>%
-            dplyr::group_by(.data$name) %>%
-            dplyr::summarise(n_digs = dplyr::n()) %>% dplyr::ungroup()
-        dig_responsibility_posterior[digging_history$name] <- dig_responsibility_prior[digging_history$name] + digging_history$n_digs
-        dig_responsibility_posterior <-  dig_responsibility_posterior / sum(dig_responsibility_posterior)
+    if (!weighted) {
+        digging_history <- dplyr::filter(dvw$plays, .data$skill == "Dig", .data[[paste0(home_visiting, "_setter_position")]] == setter_rot,
+                                         .data$start_zone == attacking_zone, .data$end_zone == defending_zone, .data$team == defending_team)
+    } else {
+        digging_history <- dplyr::filter(dvw$plays, .data$skill == "Dig", .data[[paste0(home_visiting, "_setter_position")]] == setter_rot,
+                                         .data$start_zone == attacking_zone, .data$team == defending_team)
+        ##cat("ndigs by team: ", nrow(dplyr::filter(dvw$plays, .data$skill %eq% "Dig", .data$team %eq% defending_team)), "\n")
+        ##cat("ndigs by team+rot: ", nrow(dplyr::filter(dvw$plays, .data$skill %eq% "Dig", .data$team %eq% defending_team, .data[[paste0(home_visiting, "_setter_position")]] %eq% as.character(setter_rot))), "\n")
+        ##cat("ndigs by team+rot+startzone: ", nrow(dplyr::filter(dvw$plays, .data$skill %eq% "Dig", .data$team %eq% defending_team, .data[[paste0(home_visiting, "_setter_position")]] %eq% as.character(setter_rot), .data$start_zone %eq% attacking_zone)), "\n")
     }
+    dig_responsibility_posterior <- do_responsibility_posterior(history = digging_history, game_state = game_state, prior = dig_responsibility_prior, home_visiting = home_visiting, weighted = weighted, start_end = "start", pseq = pseq)
+    ##cat("dig responsibility posterior\n")
+    ##print(dig_responsibility_posterior)
+
     plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
     poc <- paste0(home_visiting, "_p", pseq)
     pp <- c(sort(as.numeric(game_state[poc])), sort(libs))
@@ -594,7 +592,112 @@ guess_dig_player_options <- function(game_state, dvw, system) {
     list(choices = pp, selected = plsel)
 }
 
-guess_cover_player_options <- function(game_state, dvw, system) {
+guess_freeball_dig_player_options <- function(game_state, dvw, system, weighted = TRUE) {
+    beach <- is_beach(dvw)
+    pseq <- seq_len(if (beach) 2L else 6L)
+    if (beach) {
+        warning("guess_freeball_dig_player_options for beach not yet tested")
+    }
+    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
+    if (!game_state$current_team %in% c("*", "a")) return(list(choices = numeric(), selected = c()))
+    defending_team <- game_state$current_team
+    home_visiting <- if (game_state$current_team %eq% "a") "visiting" else "home"
+    setter_rot <- game_state[[paste0(home_visiting, "_setter_position")]]
+    defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
+    libs <- get_liberos(game_state, team = defending_team, dvw = dvw)
+    if (game_state$serving %eq% defending_team) libs <- rev(libs) ## rev here so that if we have two liberos, the second is preferred in breakpoint phase
+
+    ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
+    dig_responsibility <- player_responsibility_fn(system = system, skill = "Freeball dig", setter_position = setter_rot, zone = defending_zone, libs = libs,
+                                                   home_visiting = home_visiting, serving = game_state$serving %eq% defending_team)
+
+    dig_responsibility_prior <- setNames(rep(0, length(pseq) + 1L), c(paste0(home_visiting, "_p", pseq), "libero"))
+    if (!is.na(dig_responsibility)) dig_responsibility_prior[dig_responsibility] <- 1
+
+    ## update the probability with the history of the game
+    px <- dvw$plays %>% mutate(freeball_over = .data$skill %eq% "Freeball" & lead(.data$point_id) %eq% .data$point_id & ((!lead(.data$team) %eq% .data$team) | lag(.data$team) %eq% .data$team))
+    if (!weighted) {
+        digging_history <- dplyr::filter(px, .data$skill == "Freeball" & !.data$freeball_over, .data[[paste0(home_visiting, "_setter_position")]] == setter_rot,
+                                         .data$end_zone == defending_zone, .data$team == defending_team)
+    } else {
+        digging_history <- dplyr::filter(px, .data$skill == "Freeball" & !.data$freeball_over, .data[[paste0(home_visiting, "_setter_position")]] == setter_rot,
+                                         .data$team == defending_team)
+    }
+    dig_responsibility_posterior <- do_responsibility_posterior(history = digging_history, game_state = game_state, prior = dig_responsibility_prior, home_visiting = home_visiting, weighted = weighted, start_end = "start", pseq = pseq)
+    ##cat("freeball dig responsibility posterior\n")
+    ##print(dig_responsibility_posterior)
+    plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
+    poc <- paste0(home_visiting, "_p", pseq)
+    pp <- c(sort(as.numeric(game_state[poc])), sort(libs))
+    plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(game_state[plsel_tmp[1]])
+    list(choices = pp, selected = plsel)
+}
+
+do_responsibility_posterior <- function(history, game_state, prior, home_visiting, weighted, current_team, start_end, pseq, weight = 1.5, liberos = TRUE) {
+    if (!liberos) stop("do_responsibility_posterior does not yet work without liberos")
+    if (missing(current_team)) current_team <- game_state$current_team
+    posterior <- prior
+##    cat("history passed to do_responsibility_posterior:\n"); print(dplyr::glimpse(history))
+##    cat("prior passed to do_responsibility_posterior:\n"); print(prior)
+    if (nrow(history) > 0) {
+        if (!weighted) {
+            history <- mutate(history, skill_id = dplyr::row_number()) %>% dplyr::select("skill_id", "team", "player_number", paste0(home_visiting, "_p", pseq)) %>%
+                tidyr::pivot_longer(cols = paste0(home_visiting, "_p", pseq)) %>%
+                ## libero doesn't appear in _p* cols
+                group_by(.data$skill_id) %>%
+                ## if no players match, assume the libero did it
+                mutate(lib = sum(.data$value %eq% .data$player_number) < 1)
+            history <- bind_rows(history %>% ungroup %>% dplyr::filter(!.data$lib) %>% dplyr::filter(.data$value %eq% .data$player_number),
+                                 history %>% dplyr::filter(.data$lib) %>% dplyr::slice(1L) %>% mutate(name = "libero"))
+            history <- history %>% dplyr::group_by(.data$name) %>% dplyr::summarise(n_times = dplyr::n()) %>% dplyr::ungroup()
+            posterior[history$name] <- posterior[history$name] + history$n_times
+        } else {
+        ## use all skills but weight by distance
+            ## distance of each previous skill to current skill location
+            ## reception, use end loc (reception), but flip according to start (serve loc) - the rec location could be on net or other weird places, though this should not matter for inference here
+            ## dig use start (dig loc) - when it's a block back to the attacking team (cover dig) our inference here (for a normal defensive dig) will be wrong, but it doesn't matter because that won't be used
+            ## cover dig use start (dig loc)
+            ## freeball dig use start (freeball dig loc). Note that for the freeball over, it has start and end locs, but the freeball dig has only start (which is the end of the freeball over)
+            if (start_end == "start") {
+                histxy <- history[, c("start_coordinate_x", "start_coordinate_y")]
+                thisxy <- c(game_state$start_x, game_state$start_y)
+                flipidx <- history$start_coordinate_y > 3.5 ## flip by start loc
+            } else {
+                histxy <- history[, c("end_coordinate_x", "end_coordinate_y")]
+                thisxy <- c(game_state$end_x, game_state$end_y)
+                flipidx <- history$start_coordinate_y < 3.5 ## flip by start loc, noting that we want the END loc to be in the lower court (so `<` here)
+            }
+            ## use flipidx to refer all locations to the lower end of court
+            histxy[flipidx, ] <- dv_flip_xy(histxy[flipidx, ])
+            ## and flip the current action if needed
+            if (isTRUE(current_team == "*" && game_state$home_team_end == "upper") || (current_team == "a" && game_state$home_team_end == "lower")) {
+                thisxy <- as.numeric(dv_flip_xy(thisxy[1], thisxy[2]))
+            }
+            history$w <- exp(-weight*sqrt((thisxy[1] - histxy[, 1])^2 + (thisxy[2] - histxy[, 2])^2)) ## semi-arbitrary weighting
+            history <- mutate(history, skill_id = dplyr::row_number()) %>% dplyr::select("skill_id", "team", "player_number", paste0(home_visiting, "_p", pseq), "w") %>%
+                tidyr::pivot_longer(cols = paste0(home_visiting, "_p", pseq)) %>%
+                ## libero doesn't appear in _p* cols
+                group_by(.data$skill_id) %>%
+                mutate(lib = sum(.data$value %eq% .data$player_number) < 1)
+            history <- bind_rows(history  %>% ungroup %>% dplyr::filter(!.data$lib) %>% dplyr::filter(.data$value %eq% .data$player_number),
+                                 history %>% dplyr::filter(.data$lib) %>% dplyr::slice(1L) %>% mutate(name = "libero"))
+            history <- history %>% dplyr::group_by(.data$name) %>% dplyr::summarise(n_times = sum(.data$w)) %>% dplyr::ungroup()
+            posterior[history$name] <- posterior[history$name] + history$n_times
+        }
+    }
+    rescale_posterior(posterior)
+}
+
+rescale_posterior <- function(pst) {
+    pst[is.na(pst) | is.infinite(pst)] <- 0
+    if (sum(pst) < 1e-08) {
+        setNames(rep(0, length(pst)), names(pst))
+    } else {
+        pst / sum(pst)
+    }
+}
+
+guess_cover_player_options <- function(game_state, dvw, system, weighted = TRUE) {
     beach <- is_beach(dvw)
     pseq <- seq_len(if (beach) 2L else 6L)
     if (beach) {
@@ -615,26 +718,23 @@ guess_cover_player_options <- function(game_state, dvw, system) {
     dig_responsibility <- player_responsibility_fn(system = system, skill = "Cover", setter_position = setter_rot, zone = defending_zone, libs = libs,
                                                    home_visiting = home_visiting, opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% attacking_team)
 
-    dig_responsibility_prior <- setNames(rep(0, length(pseq)), c(paste0(home_visiting, "_p", pseq)))
+    dig_responsibility_prior <- setNames(rep(0, length(pseq) + 1L), c(paste0(home_visiting, "_p", pseq), "libero"))
     if (!is.na(dig_responsibility)) dig_responsibility_prior[dig_responsibility] <- 1
 
     ## Update the probability with the history of the game
-    digging_history <- dplyr::filter(dvw$plays, .data$skill %eq% "Dig" & lag(.data$skill) %eq% "Block" & !.data$team %eq% lag(.data$team), ## just cover digs
-                                     .data[[paste0(home_visiting, "_setter_position")]] %eq% as.character(setter_rot),
-                                     .data$start_zone %eq% attacking_zone,
-                                     .data$end_zone %eq% defending_zone,
-                                     .data$team %eq% attacking_team)
-
-    dig_responsibility_posterior <- dig_responsibility_prior
-    if (nrow(digging_history) > 0) {
-        digging_history <- dplyr::select(digging_history, "team", "player_number", paste0(home_visiting, "_p", pseq)) %>%
-            tidyr::pivot_longer(cols = paste0(home_visiting, "_p", pseq)) %>%
-            dplyr::filter(.data$value %eq% .data$player_number) %>%
-            dplyr::group_by(.data$name) %>%
-            dplyr::summarise(n_digs = dplyr::n()) %>% dplyr::ungroup()
-        dig_responsibility_posterior[digging_history$name] <- dig_responsibility_prior[digging_history$name] + digging_history$n_digs
-        dig_responsibility_posterior <-  dig_responsibility_posterior / sum(dig_responsibility_posterior)
+    if (!weighted) {
+        digging_history <- dplyr::filter(dvw$plays, .data$skill == "Dig", .data[[paste0(home_visiting, "_setter_position")]] == setter_rot,
+                                         .data$start_zone == attacking_zone, .data$end_zone == defending_zone, .data$team == attacking_team,
+                                         lag(.data$skill) == "Block", !.data$team == lag(.data$team)) ## just cover digs
+    } else {
+        digging_history <- dplyr::filter(dvw$plays, .data$skill == "Dig", .data[[paste0(home_visiting, "_setter_position")]] == setter_rot,
+                                         .data$start_zone == attacking_zone, .data$team == attacking_team,
+                                         lag(.data$skill) == "Block", !.data$team == lag(.data$team)) ## just cover digs
     }
+    dig_responsibility_posterior <- do_responsibility_posterior(history = digging_history, game_state = game_state, prior = dig_responsibility_prior, home_visiting = home_visiting, weighted = weighted, current_team = attacking_team, start_end = "start", pseq = pseq)
+    ##cat("cover dig responsibility posterior\n")
+    ##print(dig_responsibility_posterior)
+
     plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
     poc <- paste0(home_visiting, "_p", pseq)
     pp <- c(sort(as.numeric(game_state[poc])), sort(libs))

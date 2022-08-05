@@ -1097,11 +1097,11 @@ ov_scouter_server <- function(app_data) {
                         stop("setter for beach")
                         ## choose the player who didn't pass
                     }
-                    soc <- get_setter(game_state)
+                    guessed_setter <- get_setter(game_state) ## setter on court
                     sp <- c(sort(get_players(game_state, dvw = rdata$dvw)), sort(get_liberos(game_state, dvw = rdata$dvw)))
                     names(sp) <- player_nums_to(sp, team = game_state$current_team, dvw = rdata$dvw)
                     sp <- c(sp, Unknown = "Unknown")
-                    setter_buttons <- make_fat_radio_buttons(choices = sp, selected = soc, input_var = "c2_player")
+                    setter_buttons <- make_fat_radio_buttons(choices = sp, selected = guessed_setter, input_var = "c2_player")
                     opp <- c(sort(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw)), sort(get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw)))
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
@@ -1118,7 +1118,7 @@ ov_scouter_server <- function(app_data) {
                         rc$eval[rc$skill %eq% "S"] <- seval
                         start_t <- retrieve_video_time(game_state$start_t)
                         ## note that the position gets assigned to the start coordinates, but end zone/subzone
-                        rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = soc, skill = "E", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
+                        rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = guessed_setter, skill = "E", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                         rally_state("click third contact")
                         do_video("play")
                     } else {
@@ -1313,8 +1313,7 @@ ov_scouter_server <- function(app_data) {
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
                     f1_buttons <- make_fat_radio_buttons(choices = c("Freeball over error" = "F=", "Freeball dig" = "FD", "Freeball dig error" = "FD=", "Opp. overpass attack" = "aPR"), selected = "FD", input_var = "f1")
                     ## Identify defending players
-                    ## TODO use dedicated freeball-dig guessing?
-                    dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
+                    dig_pl_opts <- guess_freeball_dig_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     digp <- dig_pl_opts$choices
                     names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
                     digp <- c(digp, Unknown = "Unknown")
@@ -1672,7 +1671,7 @@ ov_scouter_server <- function(app_data) {
                         rc$mid_y[Aidx] <- mid_xy[2]
                         rc$eval[Aidx] <- eval
                         if (!is.null(input$attack_error_type)) rc$special[Aidx] <- input$attack_error_type
-                        cat("revised A row is: \n"); print(dplyr::glimpse(rc[Aidx, ]))
+                        ##cat("revised A row is: \n"); print(dplyr::glimpse(rc[Aidx, ]))
                     } else {
                         ## that can be replaced by
                         ## update start pos, it may have been edited by the user, but don't change start zone if using attack combo codes
