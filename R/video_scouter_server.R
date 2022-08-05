@@ -1591,7 +1591,11 @@ ov_scouter_server <- function(app_data) {
                     serve_err_type <- if (!is.null(input$serve_error_type)) input$serve_error_type else "="
                     remove_scout_modal()
                     special_code <- substr(serve_err_type, 2, 2)
-                    if (special_code %eq% "N" && rdata$options$end_convention %eq% "actual") game_state$end_y <- 3.5 ## exactly on net
+                    if (special_code %eq% "N" && rdata$options$end_convention %eq% "actual") {
+                        game_state$end_y <- 3.5 ## exactly on net
+                        ## make sure that the zone/subzone are as for the receiving side of the court
+                        esz <- as.character(dv_xy2subzone(game_state$end_x, if (isTRUE((game_state$serving == "*" && game_state$home_team_end == "upper") || (game_state$serving == "a" && game_state$home_team_end == "lower"))) 3.45 else 3.55))
+                    }
                     if (length(Sidx) == 1) {
                         ## update the serve code entry
                         rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, eval = "=", sz = sz, ez = esz[1], esz = esz[2], special = if (nzchar(special_code)) special_code else "~", t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, game_state = game_state)
@@ -1651,6 +1655,12 @@ ov_scouter_server <- function(app_data) {
                 ## find the attack, should be either the previous skill, or one previous to that with a block in between
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
                 if (!is.na(Aidx)) {
+                    if (!is.null(input$attack_error_type) && input$attack_error_type %eq% "N") {
+                        game_state$end_y <- 3.5 ## exactly on net
+                        ## make sure that the zone/subzone are as for the defending side of the court
+                        ## game_state$current_team is the defending team
+                        esz <- as.character(dv_xy2subzone(game_state$end_x, if (isTRUE((game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower"))) 3.55 else 3.45))
+                    }
                     if (FALSE) {
                         sz <- rc$sz[Aidx] ## default to existing start zone
                         if (isTRUE(game_state$startxy_valid)) {
