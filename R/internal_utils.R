@@ -139,3 +139,19 @@ get_os <- function() {
 
 ## take a namespacing function (e.g. shiny::NS), but make it safe for use with e.g. js variable or function names
 ns4js <- function(fun) function(z) gsub("-", "_", fun(z))
+
+## Disambiguate freeball digs from freeballs over
+##
+## "Freeball" skill can be used both for sending a freeball to the opposition as well as receiving one. This function adds a `freeball_over` column that will be TRUE for freeballs over and FALSE for freeball digs. Mostly. There are some edge cases it can't resolve or which are ambiguous (e.g. overpass -> freeball back to opposition ... it is both a freeball dig and a freeball over)
+##
+## @param x datavolleyplays: data frame of plays
+##
+## @return x with column `freeball_over` added
+##
+## @export
+dv_add_freeball_over <- function(x) {
+    mutate(x, freeball_over = .data$skill %eq% "Freeball",
+           ##lead(.data$match_id) %eq% .data$match_id, lag(.data$match_id) %eq% .data$match_id,
+           lead(.data$point_id) %eq% .data$point_id, lag(.data$point_id) %eq% .data$point_id,
+           ((!is.na(lead(.data$team)) & lead(.data$team) != .data$team) | lag(.data$team) %eq% .data$team))
+}

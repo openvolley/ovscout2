@@ -1091,7 +1091,7 @@ ov_scouter_server <- function(app_data) {
                     c2_pq_buttons <- make_fat_radio_buttons(choices = c(Overpass = "/", Poor = "-", OK = "!", Good = "+", Perfect = "#"), selected = passq, input_var = "c2_pq")
                     c2_buttons <- make_fat_radio_buttons(
                         choices = c(Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball<br />attack" = "P2", "Freeball over" = "F", "Reception error<br />(serve ace)" = "R=", ## rcv team actions
-                                    "Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR"), ## opp actions
+                                    "Opp. dig" = "aF", "Opp. dig error" = "aF=", "Opp. overpass attack" = "aPR"), ## opp actions
                         selected = "E", input_var = "c2")
                     if (app_data$is_beach) {
                         stop("setter for beach")
@@ -1188,7 +1188,7 @@ ov_scouter_server <- function(app_data) {
                     ## always offer set error option
                     n_ac2 <- 2L
                     ac <- c(ac, "Freeball over" = "F", "Set error" = "E=")
-                    c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aD", "Opp. dig error" = "aD=", "Opp. overpass attack" = "aPR")), input_var = "c3")
+                    c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aF", "Opp. dig error" = "aF=", "Opp. overpass attack" = "aPR")), input_var = "c3")
                     fatradio_class_uuids$c3 <- attr(c3_buttons, "class")
                     attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     ap <- sort(attack_pl_opts$choices)
@@ -1472,7 +1472,7 @@ ov_scouter_server <- function(app_data) {
                 } else {
                     js_show2("c3_bl_ui");
                     js_show2("c3_pl_ui")
-                    if (input$c3 %in% c("aD", "aD=", "aPR")) {
+                    if (input$c3 %in% c("aF", "aF=", "aPR")) {
                         ## show the opp players
                         js_show2("c3_opp_pl_ui")
                     } else {
@@ -1948,7 +1948,7 @@ ov_scouter_server <- function(app_data) {
             rc$eval[rc$skill %eq% "S"] <- seval
             start_t <- retrieve_video_time(game_state$start_t)
             ## possible values for input$c2 are: Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball attack" = "P2", "Freeball over" = "F", R= rec error
-            ##                                   "Opp. dig" = "aD", error "aD=", "Opp. overpass attack" = "aPR"
+            ##                                   "Opp. dig" = "aF", error "aF=", "Opp. overpass attack" = "aPR"
             if (input$c2 %in% c("E", "E=", "PP", "P2", "F", "R=")) {
                 sp <- input$c2_player
                 if (input$c2 == "E") {
@@ -1993,7 +1993,7 @@ ov_scouter_server <- function(app_data) {
             } else if (input$c2 %eq% "aPR") {
                 ## opposition overpass attack
                 ## adjust the prior skill, if it was a dig or reception then evaluation is "/", if it was a set then "-"
-                if (tail(rc$skill, 1) %in% c("R", "D", "E") && tail(rc$team, 1) %eq% game_state$current_team) {
+                if (tail(rc$skill, 1) %in% c("R", "D", "E", "F") && tail(rc$team, 1) %eq% game_state$current_team) {
                     new_eval <- if (tail(rc$skill, 1) %eq% "E") "-" else "/"
                     rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval, game_state = game_state)
                 }
@@ -2001,17 +2001,17 @@ ov_scouter_server <- function(app_data) {
                 ## esz here actually came from start_x and start_y above
                 rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = esz[1], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                 rally_state("click attack end point")
-            } else if (input$c2 %in% c("aD", "aD=")) {
+            } else if (input$c2 %in% c("aF", "aF=")) {
                 ## opposition dig on overpass
                 ## adjust the prior skill, if it was a dig or reception then evaluation is "/"
                 ## adjust the prior skill, if it was a dig or reception then evaluation is "/", if it was a set then "-"
-                if (tail(rc$skill, 1) %in% c("R", "D", "E") && tail(rc$team, 1) %eq% game_state$current_team) {
-                    new_eval <- if (tail(rc$skill, 1) %eq% "E") "-" else "/"
+                if (tail(rc$skill, 1) %in% c("R", "D", "E", "F") && tail(rc$team, 1) %eq% game_state$current_team) {
+                    new_eval <- if (tail(rc$skill, 1) %in% c("R", "D")) "/" else "-"
                     rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval, game_state = game_state)
                 }
                 op <- if (!is.null(input$c2_opp_player)) input$c2_opp_player else 0L
-                rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "D", eval = if (input$c2 %eq% "aD=") "=" else "~", sz = esz[1], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
-                if (input$c2 %eq% "aD=") {
+                rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "F", eval = if (input$c2 %eq% "aF=") "=" else "~", sz = esz[1], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                if (input$c2 %eq% "aF=") {
                     game_state$point_won_by <- game_state$current_team
                     rally_ended()
                 } else {
@@ -2029,15 +2029,15 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$assign_c3, do_assign_c3())
         do_assign_c3 <- function() {
             ## possible values for input$c3 are: an attack code, Other attack, "F" Freeball or "E=" set error (if not scouting transition sets)
-            ##    "Opp. dig" = "aD", "Opp. overpass attack" = "aPR"
+            ##    "Opp. dig" = "aF", "Opp. overpass attack" = "aPR"
             start_t <- retrieve_video_time(game_state$start_t)
             sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
             rc <- rally_codes()
-            if (input$c3 %in% c("aPR", "aD", "aD=")) {
-                ## adjust the prior skill, if it was a dig or reception then evaluation is "/", if it was a set then "-"
-                ## but we can only do this if we are scouting transition sets, otherwise we can be sure if it was e.g. D/ or a set over
-                if (isTRUE(rdata$options$transition_sets) && tail(rc$skill, 1) %in% c("R", "D", "E") && tail(rc$team, 1) %eq% game_state$current_team) {
-                    new_eval <- if (tail(rc$skill, 1) %eq% "E") "-" else "/"
+            if (input$c3 %in% c("aPR", "aF", "aF=")) {
+                ## adjust the prior skill, if it was a dig or reception then evaluation is "/", otherwise "-"
+                ## but we can only do this if we are scouting transition sets, otherwise we can't be sure if it was e.g. D/ or a set over (E-)
+                if (isTRUE(rdata$options$transition_sets) && tail(rc$skill, 1) %in% c("R", "D", "E", "F") && tail(rc$team, 1) %eq% game_state$current_team) {
+                    new_eval <- if (tail(rc$skill, 1) %in% c("R", "D")) "/" else "-"
                     rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval, game_state = game_state)
                 }
             }
@@ -2046,11 +2046,11 @@ ov_scouter_server <- function(app_data) {
                 op <- if (!is.null(input$c3_opp_player)) input$c3_opp_player else 0L
                 rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                 rally_state("click attack end point")
-            } else if (input$c3 %in% c("aD", "aD=")) {
+            } else if (input$c3 %in% c("aF", "aF=")) {
                 ## opposition dig on overpass
                 op <- if (!is.null(input$c3_opp_player)) input$c3_opp_player else 0L
-                rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "D", eval = if (input$c3 %eq% "aD=") "=" else "~", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
-                if (input$c3 %eq% "aD=") {
+                rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "F", eval = if (input$c3 %eq% "aF=") "=" else "~", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                if (input$c3 %eq% "aF=") {
                     game_state$point_won_by <- game_state$current_team
                     rally_ended()
                 } else {

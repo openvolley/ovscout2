@@ -615,7 +615,7 @@ guess_freeball_dig_player_options <- function(game_state, dvw, system, weighted 
     if (!is.na(dig_responsibility)) dig_responsibility_prior[dig_responsibility] <- 1
 
     ## update the probability with the history of the game
-    px <- dvw$plays %>% mutate(freeball_over = .data$skill %eq% "Freeball" & lead(.data$point_id) %eq% .data$point_id & ((!lead(.data$team) %eq% .data$team) | lag(.data$team) %eq% .data$team))
+    px <- dv_add_freeball_over(dvw$plays)
     if (!weighted) {
         digging_history <- dplyr::filter(px, .data$skill == "Freeball" & !.data$freeball_over, .data[[paste0(home_visiting, "_setter_position")]] == setter_rot,
                                          .data$end_zone == defending_zone, .data$team == defending_team)
