@@ -67,6 +67,7 @@ ov_scouter_server <- function(app_data) {
         observe({
             if (is.null(input$video_width) || is.na(input$video_width) || input$video_width < 1 || is.null(input$video_height) || is.na(input$video_height) || input$video_height < 1) {
                 dojs("Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());")
+                invalidateLater(200)
             }
         })
         get_src_type <- function(src) {
