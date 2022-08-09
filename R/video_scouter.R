@@ -32,7 +32,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 
     ## user data directory
     ## are we running under shiny server, shiny (locally) or shiny (docker)?
-    run_env <- if (file.exists("/.dockerenv") || tryCatch(any(grepl("docker", readLines("/proc/1/cgroup"))), error = function(e) FALSE)) "shiny_docker" else if (nzchar(Sys.getenv("SHINY_PORT"))) "shiny_server" else "shiny_local"
+    run_env <- if (file.exists("/.dockerenv") || suppressWarnings(tryCatch(any(grepl("docker", readLines("/proc/1/cgroup"))), error = function(e) FALSE))) "shiny_docker" else if (nzchar(Sys.getenv("SHINY_PORT"))) "shiny_server" else "shiny_local"
 
     user_dir <- if (run_env %eq% "shiny_local") ovscout2_app_dir() else tempfile()
     if (!dir.exists(user_dir)) dir.create(user_dir)

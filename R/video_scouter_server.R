@@ -767,7 +767,7 @@ ov_scouter_server <- function(app_data) {
         ar_fix_x <- function(x, direction = "to_image") {
             eAR <- input$dv_width / input$dv_height
             mAR <- input$video_width / input$video_height
-            if (length(eAR) && length(mAR) && eAR > mAR) {
+            if (length(eAR) && length(mAR) && isTRUE(eAR > mAR)) {
                 ## element is wider than the actual media, we have letterboxing on the sides
                 visW <- mAR * input$dv_height
                 lw <- (input$dv_width - visW) / input$dv_width / 2 ## letterboxing each side as proportion of element (visible) width
@@ -779,7 +779,7 @@ ov_scouter_server <- function(app_data) {
         ar_fix_y <- function(y, direction = "to_image") {
             eAR <- input$dv_width / input$dv_height
             mAR <- input$video_width / input$video_height
-            if (length(eAR) && length(mAR) && mAR > eAR) {
+            if (length(eAR) && length(mAR) && isTRUE(mAR > eAR)) {
                 ## media is wider than the element, we have letterboxing on the top/bottom
                 visH <- input$dv_width / mAR
                 lh <- (input$dv_height - visH) / input$dv_height / 2 ## letterboxing top/bottom as proportion of element (visible) height
