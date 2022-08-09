@@ -21,13 +21,16 @@ ov_scouter_ui <- function(app_data) {
                         tags$script("$(document).on('keypress', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.setInputValue('cmd', e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
                         tags$script("$(document).on('keydown', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.setInputValue('controlkey', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); if (e.keyCode == 13) { e.stopPropagation(); e.preventDefault(); }});"),
                         tags$script("$(document).on('keyup', function (e) { var el = document.activeElement; var len = -1; if (typeof el.value != 'undefined') { len = el.value.length; }; Shiny.setInputValue('controlkeyup', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime()); });"),
-                        tags$script("document.addEventListener('click', function (e) { Shiny.setInputValue('shiftkey', e.shiftKey) }); $(document).on('shiny:sessioninitialized',function() { Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth()); });"),
-                        ##tags$script("var rsztmr; $(window).resize(function() { clearTimeout(rsztmr); rsztmr = setTimeout(doneResizing, 500); }); function doneResizing() { Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth()); Shiny.setInputValue('rv_height', $('#review_player').innerHeight());}"),
+                        tags$script("document.addEventListener('click', function (e) { Shiny.setInputValue('shiftkey', e.shiftKey) });"),
                         if (app_data$with_video) tags$script(HTML("var vo_rsztmr;
 var vo_doneResizing = function() {
     Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth()); Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); Shiny.setInputValue('vo_voffset', $('#video_holder').innerHeight()); Shiny.setInputValue('rv_height', $('#review_player').innerHeight());
 }
 $(document).on('shiny:sessioninitialized', function() {
+    Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth());
+    vidplayer = videojs('main_video'); vidplayer.ready(function() {
+      Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());
+    });
     vo_doneResizing();
     $(window).resize(function() {
       clearTimeout(vo_rsztmr);
@@ -102,6 +105,6 @@ $(document).on('shiny:sessioninitialized', function() {
 tags$script("set_vspinner = function() { $('#review_player').addClass('loading'); }; remove_vspinner = function() { $('#review_player').removeClass('loading'); }; $('#video_overlay').click(function(e) { var rect = e.target.getBoundingClientRect(); var cx = e.clientX - rect.left; var cy = e.clientY - rect.top; var vt = -1; try { vt = vidplayer.currentTime(); } catch {}; Shiny.setInputValue('video_click', [cx, cy, rect.width, rect.height, vt, new Date().getTime()]) }); $('#review_overlay').click(function(e) { var rect = e.target.getBoundingClientRect(); var cx = e.clientX - rect.left; var cy = e.clientY - rect.top; var vt = -1; try { vt = revpl.currentTime(); } catch {}; Shiny.setInputValue('rev_click', [cx, cy, rect.width, rect.height, vt, new Date().getTime()]) })"),
 tags$style("video.loading { background: black; }"),
 tags$script("review_player_onerror = function(e) { $('#review_player').removeClass('loading'); try { var this_src = btoa(document.getElementById(e.target.id).getAttribute('src')); } catch { var this_src = ''; }; Shiny.setInputValue('video_error', e.target.id + '@' + this_src + '@' + e.target.error.code + '@' + new Date().getTime()); }"),
-tags$script(paste0("vidplayer = videojs('main_video'); revpl = new dvjs_controller('review_player','", if (yt) "youtube" else "local", "',true);  revpl.video_onfinished = function() { revpl.video_controller.current=0; revpl.video_play(); }"))
+tags$script(paste0("revpl = new dvjs_controller('review_player','", if (yt) "youtube" else "local", "',true);  revpl.video_onfinished = function() { revpl.video_controller.current=0; revpl.video_play(); }"))
 )
 }
