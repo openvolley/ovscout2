@@ -229,6 +229,8 @@ codes_from_rc_rows <- function(rc) {
 }
 
 ## the code parm here can be used to provide a direct scout code, useful if e.g. the tibble row isn't a scouted skill
+## note that startxy_valid, midxy_valid, endxy_valid are taken from game_state (unless provided), and if FALSE the corresponding position will not be used in the code row
+## start_zone is treated separately, because sometimes we know the start zone (e.g. from an attack combo code) even if we didn't get clicked coordinates
 code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, mid_x = NA_real_, mid_y = NA_real_, end_x = NA_real_, end_y = NA_real_, code = NA_character_, rally_state, startxy_valid, start_zone_valid, midxy_valid, endxy_valid, game_state, default_scouting_table) {
     ## abbreviated parameter names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
     ## providing 'code' is a special case

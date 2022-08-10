@@ -1273,34 +1273,80 @@ ov_scouter_server <- function(app_data) {
                     coverp <- c(coverp, Unknown = "Unknown")
                     cover_player_buttons <- make_fat_radio_buttons(choices = coverp, selected = cover_pl_opts$selected, input_var = "c1_cover_player")
                     if (isTRUE(input$shiftkey)) {
-                        ## accept dig (by unknown player) with no block touch, with no popup
-                        ## TODO (if this seems sensible!)
-                    } ## else {
-                    accept_fun("do_assign_c1")
-                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
-                                            tags$p(tags$strong("Attack outcome:")),
-                                            do.call(fixedRow, lapply(c1_buttons[1:3], function(but) column(2, but))),
-                                            tags$br(), tags$div(id = "ae_ui", style = "display:none;", do.call(fixedRow, lapply(ae_buttons, function(but) column(1, but)))),
-                                            tags$div("OR", tags$strong("Defence outcome:")),
-                                            do.call(fixedRow, lapply(c1_buttons[4:7], function(but) column(2, but))),
-                                            tags$br(), tags$hr(),
-                                            ## either dig players (defending team)
-                                            tags$div(id = "c1_digp_ui", tags$p(tags$strong("Dig player")),
-                                                     do.call(fixedRow, lapply(dig_player_buttons, function(but) column(1, but)))),
-                                            ## or cover players (attacking team)
-                                            tags$div(id = "c1_coverp_ui", style = "display:none;", tags$p(tags$strong("Cover dig player")),
-                                                     do.call(fixedRow, lapply(cover_player_buttons, function(but) column(1, but)))),
-                                            ## or block players
-                                            tags$div(id = "c1_blockp_ui", style = "display:none;", tags$p(tags$strong("Block player")),
-                                                     do.call(fixedRow, lapply(block1_player_buttons, function(but) column(2, but)))),
-                                            tags$br(),
-                                            tags$div(id = "c1_touchp_ui", tags$hr(), tags$div("WITH", tags$strong("Block touch"), "by player"), tags$br(),
-                                                     do.call(fixedRow, lapply(block_player_buttons, function(but) column(2, but)))),
-                                            tags$hr(),
-                                            fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
-                                                     column(2, offset = 8, actionButton("assign_c1", "Continue", class = "continue fatradio")))
-                                            ))
-                    ##}
+                        ## attack in play (i.e. was dug), but we are not stopping to enter details
+                        ## we can either - insert a dig with an unknown dig player
+                        ##               - insert a dig with the suggested dig player (though this might be incorrect)
+                        ##               - do not insert a dig, just record the attack end location
+                        ## note that we can't record a block touch if we aren't stopping to enter details
+                        insert_auto_dig <- FALSE ## change to TRUE if we want a dig skill inserted. If FALSE, we simply modify the attack details (end location and evaluation)
+                        digp <- 0L ## or use suggested defensive player ## if (!is.null(input$c1_def_player)) input$c1_def_player else 0L
+                        sz <- "~"; szv <- FALSE ## default to unknown start zone
+                        esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
+                        rc <- rally_codes()
+                        end_t <- retrieve_video_time(game_state$end_t)
+                        ## was the previous skill an attack, or one previous to that an attack with a block in between
+                        ## the latter should not be possible, but keep the code in anyway
+                        Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
+                        if (!is.na(Aidx)) {
+                            sz <- rc$sz[Aidx] ## existing start zone
+                            if (isTRUE(game_state$startxy_valid)) {
+                                szv <- TRUE
+                                ## update start pos, it may have been edited by the user
+                                if (!rdata$options$attacks_by %eq% "codes") {
+                                    ## don't change start zone if using attack combo codes
+                                    sz <- as.character(adjusted_backrow_pos(game_state = game_state)$zone) ## preceding skill was attack, so use adjusted zone
+                                }
+                                rc$sz[Aidx] <- sz
+                                rc$start_x[Aidx] <- game_state$start_x
+                                rc$start_y[Aidx] <- game_state$start_y
+                            } else {
+                                szv <- rdata$options$attacks_by %eq% "codes" ## start zone still valid if from attack combo code
+                            }
+                            if (isTRUE(game_state$endxy_valid)) {
+                                rc$ez[Aidx] <- esz[1]
+                                rc$esz[Aidx] <- esz[2]
+                                rc$end_x[Aidx] <- game_state$end_x
+                                rc$end_y[Aidx] <- game_state$end_y
+                            }
+                            tempo <- rc$tempo[Aidx]
+                        } else {
+                            tempo <- "~"
+                        }
+                        if (!is.na(Aidx)) rc$eval[Aidx] <- "-" ## poor attack
+                        eval <- "+" ## good dig
+                        ## dig location: start is as for attack start, end is the dig location. No block touch if shift-clicking
+                        if (insert_auto_dig) {
+                            rc <- bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "D", eval = eval, tempo = tempo, sz = sz, ez = esz[1], esz = esz[2], t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, start_zone_valid = szv, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table))
+                        }
+                        rally_codes(rc)
+                        rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
+                        do_video("play")
+                    }  else {
+                        accept_fun("do_assign_c1")
+                        show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
+                                                       tags$p(tags$strong("Attack outcome:")),
+                                                       do.call(fixedRow, lapply(c1_buttons[1:3], function(but) column(2, but))),
+                                                       tags$br(), tags$div(id = "ae_ui", style = "display:none;", do.call(fixedRow, lapply(ae_buttons, function(but) column(1, but)))),
+                                                       tags$div("OR", tags$strong("Defence outcome:")),
+                                                       do.call(fixedRow, lapply(c1_buttons[4:7], function(but) column(2, but))),
+                                                       tags$br(), tags$hr(),
+                                                       ## either dig players (defending team)
+                                                       tags$div(id = "c1_digp_ui", tags$p(tags$strong("Dig player")),
+                                                                do.call(fixedRow, lapply(dig_player_buttons, function(but) column(1, but)))),
+                                                       ## or cover players (attacking team)
+                                                       tags$div(id = "c1_coverp_ui", style = "display:none;", tags$p(tags$strong("Cover dig player")),
+                                                                do.call(fixedRow, lapply(cover_player_buttons, function(but) column(1, but)))),
+                                                       ## or block players
+                                                       tags$div(id = "c1_blockp_ui", style = "display:none;", tags$p(tags$strong("Block player")),
+                                                                do.call(fixedRow, lapply(block1_player_buttons, function(but) column(2, but)))),
+                                                       tags$br(),
+                                                       tags$div(id = "c1_touchp_ui", tags$hr(), tags$div("WITH", tags$strong("Block touch"), "by player"), tags$br(),
+                                                                do.call(fixedRow, lapply(block_player_buttons, function(but) column(2, but)))),
+                                                       tags$hr(),
+                                                       fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
+                                                                column(2, offset = 8, actionButton("assign_c1", "Continue", class = "continue fatradio")))
+                                                       ))
+                    }
                 } else if (rally_state() == "click freeball end point") {
                     ## freeball dig, freeball dig error, freeball error (in theory could be blocked, blocked for replay, block touch (freeball kill))
                     do_video("pause")
@@ -1818,11 +1864,13 @@ ov_scouter_server <- function(app_data) {
                 ## D or D=
                 digp <- if (!is.null(input$c1_def_player)) input$c1_def_player else 0L
                 end_t <- retrieve_video_time(game_state$end_t)
+                sz <- "~"; szv <- FALSE ## default to unknown start zone
                 ## was the previous skill an attack, or one previous to that an attack with a block in between
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
                 if (!is.na(Aidx)) {
-                    sz <- rc$sz[Aidx] ## default to existing start zone
+                    sz <- rc$sz[Aidx] ## existing start zone
                     if (isTRUE(game_state$startxy_valid)) {
+                        szv <- TRUE
                         ## update start pos, it may have been edited by the user
                         if (!rdata$options$attacks_by %eq% "codes") {
                             ## don't change start zone if using attack combo codes
@@ -1831,6 +1879,8 @@ ov_scouter_server <- function(app_data) {
                         rc$sz[Aidx] <- sz
                         rc$start_x[Aidx] <- game_state$start_x
                         rc$start_y[Aidx] <- game_state$start_y
+                    } else {
+                        szv <- rdata$options$attacks_by %eq% "codes" ## start zone still valid if from attack combo code
                     }
                     if (isTRUE(game_state$endxy_valid)) {
                         rc$ez[Aidx] <- esz[1]
@@ -1854,16 +1904,16 @@ ov_scouter_server <- function(app_data) {
                     eval <- "+"
                 }
                 ## dig location
-                ## TODO CHECK is the dig start zone the same as the attack start zone, or its end zone?
+                ## dig location: start is as for attack start, end is the dig location
                 dx <- game_state$end_x
                 dy <- game_state$end_y
-                dz <- esz[1]
+                dsz <- esz
                 if (!is.null(input$c1_block_touch_player) && rdata$options$end_convention %eq% "intended") {
                     ## if we are scouting intended attack directions, and there was a block touch, then don't use a dig location
                     dx <- dy <- NA_real_
-                    dz <- "~"
+                    dsz <- c("~", "~")
                 }
-                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "D", eval = eval, tempo = tempo, sz = dz, t = end_t, start_x = dx, start_y = dy, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
+                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "D", eval = eval, tempo = tempo, sz = sz, ez = dsz[1], esz = dsz[2], t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = dx, end_y = dy, start_zone_valid = szv, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                 if (input$c1 == "D=") {
                     game_state$point_won_by <- other(game_state$current_team)
                     rally_ended()
