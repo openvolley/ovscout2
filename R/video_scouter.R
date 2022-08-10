@@ -35,7 +35,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     run_env <- if (file.exists("/.dockerenv") || suppressWarnings(tryCatch(any(grepl("docker", readLines("/proc/1/cgroup"))), error = function(e) FALSE))) "shiny_docker" else if (nzchar(Sys.getenv("SHINY_PORT"))) "shiny_server" else "shiny_local"
 
     user_dir <- if (run_env %eq% "shiny_local") ovscout2_app_dir() else tempfile()
-    if (!dir.exists(user_dir)) dir.create(user_dir)
+    if (!dir.exists(user_dir)) dir.create(user_dir, recursive = TRUE)
     if (!dir.exists(file.path(user_dir, "autosave"))) dir.create(file.path(user_dir, "autosave"))
 
     ## do we have any saved preferences?
