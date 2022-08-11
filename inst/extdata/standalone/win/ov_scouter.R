@@ -132,7 +132,7 @@ if (!ovideo::ov_ffmpeg_ok()) {
 if (!ovideo::ov_ffmpeg_ok()) warning("ffmpeg could not be found, some functionality will be disabled")
 
 ## check that we have pandoc
-if (!ovscout2:::ov_pandoc_ok())
+if (!ovscout2:::ov_pandoc_ok()) {
     ## try the local install
     pnpaths <- unique(c(fs::path_real(fs::path(Rlibpath, "pandoc")), fs::path(Rlibpath, "pandoc")))
     if (DEBUG) cat("trying local pandoc path(s):", pnpaths, "\n")
