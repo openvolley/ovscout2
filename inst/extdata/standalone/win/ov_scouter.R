@@ -131,6 +131,22 @@ if (!ovideo::ov_ffmpeg_ok()) {
 }
 if (!ovideo::ov_ffmpeg_ok()) warning("ffmpeg could not be found, some functionality will be disabled")
 
+## check that we have pandoc
+if (!ov_pandoc_ok())
+    ## try the local install
+    pnpaths <- unique(c(fs::path_real(fs::path(Rlibpath, "pandoc")), fs::path(Rlibpath, "pandoc")))
+    if (DEBUG) cat("trying local pandoc path(s):", pnpaths, "\n")
+    pnbin <- unlist(lapply(pnpaths, function(pth) dir(pth, recursive = TRUE, full.names = TRUE, pattern = "pandoc\\.exe")))
+    if (length(pnbin) > 0) {
+        pnpath <- fs::path_dir(fs::path(pnbin[1]))
+        Sys.setenv(path = paste0(pnpath, ";", Sys.getenv("path")))
+        if (DEBUG) cat("setting system path to include local pandoc path:", Sys.getenv("path"), "\n")
+    } else {
+        if (DEBUG) cat("could not find system or local pandoc binary\n")
+    }
+}
+if (!ov_pandoc_ok()) warning("pandoc could not be found, some functionality will be disabled")
+
 library(ovscout2)
 ## check args
 dvw <- video_file <- season_dir <- NULL

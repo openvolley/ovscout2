@@ -51,6 +51,18 @@ if (length(dir(ffmpeg_dir, recursive = TRUE, pattern = "ffmpeg\\.exe")) < 1) {
 }
 if (length(dir(ffmpeg_dir, recursive = TRUE, pattern = "ffmpeg\\.exe")) < 1) stop("ffmpeg install failed")
 
+## 4. pandoc
+pandoc_dir <- file.path(libdir, "pandoc")
+if (!dir.exists(pandoc_dir)) dir.create(pandoc_dir)
+if (length(dir(pandoc_dir, recursive = TRUE, pattern = "pandoc\\.exe")) < 1) {
+    dl_url <- "https://github.com/jgm/pandoc/releases/download/2.19/pandoc-2.19-windows-x86_64.zip"
+    zipname <- file.path(pandoc_dir, basename(dl_url))
+    err <- utils::download.file(dl_url, destfile = zipname, mode = "wb")
+    if (!err) utils::unzip(zipname, exdir = pandoc_dir, junkpaths = TRUE)
+    unlink(file.path(pandoc_dir, basename(dl_url))) ## delete the zip file
+}
+if (length(dir(pandoc_dir, recursive = TRUE, pattern = "pandoc\\.exe")) < 1) stop("pandoc install failed")
+
 ## install packages to our lib dir
 old_libpaths <- .libPaths()
 .libPaths(c(libdir, "R-Portable/App/R-Portable/library")) ## probably fragile
