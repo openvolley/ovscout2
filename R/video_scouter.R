@@ -63,8 +63,27 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     if (missing(season_dir)) season_dir <- NULL
     if (missing(auto_save_dir)) auto_save_dir <- NULL
     if (!is.null(auto_save_dir) && !dir.exists(auto_save_dir)) stop("auto_save_dir does not exist")
-    ## start with season directory
-    if (is.null(season_dir) && prompt_for_files) season_dir <- tryCatch(dchoose(caption = "Choose season directory or cancel to skip", path = if (!missing(dvw) && !is.null(dvw) && dir.exists(fs::path_dir(fs::path(dvw)))) fs::path_dir(fs::path(dvw)) else getwd()), error = function(e) NULL)
+    ## read the input file, if we've been given one
+    if (!missing(dvw) && is.string(dvw)) {
+        if (grepl("\\.dvw$", dvw, ignore.case = TRUE)) {
+            dvw_filename <- dvw
+            if (!"skill_evaluation_decode" %in% names(dv_read_args)) dv_read_args$skill_evaluation_decode <- "guess"
+            dv_read_args$filename <- dvw
+            dvw <- do.call(datavolley::dv_read, dv_read_args)
+        } else if (grepl("\\.ovs$", dvw, ignore.case = TRUE)) {
+            dvw_filename <- dvw
+            dvw <- readRDS(dvw)
+        } else {
+            stop("unrecognized file format: ", dvw)
+        }
+    }
+    ## ask for season directory
+    ## but not if we've started from an ovs/dvw file that has a legit video path
+    if (is.null(season_dir) && prompt_for_files) {
+        if (!(!missing(dvw) && !is.null(dvw) && !is.null(dvw$meta$video) && nrow(dvw$meta$video) == 1 && (file.exists(dvw$meta$video$file) || is_url(dvw$meta$video$file)))) {
+            xseason_dir <- tryCatch(dchoose(caption = "Choose season directory or cancel to skip", path = if (!missing(dvw) && !is.null(dvw) && dir.exists(fs::path_dir(fs::path(dvw)))) fs::path_dir(fs::path(dvw)) else getwd()), error = function(e) NULL)
+        }
+    }
     if ((missing(dvw) || is.null(dvw))) {
         if (prompt_for_files) {
             dvw <- tryCatch({
@@ -78,23 +97,10 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     if (is.null(dvw)) {
         ## default to an empty one
         suppressWarnings(dvw <- dv_create(teams = c("Home team", "Visiting team"))) ## don't warn about empty rosters
-    }
-    if (is.string(dvw)) {
-        if (grepl("\\.dvw$", dvw, ignore.case = TRUE)) {
-            dvw_filename <- dvw
-            if (!"skill_evaluation_decode" %in% names(dv_read_args)) dv_read_args$skill_evaluation_decode <- "guess"
-            dv_read_args$filename <- dvw
-            dvw <- do.call(datavolley::dv_read, dv_read_args)
-        } else if (grepl("\\.ovs$", dvw, ignore.case = TRUE)) {
-            dvw_filename <- dvw
-            dvw <- readRDS(dvw)
-        } else {
-            stop("unrecognized file format: ", dvw)
-        }
     } else {
         if (!inherits(dvw, "datavolley")) stop("dvw should be a datavolley object or the path to a .dvw file")
-        dvw_filename <- dvw$meta$filename
     }
+    dvw_filename <- dvw$meta$filename
     ## make sure we have an attack table, TODO add parm for the default to use here
     if (is.null(dvw$meta$attacks)) dvw$meta$attacks <- ov_simplified_attack_table()
 
