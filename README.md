@@ -19,6 +19,8 @@ coverage](https://codecov.io/gh/openvolley/ovscout2/branch/master/graph/badge.sv
 remotes::install_github("openvolley/ovscout2")
 ```
 
+Or see the [user manual](https://ovscout2.openvolley.org) for standalone installers.
+
 ## About
 
 This R package provides a Shiny app for scouting volleyball data files.
