@@ -43,7 +43,7 @@ Imports:
     sys,
     tidyr,
     uuid,
-    volleyreport
+    volleyreport (>= 0.4.2)
 Suggests:
     covr,
     knitr,

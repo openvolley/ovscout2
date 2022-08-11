@@ -2853,7 +2853,7 @@ ov_scouter_server <- function(app_data) {
             servable_url <- NULL
             tryCatch({
                 shiny::withProgress(message = "Generating match report", value = 0, {
-                    rargs <- list(x = temp_dvw_file, format = "paged_pdf", vote = FALSE, shiny_progress = TRUE, chrome_print_extra_args = if (app_data$run_env %eq% "shiny_local") NULL else c("--no-sandbox", "--disable-gpu"))
+                    rargs <- list(x = temp_dvw_file, format = "paged_pdf", style = "ov1", vote = FALSE, shiny_progress = TRUE, chrome_print_extra_args = if (app_data$run_env %eq% "shiny_local") NULL else c("--no-sandbox", "--disable-gpu"))
                     if ("icon" %in% names(app_data) && file.exists(app_data$icon)) rargs$icon <- app_data$icon
                     ##header_extra_pre = "<div style=\"position:absolute; bottom:-7mm; right:2mm; font-size:9px;\">\nReport via <https://openvolley.org/ovscout2>\n</div>\n"
                     rcss <- volleyreport::vr_css()
