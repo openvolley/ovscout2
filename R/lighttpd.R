@@ -52,3 +52,23 @@ ov_find_lighttpd <- function() {
     if (length(chk) == 1 && file.exists(chk)) chk else NULL
 }
 
+
+## Check required pandoc version
+## @return `TRUE` if pandoc 1.12.3 or greater is available
+## @seealso [rmarkdown::pandoc_version()]
+ov_pandoc_ok <- function(warn = TRUE) {
+    req_v <- "1.12.3"
+    if (!isTRUE(rmarkdown::pandoc_version() >= req_v)) {
+        ## go looking
+        ## if we're using the standalone windows version the system path should already be set, but we can check again
+        chk <- rmarkdown::find_pandoc(cache = FALSE, dir = file.path(.libPaths(), "pandoc"))
+        if (is.null(chk$dir) || (chk$version < req_v)) {
+            ## not found there
+            ## look elsewhere?
+        }
+    }
+    ok <- isTRUE(rmarkdown::pandoc_version() >= req_v)
+    if (!ok && warn) message("pandoc v1.12.3+ not found, report functionality will be disabled")
+    ok
+}
+

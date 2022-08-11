@@ -73,7 +73,7 @@ $(document).on('shiny:sessioninitialized', function() {
                                           tags$hr(),
                                           if (!is.null(app_data$dvw$plays2)) tags$div(downloadButton("save_rds_button", "Save file"),
                                                                                       downloadButton("save_dvw_button", "Export to dvw"),
-                                                                                      shinyWidgets::dropdown(inputId = "reports", label = "Reports", actionButton("mr_generate", "Match report"))),
+                                                                                      if (ov_pandoc_ok()) shinyWidgets::dropdown(inputId = "reports", label = "Reports", actionButton("mr_generate", "Match report"))),
                                           tags$hr(),
                                           introBox(actionButton("preferences", "Preferences"),
                                                    actionButton("show_shortcuts", tags$span(icon("keyboard"), HTML("Keyboard<br />shortcuts"))), data.step = 7, data.intro = "Set general preferences, and see the keyboard shortcuts.")
