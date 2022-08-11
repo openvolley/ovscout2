@@ -45,13 +45,14 @@ remotes::install_github("openvolley/ovscout2")
 
 ## Other system utilities
 
-Two other system utilities are recommended but not required. Note that the standalone Windows bundle already includes these utilities &mdash; no further action is needed in that case.
+Three other system utilities are recommended but not required. Note that the standalone Windows bundle already includes these utilities &mdash; no further action is needed in that case.
 
-1. ffmpeg is used to extract frames from videos, and other video-related functions. If `ffmpeg` is not available, an internal fallback method is used for some functionality, but may be considerably slower. Install `ffmpeg` via your package manager, or (from within R, on Linux and Windows only) using `ovideo::ov_install_ffmpeg()`
+1. `ffmpeg` is used to extract frames from videos, and other video-related functions. If `ffmpeg` is not available, an internal fallback method is used for some functionality, but may be considerably slower. Install `ffmpeg` via your package manager, or (from within R, on Linux and Windows only) using `ovideo::ov_install_ffmpeg()`
 
-2. lighttpd https://www.lighttpd.net/ is a lightweight web server that is used to play the match video. Install (from within R, on Windows only) using `ovscout2::ov_install_lighttpd()` or manually from http://lighttpd.dtech.hu/ (for Windows) or via your package manager for other operating systems (see https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd).
-  If lighttpd is not installed, the app falls back to a built-in web server but this is a little slower and less responsive than lighttpd.
+2. `lighttpd` https://www.lighttpd.net/ is a lightweight web server that is used to play the match video. Install (from within R, on Windows only) using `ovscout2::ov_install_lighttpd()` or manually from http://lighttpd.dtech.hu/ (for Windows) or via your package manager for other operating systems (see https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd).
+  If `lighttpd` is not installed, the app falls back to a built-in web server but this is a little slower and less responsive than `lighttpd`.
 
+3. `pandoc` https://github.com/jgm/pandoc/ is required for generating match reports from scouted files. Install following https://github.com/jgm/pandoc/blob/master/INSTALL.md. If not present, the report generation menu item won't be shown.
 
 # Startup and usage
 
