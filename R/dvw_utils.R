@@ -9,7 +9,7 @@ preprocess_dvw <- function(x) {
     msgs <- dplyr::summarize(group_by_at(msgs, "file_line_number"), error_message = paste0(.data$message, collapse = "<br />"))
     if ("error_message" %in% names(x$plays)) x$plays <- dplyr::select(x$plays, -"error_message")
     x$plays <- left_join(x$plays, msgs, by = "file_line_number")
-    x$plays$error_icon <- ifelse(is.na(x$plays$error_message), "", HTML(as.character(shiny::icon("exclamation-triangle"))))
+    x$plays$error_icon <- ifelse(is.na(x$plays$error_message), "", HTML(as.character(icon("exclamation-triangle"))))
     x
 }
 

@@ -155,3 +155,8 @@ dv_add_freeball_over <- function(x) {
            lag(.data$point_id) %eq% .data$point_id, ##lead(.data$point_id) %eq% .data$point_id,
            ((!is.na(lead(.data$team)) & lead(.data$team) != .data$team) | lag(.data$team) %eq% .data$team))
 }
+
+## convenience wrapper around shiny::icon that inserts verify_fa = FALSE to quiet the warnings
+icon <- function(...) {
+    shiny::icon(..., verify_fa = FALSE)
+}
