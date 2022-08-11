@@ -895,9 +895,9 @@ fchoose <- function(caption, path) {
 was_mouse_drag <- function(start, dragtime = 500) {
     ## start should be a clickdrag object e.g. from the court ref module
     ## dragtime is the time that must have passed since the initial mouse click, in msx
-    if (is.null(start) || is.null(start$mousedown)) {
+    if (is.null(start) || is.null(start$mousedown_time)) {
         FALSE
     } else {
-        (R.utils::System$currentTimeMillis() - start$mousedown_time) > dragtime
+        isTRUE((R.utils::System$currentTimeMillis() - start$mousedown_time) > dragtime)
     }
 }
