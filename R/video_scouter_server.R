@@ -791,8 +791,12 @@ ov_scouter_server <- function(app_data) {
         }
         overlay_points <- reactiveVal(NULL)
         overlay_court_lines <- reactive({
-            oxy <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = detection_ref()$court_ref, crop = TRUE)$courtxy
-            dplyr::rename(oxy, image_x = "x", image_y = "y")
+            if (!is.null(detection_ref()$court_ref)) {
+                oxy <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = detection_ref()$court_ref, crop = TRUE)$courtxy
+                dplyr::rename(oxy, image_x = "x", image_y = "y")
+            } else {
+                NULL
+            }
         })
         observe({
             output$video_overlay <- renderPlot({
@@ -801,7 +805,7 @@ ov_scouter_server <- function(app_data) {
                 ## TODO move the court overlay to video_overlay_img
                 opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
                 plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
-                if (isTRUE(prefs$show_courtref)) {
+                if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
                     oxy <- overlay_court_lines()
                     ## account for aspect ratios
                     oxy$image_x <- ar_fix_x(oxy$image_x)
