@@ -32,8 +32,8 @@ dv_create <- function(match, more, teams, players_h, players_v, video_file, atta
         messages = tibble(file_line_number = integer(), video_time = numeric(), message = character(), file_line = character()),
         file_meta = create_file_meta(file_type = if (grepl("beach", reg)) "beach" else "indoor"),
         meta = create_meta(match = match, more = more, teams = teams, players_h = players_h, players_v = players_v, video_file = video_file, attacks = attacks, setter_calls = setter_calls, winning_symbols = winning_symbols, zones_or_cones = zones_or_cones, regulation = regulation, comments = comments),
-        plays = tibble(), plays2 = tibble(), game_state = NULL)
-    ## plays is the full plays dataframe, plays2 is just the columns that appear in the dvw file directly
+        plays = tibble(), plays2 = tibble(code = character(), set_number = integer()), game_state = NULL)
+    ## plays is the full plays dataframe, plays2 is just the columns that appear in the dvw file directly. Minimal set of plays2 columns initialized here, just to keep downstream code quiet (no warnings about missing columns)
     structure(out, class = c("datavolley", "list"))
 }
 

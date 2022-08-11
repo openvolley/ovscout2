@@ -180,7 +180,7 @@ plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
     out <- bind_cols(out, setNames(dv_index2xy(plays2$start_coordinate), c("start_coordinate_x", "start_coordinate_y")))
     out <- bind_cols(out, setNames(dv_index2xy(plays2$mid_coordinate), c("mid_coordinate_x", "mid_coordinate_y")))
     out <- bind_cols(out, setNames(dv_index2xy(plays2$end_coordinate), c("end_coordinate_x", "end_coordinate_y")))
-    out$phase <- plays2$phase ##datavolley::play_phase(out)
+    out$phase <- if ("phase" %in% plays2) plays2$phase else NA_character_
     out$set_number <- plays2$set_number
     out$video_time <- plays2$video_time
     ## add point_id
@@ -200,7 +200,7 @@ plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
         dplyr::rename(serving_team = "team") %>% dplyr::filter(!duplicated(.data$point_id))
     out <- left_join(out, who_served, by = c("point_id"))
     out$serving_team <- as.character(out$serving_team) ## to be sure is not factor
-    out$error_icon <- ""##ifelse(is.na(x$plays$error_message), "", HTML(as.character(shiny::icon("exclamation-triangle"))))
+    out$error_icon <- ""##ifelse(is.na(x$plays$error_message), "", HTML(as.character(icon("exclamation-triangle"))))
     bind_cols(out, plays2[, c(paste0("home_p", pseq), paste0("visiting_p", pseq))])
 }
 

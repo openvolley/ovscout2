@@ -134,8 +134,8 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     ## generate the ggplot object of the court with players, this doesn't change within a rally
     base_plot <- reactive({
         p <- ggplot(data = data.frame(x = c(-0.25, 4.25, 4.25, -0.25), y = c(-0.25, -0.25, 7.25, 7.25)), mapping = aes_string("x", "y")) +
-            geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour) +
-            geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour) +
+            geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour, na.rm = TRUE) +
+            geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour, na.rm = TRUE) +
             ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
         px <- isolate(plot_data()) ## don't redraw on every invalidation of plot_data(), because the actual data might not have changed
         blah <- plot_data_digest() ## trigger on this
@@ -144,60 +144,60 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         plxy <- cbind(dv_xy(pseq, end = "lower"), htrot)
         ## player names and circles
         ## home team
-        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "lower"), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight)
+        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "lower"), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight, na.rm = TRUE)
         if (!beach) {
             ## setter
             ht_setter <- px$ht_setter
             if (!is.null(ht_setter) && sum(ht_setter %eq% plxy$number) == 1) {
-                p <- p + geom_polygon(data = court_circle(cz = which(ht_setter %eq% plxy$number), end = "lower"), fill = styling$h_court_highlight, colour = "black")
+                p <- p + geom_polygon(data = court_circle(cz = which(ht_setter %eq% plxy$number), end = "lower"), fill = styling$h_court_highlight, colour = "black", na.rm = TRUE)
             }
             ## liberos
             if (!is.null(px$ht_libxy)) {
-                p <- p + geom_polygon(data = court_circle(px$ht_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero, colour = "black") +
-                    geom_text(data = px$ht_libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
-                    geom_text(data = px$ht_libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+                p <- p + geom_polygon(data = court_circle(px$ht_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero, colour = "black", na.rm = TRUE) +
+                    geom_text(data = px$ht_libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
+                    geom_text(data = px$ht_libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5, na.rm = TRUE)
             }
         }
-        p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
-            geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+        p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
+            geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5, na.rm = TRUE)
         ## visiting team
         plxy <- cbind(dv_xy(pseq, end = "upper"), vtrot)
-        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "upper"), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight)
+        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "upper"), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight, na.rm = TRUE)
         if (!beach) {
             ## setter
             vt_setter <- px$vt_setter
             if (!is.null(vt_setter) && sum(vt_setter %eq% plxy$number) == 1) {
-                p <- p + geom_polygon(data = court_circle(cz = which(vt_setter %eq% plxy$number), end = "upper"), fill = styling$v_court_highlight, colour = "black")
+                p <- p + geom_polygon(data = court_circle(cz = which(vt_setter %eq% plxy$number), end = "upper"), fill = styling$v_court_highlight, colour = "black", na.rm = TRUE)
             }
             ## liberos
             if (!is.null(px$vt_libxy)) {
-                p <- p + geom_polygon(data = court_circle(px$vt_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero, colour = "black") +
-                    geom_text(data = px$vt_libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
-                    geom_text(data = px$vt_libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+                p <- p + geom_polygon(data = court_circle(px$vt_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero, colour = "black", na.rm = TRUE) +
+                    geom_text(data = px$vt_libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
+                    geom_text(data = px$vt_libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5, na.rm = TRUE)
             }
         }
-        p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0) +
-            geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5)
+        p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
+            geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5, na.rm = TRUE)
 
         ## add the serving team indicator
         temp <- court_circle(cz = 1, r = 0.2, end = "upper")
         temp$y <- temp$y + 0.75 ## shift to behind baseline
-        p <- p + geom_polygon(data = temp, fill = if (px$serving %eq% "a") "white" else NA, colour = "black")
+        p <- p + geom_polygon(data = temp, fill = if (px$serving %eq% "a") "white" else NA, colour = "black", na.rm = TRUE)
         temp <- court_circle(cz = 1, r = 0.2, end = "lower")
         temp$y <- temp$y - 0.75 ## shift to behind baseline
-        p <- p + geom_polygon(data = temp, fill = if (px$serving %eq% "*") "white" else NA, colour = "black")
+        p <- p + geom_polygon(data = temp, fill = if (px$serving %eq% "*") "white" else NA, colour = "black", na.rm = TRUE)
 
         ## add the point and set scores on the right side
         if (!is.null(px$home_score_start_of_point) && !is.null(px$visiting_score_start_of_point)) {
             ## point scores
             scxy <- tibble(x = c(-0.5, -0.5), y = c(3.15, 3.85), score = c(px$home_score_start_of_point, px$visiting_score_start_of_point))
             if (!need_to_flip(current_video_src(), game_state$home_team_end)) scxy$x <- scxy$x + 5
-            p <- p + ggplot2::annotate(x = scxy$x, y = scxy$y, label = scxy$score, geom = "label", size = 9, fontface = "bold", vjust = 0.5)
+            p <- p + ggplot2::annotate(x = scxy$x, y = scxy$y, label = scxy$score, geom = "label", size = 9, fontface = "bold", vjust = 0.5, na.rm = TRUE)
             if (length(ss()) == 2 && !any(is.na(ss()))) {
                 ## set scores
                 ssxy <- tibble(set_score = ss(), x = c(-0.5, -0.5), y = c(2.6, 4.4))
                 if (!need_to_flip(current_video_src(), game_state$home_team_end)) ssxy$x <- ssxy$x + 5
-                p <- p + ggplot2::annotate(x = ssxy$x, y = ssxy$y, label = ssxy$set_score, geom = "label", size = 6, fontface = "bold", vjust = 0.5)
+                p <- p + ggplot2::annotate(x = ssxy$x, y = ssxy$y, label = ssxy$set_score, geom = "label", size = 6, fontface = "bold", vjust = 0.5, na.rm = TRUE)
             }
         }
         if (need_to_flip(current_video_src(), game_state$home_team_end)) p <- p + scale_x_reverse() + scale_y_reverse()
@@ -228,7 +228,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                     ## but the coordinates will be oriented to the actual video orientation, so flip if needed
                     ## all coords are recorded relative to video1 orientation, so we don't care which video is showing
                     if (game_state$home_team_end != "lower") segxy <- dv_flip_xy(segxy)
-                    p <- p + geom_path(data = segxy)
+                    p <- p + geom_path(data = segxy, na.rm = TRUE)
                 }
             }
         })

@@ -164,21 +164,21 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, inclu
                 out
             }, error = function(e) NULL)
             if (!is.null(crox)) {
-                p <- p + geom_segment(data = crox$courtxy, aes_string(xend = "xend", yend = "yend"), color = court_colour) + ggplot2::theme_bw()
+                p <- p + geom_segment(data = crox$courtxy, aes_string(xend = "xend", yend = "yend"), color = court_colour, na.rm = TRUE) + ggplot2::theme_bw()
             }
             if (!is.null(crvt$court)) {
                 p <- p + geom_label(data = mutate(crvt$court, point_num = row_number()), ## double check that point_num always matches the UI inputs ordering
-                                    aes_string(label = "point_num"), color = "white", fill = court_colour)
+                                    aes_string(label = "point_num"), color = "white", fill = court_colour, na.rm = TRUE)
             }
             if (isTRUE(include_net) && !is.null(crvt$antenna)) {
                 plotx <- mutate(crvt$antenna, n = case_when(.data$antenna == "left" & .data$where == "floor" ~ 5L,
                                                             .data$antenna == "right" & .data$where == "floor" ~ 6L,
                                                             .data$antenna == "right" & .data$where == "net_top" ~ 7L,
                                                             .data$antenna == "left" & .data$where == "net_top" ~ 8L))
-                p <- p + geom_path(data = plotx, aes_string(group = "antenna"), color = antenna_colour) +
-                    geom_path(data = plotx[plotx$where == "net_top", ], color = antenna_colour) +
-                    geom_path(data = plotx[plotx$where == "floor", ], color = antenna_colour) +
-                    geom_label(data = plotx, aes_string(label = "n"), color = "white", fill = antenna_colour)
+                p <- p + geom_path(data = plotx, aes_string(group = "antenna"), color = antenna_colour, na.rm = TRUE) +
+                    geom_path(data = plotx[plotx$where == "net_top", ], color = antenna_colour, na.rm = TRUE) +
+                    geom_path(data = plotx[plotx$where == "floor", ], color = antenna_colour, na.rm = TRUE) +
+                    geom_label(data = plotx, aes_string(label = "n"), color = "white", fill = antenna_colour, na.rm = TRUE)
             }
             p + ggplot2::theme_void()
         } else {

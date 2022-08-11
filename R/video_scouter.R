@@ -77,7 +77,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     }
     if (is.null(dvw)) {
         ## default to an empty one
-        dvw <- dv_create(teams = c("Home team", "Visiting team"))
+        suppressWarnings(dvw <- dv_create(teams = c("Home team", "Visiting team"))) ## don't warn about empty rosters
     }
     if (is.string(dvw)) {
         if (grepl("\\.dvw$", dvw, ignore.case = TRUE)) {
