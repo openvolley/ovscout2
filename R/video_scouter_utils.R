@@ -2,7 +2,7 @@
 ## px is a plays object
 get_player_serve_type <- function(px, serving_player_num, game_state, opts) {
     if (is.null(px)) return(NA_character_)
-    out <- dplyr::select(dplyr::filter(px, .data$skill %eq% "Serve" & .data$team == game_state$serving & .data$player_number %eq% serving_player_num), .data$skill_type)
+    out <- dplyr::select(dplyr::filter(px, .data$skill == "Serve" & .data$team == game_state$serving & .data$player_number == serving_player_num), .data$skill_type)
     ## reverse-map serve description to code, e.g. Jump serve back to "Q"
     chc <- dplyr::filter(opts$skill_tempo_map, .data$skill == "Serve")
     chc <- setNames(chc$tempo_code, chc$tempo)
@@ -501,7 +501,7 @@ guess_attack_player_options <- function(game_state, dvw, system) {
     attacking_responsibility_posterior <- attacking_responsibility_prior
     if (nrow(attacking_history) > 0) {
         attacking_history <- dplyr::select(attacking_history, "team", "player_number", paste0(home_visiting, "_p", pseq)) %>% tidyr::pivot_longer(cols = paste0(home_visiting, "_p", pseq)) %>%
-            dplyr::filter(.data$value %eq% .data$player_number) %>%
+            dplyr::filter(.data$value == .data$player_number) %>%
             dplyr::group_by(.data$name) %>% dplyr::summarize(n_attacks = dplyr::n()) %>% dplyr::ungroup()
         attacking_responsibility_posterior[attacking_history$name] <- attacking_responsibility_prior[attacking_history$name] + attacking_history$n_attacks
         attacking_responsibility_posterior <-  rescale_posterior(attacking_responsibility_posterior)
@@ -649,7 +649,7 @@ do_responsibility_posterior <- function(history, game_state, prior, home_visitin
                 group_by(.data$skill_id) %>%
                 ## if no players match, assume the libero did it
                 mutate(lib = sum(.data$value %eq% .data$player_number) < 1)
-            history <- bind_rows(history %>% ungroup %>% dplyr::filter(!.data$lib) %>% dplyr::filter(.data$value %eq% .data$player_number),
+            history <- bind_rows(history %>% ungroup %>% dplyr::filter(!.data$lib) %>% dplyr::filter(.data$value == .data$player_number),
                                  history %>% dplyr::filter(.data$lib) %>% dplyr::slice(1L) %>% mutate(name = "libero"))
             history <- history %>% dplyr::group_by(.data$name) %>% dplyr::summarise(n_times = dplyr::n()) %>% dplyr::ungroup()
             posterior[history$name] <- posterior[history$name] + history$n_times
@@ -681,7 +681,7 @@ do_responsibility_posterior <- function(history, game_state, prior, home_visitin
                 ## libero doesn't appear in _p* cols
                 group_by(.data$skill_id) %>%
                 mutate(lib = sum(.data$value %eq% .data$player_number) < 1)
-            history <- bind_rows(history  %>% ungroup %>% dplyr::filter(!.data$lib) %>% dplyr::filter(.data$value %eq% .data$player_number),
+            history <- bind_rows(history  %>% ungroup %>% dplyr::filter(!.data$lib) %>% dplyr::filter(.data$value == .data$player_number),
                                  history %>% dplyr::filter(.data$lib) %>% dplyr::slice(1L) %>% mutate(name = "libero"))
             history <- history %>% dplyr::group_by(.data$name) %>% dplyr::summarise(n_times = sum(.data$w)) %>% dplyr::ungroup()
             posterior[history$name] <- posterior[history$name] + history$n_times
