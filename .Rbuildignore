@@ -6,4 +6,4 @@
 ^docs/
 ^\.github$
 ^codecov.yml$
-^_pkgdown$
+^pkgdown$
