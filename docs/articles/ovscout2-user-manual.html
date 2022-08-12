@@ -4,83 +4,85 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="description" content="ovscout2">
 <title>User manual - ovscout2 • ovscout2</title>
-<!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="../bootstrap-toc.css">
-<script src="../bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
+<!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
+<link rel="apple-touch-icon" type="image/png" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="apple-touch-icon" type="image/png" sizes="120x120" href="../apple-touch-icon-120x120.png">
+<link rel="apple-touch-icon" type="image/png" sizes="76x76" href="../apple-touch-icon-76x76.png">
+<link rel="apple-touch-icon" type="image/png" sizes="60x60" href="../apple-touch-icon-60x60.png">
+<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link href="../deps/bootstrap-5.1.3/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.1.3/bootstrap.bundle.min.js"></script><link href="../deps/Raleway-0.4.2/font.css" rel="stylesheet">
+<link href="../deps/Source_Code_Pro-0.4.2/font.css" rel="stylesheet">
+<link href="../deps/Patua_One-0.4.2/font.css" rel="stylesheet">
+<!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
-<!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
-<script src="../pkgdown.js"></script><meta property="og:title" content="User manual - ovscout2">
+<!-- bootstrap-toc --><script src="https://cdn.rawgit.com/afeld/bootstrap-toc/v1.0.1/dist/bootstrap-toc.min.js"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="User manual - ovscout2">
 <meta property="og:description" content="ovscout2">
+<meta property="og:image" content="/logo.png">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 <![endif]-->
 </head>
-<body data-spy="scroll" data-target="#toc">
+<body>
+    <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
     
 
-    <div class="container template-article">
-      <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
-  <div class="container">
-    <div class="navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-      <span class="navbar-brand">
-        <a class="navbar-link" href="../index.html">ovscout2</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.5</span>
-      </span>
-    </div>
+    <nav class="navbar fixed-top navbar-dark navbar-expand-lg bg-primary"><div class="container">
+    
+    <a class="navbar-brand me-2" href="../index.html">ovscout2</a>
 
-    <div id="navbar" class="navbar-collapse collapse">
-      <ul class="nav navbar-nav">
-<li>
-  <a href="../reference/index.html">Reference</a>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.7.9999</small>
+
+    
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div id="navbar" class="collapse navbar-collapse ms-3">
+      <ul class="navbar-nav me-auto">
+<li class="nav-item">
+  <a class="nav-link" href="../reference/index.html">Reference</a>
 </li>
-<li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    Articles
-     
-    <span class="caret"></span>
-  </a>
-  <ul class="dropdown-menu" role="menu">
-<li>
-      <a href="../articles/ovscout2-user-manual.html">User manual - ovscout2</a>
-    </li>
-  </ul>
-</li>
-      </ul>
-<ul class="nav navbar-nav navbar-right">
-<li>
-  <a href="https://github.com/openvolley/ovscout2/" class="external-link">
-    <span class="fab fa-github fa-lg"></span>
-     
-  </a>
-</li>
-      </ul>
-</div>
-<!--/.nav-collapse -->
+<li class="active nav-item dropdown">
+  <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
+  <div class="dropdown-menu" aria-labelledby="dropdown-articles">
+    <a class="dropdown-item" href="../articles/ovscout2-user-manual.html">User manual - ovscout2</a>
   </div>
-<!--/.container -->
+</li>
+      </ul>
+<form class="form-inline my-2 my-lg-0" role="search">
+        <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off">
+</form>
+
+      <ul class="navbar-nav">
+<li class="nav-item">
+  <a class="external-link nav-link" href="https://github.com/openvolley/ovscout2/" aria-label="github">
+    <span class="fab fa fab fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
 </div>
-<!--/.navbar -->
 
-      
+    
+  </div>
+</nav><div class="container template-article">
 
-      </header><div class="row">
-  <div class="col-md-9 contents">
-    <div class="page-header toc-ignore">
-      <h1 data-toc-skip>User manual - ovscout2</h1>
+
+
+
+<div class="row">
+  <main id="main"><div class="page-header">
+      <img src="../logo.png" class="logo" alt=""><h1>User manual - ovscout2</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/openvolley/ovscout2/blob/HEAD/vignettes/ovscout2-user-manual.Rmd" class="external-link"><code>vignettes/ovscout2-user-manual.Rmd</code></a></small>
-      <div class="hidden name"><code>ovscout2-user-manual.Rmd</code></div>
-
+      <div class="d-none name"><code>ovscout2-user-manual.Rmd</code></div>
     </div>
 
     
@@ -162,24 +164,28 @@ optionally <a href="https://www.rstudio.com/products/rstudio/download/" class="e
 <div class="section level3">
 <h3 id="other-system-utilities">Other system utilities<a class="anchor" aria-label="anchor" href="#other-system-utilities"></a>
 </h3>
-<p>Two other system utilities are recommended but not required. Note
+<p>Three other system utilities are recommended but not required. Note
 that the standalone Windows bundle already includes these utilities — no
 further action is needed in that case.</p>
 <ol style="list-style-type: decimal">
-<li><p>ffmpeg is used to extract frames from videos, and other
-video-related functions. If <code>ffmpeg</code> is not available, an
-internal fallback method is used for some functionality, but may be
-considerably slower. Install <code>ffmpeg</code> via your package
-manager, or (from within R, on Linux and Windows only) using
+<li><p><a href="https://ffmpeg.org/" class="external-link">ffmpeg</a> is used to extract
+frames from videos, and other video-related functions. If
+<code>ffmpeg</code> is not available, an internal fallback method is
+used for some functionality, but may be considerably slower. Install
+<code>ffmpeg</code> via your package manager, or (from within R, on
+Linux and Windows only) using
 <code><a href="https://rdrr.io/pkg/ovideo/man/ov_install_ffmpeg.html" class="external-link">ovideo::ov_install_ffmpeg()</a></code></p></li>
-<li><p>lighttpd <a href="https://www.lighttpd.net/" class="external-link uri">https://www.lighttpd.net/</a> is a lightweight web server
-that is used to play the match video. Install (from within R, on Windows
-only) using <code><a href="../reference/ov_install_lighttpd.html">ovscout2::ov_install_lighttpd()</a></code> or manually
-from <a href="http://lighttpd.dtech.hu/" class="external-link uri">http://lighttpd.dtech.hu/</a> (for Windows) or via your
+<li><p><a href="https://www.lighttpd.net/" class="external-link">lighttpd</a> is a lightweight
+web server that is used to play the match video. Install (from within R,
+on Windows only) using <code><a href="../reference/ov_install_lighttpd.html">ovscout2::ov_install_lighttpd()</a></code> or
+manually from <a href="http://lighttpd.dtech.hu/" class="external-link uri">http://lighttpd.dtech.hu/</a> (for Windows) or via your
 package manager for other operating systems (see <a href="https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd" class="external-link uri">https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd</a>).
-If lighttpd is not installed, the app falls back to a built-in web
-server but this is a little slower and less responsive than
-lighttpd.</p></li>
+If <code>lighttpd</code> is not installed, the app falls back to a
+built-in web server but this is a little slower and less responsive than
+<code>lighttpd</code>.</p></li>
+<li><p><a href="https://github.com/jgm/pandoc/" class="external-link">pandoc</a> is required
+for generating match reports from scouted files. Install following <a href="https://github.com/jgm/pandoc/blob/master/INSTALL.md" class="external-link uri">https://github.com/jgm/pandoc/blob/master/INSTALL.md</a>. If
+not present, the report generation menu item won’t be shown.</p></li>
 </ol>
 </div>
 </div>
@@ -268,6 +274,28 @@ the scouting process</li>
 <p>Options controlling the app behaviour and scouting preferences can be
 changed via the “Preferences” button in the app.</p>
 </div>
+</div>
+<div class="section level2">
+<h2 id="preferences">Preferences<a class="anchor" aria-label="anchor" href="#preferences"></a>
+</h2>
+<p>A number of preferences can be set, either via the “Preferences”
+button in the app or (if you are starting the app from within R) via
+<code>ov_scouting_options</code> and other arguments to the
+<code>ov_scouter</code> function. Preferences include:</p>
+<ul>
+<li><p>“End convention” determines whether you are treating the end
+coordinate of an attack or serve as the <strong>actual</strong> end
+location (i.e. where the ball contacted the floor or out of bounds
+area), or the <strong>intended</strong> end location. The actual might
+differ from the intended if there is a block touch or the ball hit the
+net. If ‘actual’, and a block touch is recorded, then the end location
+of the attack will not be used for the dig location (the dig location
+will be missing).</p></li>
+<li><p>“Record sets in transition”. If <code>FALSE</code>, then sets in
+transition are not scouted. After entering an attack end location (and
+play continues) the next click will be for the counterattack start
+location, with no set scouted in between.</p></li>
+</ul>
 </div>
 <div class="section level2">
 <h2 id="starting-a-new-match">Starting a new match<a class="anchor" aria-label="anchor" href="#starting-a-new-match"></a>
@@ -395,12 +423,19 @@ attack</p></li>
 <div class="section level3">
 <h3 id="attack-end-point">Attack end point<a class="anchor" aria-label="anchor" href="#attack-end-point"></a>
 </h3>
-<p>After an attack or freeball over, click the end point (point where
-the ball lands, or the point on the court directly below the ball when
-it is played).</p>
+<p>After an attack or freeball over, click the end point. If you are
+scouting with “actual” end convention (see <a href="#preferences">Preferences</a>) then this is the point where the
+ball lands, or the point on the court directly below the ball when it is
+played. If end convention is “intended”, this is the point where the
+attacker intended to hit the ball.</p>
 <p>Enter the appropriate details. An attack kill, dig or dig error can
 also involve a block touch — this can be recorded (see “With block touch
 by player …”).</p>
+<p>If the attack was dug (i.e. play continues) and you do not care about
+scouting digs, you can shift-click the attack end point and the app will
+record the end point of the attack without showing a popup dialog. This
+is faster, but note that no dig will be scouted, and no block touch can
+be entered.</p>
 </div>
 <div class="section level3">
 <h3 id="transition-play">Transition play<a class="anchor" aria-label="anchor" href="#transition-play"></a>
@@ -410,11 +445,10 @@ other contacts being recorded. By default, <em>sets in transition are
 not scouted</em> (except for set errors, since a set error will end the
 rally). After an attack, we record the dig location and then straight to
 the counter-attack location, with no intervening set being scouted. You
-can choose to include transition sets if you are running the app from R
-(see <code><a href="../reference/ov_scouting_options.html">help("ov_scouting_options")</a></code>) but there is not a huge
-practical advantage in doing so (it does not enable much more in terms
-of analytics, but takes extra time to scout, so we have disabled these
-by default).</p>
+can choose to include transition sets if you wish (see <a href="#preferences">Preferences</a> to change this behaviour) but there
+is not a huge practical advantage in doing so. It does not enable much
+more in terms of analytics, but takes extra time to scout, so transition
+sets are disabled by default.</p>
 </div>
 <div class="section level3">
 <h3 id="end-of-the-point">End of the point<a class="anchor" aria-label="anchor" href="#end-of-the-point"></a>
@@ -459,33 +493,26 @@ in other analysis software (including the openvolley R packages), export
 it to dvw format and use that.</p>
 </div>
 </div>
-  </div>
-
-  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
-
-        <nav id="toc" data-toggle="toc"><h2 data-toc-skip>Contents</h2>
-    </nav>
-</div>
-
+  </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 
 
-      <footer><div class="copyright">
+    <footer><div class="pkgdown-footer-left">
   <p></p>
 <p>Developed by Ben Raymond, Adrien Ickowicz.</p>
 </div>
 
-<div class="pkgdown">
+<div class="pkgdown-footer-right">
   <p></p>
 <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
 </div>
 
-      </footer>
+    </footer>
 </div>
 
   
-
 
   
 
