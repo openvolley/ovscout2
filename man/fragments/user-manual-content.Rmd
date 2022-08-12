@@ -47,12 +47,12 @@ remotes::install_github("openvolley/ovscout2")
 
 Three other system utilities are recommended but not required. Note that the standalone Windows bundle already includes these utilities &mdash; no further action is needed in that case.
 
-1. `ffmpeg` is used to extract frames from videos, and other video-related functions. If `ffmpeg` is not available, an internal fallback method is used for some functionality, but may be considerably slower. Install `ffmpeg` via your package manager, or (from within R, on Linux and Windows only) using `ovideo::ov_install_ffmpeg()`
+1. [ffmpeg](https://ffmpeg.org/) is used to extract frames from videos, and other video-related functions. If `ffmpeg` is not available, an internal fallback method is used for some functionality, but may be considerably slower. Install `ffmpeg` via your package manager, or (from within R, on Linux and Windows only) using `ovideo::ov_install_ffmpeg()`
 
-2. `lighttpd` https://www.lighttpd.net/ is a lightweight web server that is used to play the match video. Install (from within R, on Windows only) using `ovscout2::ov_install_lighttpd()` or manually from http://lighttpd.dtech.hu/ (for Windows) or via your package manager for other operating systems (see https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd).
+2. [lighttpd](https://www.lighttpd.net/) is a lightweight web server that is used to play the match video. Install (from within R, on Windows only) using `ovscout2::ov_install_lighttpd()` or manually from http://lighttpd.dtech.hu/ (for Windows) or via your package manager for other operating systems (see https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd).
   If `lighttpd` is not installed, the app falls back to a built-in web server but this is a little slower and less responsive than `lighttpd`.
 
-3. `pandoc` https://github.com/jgm/pandoc/ is required for generating match reports from scouted files. Install following https://github.com/jgm/pandoc/blob/master/INSTALL.md. If not present, the report generation menu item won't be shown.
+3. [pandoc](https://github.com/jgm/pandoc/) is required for generating match reports from scouted files. Install following https://github.com/jgm/pandoc/blob/master/INSTALL.md. If not present, the report generation menu item won't be shown.
 
 # Startup and usage
 
@@ -114,6 +114,14 @@ There are several other options that can be provided to the `ov_scouter()` funct
 - `scouting_options`, `default_scouting_table`, `compound_table` - advanced options controlling details of the scouting process
 
 Options controlling the app behaviour and scouting preferences can be changed via the "Preferences" button in the app.
+
+# Preferences
+
+A number of preferences can be set, either via the "Preferences" button in the app or (if you are starting the app from within R) via `ov_scouting_options` and other arguments to the `ov_scouter` function. Preferences include:
+
+- "End convention" determines whether you are treating the end coordinate of an attack or serve as the **actual** end location (i.e. where the ball contacted the floor or out of bounds area), or the **intended** end location. The actual might differ from the intended if there is a block touch or the ball hit the net. If 'actual', and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing).
+
+- "Record sets in transition". If `FALSE`, then sets in transition are not scouted. After entering an attack end location (and play continues) the next click will be for the counterattack start location, with no set scouted in between.
 
 # Starting a new match
 
@@ -178,13 +186,15 @@ Otherwise enter the appropriate action and player.
 
 ## Attack end point
 
-After an attack or freeball over, click the end point (point where the ball lands, or the point on the court directly below the ball when it is played).
+After an attack or freeball over, click the end point. If you are scouting with "actual" end convention (see [Preferences]) then this is the point where the ball lands, or the point on the court directly below the ball when it is played. If end convention is "intended", this is the point where the attacker intended to hit the ball.
 
 Enter the appropriate details. An attack kill, dig or dig error can also involve a block touch &mdash; this can be recorded (see "With block touch by player ...").
 
+If the attack was dug (i.e. play continues) and you do not care about scouting digs, you can shift-click the attack end point and the app will record the end point of the attack without showing a popup dialog. This is faster, but note that no dig will be scouted, and no block touch can be entered.
+
 ## Transition play
 
-Scouting now continues until the point ends, with attacks, digs, and other contacts being recorded. By default, *sets in transition are not scouted* (except for set errors, since a set error will end the rally). After an attack, we record the dig location and then straight to the counter-attack location, with no intervening set being scouted. You can choose to include transition sets if you are running the app from R (see `help("ov_scouting_options")`) but there is not a huge practical advantage in doing so (it does not enable much more in terms of analytics, but takes extra time to scout, so we have disabled these by default).
+Scouting now continues until the point ends, with attacks, digs, and other contacts being recorded. By default, *sets in transition are not scouted* (except for set errors, since a set error will end the rally). After an attack, we record the dig location and then straight to the counter-attack location, with no intervening set being scouted. You can choose to include transition sets if you wish (see [Preferences] to change this behaviour) but there is not a huge practical advantage in doing so. It does not enable much more in terms of analytics, but takes extra time to scout, so transition sets are disabled by default.
 
 ## End of the point
 
