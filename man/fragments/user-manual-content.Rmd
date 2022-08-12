@@ -2,10 +2,12 @@ ovscout2 is a free, open-source R/Shiny app for scouting volleyball matches. It 
 
 The app requires that you have a video of the match *from a fixed view point* (i.e. the camera does not move for the duration of the match). Such videos are usually taken from the "scout viewpoint" &mdash; behind one end of the court, at a reasonable height so that the entire court is clearly visible and players on court do not tend to occlude each other.
 
-The app is writen in R, but you do not necessarily need to be an R user to be able to use it. We provide script files to launch the app from the command line (although you will need to install R itself on some platforms, see below). If you are not an R user, see the "Standalone" section below for installation and startup.
+The app is writen in R, but you do not necessarily need to be an R user to be able to use it. We provide script files to launch the app from the command line &mdash; see the [Standalone] section below for installation and startup.
 
 
 # Installation
+
+The app can be run on Windows, Linux, or Mac systems. It is possible to run the app on a laptop or desktop and connect to it with a tablet or similar touch device to do the actual scouting. See [Device considerations] below.
 
 You need to be online for installation. The app initially needs to download and install some additional R packages (quite a few, in fact). Once the app has been installed and run once, it can be used offline thereafter if necessary.
 
@@ -23,7 +25,7 @@ The standalone installer allows you to run the app without having to do anything
 
 ### Linux/Mac
 
-1. Install R, following https://cran.r-project.org/
+1. Install R, following <https://cran.r-project.org/>
 
 1. Download the `ovscout2-unix-x64.zip` file and unzip it to a convenient location.
 
@@ -49,10 +51,10 @@ Three other system utilities are recommended but not required. Note that the sta
 
 1. [ffmpeg](https://ffmpeg.org/) is used to extract frames from videos, and other video-related functions. If `ffmpeg` is not available, an internal fallback method is used for some functionality, but may be considerably slower. Install `ffmpeg` via your package manager, or (from within R, on Linux and Windows only) using `ovideo::ov_install_ffmpeg()`
 
-2. [lighttpd](https://www.lighttpd.net/) is a lightweight web server that is used to play the match video. Install (from within R, on Windows only) using `ovscout2::ov_install_lighttpd()` or manually from http://lighttpd.dtech.hu/ (for Windows) or via your package manager for other operating systems (see https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd).
+2. [lighttpd](https://www.lighttpd.net/) is a lightweight web server that is used to play the match video. Install (from within R, on Windows only) using `ovscout2::ov_install_lighttpd()` or manually from <http://lighttpd.dtech.hu/> (for Windows) or via your package manager for other operating systems (see <https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd>).
   If `lighttpd` is not installed, the app falls back to a built-in web server but this is a little slower and less responsive than `lighttpd`.
 
-3. [pandoc](https://github.com/jgm/pandoc/) is required for generating match reports from scouted files. Install following https://github.com/jgm/pandoc/blob/master/INSTALL.md. If not present, the report generation menu item won't be shown.
+3. [pandoc](https://github.com/jgm/pandoc/) is required for generating match reports from scouted files. Install following <https://github.com/jgm/pandoc/blob/master/INSTALL.md>. If not present, the report generation menu item won't be shown. If you are starting the app from RStudio, you do not need to install pandoc because RStudio comes bundled with its own copy.
 
 # Startup and usage
 
@@ -103,25 +105,40 @@ ov_scouter("/path/to/saved_file.ovs")
 
 (In this case you do not need to provide the video file path, because that is saved within the .ovs file.)
 
-There are several other options that can be provided to the `ov_scouter()` function, including:
+# Device considerations
 
-- `auto_save_dir` is a directory into which the scouted file will be saved (in .dvw format) after each rally. You can use this to e.g. provide live updates to the coaching bench
+The scouting process involves clicking the location of actions on court, and so a touch screen device (ideally with stylus) is recommended. It is possible to run the app on a laptop or desktop and connect to it with a tablet or similar touch device to do the actual scouting. In this case you would start the app from R on the main device using the `host` and `launch_browser` options:
+
+```{r eval = FALSE}
+ov_scouter(..., host = "192.168.1.11", launch_browser = FALSE)
+
+```
+
+where `192.168.1.11` is the IP address of the main device. You should see a message similar to (the port number on the end will vary):
+
+```
+Listening on http://192.168.1.11:5017
+```
+
+Open a browser on the tablet and enter `http://192.168.1.11:5017` in the address bar.
+
+
+# Preferences
+
+There are a number of options available that alter the behaviour or appearance of the app. These can be set (if you are starting the app from within R) via parameters to the `ov_scouter()` function. Most can also be set via the "Preferences" button in the app (others will be added in due course):
+
+- `auto_save_dir` is a directory into which the scouted file will be saved (in .dvw format) after each rally. You can use this to e.g. provide live file updates to be used by the coaching bench
 - `scoreboard` - show the scoreboard in the top right-hand corner of the video screen (true by default)
 - `ball_path` - show the ball path on the court diagram (false by default, because it slows the app down a little)
 - `review_pane` - show the video review pane on each data entry popup (true by default)
 - `playlist_display_option` - what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)
 - `shortcuts` - a named list that defines the keyboard shortcuts used in the app
-- `scouting_options`, `default_scouting_table`, `compound_table` - advanced options controlling details of the scouting process
 
-Options controlling the app behaviour and scouting preferences can be changed via the "Preferences" button in the app.
+Preferences controlling the scouting conventions can similarly be set via the `ov_scouting_options()` function or the "Preferences" button. These include:
 
-# Preferences
+- `end_convention` determines whether you are treating the end coordinate of an attack or serve as the **actual** end location (i.e. where the ball contacted the floor or out of bounds area), or the **intended** end location. The actual might differ from the intended if there is a block touch or the ball hit the net. If 'actual', and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing).
+- `transition_sets`. If `FALSE`, then sets in transition are not scouted. After entering an attack end location (and play continues) the next click will be for the counterattack start location, with no set scouted in between.
 
-A number of preferences can be set, either via the "Preferences" button in the app or (if you are starting the app from within R) via `ov_scouting_options` and other arguments to the `ov_scouter` function. Preferences include:
-
-- "End convention" determines whether you are treating the end coordinate of an attack or serve as the **actual** end location (i.e. where the ball contacted the floor or out of bounds area), or the **intended** end location. The actual might differ from the intended if there is a block touch or the ball hit the net. If 'actual', and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing).
-
-- "Record sets in transition". If `FALSE`, then sets in transition are not scouted. After entering an attack end location (and play continues) the next click will be for the counterattack start location, with no set scouted in between.
 
 # Starting a new match
 
