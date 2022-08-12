@@ -27,6 +27,8 @@
 #' @export
 ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouting_options(), shortcuts = ov_default_shortcuts(), scout_name = "", show_courtref = FALSE, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
+    ## undocumented arg handled by dots: @param host string: host IP address to use. If you wish to start the scouting app on one machine and connect from another, use host = "server.ip.address"
+
     assert_that(is.string(scout_name))
     assert_that(is.flag(show_courtref), !is.na(show_courtref))
 
@@ -58,6 +60,12 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     assert_that(playlist_display_option %in% c("dv_codes", "commentary"))
     dots <- list(...)
+    if ("host" %in% names(dots)) {
+        host <- dots$host
+        dots$host <- NULL
+    } else {
+        host <- getOption("shiny.host", "127.0.0.1")
+    }
     dv_read_args <- dots[names(dots) %in% names(formals(datavolley::dv_read))] ## passed to dv_read
     other_args <- dots[!names(dots) %in% names(formals(datavolley::dv_read))] ## passed to the server and UI
     if (missing(season_dir)) season_dir <- NULL
@@ -303,7 +311,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
                 servr::daemon_stop()
             })
         }
-        app_data$video_server_base_url <- paste0("http://localhost:", video_server_port)
+        app_data$video_server_base_url <- paste0("http://", host, ":", video_server_port)
         message(paste0("video server ", video_serve_method, " on port: ", video_server_port))
     } else {
         app_data$video_server_base_url <- ""
@@ -348,7 +356,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     shiny::addResourcePath("css", system.file("extdata/css", package = "ovscout2"))
     shiny::addResourcePath("js", system.file("extdata/js", package = "ovscout2"))
     shiny::addResourcePath("reports", app_data$reports_dir)
-    shiny::runApp(this_app, display.mode = "normal", launch.browser = launch_browser)
+    shiny::runApp(this_app, display.mode = "normal", launch.browser = launch_browser, host = host)
 }
 
 #' Scouting options
