@@ -85,7 +85,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     ## but not if we've started from an ovs/dvw file that has a legit video path
     if (is.null(season_dir) && prompt_for_files) {
         if (!(!missing(dvw) && !is.null(dvw) && !is.null(dvw$meta$video) && nrow(dvw$meta$video) == 1 && (file.exists(dvw$meta$video$file) || is_url(dvw$meta$video$file)))) {
-            xseason_dir <- tryCatch(dchoose(caption = "Choose season directory or cancel to skip", path = if (!missing(dvw) && !is.null(dvw) && dir.exists(fs::path_dir(fs::path(dvw)))) fs::path_dir(fs::path(dvw)) else getwd()), error = function(e) NULL)
+            season_dir <- tryCatch(dchoose(caption = "Choose season directory or cancel to skip", path = if (!missing(dvw) && !is.null(dvw) && dir.exists(fs::path_dir(fs::path(dvw)))) fs::path_dir(fs::path(dvw)) else getwd()), error = function(e) NULL)
         }
     }
     if ((missing(dvw) || is.null(dvw))) {
