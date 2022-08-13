@@ -2847,9 +2847,9 @@ ov_scouter_server <- function(app_data) {
 
         ## reports
         observeEvent(input$mr_generate, {
-            if (nrow(rdata$dvw$plays2) < 1 || !"skill" %in% names(rdata$dvw$plays2) || all(is.na(rdata$dvw$plays2$skill))) {
+            if (nrow(rdata$dvw$plays2) < 1 || !isTRUE(max(rdata$dvw$plays2$set_number, na.rm = TRUE) > 1)) {
                 showModal(vwModalDialog(title = "Match report", footer = NULL, width = 100,
-                                        tags$p("No actions have been scouted yet, there is nothing to report!"),
+                                        tags$p("At least one set must be completed before generating the match report."),
                                         tags$br(),
                                         tags$hr(),
                                         fixedRow(column(2, offset = 10, actionButton("just_cancel", "Return to scouting", class = "continue fatradio")))
