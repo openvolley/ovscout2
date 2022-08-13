@@ -15,6 +15,7 @@
 #' @param scouting_options list: a named list with entries as per [ov_scouting_options()]
 #' @param scout_name string: the name of the scout (your name)
 #' @param show_courtref logical: if `TRUE`, show the court reference lines overlaid on the video
+#' @param host string: the IP address to bind the server to. Probably only required if you intend to connect to the app from a different machine (in which case use `ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)` (where www.xxx.yyy.zzz is the IP address of the machine running the app)
 #' @param launch_browser logical: if `TRUE`, launch the app in the system's default web browser (passed to [shiny::runApp()]'s `launch.browser` parameter)
 #' @param prompt_for_files logical: if `dvw` was not specified, prompt the user to select the dvw file
 #' @param ... : extra parameters passed to [datavolley::dv_read()] (if `dvw` is a provided as a string) and/or to the shiny server and UI functions
@@ -25,9 +26,7 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouting_options(), shortcuts = ov_default_shortcuts(), scout_name = "", show_courtref = FALSE, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
-
-    ## undocumented arg handled by dots: @param host string: host IP address to use. If you wish to start the scouting app on one machine and connect from another, use host = "server.ip.address"
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouting_options(), shortcuts = ov_default_shortcuts(), scout_name = "", show_courtref = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     assert_that(is.string(scout_name))
     assert_that(is.flag(show_courtref), !is.na(show_courtref))
@@ -60,12 +59,9 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     assert_that(playlist_display_option %in% c("dv_codes", "commentary"))
     dots <- list(...)
-    if ("host" %in% names(dots)) {
-        host <- dots$host
-        dots$host <- NULL
-    } else {
-        host <- getOption("shiny.host", "127.0.0.1")
-    }
+
+    if (missing(host) || is.null(host)) host <- getOption("shiny.host", "127.0.0.1")
+
     dv_read_args <- dots[names(dots) %in% names(formals(datavolley::dv_read))] ## passed to dv_read
     other_args <- dots[!names(dots) %in% names(formals(datavolley::dv_read))] ## passed to the server and UI
     if (missing(season_dir)) season_dir <- NULL
