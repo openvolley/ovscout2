@@ -1274,7 +1274,7 @@ ov_scouter_server <- function(app_data) {
                     cover_pl_opts <- guess_cover_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     coverp <- cover_pl_opts$choices
                     names(coverp) <- player_nums_to(coverp, team = other(game_state$current_team), dvw = rdata$dvw)
-                    coverp <- c(coverp, Unknown = "Unknown")
+                    coverp <- c(coverp, Unknown = "Unknown", "No cover dig" = "No cover dig")
                     cover_player_buttons <- make_fat_radio_buttons(choices = coverp, selected = cover_pl_opts$selected, input_var = "c1_cover_player")
                     if (isTRUE(input$shiftkey)) {
                         ## attack in play (i.e. was dug), but we are not stopping to enter details
@@ -1792,7 +1792,7 @@ ov_scouter_server <- function(app_data) {
                                       ## the block
                                       code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "!", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table),
                                       ## and the dig cover
-                                      code_trow(team = other(game_state$current_team), pnum = if (!is.na(input$c1_cover_player)) input$c1_cover_player else 0L, skill = "D", eval = default_skill_eval("D"), sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)
+                                      if (!input$c1_cover_player %eq% "No cover dig") code_trow(team = other(game_state$current_team), pnum = if (!is.na(input$c1_cover_player)) input$c1_cover_player else 0L, skill = "D", eval = default_skill_eval("D"), sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)
                                       ))
                 game_state$current_team <- other(game_state$current_team) ## attacking team now playing
                 rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
