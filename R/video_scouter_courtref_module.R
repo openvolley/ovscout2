@@ -23,7 +23,7 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, inclu
 
     output$sr_save_ui <- renderUI({
         ## only if running locally, and only if we have ffmpeg available
-        if (!nzchar(Sys.getenv("SHINY_PORT")) && ovideo::ov_ffmpeg_ok(do_error = FALSE)) {
+        if (cr_is_ok() && !nzchar(Sys.getenv("SHINY_PORT")) && ovideo::ov_ffmpeg_ok(do_error = FALSE)) {
             ## check if the file already has court data saved into it
             chk <- tryCatch(!is.null(ovideo::ov_get_video_data(video_src)), error = function(e) FALSE)
             output$sr_save_dialog <- renderUI(if (chk) tags$div("The video file already has court data saved in it.") else NULL)
@@ -36,20 +36,28 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, inclu
     })
     observeEvent(input$sr_save, {
         output$sr_save_dialog <- renderUI({
-            tryCatch({
-                fs::file_copy(video_src, paste0(video_src, ".bak"))
-                temp <- list(court_ref = dplyr::select(left_join(crvt$court[, c("image_x", "image_y", "pos")], court_refs_data[, c("court_x", "court_y", "pos")], by = "pos"), -"pos"),
-                             antenna = crvt$antenna, net_height = crvt$net_height, video_framerate = crvt$video_framerate, video_width = crimg()$width, video_height = crimg()$height)
-                ovideo::ov_set_video_data(video_src, obj = temp, replace = TRUE, overwrite = TRUE)
-                tags$div("Saved")
-            }, error = function(e) {
-                tags$div("Could not save court reference into video file. The error message was:", conditionMessage(e))
+            shiny::withProgress(message = "Backing up video file ...", {
+                tryCatch({
+                    fs::file_copy(video_src, paste0(video_src, ".bak"), overwrite = TRUE)
+                    shiny::setProgress(value = 0.4, message = "Saving court data ...")
+                    temp <- list(court_ref = dplyr::select(left_join(crvt$court[, c("image_x", "image_y", "pos")], court_refs_data[, c("court_x", "court_y", "pos")], by = "pos"), -"pos"),
+                                 antenna = crvt$antenna, net_height = crvt$net_height, video_framerate = crvt$video_framerate, video_width = crimg()$width, video_height = crimg()$height)
+                    ovideo::ov_set_video_data(video_src, obj = temp, replace = TRUE, overwrite = TRUE)
+                    shiny::setProgress(0.9)
+                    tags$div("Saved")
+                }, error = function(e) {
+                    tags$div("Could not save court reference into video file. The error message was:", conditionMessage(e))
+                })
             })
         })
     })
 
+    cr_is_ok <- reactive({
+        length(na.omit(crvt$court$image_x)) == 4
+    })
+
     output$sr_apply_ui <- renderUI({
-        if (length(na.omit(crvt$court$image_x)) == 4) actionButton(ns("sr_apply"), "Apply", class = "fatradio continue") else NULL
+        if (cr_is_ok()) actionButton(ns("sr_apply"), "Apply", class = "fatradio continue") else NULL
     })
 
     observeEvent(input$sr_apply, {
