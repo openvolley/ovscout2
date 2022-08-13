@@ -94,6 +94,19 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
                 fchoose(caption = "Choose dvw file or cancel to skip", path = if (!is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())
             }, error = function(e) NULL)
             if (!is.null(dvw) && (is.character(dvw) && all(!nzchar(dvw) | is.na(dvw)))) dvw <- NULL
+            if (!is.null(dvw)) {
+                if (grepl("\\.dvw$", dvw, ignore.case = TRUE)) {
+                    dvw_filename <- dvw
+                    if (!"skill_evaluation_decode" %in% names(dv_read_args)) dv_read_args$skill_evaluation_decode <- "guess"
+                    dv_read_args$filename <- dvw
+                    dvw <- do.call(datavolley::dv_read, dv_read_args)
+                } else if (grepl("\\.ovs$", dvw, ignore.case = TRUE)) {
+                    dvw_filename <- dvw
+                    dvw <- readRDS(dvw)
+                } else {
+                    stop("unrecognized file format: ", dvw)
+                }
+            }
         } else {
             dvw <- NULL
         }
