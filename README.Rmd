@@ -78,7 +78,7 @@ ov_scouter_demo()
 To use with your own data:
 
 ```{r eval = FALSE}
-ov_scouter(video_file = "/path/to/video.mp4", season_dir = "/path/to/existing/files.dvw")
+ov_scouter(video_file = "/path/to/video.mp4", season_dir = "/path/to/existing/files")
 
 ```
 
