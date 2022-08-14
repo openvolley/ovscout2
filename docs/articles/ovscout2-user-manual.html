@@ -103,13 +103,15 @@ court is clearly visible and players on court do not tend to occlude
 each other.</p>
 <p>The app is writen in R, but you do not necessarily need to be an R
 user to be able to use it. We provide script files to launch the app
-from the command line (although you will need to install R itself on
-some platforms, see below). If you are not an R user, see the
-“Standalone” section below for installation and startup.</p>
+from the command line — see the <a href="#standalone">Standalone</a>
+section below for installation and startup.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
+<p>The app can be run on Windows, Linux, or Mac systems. It is possible
+to run the app on a laptop or desktop and connect to it with a tablet or
+similar touch device to do the actual scouting. See <a href="#device-considerations">Device considerations</a> below.</p>
 <p>You need to be online for installation. The app initially needs to
 download and install some additional R packages (quite a few, in fact).
 Once the app has been installed and run once, it can be used offline
@@ -185,7 +187,9 @@ built-in web server but this is a little slower and less responsive than
 <code>lighttpd</code>.</p></li>
 <li><p><a href="https://github.com/jgm/pandoc/" class="external-link">pandoc</a> is required
 for generating match reports from scouted files. Install following <a href="https://github.com/jgm/pandoc/blob/master/INSTALL.md" class="external-link uri">https://github.com/jgm/pandoc/blob/master/INSTALL.md</a>. If
-not present, the report generation menu item won’t be shown.</p></li>
+not present, the report generation menu item won’t be shown. If you are
+starting the app from RStudio, you do not need to install pandoc because
+RStudio comes bundled with its own copy.</p></li>
 </ol>
 </div>
 </div>
@@ -243,13 +247,39 @@ you can re-start scouting:</p>
 <code class="sourceCode R"><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span><span class="st">"/path/to/saved_file.ovs"</span><span class="op">)</span></code></pre></div>
 <p>(In this case you do not need to provide the video file path, because
 that is saved within the .ovs file.)</p>
-<p>There are several other options that can be provided to the
-<code><a href="../reference/ov_scouter.html">ov_scouter()</a></code> function, including:</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="device-considerations">Device considerations<a class="anchor" aria-label="anchor" href="#device-considerations"></a>
+</h2>
+<p>The scouting process involves clicking the location of actions on
+court, and so a touch screen device (ideally with stylus) is
+recommended. It is possible to run the app on a laptop or desktop and
+connect to it with a tablet or similar touch device to do the actual
+scouting. In this case you would start the app from R on the main device
+using the <code>host</code> and <code>launch_browser</code> options:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span><span class="va">...</span>, host <span class="op">=</span> <span class="st">"192.168.1.11"</span>, launch_browser <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></code></pre></div>
+<p>where <code>192.168.1.11</code> is the IP address of the main device.
+You should see a message similar to (the port number on the end will
+vary):</p>
+<pre><code>Listening on http://192.168.1.11:5017</code></pre>
+<p>Open a browser on the tablet and enter
+<code>http://192.168.1.11:5017</code> in the address bar.</p>
+</div>
+<div class="section level2">
+<h2 id="preferences">Preferences<a class="anchor" aria-label="anchor" href="#preferences"></a>
+</h2>
+<p>There are a number of options available that alter the behaviour or
+appearance of the app. These can be set (if you are starting the app
+from within R) via parameters to the <code><a href="../reference/ov_scouter.html">ov_scouter()</a></code> function.
+Most can also be set via the “Preferences” button in the app (others
+will be added in due course):</p>
 <ul>
 <li>
 <code>auto_save_dir</code> is a directory into which the scouted
 file will be saved (in .dvw format) after each rally. You can use this
-to e.g. provide live updates to the coaching bench</li>
+to e.g. provide live file updates to be used by the coaching bench</li>
 <li>
 <code>scoreboard</code> - show the scoreboard in the top right-hand
 corner of the video screen (true by default)</li>
@@ -266,35 +296,25 @@ plain-language interpretation of the touches)</li>
 <li>
 <code>shortcuts</code> - a named list that defines the keyboard
 shortcuts used in the app</li>
-<li>
-<code>scouting_options</code>, <code>default_scouting_table</code>,
-<code>compound_table</code> - advanced options controlling details of
-the scouting process</li>
 </ul>
-<p>Options controlling the app behaviour and scouting preferences can be
-changed via the “Preferences” button in the app.</p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="preferences">Preferences<a class="anchor" aria-label="anchor" href="#preferences"></a>
-</h2>
-<p>A number of preferences can be set, either via the “Preferences”
-button in the app or (if you are starting the app from within R) via
-<code>ov_scouting_options</code> and other arguments to the
-<code>ov_scouter</code> function. Preferences include:</p>
+<p>Preferences controlling the scouting conventions can similarly be set
+via the <code><a href="../reference/ov_scouting_options.html">ov_scouting_options()</a></code> function or the “Preferences”
+button. These include:</p>
 <ul>
-<li><p>“End convention” determines whether you are treating the end
-coordinate of an attack or serve as the <strong>actual</strong> end
+<li>
+<code>end_convention</code> determines whether you are treating the
+end coordinate of an attack or serve as the <strong>actual</strong> end
 location (i.e. where the ball contacted the floor or out of bounds
 area), or the <strong>intended</strong> end location. The actual might
 differ from the intended if there is a block touch or the ball hit the
 net. If ‘actual’, and a block touch is recorded, then the end location
 of the attack will not be used for the dig location (the dig location
-will be missing).</p></li>
-<li><p>“Record sets in transition”. If <code>FALSE</code>, then sets in
+will be missing).</li>
+<li>
+<code>transition_sets</code>. If <code>FALSE</code>, then sets in
 transition are not scouted. After entering an attack end location (and
 play continues) the next click will be for the counterattack start
-location, with no set scouted in between.</p></li>
+location, with no set scouted in between.</li>
 </ul>
 </div>
 <div class="section level2">
