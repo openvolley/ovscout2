@@ -65,7 +65,8 @@ other volleyball analytics software that takes dvw files as inputs.
 ## Installation
 
 If you are not an R user, see the [user
-manual](https://ovscout2.openvolley.org) for standalone installers.
+manual](https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html)
+for standalone installers.
 
 Otherwise:
 

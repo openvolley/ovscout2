@@ -47,7 +47,7 @@ After you've scouted your match video, the data can be analyzed with the [openvo
 
 ## Installation
 
-If you are not an R user, see the [user manual](https://ovscout2.openvolley.org) for standalone installers.
+If you are not an R user, see the [user manual](https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html) for standalone installers.
 
 Otherwise:
 
