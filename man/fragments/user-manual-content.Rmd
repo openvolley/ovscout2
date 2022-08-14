@@ -19,7 +19,7 @@ The standalone installer allows you to run the app without having to do anything
 
 ### Windows
 
-1. Download the `ovscout2-win-x64.zip` file and unzip it to a convenient location.
+1. Download <https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-win-x64.zip> and unzip it to a convenient location.
 
 1. Run the `ov_scouter.bat` or `ov_scouter_demo.bat` file. The first run will take quite some time, because it will install a number of additional R packages. Subsequent startups will be much faster (it checks for updates on each startup, so might reinstall some packages on occasion).
 
@@ -27,7 +27,7 @@ The standalone installer allows you to run the app without having to do anything
 
 1. Install R, following <https://cran.r-project.org/>
 
-1. Download the `ovscout2-unix-x64.zip` file and unzip it to a convenient location.
+1. Download <https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-unix-x64.zip> and unzip it to a convenient location.
 
 1. Run the `ov_scouter` or `ov_scouter_demo` script. The first run will take quite some time, because it will install a number of additional R packages. Subsequent startups will be much faster (it checks for updates on each startup, so might reinstall some packages on occasion).
 
