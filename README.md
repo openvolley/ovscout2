@@ -12,27 +12,20 @@
 coverage](https://codecov.io/gh/openvolley/ovscout2/branch/master/graph/badge.svg)](https://codecov.io/gh/openvolley/ovscout2?branch=master)
 <!-- badges: end -->
 
-## Installation
-
-``` r
-## install.packages("remotes") ## if needed
-remotes::install_github("openvolley/ovscout2")
-```
-
-Or see the [user manual](https://ovscout2.openvolley.org) for standalone installers.
-
 ## About
 
 This R package provides a Shiny app for scouting volleyball data files.
 At this stage it is entirely experimental. Beware!
 
+![](man/figures/ovscout2-screenshot.png)
+
 ## Principles
 
--   scouting is always done from video, even when scouting a live match.
-    The hope is that we can make the user interface fast enough to be
-    “nearly real time” - while the scout might lag behind the real
-    action at times, they can catch up at the ends of rallies or other
-    breaks in play
+-   scouting is always done from video, even when scouting a live match
+    (though this is probably not actually possible yet). The hope is
+    that we can make the user interface fast enough to be “nearly real
+    time” - while the scout might lag behind the real action at times,
+    they can catch up at the ends of rallies or other breaks in play
 -   by registering the corners of the court before scouting, we can map
     the court image to real-world court space. Clicking a location on
     the video can then be converted to its corresponding court
@@ -46,12 +39,13 @@ At this stage it is entirely experimental. Beware!
     attacked, passed or dug a certain ball
 
 This software is intended for scouts who do not have access to
-professional scouting software or who aren’t proficient with it. It is
-an alternative to the many available tablet- and phone-based scouting
-apps, but provides more complete match data that is fully dvw
-compatible, and (we hope) is easy to use. It is unlikely to replace
-professional scouting software used by scouts who can already capture
-match data in real time.
+professional scouting software or who aren’t proficient with the
+keyboard interface that they typically use. `ovscout2` is an alternative
+to the many available tablet- and phone-based scouting apps that also
+use a click interface, but `ovscout2` provides more complete match data
+that is fully dvw compatible, and yet (we hope) remains easy to use. It
+is unlikely to replace professional scouting software used by scouts who
+can already capture match data in real time.
 
 ## Features
 
@@ -63,6 +57,48 @@ match data in real time.
     well as zones and subzones
 -   experimental support for dual match video cameras (one from either
     end of the court)
+
+After you’ve scouted your match video, the data can be analyzed with the
+[openvolley](https://openvolley.org) suite of R packages, or with any
+other volleyball analytics software that takes dvw files as inputs.
+
+## Installation
+
+If you are not an R user, see the [user
+manual](https://ovscout2.openvolley.org) for standalone installers.
+
+Otherwise:
+
+``` r
+## install.packages("remotes") ## if needed
+remotes::install_github("openvolley/ovscout2")
+```
+
+Three other system utilities are recommended but not required:
+
+1.  [ffmpeg](https://ffmpeg.org/) is used to extract frames from videos,
+    and other video-related functions. If `ffmpeg` is not available, the
+    [av](https://github.com/ropensci/av) package is used for some
+    functionality, but may be considerably slower. Install `ffmpeg` via
+    your package manager, or (from within R, on Linux and Windows only)
+    using `ovideo::ov_install_ffmpeg()`.
+
+2.  [lighttpd](https://www.lighttpd.net/) is a lightweight web server
+    that is used to play the match video. Install (from within R, on
+    Windows only) using `ovscout2::ov_install_lighttpd()` or manually
+    from <http://lighttpd.dtech.hu/> (for Windows) or via your package
+    manager for other operating systems (see
+    <https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd>).
+    If `lighttpd` is not installed, the app falls back to
+    [servr](https://github.com/yihui/servr) but this is a little slower
+    and less responsive than `lighttpd`.
+
+3.  [pandoc](https://github.com/jgm/pandoc/) is required for generating
+    match reports. If you are using RStudio, you do not need to install
+    pandoc because RStudio comes bundled with its own copy. Otherwise
+    install following
+    <https://github.com/jgm/pandoc/blob/master/INSTALL.md>. If not
+    present, the report generation menu item won’t be shown.
 
 ## Usage
 
@@ -86,7 +122,3 @@ the season directory. You can also provide it with a partially-scouted
 `.dvw` or `.ovs` file, to continue scouting where you left off.
 
 See `help("ov_scouter")` for more options.
-
-It relies on having the `ffmpeg` system utility for some functionality.
-You can use `ovideo::ov_install_ffmpeg()` to install this if you don’t
-already have it (Windows and Linux only).
