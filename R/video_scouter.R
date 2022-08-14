@@ -328,7 +328,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     ## initialize the plays and plays2 components
     ## if we've started with an empty dvw and done dv_set_lineups, then we'll have an empty tibble for $plays but something in $plays2
     ## if we are continuing a partially-scouted file that has been reloaded from dvw, then we'll have something in plays but not plays2
-    ## if we are restarting from an rds file, it should have something in plays2 but not plays
+    ## if we are restarting from an ovs file, it should have something in plays2 but not plays
     if ((is.null(app_data$dvw[["plays"]]) || nrow(app_data$dvw[["plays"]]) < 1)) {
         app_data$dvw$plays <- plays2_to_plays(app_data$dvw$plays2, dvw = app_data$dvw, evaluation_decoder = app_data$evaluation_decoder)
     } else if (is.null(app_data$dvw$plays2) || nrow(app_data$dvw$plays2) < 1) {
