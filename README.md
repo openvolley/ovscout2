@@ -94,11 +94,10 @@ Three other system utilities are recommended but not required:
     and less responsive than `lighttpd`.
 
 3.  [pandoc](https://github.com/jgm/pandoc/) is required for generating
-    match reports. If you are using RStudio, you do not need to install
-    pandoc because RStudio comes bundled with its own copy. Otherwise
-    install following
-    <https://github.com/jgm/pandoc/blob/master/INSTALL.md>. If not
-    present, the report generation menu item won’t be shown.
+    match reports. If not present, the report generation menu won’t be
+    shown. If you are using RStudio, you do not need to install pandoc
+    because RStudio comes bundled with its own copy. Otherwise install
+    following <https://github.com/jgm/pandoc/blob/master/INSTALL.md>.
 
 ## Usage
 

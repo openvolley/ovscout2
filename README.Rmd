@@ -64,7 +64,7 @@ Three other system utilities are recommended but not required:
 2. [lighttpd](https://www.lighttpd.net/) is a lightweight web server that is used to play the match video. Install (from within R, on Windows only) using `ovscout2::ov_install_lighttpd()` or manually from <http://lighttpd.dtech.hu/> (for Windows) or via your package manager for other operating systems (see <https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd>).
   If `lighttpd` is not installed, the app falls back to [servr](https://github.com/yihui/servr) but this is a little slower and less responsive than `lighttpd`.
 
-3. [pandoc](https://github.com/jgm/pandoc/) is required for generating match reports. If you are using RStudio, you do not need to install pandoc because RStudio comes bundled with its own copy. Otherwise install following <https://github.com/jgm/pandoc/blob/master/INSTALL.md>. If not present, the report generation menu item won't be shown.
+3. [pandoc](https://github.com/jgm/pandoc/) is required for generating match reports. If not present, the report generation menu won't be shown. If you are using RStudio, you do not need to install pandoc because RStudio comes bundled with its own copy. Otherwise install following <https://github.com/jgm/pandoc/blob/master/INSTALL.md>.
 
 ## Usage
 
