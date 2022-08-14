@@ -34,6 +34,5 @@ set RS_PATH=%R_PATH%\bin\Rscript.exe
 
 :allgood
 
-set GITHUB_PAT=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
 "%RS_PATH%" ov_scouter.R \"%~dp0" %1 %2 %3 %4 %5 %6 %7 %8 %9
 pause

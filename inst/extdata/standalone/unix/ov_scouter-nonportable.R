@@ -14,8 +14,6 @@ mypath <- gsub("^\"+", "", gsub("\"+$", "", rgs[1]))
 optsave <- getOption("repos")
 options(repos = c(CRAN = "https://cloud.r-project.org", openvolley = "https://openvolley.r-universe.dev"))
 
-Sys.setenv(GITHUB_PAT = "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")
-
 ## dependencies required before installing ovscout2, with optional minimum version number
 depsl <- list(remotes = NA, fs = NA)
 for (pkg in names(depsl)) {
