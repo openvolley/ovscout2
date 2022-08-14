@@ -277,11 +277,17 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     app_data$extra_ball_tracking <- FALSE
     if (!is_url(app_data$video_src)) {
         look_for <- paste0(fs::path_ext_remove(app_data$video_src), "_extra.duckdb")
-        con <- if (file.exists(look_for)) tryCatch(DBI::dbConnect(duckdb::duckdb(look_for)), error = function(e) NULL) else NULL
-        if (!is.null(con)) {
-            app_data$extra_db <- look_for
-            app_data$extra_ball_tracking <- tryCatch("ball_track" %in% DBI::dbListTables(con), error = function(e) FALSE)
-            DBI::dbDisconnect(con, shutdown = TRUE)
+        if (file.exists(look_for)) {
+            if (!requireNamespace("DBI", quietly = TRUE) || !requireNamespace("duckdb", quietly = TRUE) || !requireNamespace("dbplyr", quietly = TRUE)) {
+                message("The duckdb, dbplyr, and DBI packages are required in order to use ball tracking outputs")
+            } else {
+                con <- tryCatch(DBI::dbConnect(duckdb::duckdb(look_for)), error = function(e) NULL)
+                if (!is.null(con)) {
+                    app_data$extra_db <- look_for
+                    app_data$extra_ball_tracking <- tryCatch("ball_track" %in% DBI::dbListTables(con), error = function(e) FALSE)
+                    DBI::dbDisconnect(con, shutdown = TRUE)
+                }
+            }
         }
     }
 

@@ -3,14 +3,21 @@ ov_scouter_server <- function(app_data) {
         debug <- 1L
         cstr <- function(z) capture.output(str(z))
         have_warned_auto_save <- FALSE
-
-        extra_db_con <- if (!is.null(app_data$extra_db)) tryCatch(DBI::dbConnect(duckdb::duckdb(app_data$extra_db)), error = function(e) NULL)
-
+        extra_db_con <- NULL
+        if (!is.null(app_data$extra_db)) {
+            if (!requireNamespace("DBI", quietly = TRUE) || !requireNamespace("duckdb", quietly = TRUE) || !requireNamespace("dbplyr", quietly = TRUE)) {
+                ## somehow extra_db was set but these aren't available?
+                message("The duckdb, dbplyr, and DBI packages are required in order to use ball tracking outputs")
+                app_data$extra_db <- NULL
+                app_data$extra_ball_tracking <- FALSE
+            } else {
+                extra_db_con <-  tryCatch(DBI::dbConnect(duckdb::duckdb(app_data$extra_db)), error = function(e) NULL)
+            }
+        }
         shiny::onSessionEnded(function() {
             if (!is.null(extra_db_con)) try(DBI::dbDisconnect(extra_db_con, shutdown = TRUE), silent = TRUE)
             shiny::stopApp()
         })
-
         ## on startup, clean up old auto-saved files
         try({
             d <- fs::dir_info(file.path(app_data$user_dir, "autosave"))

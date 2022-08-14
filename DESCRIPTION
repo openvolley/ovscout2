@@ -16,11 +16,8 @@ Depends: datavolley (> 0.12.999)
 Imports:
     assertthat,
     data.table,
-    DBI,
-    dbplyr,
     dplyr,
     digest,
-    duckdb,
     DT,
     fs,
     ggplot2,
@@ -47,6 +44,9 @@ Imports:
     volleyreport (>= 0.4.4)
 Suggests:
     covr,
+    DBI,
+    dbplyr,
+    duckdb,
     knitr,
     rstudioapi,
     tcltk,
