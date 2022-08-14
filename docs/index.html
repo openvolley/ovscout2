@@ -36,7 +36,7 @@
     
     <a class="navbar-brand me-2" href="index.html">ovscout2</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.7.9999</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -119,7 +119,7 @@
 <ol style="list-style-type: decimal">
 <li><p><a href="https://ffmpeg.org/" class="external-link">ffmpeg</a> is used to extract frames from videos, and other video-related functions. If <code>ffmpeg</code> is not available, the <a href="https://github.com/ropensci/av" class="external-link">av</a> package is used for some functionality, but may be considerably slower. Install <code>ffmpeg</code> via your package manager, or (from within R, on Linux and Windows only) using <code><a href="https://rdrr.io/pkg/ovideo/man/ov_install_ffmpeg.html" class="external-link">ovideo::ov_install_ffmpeg()</a></code>.</p></li>
 <li><p><a href="https://www.lighttpd.net/" class="external-link">lighttpd</a> is a lightweight web server that is used to play the match video. Install (from within R, on Windows only) using <code><a href="reference/ov_install_lighttpd.html">ovscout2::ov_install_lighttpd()</a></code> or manually from <a href="http://lighttpd.dtech.hu/" class="external-link uri">http://lighttpd.dtech.hu/</a> (for Windows) or via your package manager for other operating systems (see <a href="https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd" class="external-link uri">https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd</a>). If <code>lighttpd</code> is not installed, the app falls back to <a href="https://github.com/yihui/servr" class="external-link">servr</a> but this is a little slower and less responsive than <code>lighttpd</code>.</p></li>
-<li><p><a href="https://github.com/jgm/pandoc/" class="external-link">pandoc</a> is required for generating match reports. If you are using RStudio, you do not need to install pandoc because RStudio comes bundled with its own copy. Otherwise install following <a href="https://github.com/jgm/pandoc/blob/master/INSTALL.md" class="external-link uri">https://github.com/jgm/pandoc/blob/master/INSTALL.md</a>. If not present, the report generation menu item won’t be shown.</p></li>
+<li><p><a href="https://github.com/jgm/pandoc/" class="external-link">pandoc</a> is required for generating match reports. If not present, the report generation menu won’t be shown. If you are using RStudio, you do not need to install pandoc because RStudio comes bundled with its own copy. Otherwise install following <a href="https://github.com/jgm/pandoc/blob/master/INSTALL.md" class="external-link uri">https://github.com/jgm/pandoc/blob/master/INSTALL.md</a>.</p></li>
 </ol>
 </div>
 <div class="section level2">
