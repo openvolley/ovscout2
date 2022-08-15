@@ -84,33 +84,53 @@ options(repos = optsave) ## restore
 
 ## also try and update this file (ov_scouter.R) and ov_scouter.bat from the potentially-reinstalled ovscout2 pkg
 if (TRUE) {
-    dR0 <- dR1 <- NULL
-    tryCatch({
-        dR0 <- digest::digest(file.path(mypath, "ov_scouter.R"), file = TRUE)
-        dR1 <- digest::digest(system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2"), file = TRUE)
-    }, error = function(e) {
-        warning("could not update ov_scouter.R")
-    })
-    db0 <- db1 <- NULL
-    tryCatch({
-        db0 <- digest::digest(file.path(mypath, "ov_scouter.bat"), file = TRUE)
-        db1 <- digest::digest(system.file("extdata/standalone/win/ov_scouter.bat", package = "ovscout2"), file = TRUE)
-    }, error = function(e) {
-        warning("could not update ov_scouter.bat")
-    })
-    dbd0 <- dbd1 <- NULL
-    tryCatch({
-        dbd0 <- digest::digest(file.path(mypath, "ov_scouter_demo.bat"), file = TRUE)
-        dbd1 <- digest::digest(system.file("extdata/standalone/win/ov_scouter_demo.bat", package = "ovscout2"), file = TRUE)
-    }, error = function(e) {
-        warning("could not update ov_scouter_demo.bat")
-    })
-    if ((!is.null(dR0) && !is.null(dR1) && dR0 != dR1) || (!is.null(db0) && !is.null(db1) && db0 != db1) || (!is.null(dbd0) && !is.null(dbd1) && dbd0 != dbd1)) {
-        file.copy(system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2"), file.path(mypath, "ov_scouter.R"), overwrite = TRUE)
-        file.copy(system.file("extdata/standalone/win/ov_scouter.bat", package = "ovscout2"), file.path(mypath,"ov_scouter.bat"), overwrite = TRUE)
-        file.copy(system.file("extdata/standalone/win/ov_scouter_demo.bat", package = "ovscout2"), file.path(mypath,"ov_scouter_demo.bat"), overwrite = TRUE)
-        stop("ovscout2 updated. Please re-launch it!")
+    ##dR0 <- dR1 <- NULL
+    ##tryCatch({
+    ##    dR0 <- digest::digest(file.path(mypath, "ov_scouter.R"), file = TRUE)
+    ##    dR1 <- digest::digest(system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2"), file = TRUE)
+    ##}, error = function(e) {
+    ##    warning("could not update ov_scouter.R")
+    ##})
+    do_restart <- FALSE
+    f1 <- file.path(mypath, "ov_scouter.R")
+    f2 <- system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2")
+    if (file.exists(f1) && file.exists(f2) && fs::file_info(f2)$modification_time > fs::file_info(f1)$modification_time) {
+        file.copy(f2, f1, overwrite = TRUE)
+        do_restart <- TRUE
     }
+    ##db0 <- db1 <- NULL
+    ##tryCatch({
+    ##    db0 <- digest::digest(file.path(mypath, "ov_scouter.bat"), file = TRUE)
+    ##    db1 <- digest::digest(system.file("extdata/standalone/win/ov_scouter.bat", package = "ovscout2"), file = TRUE)
+    ##}, error = function(e) {
+    ##    warning("could not update ov_scouter.bat")
+    ##})
+    f1 <- file.path(mypath, "ov_scouter.bat")
+    f2 <- system.file("extdata/standalone/win/ov_scouter.bat", package = "ovscout2")
+    if (file.exists(f1) && file.exists(f2) && fs::file_info(f2)$modification_time > fs::file_info(f1)$modification_time) {
+        file.copy(f2, f1, overwrite = TRUE)
+        do_restart <- TRUE
+    }
+    ##dbd0 <- dbd1 <- NULL
+    ##tryCatch({
+    ##    dbd0 <- digest::digest(file.path(mypath, "ov_scouter_demo.bat"), file = TRUE)
+    ##    dbd1 <- digest::digest(system.file("extdata/standalone/win/ov_scouter_demo.bat", package = "ovscout2"), file = TRUE)
+    ##}, error = function(e) {
+    ##    warning("could not update ov_scouter_demo.bat")
+    ##})
+    f1 <- file.path(mypath, "ov_scouter_demo.bat")
+    f2 <- system.file("extdata/standalone/win/ov_scouter_demo.bat", package = "ovscout2")
+    if (file.exists(f1) && file.exists(f2) && fs::file_info(f2)$modification_time > fs::file_info(f1)$modification_time) {
+        file.copy(f2, f1, overwrite = TRUE)
+        do_restart <- TRUE
+    }
+    ##if ((!is.null(dR0) && !is.null(dR1) && dR0 != dR1) || (!is.null(db0) && !is.null(db1) && db0 != db1) || (!is.null(dbd0) && !is.null(dbd1) && dbd0 != dbd1)) {
+    ##    file.copy(system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2"), file.path(mypath, "ov_scouter.R"), overwrite = TRUE)
+    ##    file.copy(system.file("extdata/standalone/win/ov_scouter.bat", package = "ovscout2"), file.path(mypath,"ov_scouter.bat"), overwrite = TRUE)
+    ##    file.copy(system.file("extdata/standalone/win/ov_scouter_demo.bat", package = "ovscout2"), file.path(mypath,"ov_scouter_demo.bat"), overwrite = TRUE)
+    ##    stop("ovscout2 updated. Please re-launch it!")
+    ##}
+    if (do_restart) stop("ovscout2 updated. Please re-launch it!")
 }
 ## add lighttpd folder to path
 ## should have locally-bundled binary
@@ -148,7 +168,7 @@ if (!ovideo::ov_ffmpeg_ok()) {
 if (!ovideo::ov_ffmpeg_ok()) warning("ffmpeg could not be found, some functionality will be disabled")
 
 ## check that we have pandoc
-if (!ov_pandoc_ok())
+if (!ovscout2:::ov_pandoc_ok()) {
     ## try the local install
     pnpaths <- unique(c(fs::path_real(fs::path(Rlibpath, "pandoc")), fs::path(Rlibpath, "pandoc")))
     if (DEBUG) cat("trying local pandoc path(s):", pnpaths, "\n")
@@ -161,7 +181,7 @@ if (!ov_pandoc_ok())
         if (DEBUG) cat("could not find system or local pandoc binary\n")
     }
 }
-if (!ov_pandoc_ok()) warning("pandoc could not be found, some functionality will be disabled")
+if (!ovscout2:::ov_pandoc_ok()) warning("pandoc could not be found, some functionality will be disabled")
 
 library(ovscout2)
 ## check args

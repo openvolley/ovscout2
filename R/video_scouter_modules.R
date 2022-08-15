@@ -425,23 +425,25 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
     })
 
     output$edit_lineup_commit_ui <- renderUI({
-        htok <- nzchar(input$ht_P1) && nzchar(input$ht_P2)
+        htok <- nzchar(input$ht_P1) && nzchar(input$ht_P2) && all(c(input$ht_P1, input$ht_P2) %in% rdata$dvw$meta$players_h$number)
         if (!beach) {
             htok <- htok && nzchar(input$ht_P3) && nzchar(input$ht_P4) && nzchar(input$ht_P5) && nzchar(input$ht_P6) && nzchar(input$ht_setter)
             htok <- htok && length(unique(c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6))) == 6
             htok <- htok && input$ht_setter %in% c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6)
-            if (nzchar(input$ht_libero1)) htok <- htok && !input$ht_libero1 %in% c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6)
-            if (nzchar(input$ht_libero2)) htok <- htok && !input$ht_libero2 %in% c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6)
+            htok <- htok && all(c(input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6) %in% rdata$dvw$meta$players_h$number)
+            if (nzchar(input$ht_libero1)) htok <- htok && !input$ht_libero1 %in% c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6) && input$ht_libero1 %in% rdata$dvw$meta$players_h$number
+            if (nzchar(input$ht_libero2)) htok <- htok && !input$ht_libero2 %in% c(input$ht_P1, input$ht_P2, input$ht_P3, input$ht_P4, input$ht_P5, input$ht_P6) && input$ht_libero2 %in% rdata$dvw$meta$players_h$number
         } else {
             htok <- htok && length(unique(c(input$ht_P1, input$ht_P2))) == 2
         }
-        vtok <- nzchar(input$vt_P1) && nzchar(input$vt_P2)
+        vtok <- nzchar(input$vt_P1) && nzchar(input$vt_P2) && all(c(input$vt_P1, input$vt_P2) %in% rdata$dvw$meta$players_v$number)
         if (!beach) {
             vtok <- vtok && nzchar(input$vt_P3) && nzchar(input$vt_P4) && nzchar(input$vt_P5) && nzchar(input$vt_P6) && nzchar(input$vt_setter)
             vtok <- vtok && length(unique(c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6))) == 6
             vtok <- vtok && input$vt_setter %in% c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6)
-            if (nzchar(input$vt_libero1)) vtok <- vtok && !input$vt_libero1 %in% c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6)
-            if (nzchar(input$vt_libero2)) vtok <- vtok && !input$vt_libero2 %in% c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6)
+            vtok <- vtok && all(c(input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6) %in% rdata$dvw$meta$players_v$number)
+            if (nzchar(input$vt_libero1)) vtok <- vtok && !input$vt_libero1 %in% c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6) && input$vt_libero1 %in% rdata$dvw$meta$players_v$number
+            if (nzchar(input$vt_libero2)) vtok <- vtok && !input$vt_libero2 %in% c(input$vt_P1, input$vt_P2, input$vt_P3, input$vt_P4, input$vt_P5, input$vt_P6) && input$vt_libero2 %in% rdata$dvw$meta$players_v$number
         } else {
             vtok <- vtok && length(unique(c(input$vt_P1, input$vt_P2))) == 2
         }

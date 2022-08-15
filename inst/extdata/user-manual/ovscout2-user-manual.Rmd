@@ -22,7 +22,7 @@ base-font-size: 10pt
 ```{r chunkopts, eval = TRUE, echo = FALSE}
 
 default_dpi <- 175
-knitr::opts_chunk$set(eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE, tidy = FALSE, cache = FALSE, include = TRUE, dpi = default_dpi, fig.width = 10, fig.height = 5, fig.align = "center", results = "asis")
+knitr::opts_chunk$set(eval = TRUE, echo = TRUE, message = FALSE, warning = FALSE, tidy = FALSE, cache = FALSE, include = TRUE, dpi = default_dpi, fig.width = 10, fig.height = 5, fig.align = "center", results = "asis")
 
 ```
 
@@ -31,5 +31,5 @@ knitr::opts_chunk$set(eval = TRUE, echo = FALSE, message = FALSE, warning = FALS
 
 <h1 style="break-before:avoid;">Introduction</h1>
 
-```{r child = "../man/fragments/user-manual-content.Rmd"}
+```{r child = "../../../man/fragments/user-manual-content.Rmd"}
 ```

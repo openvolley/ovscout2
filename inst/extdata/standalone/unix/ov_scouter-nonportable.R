@@ -14,8 +14,6 @@ mypath <- gsub("^\"+", "", gsub("\"+$", "", rgs[1]))
 optsave <- getOption("repos")
 options(repos = c(CRAN = "https://cloud.r-project.org", openvolley = "https://openvolley.r-universe.dev"))
 
-Sys.setenv(GITHUB_PAT = "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")
-
 ## dependencies required before installing ovscout2, with optional minimum version number
 depsl <- list(remotes = NA, fs = NA, jsonlite = NA, curl = NA)
 for (pkg in names(depsl)) {
@@ -76,33 +74,53 @@ options(repos = optsave) ## restore
 
 ## also try and update this file (ov_scouter-nonportable.R) and ov_scouter from the potentially-reinstalled ovscout2 pkg
 if (TRUE) {
-    dR0 <- dR1 <- NULL
-    tryCatch({
-        dR0 <- digest::digest(file.path(mypath, "ov_scouter-nonportable.R"), file = TRUE)
-        dR1 <- digest::digest(system.file("extdata/standalone/unix/ov_scouter-nonportable.R", package = "ovscout2"), file = TRUE)
-    }, error = function(e) {
-        warning("could not update ov_scouter-nonportable.R")
-    })
-    db0 <- db1 <- NULL
-    tryCatch({
-        db0 <- digest::digest(file.path(mypath, "ov_scouter"), file = TRUE)
-        db1 <- digest::digest(system.file("extdata/standalone/unix/ov_scouter", package = "ovscout2"), file = TRUE)
-    }, error = function(e) {
-        warning("could not update ov_scouter")
-    })
-    dbd0 <- dbd1 <- NULL
-    tryCatch({
-        dbd0 <- digest::digest(file.path(mypath, "ov_scouter_demo"), file = TRUE)
-        dbd1 <- digest::digest(system.file("extdata/standalone/unix/ov_scouter_demo", package = "ovscout2"), file = TRUE)
-    }, error = function(e) {
-        warning("could not update ov_scouter_demo")
-    })
-    if ((!is.null(dR0) && !is.null(dR1) && dR0 != dR1) || (!is.null(db0) && !is.null(db1) && db0 != db1) || (!is.null(dbd0) && !is.null(dbd1) && dbd0 != dbd1)) {
-        file.copy(system.file("extdata/standalone/unix/ov_scouter-nonportable.R", package = "ovscout2"), file.path(mypath, "ov_scouter-nonportable.R"), overwrite = TRUE)
-        file.copy(system.file("extdata/standalone/unix/ov_scouter", package = "ovscout2"), file.path(mypath,"ov_scouter"), overwrite = TRUE)
-        file.copy(system.file("extdata/standalone/unix/ov_scouter_demo", package = "ovscout2"), file.path(mypath,"ov_scouter_demo"), overwrite = TRUE)
-        stop("ovscout2 updated. Please re-launch it!")
+    ##dR0 <- dR1 <- NULL
+    ##tryCatch({
+    ##    dR0 <- digest::digest(file.path(mypath, "ov_scouter-nonportable.R"), file = TRUE)
+    ##    dR1 <- digest::digest(system.file("extdata/standalone/unix/ov_scouter-nonportable.R", package = "ovscout2"), file = TRUE)
+    ##}, error = function(e) {
+    ##    warning("could not update ov_scouter-nonportable.R")
+    ##})
+    do_restart <- FALSE
+    f1 <- file.path(mypath, "ov_scouter-nonportable.R")
+    f2 <- system.file("extdata/standalone/unix/ov_scouter-nonportable.R", package = "ovscout2")
+    if (file.exists(f1) && file.exists(f2) && fs::file_info(f2)$modification_time > fs::file_info(f1)$modification_time) {
+        file.copy(f2, f1, overwrite = TRUE)
+        do_restart <- TRUE
     }
+    ##db0 <- db1 <- NULL
+    ##tryCatch({
+    ##    db0 <- digest::digest(file.path(mypath, "ov_scouter"), file = TRUE)
+    ##    db1 <- digest::digest(system.file("extdata/standalone/unix/ov_scouter", package = "ovscout2"), file = TRUE)
+    ##}, error = function(e) {
+    ##    warning("could not update ov_scouter")
+    ##})
+    f1 <- file.path(mypath, "ov_scouter")
+    f2 <- system.file("extdata/standalone/unix/ov_scouter", package = "ovscout2")
+    if (file.exists(f1) && file.exists(f2) && fs::file_info(f2)$modification_time > fs::file_info(f1)$modification_time) {
+        file.copy(f2, f1, overwrite = TRUE)
+        do_restart <- TRUE
+    }
+    ##dbd0 <- dbd1 <- NULL
+    ##tryCatch({
+    ##    dbd0 <- digest::digest(file.path(mypath, "ov_scouter_demo"), file = TRUE)
+    ##    dbd1 <- digest::digest(system.file("extdata/standalone/unix/ov_scouter_demo", package = "ovscout2"), file = TRUE)
+    ##}, error = function(e) {
+    ##    warning("could not update ov_scouter_demo")
+    ##})
+    f1 <- file.path(mypath, "ov_scouter_demo")
+    f2 <- system.file("extdata/standalone/unix/ov_scouter_demo", package = "ovscout2")
+    if (file.exists(f1) && file.exists(f2) && fs::file_info(f2)$modification_time > fs::file_info(f1)$modification_time) {
+        file.copy(f2, f1, overwrite = TRUE)
+        do_restart <- TRUE
+    }
+    ##if ((!is.null(dR0) && !is.null(dR1) && dR0 != dR1) || (!is.null(db0) && !is.null(db1) && db0 != db1) || (!is.null(dbd0) && !is.null(dbd1) && dbd0 != dbd1)) {
+    ##    file.copy(system.file("extdata/standalone/unix/ov_scouter-nonportable.R", package = "ovscout2"), file.path(mypath, "ov_scouter-nonportable.R"), overwrite = TRUE)
+    ##    file.copy(system.file("extdata/standalone/unix/ov_scouter", package = "ovscout2"), file.path(mypath,"ov_scouter"), overwrite = TRUE)
+    ##    file.copy(system.file("extdata/standalone/unix/ov_scouter_demo", package = "ovscout2"), file.path(mypath,"ov_scouter_demo"), overwrite = TRUE)
+    ##    stop("ovscout2 updated. Please re-launch it!")
+    ##}
+    if (do_restart) stop("ovscout2 updated. Please re-launch it!")
 }
 
 ## check that we have ffmpeg

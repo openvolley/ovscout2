@@ -61,8 +61,12 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
         })
     })
 
+    cr_is_ok <- reactive({
+        length(na.omit(crvt$court$image_x)) == 4
+    })
+
     output$sr_apply_ui <- renderUI({
-        if (length(na.omit(crvt$court$image_x)) == 4) actionButton(ns("sr_apply"), "Apply", class = "fatradio continue") else NULL
+        if (cr_is_ok()) actionButton(ns("sr_apply"), "Apply", class = "fatradio continue") else NULL
     })
 
     observeEvent(input$sr_apply, {
@@ -299,10 +303,10 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
         ## was it a click and not a drag?
         if (!is.null(sr_clickdrag$mousedown)) {
             isolate(px <- last_mouse_pos())
-            if (is.null(px) || !was_mouse_drag(sr_clickdrag)) {
+            if (!is.null(px) && !was_mouse_drag(sr_clickdrag)) {
                 ##cat("click\n")
                 ## if a click, use the click position, else use the last_rv_mouse_pos (but this might lag the actual click pos, because of the hover lag)
-                if (!was_mouse_drag(sr_clickdrag) && !is.null(input$sr_plot_click)) px <- input$sr_plot_click
+                if (!was_mouse_drag(sr_clickdrag) && !is.null(input$sr_plot_click)) px <- c(input$sr_plot_click$x, input$sr_plot_click$y)
                 ## enter new point if there is an empty slot, or ignore
                 if (is.null(crvt$court) || nrow(crvt$court) < 4) {
                     warning("empty crvt$court??")

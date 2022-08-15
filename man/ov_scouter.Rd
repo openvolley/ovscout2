@@ -18,6 +18,7 @@ ov_scouter(
   shortcuts = ov_default_shortcuts(),
   scout_name = "",
   show_courtref = FALSE,
+  host,
   launch_browser = TRUE,
   prompt_for_files = interactive(),
   ...

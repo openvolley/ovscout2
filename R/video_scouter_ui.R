@@ -73,7 +73,7 @@ $(document).on('shiny:sessioninitialized', function() {
                                           tags$hr(),
                                           if (!is.null(app_data$dvw$plays2)) tags$div(downloadButton("save_rds_button", "Save file"),
                                                                                       downloadButton("save_dvw_button", "Export to dvw"),
-                                                                                      if (ov_pandoc_ok()) shinyWidgets::dropdown(inputId = "reports", label = "Reports", actionButton("mr_generate", "Match report"))),
+                                                                                      uiOutput("reports_ui")),
                                           tags$hr(),
                                           introBox(actionButton("preferences", "Preferences"),
                                                    actionButton("show_shortcuts", tags$span(icon("keyboard"), HTML("Keyboard<br />shortcuts"))), data.step = 7, data.intro = "Set general preferences, and see the keyboard shortcuts.")
@@ -102,9 +102,9 @@ $(document).on('shiny:sessioninitialized', function() {
                               introBox(mod_playslist_ui("playslist", height = "35vh", styling = app_data$styling), data.step = 6, data.intro = "List of actions. New entries appear here as they are scouted."),
                               uiOutput("error_message"))
                        ),
-tags$script("set_vspinner = function() { $('#review_player').addClass('loading'); }; remove_vspinner = function() { $('#review_player').removeClass('loading'); }; $('#video_overlay').click(function(e) { var rect = e.target.getBoundingClientRect(); var cx = e.clientX - rect.left; var cy = e.clientY - rect.top; var vt = -1; try { vt = vidplayer.currentTime(); } catch {}; Shiny.setInputValue('video_click', [cx, cy, rect.width, rect.height, vt, new Date().getTime()]) }); $('#review_overlay').click(function(e) { var rect = e.target.getBoundingClientRect(); var cx = e.clientX - rect.left; var cy = e.clientY - rect.top; var vt = -1; try { vt = revpl.currentTime(); } catch {}; Shiny.setInputValue('rev_click', [cx, cy, rect.width, rect.height, vt, new Date().getTime()]) })"),
+tags$script("set_vspinner = function() { $('#review_player').addClass('loading'); }; remove_vspinner = function() { $('#review_player').removeClass('loading'); }; $('#video_overlay').click(function(e) { var rect = e.target.getBoundingClientRect(); var cx = e.clientX - rect.left; var cy = e.clientY - rect.top; var vt = -1; try { vt = vidplayer.currentTime(); } catch(err) {}; Shiny.setInputValue('video_click', [cx, cy, rect.width, rect.height, vt, new Date().getTime()]) }); $('#review_overlay').click(function(e) { var rect = e.target.getBoundingClientRect(); var cx = e.clientX - rect.left; var cy = e.clientY - rect.top; var vt = -1; try { vt = revpl.currentTime(); } catch(err) {}; Shiny.setInputValue('rev_click', [cx, cy, rect.width, rect.height, vt, new Date().getTime()]) })"),
 tags$style("video.loading { background: black; }"),
-tags$script("review_player_onerror = function(e) { $('#review_player').removeClass('loading'); try { var this_src = btoa(document.getElementById(e.target.id).getAttribute('src')); } catch { var this_src = ''; }; Shiny.setInputValue('video_error', e.target.id + '@' + this_src + '@' + e.target.error.code + '@' + new Date().getTime()); }"),
+tags$script("review_player_onerror = function(e) { $('#review_player').removeClass('loading'); try { var this_src = btoa(document.getElementById(e.target.id).getAttribute('src')); } catch(err) { var this_src = ''; }; Shiny.setInputValue('video_error', e.target.id + '@' + this_src + '@' + e.target.error.code + '@' + new Date().getTime()); }"),
 tags$script(paste0("revpl = new dvjs_controller('review_player','", if (yt) "youtube" else "local", "',true);  revpl.video_onfinished = function() { revpl.video_controller.current=0; revpl.video_play(); }"))
 )
 }

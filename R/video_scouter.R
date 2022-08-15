@@ -26,7 +26,7 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouting_options(), shortcuts = ov_default_shortcuts(), scout_name = "", show_courtref = FALSE, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouting_options(), shortcuts = ov_default_shortcuts(), scout_name = "", show_courtref = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     assert_that(is.string(scout_name))
     assert_that(is.flag(show_courtref), !is.na(show_courtref))
@@ -83,23 +83,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     if (missing(season_dir)) season_dir <- NULL
     if (missing(auto_save_dir)) auto_save_dir <- NULL
     if (!is.null(auto_save_dir) && !dir.exists(auto_save_dir)) stop("auto_save_dir does not exist")
-    ## start with season directory
-    if (is.null(season_dir) && prompt_for_files) season_dir <- tryCatch(dchoose(caption = "Choose season directory or cancel to skip", path = if (!missing(dvw) && !is.null(dvw) && dir.exists(fs::path_dir(fs::path(dvw)))) fs::path_dir(fs::path(dvw)) else getwd()), error = function(e) NULL)
-    if ((missing(dvw) || is.null(dvw))) {
-        if (prompt_for_files) {
-            dvw <- tryCatch({
-                fchoose(caption = "Choose dvw file or cancel to skip", path = if (!is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())
-            }, error = function(e) NULL)
-            if (!is.null(dvw) && (is.character(dvw) && all(!nzchar(dvw) | is.na(dvw)))) dvw <- NULL
-        } else {
-            dvw <- NULL
-        }
-    }
-    if (is.null(dvw)) {
-        ## default to an empty one
-        suppressWarnings(dvw <- dv_create(teams = c("Home team", "Visiting team"))) ## don't warn about empty rosters
-    }
-    if (is.string(dvw)) {
+    ## read the input file, if we've been given one
+    if (!missing(dvw) && is.string(dvw)) {
         if (grepl("\\.dvw$", dvw, ignore.case = TRUE)) {
             dvw_filename <- dvw
             if (!"skill_evaluation_decode" %in% names(dv_read_args)) dv_read_args$skill_evaluation_decode <- "guess"
@@ -111,10 +96,44 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         } else {
             stop("unrecognized file format: ", dvw)
         }
+    }
+    ## ask for season directory
+    ## but not if we've started from an ovs/dvw file that has a legit video path
+    if (is.null(season_dir) && prompt_for_files) {
+        if (!(!missing(dvw) && !is.null(dvw) && !is.null(dvw$meta$video) && nrow(dvw$meta$video) == 1 && (file.exists(dvw$meta$video$file) || is_url(dvw$meta$video$file)))) {
+            season_dir <- tryCatch(dchoose(caption = "Choose season directory or cancel to skip", path = if (!missing(dvw) && !is.null(dvw) && dir.exists(fs::path_dir(fs::path(dvw)))) fs::path_dir(fs::path(dvw)) else getwd()), error = function(e) NULL)
+        }
+    }
+    if ((missing(dvw) || is.null(dvw))) {
+        if (prompt_for_files) {
+            dvw <- tryCatch({
+                fchoose(caption = "Choose dvw file or cancel to skip", path = if (!is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())
+            }, error = function(e) NULL)
+            if (!is.null(dvw) && (is.character(dvw) && all(!nzchar(dvw) | is.na(dvw)))) dvw <- NULL
+            if (!is.null(dvw)) {
+                if (grepl("\\.dvw$", dvw, ignore.case = TRUE)) {
+                    dvw_filename <- dvw
+                    if (!"skill_evaluation_decode" %in% names(dv_read_args)) dv_read_args$skill_evaluation_decode <- "guess"
+                    dv_read_args$filename <- dvw
+                    dvw <- do.call(datavolley::dv_read, dv_read_args)
+                } else if (grepl("\\.ovs$", dvw, ignore.case = TRUE)) {
+                    dvw_filename <- dvw
+                    dvw <- readRDS(dvw)
+                } else {
+                    stop("unrecognized file format: ", dvw)
+                }
+            }
+        } else {
+            dvw <- NULL
+        }
+    }
+    if (is.null(dvw)) {
+        ## default to an empty one
+        suppressWarnings(dvw <- dv_create(teams = c("Home team", "Visiting team"))) ## don't warn about empty rosters
     } else {
         if (!inherits(dvw, "datavolley")) stop("dvw should be a datavolley object or the path to a .dvw file")
-        dvw_filename <- dvw$meta$filename
     }
+    dvw_filename <- dvw$meta$filename
     ## make sure we have an attack table, TODO add parm for the default to use here
     if (is.null(dvw$meta$attacks)) dvw$meta$attacks <- ov_simplified_attack_table()
 
@@ -287,11 +306,17 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     app_data$extra_ball_tracking <- FALSE
     if (!is_url(app_data$video_src)) {
         look_for <- paste0(fs::path_ext_remove(app_data$video_src), "_extra.duckdb")
-        con <- if (file.exists(look_for)) tryCatch(DBI::dbConnect(duckdb::duckdb(look_for)), error = function(e) NULL) else NULL
-        if (!is.null(con)) {
-            app_data$extra_db <- look_for
-            app_data$extra_ball_tracking <- tryCatch("ball_track" %in% DBI::dbListTables(con), error = function(e) FALSE)
-            DBI::dbDisconnect(con, shutdown = TRUE)
+        if (file.exists(look_for)) {
+            if (!requireNamespace("DBI", quietly = TRUE) || !requireNamespace("duckdb", quietly = TRUE) || !requireNamespace("dbplyr", quietly = TRUE)) {
+                message("The duckdb, dbplyr, and DBI packages are required in order to use ball tracking outputs")
+            } else {
+                con <- tryCatch(DBI::dbConnect(duckdb::duckdb(look_for)), error = function(e) NULL)
+                if (!is.null(con)) {
+                    app_data$extra_db <- look_for
+                    app_data$extra_ball_tracking <- tryCatch("ball_track" %in% DBI::dbListTables(con), error = function(e) FALSE)
+                    DBI::dbDisconnect(con, shutdown = TRUE)
+                }
+            }
         }
     }
 
@@ -331,7 +356,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
                 servr::daemon_stop()
             })
         }
-        app_data$video_server_base_url <- paste0("http://localhost:", video_server_port)
+        app_data$video_server_base_url <- paste0("http://", host, ":", video_server_port)
         message(paste0("video server ", video_serve_method, " on port: ", video_server_port))
     } else {
         app_data$video_server_base_url <- ""
@@ -339,7 +364,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     ## initialize the plays and plays2 components
     ## if we've started with an empty dvw and done dv_set_lineups, then we'll have an empty tibble for $plays but something in $plays2
     ## if we are continuing a partially-scouted file that has been reloaded from dvw, then we'll have something in plays but not plays2
-    ## if we are restarting from an rds file, it should have something in plays2 but not plays
+    ## if we are restarting from an ovs file, it should have something in plays2 but not plays
     if ((is.null(app_data$dvw[["plays"]]) || nrow(app_data$dvw[["plays"]]) < 1)) {
         app_data$dvw$plays <- plays2_to_plays(app_data$dvw$plays2, dvw = app_data$dvw, evaluation_decoder = app_data$evaluation_decoder)
     } else if (is.null(app_data$dvw$plays2) || nrow(app_data$dvw$plays2) < 1) {

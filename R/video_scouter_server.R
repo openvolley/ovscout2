@@ -3,14 +3,21 @@ ov_scouter_server <- function(app_data) {
         debug <- 1L
         cstr <- function(z) capture.output(str(z))
         have_warned_auto_save <- FALSE
-
-        extra_db_con <- if (!is.null(app_data$extra_db)) tryCatch(DBI::dbConnect(duckdb::duckdb(app_data$extra_db)), error = function(e) NULL)
-
+        extra_db_con <- NULL
+        if (!is.null(app_data$extra_db)) {
+            if (!requireNamespace("DBI", quietly = TRUE) || !requireNamespace("duckdb", quietly = TRUE) || !requireNamespace("dbplyr", quietly = TRUE)) {
+                ## somehow extra_db was set but these aren't available?
+                message("The duckdb, dbplyr, and DBI packages are required in order to use ball tracking outputs")
+                app_data$extra_db <- NULL
+                app_data$extra_ball_tracking <- FALSE
+            } else {
+                extra_db_con <-  tryCatch(DBI::dbConnect(duckdb::duckdb(app_data$extra_db)), error = function(e) NULL)
+            }
+        }
         shiny::onSessionEnded(function() {
             if (!is.null(extra_db_con)) try(DBI::dbDisconnect(extra_db_con, shutdown = TRUE), silent = TRUE)
             shiny::stopApp()
         })
-
         ## on startup, clean up old auto-saved files
         try({
             d <- fs::dir_info(file.path(app_data$user_dir, "autosave"))
@@ -69,7 +76,7 @@ ov_scouter_server <- function(app_data) {
 #                cat(runif(1), "\n")
 #            cat("input$dv_width:", cstr(input$dv_width), "\ninput$dv_height:", cstr(input$dv_height), "\ninput$video_width:", cstr(input$video_width), "\ninput$video_height:", cstr(input$video_height), "\ninput$dv_width:", cstr(input$dv_width), "\ninput$dv_height:", cstr(input$dv_height), "\n")
                 dojs("Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());")
-                invalidateLater(200)
+                shiny::invalidateLater(200)
             }
         })
         get_src_type <- function(src) {
@@ -796,8 +803,12 @@ ov_scouter_server <- function(app_data) {
         }
         overlay_points <- reactiveVal(NULL)
         overlay_court_lines <- reactive({
-            oxy <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = detection_ref()$court_ref, crop = TRUE)$courtxy
-            dplyr::rename(oxy, image_x = "x", image_y = "y")
+            if (!is.null(detection_ref()$court_ref)) {
+                oxy <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = detection_ref()$court_ref, crop = TRUE)$courtxy
+                dplyr::rename(oxy, image_x = "x", image_y = "y")
+            } else {
+                NULL
+            }
         })
         observe({
             output$video_overlay <- renderPlot({
@@ -806,7 +817,7 @@ ov_scouter_server <- function(app_data) {
                 ## TODO move the court overlay to video_overlay_img
                 opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
                 plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
-                if (isTRUE(prefs$show_courtref)) {
+                if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
                     oxy <- overlay_court_lines()
                     ## account for aspect ratios
                     oxy$image_x <- ar_fix_x(oxy$image_x)
@@ -1276,7 +1287,7 @@ ov_scouter_server <- function(app_data) {
                     cover_pl_opts <- guess_cover_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     coverp <- cover_pl_opts$choices
                     names(coverp) <- player_nums_to(coverp, team = other(game_state$current_team), dvw = rdata$dvw)
-                    coverp <- c(coverp, Unknown = "Unknown")
+                    coverp <- c(coverp, Unknown = "Unknown", "No cover dig" = "No cover dig")
                     cover_player_buttons <- make_fat_radio_buttons(choices = coverp, selected = cover_pl_opts$selected, input_var = "c1_cover_player")
                     if (isTRUE(input$shiftkey)) {
                         ## attack in play (i.e. was dug), but we are not stopping to enter details
@@ -1794,7 +1805,7 @@ ov_scouter_server <- function(app_data) {
                                       ## the block
                                       code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "!", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table),
                                       ## and the dig cover
-                                      code_trow(team = other(game_state$current_team), pnum = if (!is.na(input$c1_cover_player)) input$c1_cover_player else 0L, skill = "D", eval = default_skill_eval("D"), sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)
+                                      if (!input$c1_cover_player %eq% "No cover dig") code_trow(team = other(game_state$current_team), pnum = if (!is.na(input$c1_cover_player)) input$c1_cover_player else 0L, skill = "D", eval = default_skill_eval("D"), sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)
                                       ))
                 game_state$current_team <- other(game_state$current_team) ## attacking team now playing
                 rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
@@ -2848,14 +2859,20 @@ ov_scouter_server <- function(app_data) {
         }
 
         ## reports
+        output$reports_ui <- renderUI({
+            if (ov_pandoc_ok() && nrow(rdata$dvw$plays2) > 0) {
+                shinyWidgets::dropdown(inputId = "reports", label = "Reports", actionButton("mr_generate", "Match report"))
+            } else {
+                NULL
+            }
+        })
         observeEvent(input$mr_generate, {
-            ## dvw from rds
             temp_dvw_file <- tempfile(fileext = ".dvw")
             dv_write2(update_meta(rp2(rdata$dvw)), file = temp_dvw_file)
             servable_url <- NULL
             tryCatch({
                 shiny::withProgress(message = "Generating match report", value = 0, {
-                    rargs <- list(x = temp_dvw_file, format = "paged_pdf", vote = FALSE, shiny_progress = TRUE, chrome_print_extra_args = if (app_data$run_env %eq% "shiny_local") NULL else c("--no-sandbox", "--disable-gpu"))
+                    rargs <- list(x = temp_dvw_file, format = "paged_pdf", style = "ov1", vote = FALSE, shiny_progress = TRUE, chrome_print_extra_args = if (app_data$run_env %eq% "shiny_local") NULL else c("--no-sandbox", "--disable-gpu"))
                     if ("icon" %in% names(app_data) && file.exists(app_data$icon)) rargs$icon <- app_data$icon
                     ##header_extra_pre = "<div style=\"position:absolute; bottom:-7mm; right:2mm; font-size:9px;\">\nReport via <https://openvolley.org/ovscout2>\n</div>\n"
                     rcss <- volleyreport::vr_css()
@@ -2871,18 +2888,18 @@ ov_scouter_server <- function(app_data) {
                     editing$active <- "match report"
                     showModal(vwModalDialog(title = "Match report", footer = NULL, width = 100,
                                             tags$iframe(style = "width:80%; height:100vh;", src = servable_url),
-                                    tags$br(),
-                                    tags$hr(),
-                                    fixedRow(column(2, offset = 10, actionButton("just_cancel", "Return to scouting", class = "continue fatradio")))
-                                    ))
+                                            tags$br(),
+                                            tags$hr(),
+                                            fixedRow(column(2, offset = 10, actionButton("just_cancel", "Return to scouting", class = "continue fatradio")))
+                                            ))
                 })
             }, error = function(e) {
-                    showModal(vwModalDialog(title = "Match report", footer = NULL, width = 100,
-                                            tags$p("Sorry, something went wrong generating the PDF. (The error message was: ", conditionMessage(e), ")"),
-                                    tags$br(),
-                                    tags$hr(),
-                                    fixedRow(column(2, offset = 10, actionButton("just_cancel", "Return to scouting", class = "continue fatradio")))
-                                    ))
+                showModal(vwModalDialog(title = "Match report", footer = NULL, width = 100,
+                                        tags$p("Sorry, something went wrong generating the PDF. (The error message was: ", conditionMessage(e), ")"),
+                                        tags$br(),
+                                        tags$hr(),
+                                        fixedRow(column(2, offset = 10, actionButton("just_cancel", "Return to scouting", class = "continue fatradio")))
+                                        ))
             })
         })
     }

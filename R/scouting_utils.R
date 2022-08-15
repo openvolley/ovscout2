@@ -396,44 +396,49 @@ dv_write2 <- function(x, file, text_encoding = "UTF-8") {
     x$meta$players_v <- make_players(x$meta$players_v)
     ## write without the plays part
     dv_write(x, file = file, text_encoding = text_encoding)
-    ## now the plays but from plays2
-    x$plays2$time <- format(x$plays2$time, "%H.%M.%S")
+    if (!is.null(x$plays2) && nrow(x$plays2) > 0) {
+        ## some columns
+        for (cl in c("time", "video_time")) if (!cl %in% names(x$plays2)) x$plays2[[cl]] <- rep(NA_real_, nrow(x$plays2))
+        for (cl in c("home_setter_position", "visiting_setter_position")) if (!cl %in% names(x$plays2)) x$plays2[[cl]] <- rep(NA_integer_, nrow(x$plays2))
+        ## now the plays but from plays2
+        x$plays2$time <- format(x$plays2$time, "%H.%M.%S")
 
-    ## TODO, modify other columns
-    ##this <- xp$point_phase
-    ##this[this %eq% "Breakpoint"] <- "p"
-    ##this[this %eq% "Sideout"] <- "s"
-    ##xp$point_phase <- this
-    ##this <- xp$attack_phase
-    ##this[this %eq% "Transition breakpoint"] <- "p"
-    ##this[this %eq% "Transition sideout"] <- "s"
-    ##this[this %eq% "Reception"] <- "r"
-    ##xp$attack_phase <- this
+        ## TODO, modify other columns
+        ##this <- xp$point_phase
+        ##this[this %eq% "Breakpoint"] <- "p"
+        ##this[this %eq% "Sideout"] <- "s"
+        ##xp$point_phase <- this
+        ##this <- xp$attack_phase
+        ##this[this %eq% "Transition breakpoint"] <- "p"
+        ##this[this %eq% "Transition sideout"] <- "s"
+        ##this[this %eq% "Reception"] <- "r"
+        ##xp$attack_phase <- this
 
-    ## setter position uses 0 or 5 when unknown
-    x$plays2$home_setter_position[is.na(x$plays2$home_setter_position)] <- 5
-    x$plays2$visiting_setter_position[is.na(x$plays2$visiting_setter_position)] <- 5
+        ## setter position uses 0 or 5 when unknown
+        x$plays2$home_setter_position[is.na(x$plays2$home_setter_position)] <- 5
+        x$plays2$visiting_setter_position[is.na(x$plays2$visiting_setter_position)] <- 5
 
-    ##x$plays2 <- x$plays2[, setdiff(names(x$plays2), c("home_score_start_of_point", "visiting_score_start_of_point", "serving"))]
-    x$plays2$na_col <- NA
-    x$plays2$video_time <- round(x$plays2$video_time)
-    ## make sure we have the right columns, including the all-NA ones
-    nms <- c("code", "point_phase", "attack_phase", "na_col", ## cols 1-4
-             "start_coordinate", "mid_coordinate", "end_coordinate", ## cols 5-7
-             "time", ## col 8, HH.MM.SS format
-             "set_number", ## col 9
-             "home_setter_position", "visiting_setter_position", # 10-11
-             "video_file_number", "video_time", ## 12-13
-             "na_col", ## 14 need to check this one
-             if ("home_p3" %in% names(x$plays2)) paste0("home_p", 1:6) else c(paste0("home_p", 1:2), rep("na_col", 4)), ## 15-20, home team, court positons 1-6, entries are player numbers
-             if ("visiting_p3" %in% names(x$plays2)) paste0("visiting_p", 1:6) else c(paste0("visiting_p", 1:2), rep("na_col", 4)), ## 21-26, same for visiting team
-             "na_col" ## always a trailing ;
-             )
-    x$plays2 <- x$plays2[, nms]
-    out <- df2txt(x$plays2)
-    outf <- file(file, "ab")
-    writeLines(out, outf, sep = "\n")
-    close(outf)
+        ##x$plays2 <- x$plays2[, setdiff(names(x$plays2), c("home_score_start_of_point", "visiting_score_start_of_point", "serving"))]
+        x$plays2$na_col <- NA
+        x$plays2$video_time <- round(x$plays2$video_time)
+        ## make sure we have the right columns, including the all-NA ones
+        nms <- c("code", "point_phase", "attack_phase", "na_col", ## cols 1-4
+                 "start_coordinate", "mid_coordinate", "end_coordinate", ## cols 5-7
+                 "time", ## col 8, HH.MM.SS format
+                 "set_number", ## col 9
+                 "home_setter_position", "visiting_setter_position", # 10-11
+                 "video_file_number", "video_time", ## 12-13
+                 "na_col", ## 14 need to check this one
+                 if ("home_p3" %in% names(x$plays2)) paste0("home_p", 1:6) else c(paste0("home_p", 1:2), rep("na_col", 4)), ## 15-20, home team, court positons 1-6, entries are player numbers
+                 if ("visiting_p3" %in% names(x$plays2)) paste0("visiting_p", 1:6) else c(paste0("visiting_p", 1:2), rep("na_col", 4)), ## 21-26, same for visiting team
+                 "na_col" ## always a trailing ;
+                 )
+        x$plays2 <- x$plays2[, nms]
+        out <- df2txt(x$plays2)
+        outf <- file(file, "ab")
+        writeLines(out, outf, sep = "\n")
+        close(outf)
+    }
     invisible(file)
 }
 
@@ -725,6 +730,19 @@ plays_to_plays2 <- function(p) {
         mutate(ht_lib1 = NA_integer_, ht_lib2 = NA_integer_, vt_lib1 = NA_integer_, vt_lib2 = NA_integer_)
     p2$rally_codes <- vector("list", nrow(p2))
     p2
+}
+
+## empty (zero-row) plays2 data frame, for initialization
+empty_plays2 <- function() {
+    chr <- character(); num <- numeric(); int <- integer()
+    tibble(code = chr, point_phase = chr, attack_phase = chr,
+           start_coordinate = num, mid_coordinate = num, end_coordinate = num,
+           time = num, set_number = int, home_setter_position = int, visiting_setter_position = int, video_file_number = int, video_time = num,
+           home_score_start_of_point = int, visiting_score_start_of_point = int, serving = chr,
+           home_p1 = int, home_p2 = int, home_p3 = int, home_p4 = int, home_p5 = int, home_p6 = int,
+           visiting_p1 = int, visiting_p2 = int, visiting_p3 = int, visiting_p4 = int, visiting_p5 = int, visiting_p6 = int,
+           ht_lib1 = int, ht_lib2 = int, vt_lib1 = int, vt_lib2 = int,
+           phase = chr, rally_codes = list())
 }
 
 ## parse just the skill rows, giving the team, player number, skill and type, and evaluation code
