@@ -744,6 +744,52 @@ guess_cover_player_options <- function(game_state, dvw, system, weighted = TRUE)
     list(choices = pp, selected = plsel)
 }
 
+## guess_setter_options <- function(pass_quality, game_state, dvw) {
+##     if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
+##     poc <- get_players(game_state = game_state, dvw = dvw)
+##     if (is_beach(dvw)) return(list(choices = poc, selected = NA_integer_)) ## TODO, whichever player didn't pass/dig
+##     pseq <- seq_len(6L) ## indoor only
+##     psel <- if (pass_quality %in% c("#", "+", "!")) {
+##                 ## assume that setter on court is setting
+##                 get_setter(game_state)
+##             } else if (pass_quality %in% c("/")) {
+##                 ## overpass
+##                 NA_integer_
+##             } else {
+##                 ## poor pass
+##                 home_visiting <- if (game_state$current_team %eq% "a") "visiting" else "home"
+##                 setter_position <- game_state[[paste0(home_visiting, "_setter_position")]]
+##                 serving <- isTRUE(game_state$serving == game_state$current_team)
+##                 libs <- get_liberos(game_state, dvw = dvw)
+##                 if (serving) libs <- rev(libs) ## rev here so that if we have two liberos, the second is preferred in breakpoint phase
+##                 ##        ## need to know if the libero is on court or not, assume not in breakpoint P2, P5
+##                 ##        if (length(libs) > 0 && isTRUE(game_state$serving == game_state$current_team) && setter_position %in% c(2, 5)) {
+##                 ##            ## the middle is on court (serving) so we have no libero
+##                 ##            libs <- c()
+##                 ##        }
+##                 ##        loc <- length(libs) > 0 ## libero on court
+##                 history <- dvw$plays %>% ##mutate(serving = .data$team == .data$serving_team) %>%
+##                     dplyr::filter(.data$skill == "Set", lag(.data$evaluation_code) == "-", .data[[paste0(home_visiting, "_setter_position")]] == setter_position,
+##                                   .data$team == game_state$current_team)
+##                 prior <- setNames(rep(0, length(pseq) + 1L), c(paste0(home_visiting, "_p", pseq), "libero"))
+##                 ## simple prior, if ball in front of the 6m line then setter, otherwise libero if on court else player in 5 (back-row middle)
+##                 if (isTRUE(game_state$start_y < 1.5 || game_state$start_y > 5.5)) {
+##                     prior[[paste0(home_visiting, "_p", setter_position)]] <- 1
+##                 } else if (length(libs) > 0) {
+##                     prior$libero <- 1
+##                 } else {
+##                     prior[[paste0(home_visiting, "_p", if (setter_position %in% c(1, 4)) 6 else if (setter_position %in% c(2, 5)) 1 else 5)]] <- 1
+##                 }
+##                 posterior <- do_responsibility_posterior(history = history, game_state = game_state, prior = prior, home_visiting = home_visiting, weighted = TRUE, start_end = "start", pseq = pseq)
+##                 cat("setter responsibility posterior\n")
+##                 print(posterior)
+##         plsel_tmp <- names(sort(dig_responsibility_posterior, decreasing = TRUE))
+##         poc <- paste0(home_visiting, "_p", pseq)
+##         pp <- c(sort(as.numeric(game_state[poc])), sort(libs))
+##         plsel <- if(plsel_tmp[1] %eq% "libero") libs[1] else as.numeric(game_state[plsel_tmp[1]])
+##     }
+## }
+
 ## returns a list of button tags
 ## radio buttons are slightly non-standard, in that it is possible to start with none selected (use selected = NA). Also selecting the already-selected button will cause none to be selected. But you can't have more than one selected at a time
 make_fat_radio_buttons <- function(..., as_radio = "radio") make_fat_buttons(..., as_radio = as_radio) ## "blankable", can de-select the selected button, "radio" must always have one selected

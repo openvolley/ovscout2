@@ -1,12 +1,21 @@
 mod_courtref_ui <- function(id, button_label = "Court reference") {
     ns <- NS(id)
-    actionButton(ns("do_scref"), button_label)
+    jsns <- ns4js(ns)
+    ##yt <- FALSE ##^^^
+    tagList(actionButton(ns("do_scref"), button_label)##,
+            ## ^^^ replace with videojs
+            ##tags$script(paste0(jsns("crpl"), " = new dvjs_controller('", ns("cr_player"), "','", if (yt) "youtube" else "local", "',true); ", jsns("crpl"), ".video_onfinished = function() { ", jsns("crpl"), ".video_controller.current=0; ", jsns("crpl"), ".video_play(); }"))
+            )
 }
+## for video, also need ovideo::ov_video_js(youtube = yt, version = 2), here, but it's already in the outer UI
 
-mod_courtref <- function(input, output, session, video_src, detection_ref, include_net = FALSE, styling) {
+mod_courtref <- function(input, output, session, video_file = NULL, video_url = NULL, detection_ref, include_net = FALSE, styling) {
     ns <- session$ns
+    jsns <- ns4js(ns)
     did_sr_popup <- reactiveVal(0L)
     active <- reactiveVal(FALSE)
+    show_frame_image <- is.null(video_url) ## extract a frame and show that, otherwise show the actual video
+    yt <- !show_frame_image && is_youtube_url(video_url)
     observeEvent(input$do_scref, {
         ## trigger the crvt data to be re-initialized each time a popup is spawned
         did_sr_popup(did_sr_popup() + 1L)
@@ -22,10 +31,10 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, inclu
     })
 
     output$sr_save_ui <- renderUI({
-        ## only if running locally, and only if we have ffmpeg available
-        if (!nzchar(Sys.getenv("SHINY_PORT")) && ovideo::ov_ffmpeg_ok(do_error = FALSE)) {
+        ## only if running locally, with a video file provided, and only if we have ffmpeg available
+        if (!is.null(video_file) && cr_is_ok() && !nzchar(Sys.getenv("SHINY_PORT")) && ovideo::ov_ffmpeg_ok(do_error = FALSE)) {
             ## check if the file already has court data saved into it
-            chk <- tryCatch(!is.null(ovideo::ov_get_video_data(video_src)), error = function(e) FALSE)
+            chk <- tryCatch(!is.null(ovideo::ov_get_video_data(video_file)), error = function(e) FALSE)
             output$sr_save_dialog <- renderUI(if (chk) tags$div("The video file already has court data saved in it.") else NULL)
             fluidRow(column(5, actionButton(ns("sr_save"), "Save into video file", class = "fatradio")),
                      column(5, "Note: this will overwrite the existing video file. The original file will be backed up first, but use at your own risk."))
@@ -36,14 +45,18 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, inclu
     })
     observeEvent(input$sr_save, {
         output$sr_save_dialog <- renderUI({
-            tryCatch({
-                fs::file_copy(video_src, paste0(video_src, ".bak"))
-                temp <- list(court_ref = dplyr::select(left_join(crvt$court[, c("image_x", "image_y", "pos")], court_refs_data[, c("court_x", "court_y", "pos")], by = "pos"), -"pos"),
-                             antenna = crvt$antenna, net_height = crvt$net_height, video_framerate = crvt$video_framerate, video_width = crimg()$width, video_height = crimg()$height)
-                ovideo::ov_set_video_data(video_src, obj = temp, replace = TRUE, overwrite = TRUE)
-                tags$div("Saved")
-            }, error = function(e) {
-                tags$div("Could not save court reference into video file. The error message was:", conditionMessage(e))
+            shiny::withProgress(message = "Backing up video file ...", {
+                tryCatch({
+                    fs::file_copy(video_file, paste0(video_file, ".bak"), overwrite = TRUE)
+                    shiny::setProgress(value = 0.4, message = "Saving court data ...")
+                    temp <- list(court_ref = dplyr::select(left_join(crvt$court[, c("image_x", "image_y", "pos")], court_refs_data[, c("court_x", "court_y", "pos")], by = "pos"), -"pos"),
+                                 antenna = crvt$antenna, net_height = crvt$net_height, video_framerate = crvt$video_framerate, video_width = crimg()$width, video_height = crimg()$height)
+                    ovideo::ov_set_video_data(video_file, obj = temp, replace = TRUE, overwrite = TRUE)
+                    shiny::setProgress(0.9)
+                    tags$div("Saved")
+                }, error = function(e) {
+                    tags$div("Could not save court reference into video file. The error message was:", conditionMessage(e))
+                })
             })
         })
     })
@@ -69,7 +82,15 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, inclu
     })
 
     output$srui <- renderUI({
-        fluidRow(column(8, plotOutputWithAttribs(ns("srplot"), height = "600px", click = ns("sr_plot_click"), hover = shiny::hoverOpts(ns("sr_plot_hover"), delay = 50, delayType = "throttle"), onmouseup = paste0("Shiny.setInputValue('", ns("did_sr_plot_mouseup"), "', new Date().getTime());"), onmousedown = paste0("Shiny.setInputValue('", ns("did_sr_plot_mousedown"), "', new Date().getTime());"))), ##height = paste0(ph, "px"))
+        fluidRow(column(8,
+                        if (!show_frame_image) {##600px height
+                            HTML(paste0("<video id=\"", ns("cr_player"), "\" style=\"width:100%; height:70vh;\" class=\"video-js\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": false, \"autoplay\": true, \"loop\": true, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": [{", if (yt) " \"type\": \"video/youtube\", ", "\"src\": \"", video_url, "\"}] }'>\n",
+                                        "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>"))
+##                        ovideo::ov_video_player(id = ns("cr_player"), type = "local", controls = FALSE, poster = "data:image/gif,AAAA", style = "border: 1px solid black; width: 100%;", muted = "true", ##onerror = "review_player_onerror(event);"
+##                                                ),
+                        },
+                        plotOutputWithAttribs(ns("srplot"), ##height = "600px",
+                                              click = ns("sr_plot_click"), hover = shiny::hoverOpts(ns("sr_plot_hover"), delay = 50, delayType = "throttle"), onmouseup = paste0("Shiny.setInputValue('", ns("did_sr_plot_mouseup"), "', new Date().getTime());"), onmousedown = paste0("Shiny.setInputValue('", ns("did_sr_plot_mousedown"), "', new Date().getTime());"), style = "margin-top:-600px; position:relative; z-index:9999;")),
                  column(4, uiOutput(ns("srui_table")),
                         tags$hr(),
                         shiny::fixedRow(column(6, textInput(ns("sr_net_height"), label = "Net height (m):", value = if (!is.null(detection_ref()) && !is.null(detection_ref()$net_height) && !is.na(detection_ref()$net_height)) detection_ref()$net_height else "", width = "10ex")),
@@ -146,55 +167,108 @@ mod_courtref <- function(input, output, session, video_src, detection_ref, inclu
         crvt$video_framerate <- if (!is.null(input$sr_video_framerate) && nzchar(input$sr_video_framerate)) as.numeric(input$sr_video_framerate) else NA_real_
     })
 
-    output$srplot <- renderPlot({
-        antenna_colour <- "magenta"
-        court_colour <- "red"
-        if (!is.null(crimg()$image)) {
-            ## plot in 0,1 norm coords
-            p <- ggplot2::ggplot(mapping = aes_string(x = "image_x", y = "image_y")) +
-                ggplot2::annotation_custom(grid::rasterGrob(crimg()$image), xmin = 0, xmax = 1, ymin = 0, ymax = 1) +
-                ggplot2::coord_fixed(ratio = crimg()$height/crimg()$width) + ggplot2::xlim(c(0, 1)) + ggplot2::ylim(c(0, 1))
-            ## convert our crvt (edited ref data) into the court overlay data to plot
-            crox <- tryCatch({
-                cr <- crvt$court
-                ## account for changes in dropdowns, i.e. the image location might now be assigned to a different court ref location
-                if (!is.null(cr)) cr <- left_join(dplyr::select(cr, -"court_x", -"court_y"), court_refs_data[, c("court_x", "court_y", "pos")], by = "pos")
-                out <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = cr, crop = TRUE)
-                out$courtxy <- dplyr::rename(out$courtxy, image_x = "x", image_y = "y")
-                out
-            }, error = function(e) NULL)
-            if (!is.null(crox)) {
-                p <- p + geom_segment(data = crox$courtxy, aes_string(xend = "xend", yend = "yend"), color = court_colour, na.rm = TRUE) + ggplot2::theme_bw()
+    observe({
+        output$srplot <- renderPlot({
+            antenna_colour <- "magenta"
+            court_colour <- "red"
+            out <- if (!is.null(crimg()$image)) {
+                       ## plot in 0,1 norm coords
+                       asp <- if (!is.null(crimg()$height) && !is.na(crimg()$height) && crimg()$height > 0 && !is.null(crimg()$width) && !is.na(crimg()$width) && crimg()$width > 0) crimg()$height/crimg()$width else 9/16
+                       p <- ggplot2::ggplot(mapping = aes_string(x = "image_x", y = "image_y")) + ggplot2::coord_fixed(ratio = asp, xlim = c(0, 1), ylim = c(0, 1), expand = FALSE)
+                       if (show_frame_image) p <- p + ggplot2::annotation_custom(grid::rasterGrob(crimg()$image), xmin = 0, xmax = 1, ymin = 0, ymax = 1)
+                       ## convert our crvt (edited ref data) into the court overlay data to plot
+                       crox <- tryCatch({
+                           cr <- crvt$court
+                           ## account for changes in dropdowns, i.e. the image location might now be assigned to a different court ref location
+                           if (!is.null(cr)) cr <- left_join(dplyr::select(cr, -"court_x", -"court_y"), court_refs_data[, c("court_x", "court_y", "pos")], by = "pos")
+                           out <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = cr, crop = TRUE)
+                           out$courtxy <- dplyr::rename(out$courtxy, image_x = "x", image_y = "y")
+                           out
+                       }, error = function(e) NULL)
+                       if (!is.null(crox)) {
+                           p <- p + geom_segment(data = crox$courtxy, aes_string(xend = "xend", yend = "yend"), color = court_colour, na.rm = TRUE) + ggplot2::theme_bw()
+                       }
+                       if (!is.null(crvt$court)) {
+                           p <- p + geom_label(data = mutate(crvt$court, point_num = row_number()), ## double check that point_num always matches the UI inputs ordering
+                                               aes_string(label = "point_num"), color = "white", fill = court_colour, na.rm = TRUE)
+                       }
+                       if (isTRUE(include_net) && !is.null(crvt$antenna)) {
+                           plotx <- mutate(crvt$antenna, n = case_when(.data$antenna == "left" & .data$where == "floor" ~ 5L,
+                                                                       .data$antenna == "right" & .data$where == "floor" ~ 6L,
+                                                                       .data$antenna == "right" & .data$where == "net_top" ~ 7L,
+                                                                       .data$antenna == "left" & .data$where == "net_top" ~ 8L))
+                           p <- p + geom_path(data = plotx, aes_string(group = "antenna"), color = antenna_colour, na.rm = TRUE) +
+                               geom_path(data = plotx[plotx$where == "net_top", ], color = antenna_colour, na.rm = TRUE) +
+                               geom_path(data = plotx[plotx$where == "floor", ], color = antenna_colour, na.rm = TRUE) +
+                               geom_label(data = plotx, aes_string(label = "n"), color = "white", fill = antenna_colour, na.rm = TRUE)
+                       }
+                       p + ggplot2::theme_void()
+                   } else {
+                       NULL
+                   }
+            if (!show_frame_image) {
+                myjs <- paste0(jsns("crpl"), " = videojs('", ns("cr_player"), "'); ", jsns("crpl"), ".ready(function() {",
+#                               these arent video height and width, they are the element height and width
+#                            "Shiny.setInputValue('", ns("cr_height"), "', ", jsns("crpl"), ".videoHeight());",
+#                            "Shiny.setInputValue('", ns("cr_width"), "', ", jsns("crpl"), ".videoWidth());",
+                            create_resize_observer(ns("cr_player"), fun = paste0("console.log('resizing'); ",
+                                                                                 "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());",
+                                                                                 "Shiny.setInputValue('", ns("cr_height"), "', ", jsns("crpl"), ".currentHeight());",
+                                                                                 "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());",
+                                                                                 ## not needed? "Shiny.setInputValue('", ns("cr_width"), "', ", jsns("crpl"), ".currentWidth());",
+                                                                                 "var voff = $('#", ns("cr_player"), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"##, "this.play();"
+                                                                                 ), nsfun = jsns), "});")
+                ##cat(myjs, "\n")
+                dojs(myjs)
             }
-            if (!is.null(crvt$court)) {
-                p <- p + geom_label(data = mutate(crvt$court, point_num = row_number()), ## double check that point_num always matches the UI inputs ordering
-                                    aes_string(label = "point_num"), color = "white", fill = court_colour, na.rm = TRUE)
-            }
-            if (isTRUE(include_net) && !is.null(crvt$antenna)) {
-                plotx <- mutate(crvt$antenna, n = case_when(.data$antenna == "left" & .data$where == "floor" ~ 5L,
-                                                            .data$antenna == "right" & .data$where == "floor" ~ 6L,
-                                                            .data$antenna == "right" & .data$where == "net_top" ~ 7L,
-                                                            .data$antenna == "left" & .data$where == "net_top" ~ 8L))
-                p <- p + geom_path(data = plotx, aes_string(group = "antenna"), color = antenna_colour, na.rm = TRUE) +
-                    geom_path(data = plotx[plotx$where == "net_top", ], color = antenna_colour, na.rm = TRUE) +
-                    geom_path(data = plotx[plotx$where == "floor", ], color = antenna_colour, na.rm = TRUE) +
-                    geom_label(data = plotx, aes_string(label = "n"), color = "white", fill = antenna_colour, na.rm = TRUE)
-            }
-            p + ggplot2::theme_void()
-        } else {
-            NULL
-        }
+            ##dojs(paste0(jsns("crpl"), ".set_playlist_and_play([{'video_src':'", video_url, "','start_time':0,'duration':600,'type':'", if (yt) "youtube" else "local", "'}], '", ns("cr_player"), "', '", if (yt) "youtube" else "local", "', true);"))
+            ##dojs(create_resize_observer(ns("cr_player"), fun = paste0("console.log('resizing'); Shiny.setInputValue('", ns("cr_height"), "', $('#", ns("cr_player"), "').innerHeight()); var voff = $('#", ns("cr_player_container"), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"), nsfun = jsns))
+            out
+        }, bg = "transparent", height = if (show_frame_image || length(input$cr_height) < 1 || is.na(input$cr_height) || input$cr_height <= 0) 600 else input$cr_height)
     })
+
+    ## TODO pass this thing the file if it's local (as well as the URL) so that courtref can be saved in it
+
+    create_resize_observer <- function(id_to_obs, fun, nsfun) {
+        obsfun <- nsfun("rsz_obs") ## name of the observer function
+        ## if the observer function has not yet been defined, and the element to observe exists, then create the observer function
+        paste0("if (typeof ", obsfun, " === 'undefined' && document.getElementById('", id_to_obs, "')) { ", obsfun, " = new ResizeObserver(() => { ", fun, " }); ", obsfun, ".observe(document.getElementById('", id_to_obs, "')); }")
+    }
+
+##    observe({
+##        dojs(paste0("Shiny.setInputValue('", ns("cr_height"), "', $('#", ns("cr_player"), "').innerHeight());"))
+##        dojs(paste0("console.log('voff: ' + $('#", ns("cr_player_container"), "').innerHeight()); Shiny.setInputValue('", ns("cr_voffset"), "', $('#", ns("cr_player_container"), "').innerHeight());"))
+##        shiny::invalidateLater(500)
+##    })
+
+    ##observeEvent(input$cr_height, {
+    ##    cat("cr_height: ", capture.output(str(input$cr_height)), "\n")
+    ##    if (length(input$cr_height) < 1 || is.na(input$cr_height) || input$cr_height <= 0) {
+    ##        dojs(paste0("Shiny.setInputValue('", ns("cr_height"), "', $('#", ns("cr_player"), "').innerHeight());"))
+    ##    }
+    ##})
+
+##    observeEvent(input$cr_voffset, {
+##        cat("voff: ", capture.output(str(input$cr_voffset)), "\n")
+##        dojs(paste0("document.getElementById('", ns("srplot"), "').style.marginTop = '-", input$cr_voffset, "px';"))
+##    })
 
     crimg <- reactive({
         vt <- if (!is.null(input$video_time) && !is.na(input$video_time)) input$video_time else 10
-        tryCatch({
-            image_file <- ovideo::ov_video_frame(normalizePath(video_src, mustWork = FALSE), vt)
-            img <- jpeg::readJPEG(image_file, native = TRUE)
-            list(image = img, width = dim(img)[2], height = dim(img)[1]) ## TODO could also get framerate here?
-        }, error = function(e) {
-            NULL
-        })
+        if (show_frame_image) {
+            tryCatch({
+                image_file <- ovideo::ov_video_frame(normalizePath(video_file, mustWork = FALSE), vt)
+                img <- jpeg::readJPEG(image_file, native = TRUE)
+                list(image = img, width = dim(img)[2], height = dim(img)[1]) ## TODO could also get framerate here?
+            }, error = function(e) {
+                NULL
+            })
+        } else {
+            ## from video
+            list(image = NA_character_,
+                 width = if (!is.null(input$cr_media_width) && !is.na(input$cr_media_width) && input$cr_media_width > 0) input$cr_media_width else 0,
+                 height = if (!is.null(input$cr_media_height) && !is.na(input$cr_media_height) && input$cr_media_height > 0) input$cr_media_height else 0)
+        }
     })
 
     sr_clickdrag <- reactiveValues(mousedown = NULL, mousedown_time = NULL, closest_down = NULL, mouseup = NULL)

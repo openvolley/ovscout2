@@ -15,6 +15,7 @@
 #' @param scouting_options list: a named list with entries as per [ov_scouting_options()]
 #' @param scout_name string: the name of the scout (your name)
 #' @param show_courtref logical: if `TRUE`, show the court reference lines overlaid on the video
+#' @param host string: the IP address of this machine. Only required if you intend to connect to the app from a different machine (in which case use `ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)`, where www.xxx.yyy.zzz is the IP address of this machine, i.e. the machine running the app)
 #' @param launch_browser logical: if `TRUE`, launch the app in the system's default web browser (passed to [shiny::runApp()]'s `launch.browser` parameter)
 #' @param prompt_for_files logical: if `dvw` was not specified, prompt the user to select the dvw file
 #' @param ... : extra parameters passed to [datavolley::dv_read()] (if `dvw` is a provided as a string) and/or to the shiny server and UI functions
@@ -58,6 +59,25 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     assert_that(playlist_display_option %in% c("dv_codes", "commentary"))
     dots <- list(...)
+
+    port <- NA
+    if (missing(host) || is.null(host)) {
+        host <- getOption("shiny.host", "127.0.0.1")
+        port <- NULL
+    }
+    if (host %eq% "0.0.0.0") {
+        ## could guess it using getip::getip("local") but this isn't reliable e.g. on a machine with multiple network interfaces
+    }
+    if (!is.null(port)) {
+        ## if host was specified, figure out port? then can print qr code for client connection
+        port <- get_port(port = getOption("ovscout2.lastport"), host = host)
+        options(ovscout2.lastport = port)
+        if (!isTRUE(launch_browser)) {
+            qrc <- qrcode::qr_code(paste0("http://", host, ":", port))
+            plot(qrc) ## or print, but console-based image might not be recognized by qr scanner
+        }
+    }
+
     dv_read_args <- dots[names(dots) %in% names(formals(datavolley::dv_read))] ## passed to dv_read
     other_args <- dots[!names(dots) %in% names(formals(datavolley::dv_read))] ## passed to the server and UI
     if (missing(season_dir)) season_dir <- NULL
@@ -98,13 +118,18 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     ## make sure we have an attack table, TODO add parm for the default to use here
     if (is.null(dvw$meta$attacks)) dvw$meta$attacks <- ov_simplified_attack_table()
 
+    am_online <- curl::has_internet()
+
     ## deal with video_file parm
     if (is.null(dvw$meta$video)) dvw$meta$video <- tibble(camera = character(), file = character())
 
     if (!missing(video_file) && !is.null(video_file) && !is.na(video_file) && nchar(video_file)) {
-        if (is_youtube_id(video_file)) video_file <- paste0("https://www.youtube.com/watch?v=", video_file)
+        if (is_youtube_id(video_file)) {
+            if (!am_online) warning("YouTube video provided but you appear to be offline")
+            video_file <- paste0("https://www.youtube.com/watch?v=", video_file)
+        }
         if (is_url(video_file)) {
-                dvw$meta$video <- tibble(camera = "Camera0", file = video_file)
+            dvw$meta$video <- tibble(camera = "Camera0", file = video_file)
         } else {
             tryCatch({
                 dvw$meta$video <- tibble(camera = "Camera0", file = fs::path_real(video_file))
@@ -192,7 +217,10 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         video_file2 <- NULL
     }
     if (!is.null(video_file2)) {
-        if (is_youtube_id(video_file2)) video_file2 <- paste0("https://www.youtube.com/watch?v=", video_file2)
+        if (is_youtube_id(video_file2)) {
+            if (!am_online) warning("YouTube video provided but you appear to be offline")
+            video_file2 <- paste0("https://www.youtube.com/watch?v=", video_file2)
+        }
         if (is_url(video_file2)) {
             ## do nothing
         } else if (!fs::file_exists(as.character(video_file2))) {
@@ -222,7 +250,10 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         court_ref2 <- NULL
     }
     if (!is.null(video_file2) && nzchar(video_file2)) {
-        if (is_youtube_id(video_file2)) video_file2 <- paste0("https://www.youtube.com/watch?v=", video_file2)
+        if (is_youtube_id(video_file2)) {
+            if (!am_online) warning("YouTube video provided but you appear to be offline")
+            video_file2 <- paste0("https://www.youtube.com/watch?v=", video_file2)
+        }
         app_data$video_src2 <- video_file2
         app_data$video2_offset <- video2_offset
         if (is.null(court_ref2)) {
@@ -249,6 +280,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         }
     }
 
+    ## TODO check that both videos are consistent URL/file. Though does it matter?
+
     ## ball tracking, experimental!
     app_data$extra_db <- NULL
     app_data$extra_ball_tracking <- FALSE
@@ -271,7 +304,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     app_data$playlist_display_option <- if (!missing(playlist_display_option)) playlist_display_option else 'dv_codes'
     app_data$season_dir <- if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else NULL ## minimal check of the season_dir
     if (app_data$with_video && !is_url(dvw$meta$video$file)) {
-        video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001
+        ##video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001
+        video_server_port <- get_port(port_range = c(8000L, 12000L), host = host)
         lighttpd_exe <- ov_find_lighttpd()
         if (!is.null(lighttpd_exe)) {
             video_serve_method <- "lighttpd"
@@ -342,7 +376,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     shiny::addResourcePath("css", system.file("extdata/css", package = "ovscout2"))
     shiny::addResourcePath("js", system.file("extdata/js", package = "ovscout2"))
     shiny::addResourcePath("reports", app_data$reports_dir)
-    shiny::runApp(this_app, display.mode = "normal", launch.browser = launch_browser)
+    shiny::runApp(this_app, display.mode = "normal", launch.browser = launch_browser, host = host, port = port)
 }
 
 #' Scouting options

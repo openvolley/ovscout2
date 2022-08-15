@@ -25,11 +25,11 @@ optsave <- getOption("repos")
 options(repos = c(CRAN = "https://cloud.r-project.org", openvolley = "https://openvolley.r-universe.dev"))
 
 ## dependencies required before installing ovscout2, with optional minimum version number
-depsl <- list(remotes = NA, fs = NA)
+depsl <- list(remotes = NA, fs = NA, jsonlite = NA, curl = NA)
 for (pkg in names(depsl)) {
     if (!requireNamespace(pkg, quietly = TRUE) || (!is.na(depsl[[pkg]]) && packageVersion(pkg) < depsl[[pkg]])) {
         tryCatch({
-            cat(sprintf("Installing package: %s\n", pkg))
+            cat("Installing package:", pkg, "\n")
             install.packages(pkg)
         }, error = function(e) {
             stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
@@ -37,32 +37,48 @@ for (pkg in names(depsl)) {
     }
 }
 
-## we will always attempt to install these, so that they are always updated
-##depsl <- list(ovscout2 = NA)
-##for (pkg in names(depsl)) {
-##    tryCatch({
-##        cat(sprintf("Installing package: %s\n", pkg))
-##        install.packages(pkg)
-##    }, error = function(e) {
-##        if (!requireNamespace(pkg, quietly = TRUE)) {
-##            stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
-##        } else {
-##            warning("Could not update the ", pkg, " package. The error message was: ", conditionMessage(e))
-##        }
-##    })
-##}
+## openvolley packages
+## we will always attempt to install these, so that they are always updated, except if --noupdate has been specified
+do_upd <- !any(grepl("noupdate", tolower(rgs)))
+online <- tryCatch(suppressWarnings(curl::has_internet()), error = function(e) FALSE)
 
-github_deps <- c("openvolley/ovscout2")
-for (pkg in github_deps) {
+depsl <- c("ovscout2")
+for (pkg in depsl) {
     tryCatch({
-        remotes::install_github(pkg, upgrade = if (!requireNamespace("ovscout2", quietly = TRUE)) "never" else "always")
-        ## don't upgrade dependencies on first install, to reduce the number of packages being installed multiple times
+        do_install <- !requireNamespace(pkg, quietly = TRUE)
+        if (!do_install && do_upd && online) {
+            ## have it, does it need to be updated?
+            latest <- tryCatch(max(jsonlite::fromJSON(paste0("https://openvolley.r-universe.dev/packages/", pkg, "/"))$Version), error = function(e) NA)
+            if (is.na(latest)) {
+                warning("Can't determine latest version of package:", pkg, "\n")
+                latest <- -Inf
+            }
+            do_install <- packageVersion(pkg) < latest
+        }
+        if (do_install) {
+            cat("Installing package:", pkg, "\n")
+            install.packages(pkg)
+        }
     }, error = function(e) {
-        if (!requireNamespace(basename(pkg), quietly = TRUE)) {
+        if (!requireNamespace(pkg, quietly = TRUE)) {
             stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
+        } else {
+            warning("Could not update the ", pkg, " package. The error message was: ", conditionMessage(e))
         }
     })
 }
+
+##github_deps <- c("openvolley/ovscout2")
+##for (pkg in github_deps) {
+##    tryCatch({
+##        remotes::install_github(pkg, upgrade = if (!requireNamespace("ovscout2", quietly = TRUE)) "never" else "always")
+##        ## don't upgrade dependencies on first install, to reduce the number of packages being installed multiple times
+##    }, error = function(e) {
+##        if (!requireNamespace(basename(pkg), quietly = TRUE)) {
+##            stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
+##        }
+##    })
+##}
 
 options(repos = optsave) ## restore
 

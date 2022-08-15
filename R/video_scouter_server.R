@@ -66,6 +66,8 @@ ov_scouter_server <- function(app_data) {
         preview_video_src <- reactiveVal(1L)
         observe({
             if (is.null(input$video_width) || is.na(input$video_width) || input$video_width < 1 || is.null(input$video_height) || is.na(input$video_height) || input$video_height < 1) {
+#                cat(runif(1), "\n")
+#            cat("input$dv_width:", cstr(input$dv_width), "\ninput$dv_height:", cstr(input$dv_height), "\ninput$video_width:", cstr(input$video_width), "\ninput$video_height:", cstr(input$video_height), "\ninput$dv_width:", cstr(input$dv_width), "\ninput$dv_height:", cstr(input$dv_height), "\n")
                 dojs("Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());")
                 invalidateLater(200)
             }
@@ -203,9 +205,10 @@ ov_scouter_server <- function(app_data) {
 
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata)
         detection_ref1 <- reactiveVal({ if (!is.null(app_data$court_ref)) app_data$court_ref else NULL })
-        courtref1 <- callModule(mod_courtref, id = "courtref1", video_src = app_data$video_src, detection_ref = detection_ref1, styling = app_data$styling)
+        ## for the court reference modules, pass the video file as well as the URL. Video will be shown, but the metadata can be stored/retrieved from the file
+        courtref1 <- callModule(mod_courtref, id = "courtref1", video_file = if (!is_url(app_data$video_src)) app_data$video_src else NULL, video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), detection_ref = detection_ref1, styling = app_data$styling)
         detection_ref2 <- reactiveVal({ if (!is.null(app_data$court_ref2)) app_data$court_ref2 else NULL })
-        courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", video_src = app_data$video_src2, detection_ref = detection_ref2, styling = app_data$styling) else NULL
+        courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", video_file = if (!is_url(app_data$video_src2)) app_data$video_src2 else NULL, video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), detection_ref = detection_ref2, styling = app_data$styling) else NULL
         detection_ref <- reactive(if (current_video_src() < 2) detection_ref1() else detection_ref2()) ## whichever is associated with the current view
         courtref <- reactiveValues(active = FALSE)
         observe({
@@ -492,6 +495,8 @@ ov_scouter_server <- function(app_data) {
             courtref_ok <- !is.null(detection_ref1()$court_ref)
             if (have_second_video && courtref_ok && is.null(detection_ref2()$court_ref)) courtref_ok <- "Use the 'Video setup' button to define the court reference for video 2."
             video_media_ok <- !is.null(input$dv_width) && !is.null(input$dv_height) && !is.null(input$video_width) && !is.null(input$video_height) && !is.na(input$dv_width) && !is.na(input$dv_height) && !is.na(input$video_width) && !is.na(input$video_height) && input$dv_width > 0 && input$dv_height > 0 && input$video_width > 0 && input$video_height > 0
+##            cat("input$dv_width:", cstr(input$dv_width), "\ninput$dv_height:", cstr(input$dv_height), "\ninput$video_width:", cstr(input$video_width), "\ninput$video_height:", cstr(input$video_height), "\ninput$dv_width:", cstr(input$dv_width), "\ninput$dv_height:", cstr(input$dv_height), "\n")
+
             ok <- teams_ok && isTRUE(lineups_ok) && isTRUE(rosters_ok) && isTRUE(courtref_ok) && video_media_ok
             meta_is_valid(ok)
             output$problem_ui <- renderUI({
@@ -1098,6 +1103,7 @@ ov_scouter_server <- function(app_data) {
                         stop("setter for beach")
                         ## choose the player who didn't pass
                     }
+                    ##guessed_setter <- guess_setter_options(pass_quality = passq, game_state = game_state, dvw = rdata$dvw)
                     guessed_setter <- get_setter(game_state) ## setter on court
                     sp <- c(sort(get_players(game_state, dvw = rdata$dvw)), sort(get_liberos(game_state, dvw = rdata$dvw)))
                     names(sp) <- player_nums_to(sp, team = game_state$current_team, dvw = rdata$dvw)

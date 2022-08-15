@@ -50,6 +50,8 @@ ov_scouter(
 
 \item{show_courtref}{logical: if \code{TRUE}, show the court reference lines overlaid on the video}
 
+\item{host}{string: the IP address of this machine. Only required if you intend to connect to the app from a different machine (in which case use \code{ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)}, where www.xxx.yyy.zzz is the IP address of this machine, i.e. the machine running the app)}
+
 \item{launch_browser}{logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny:runApp]{shiny::runApp()}}'s \code{launch.browser} parameter)}
 
 \item{prompt_for_files}{logical: if \code{dvw} was not specified, prompt the user to select the dvw file}

@@ -160,3 +160,22 @@ dv_add_freeball_over <- function(x) {
 icon <- function(...) {
     shiny::icon(..., verify_fa = FALSE)
 }
+
+get_port <- function(port = NULL, port_range = c(3000L, 8000L), host = "127.0.0.1") {
+    for (i in 1:20) {
+        if (is.null(port)) {
+            while (TRUE) {
+                port <- sample.int(1, n = diff(port_range)) + port_range[1] - 1L
+                if (!port %in% c(3659, 4045, 5060, 5061, 6000, 6566, 6665:6669, 6697)) break
+            }
+        }
+        tmp <- try(httpuv::startServer(host, port, list()), silent = TRUE)
+        if (!inherits(tmp, "try-error")) {
+            httpuv::stopServer(tmp)
+            break
+        } else {
+            port <- NULL
+        }
+    }
+    port
+}

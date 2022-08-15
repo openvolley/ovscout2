@@ -14,6 +14,7 @@ Roxygen: list(markdown = TRUE)
 Depends: datavolley (> 0.12.999)
 Imports:
     assertthat,
+    curl,
     data.table,
     DBI,
     dbplyr,
@@ -25,12 +26,14 @@ Imports:
     ggplot2,
     jpeg,
     htmltools,
+    httpuv,
     httr,
     lubridate,
     methods,
     ovdata,
     ovideo (>= 0.17.2),
     peranavolley,
+    qrcode,
     R.utils,
     rappdirs,
     rintrojs,
