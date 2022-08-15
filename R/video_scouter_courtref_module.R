@@ -1,11 +1,7 @@
 mod_courtref_ui <- function(id, button_label = "Court reference") {
     ns <- NS(id)
     jsns <- ns4js(ns)
-    ##yt <- FALSE ##^^^
-    tagList(actionButton(ns("do_scref"), button_label)##,
-            ## ^^^ replace with videojs
-            ##tags$script(paste0(jsns("crpl"), " = new dvjs_controller('", ns("cr_player"), "','", if (yt) "youtube" else "local", "',true); ", jsns("crpl"), ".video_onfinished = function() { ", jsns("crpl"), ".video_controller.current=0; ", jsns("crpl"), ".video_play(); }"))
-            )
+    tagList(actionButton(ns("do_scref"), button_label))
 }
 ## for video, also need ovideo::ov_video_js(youtube = yt, version = 2), here, but it's already in the outer UI
 
@@ -87,13 +83,11 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
 
     output$srui <- renderUI({
         fluidRow(column(8,
-                        if (!show_frame_image) {##600px height
+                        if (!show_frame_image) {
                             HTML(paste0("<video id=\"", ns("cr_player"), "\" style=\"width:100%; height:70vh;\" class=\"video-js\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": false, \"autoplay\": true, \"loop\": true, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": [{", if (yt) " \"type\": \"video/youtube\", ", "\"src\": \"", video_url, "\"}] }'>\n",
                                         "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>"))
-##                        ovideo::ov_video_player(id = ns("cr_player"), type = "local", controls = FALSE, poster = "data:image/gif,AAAA", style = "border: 1px solid black; width: 100%;", muted = "true", ##onerror = "review_player_onerror(event);"
-##                                                ),
                         },
-                        plotOutputWithAttribs(ns("srplot"), ##height = "600px",
+                        plotOutputWithAttribs(ns("srplot"),
                                               click = ns("sr_plot_click"), hover = shiny::hoverOpts(ns("sr_plot_hover"), delay = 50, delayType = "throttle"), onmouseup = paste0("Shiny.setInputValue('", ns("did_sr_plot_mouseup"), "', new Date().getTime());"), onmousedown = paste0("Shiny.setInputValue('", ns("did_sr_plot_mousedown"), "', new Date().getTime());"), style = "margin-top:-600px; position:relative; z-index:9999;")),
                  column(4, uiOutput(ns("srui_table")),
                         tags$hr(),
@@ -212,50 +206,25 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
                    }
             if (!show_frame_image) {
                 myjs <- paste0(jsns("crpl"), " = videojs('", ns("cr_player"), "'); ", jsns("crpl"), ".ready(function() {",
-#                               these arent video height and width, they are the element height and width
-#                            "Shiny.setInputValue('", ns("cr_height"), "', ", jsns("crpl"), ".videoHeight());",
-#                            "Shiny.setInputValue('", ns("cr_width"), "', ", jsns("crpl"), ".videoWidth());",
+                            "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());",
+                            "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());",
                             create_resize_observer(ns("cr_player"), fun = paste0("console.log('resizing'); ",
                                                                                  "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());",
                                                                                  "Shiny.setInputValue('", ns("cr_height"), "', ", jsns("crpl"), ".currentHeight());",
                                                                                  "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());",
-                                                                                 ## not needed? "Shiny.setInputValue('", ns("cr_width"), "', ", jsns("crpl"), ".currentWidth());",
-                                                                                 "var voff = $('#", ns("cr_player"), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"##, "this.play();"
+                                                                                 "var voff = $('#", ns("cr_player"), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"
                                                                                  ), nsfun = jsns), "});")
-                ##cat(myjs, "\n")
                 dojs(myjs)
             }
-            ##dojs(paste0(jsns("crpl"), ".set_playlist_and_play([{'video_src':'", video_url, "','start_time':0,'duration':600,'type':'", if (yt) "youtube" else "local", "'}], '", ns("cr_player"), "', '", if (yt) "youtube" else "local", "', true);"))
-            ##dojs(create_resize_observer(ns("cr_player"), fun = paste0("console.log('resizing'); Shiny.setInputValue('", ns("cr_height"), "', $('#", ns("cr_player"), "').innerHeight()); var voff = $('#", ns("cr_player_container"), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"), nsfun = jsns))
             out
         }, bg = "transparent", height = if (show_frame_image || length(input$cr_height) < 1 || is.na(input$cr_height) || input$cr_height <= 0) 600 else input$cr_height)
     })
-
-    ## TODO pass this thing the file if it's local (as well as the URL) so that courtref can be saved in it
 
     create_resize_observer <- function(id_to_obs, fun, nsfun) {
         obsfun <- nsfun("rsz_obs") ## name of the observer function
         ## if the observer function has not yet been defined, and the element to observe exists, then create the observer function
         paste0("if (typeof ", obsfun, " === 'undefined' && document.getElementById('", id_to_obs, "')) { ", obsfun, " = new ResizeObserver(() => { ", fun, " }); ", obsfun, ".observe(document.getElementById('", id_to_obs, "')); }")
     }
-
-##    observe({
-##        dojs(paste0("Shiny.setInputValue('", ns("cr_height"), "', $('#", ns("cr_player"), "').innerHeight());"))
-##        dojs(paste0("console.log('voff: ' + $('#", ns("cr_player_container"), "').innerHeight()); Shiny.setInputValue('", ns("cr_voffset"), "', $('#", ns("cr_player_container"), "').innerHeight());"))
-##        shiny::invalidateLater(500)
-##    })
-
-    ##observeEvent(input$cr_height, {
-    ##    cat("cr_height: ", capture.output(str(input$cr_height)), "\n")
-    ##    if (length(input$cr_height) < 1 || is.na(input$cr_height) || input$cr_height <= 0) {
-    ##        dojs(paste0("Shiny.setInputValue('", ns("cr_height"), "', $('#", ns("cr_player"), "').innerHeight());"))
-    ##    }
-    ##})
-
-##    observeEvent(input$cr_voffset, {
-##        cat("voff: ", capture.output(str(input$cr_voffset)), "\n")
-##        dojs(paste0("document.getElementById('", ns("srplot"), "').style.marginTop = '-", input$cr_voffset, "px';"))
-##    })
 
     crimg <- reactive({
         vt <- if (!is.null(input$video_time) && !is.na(input$video_time)) input$video_time else 10
