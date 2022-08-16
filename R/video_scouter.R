@@ -186,7 +186,11 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     ## look for the court ref data, if it hasn't been provided
     if (missing(court_ref)) {
         court_ref <- NULL
-        if (!is_url(dvw$meta$video$file)) {
+        ## if it's an ods file we might have saved the court ref into it
+        if ("detection_refs" %in% names(dvw) && length(chk$meta$video$file) > 0 && !is.null(chk$detection_refs[[chk$meta$video$file]])) {
+            court_ref <- chk$detection_refs[[chk$meta$video$file]]
+        } else if (!is_url(dvw$meta$video$file)) {
+            ## court ref saved into the video file?
             if (packageVersion("ovideo") >= "0.14.3") court_ref <- tryCatch(suppressWarnings(ovideo::ov_get_video_data(dvw$meta$video$file)), error = function(e) NULL)
             if (is.null(court_ref)) {
                 crfile <- paste0(fs::path_ext_remove(dvw$meta$video$file), "_video_info.rds")
@@ -259,9 +263,9 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     if ("court_ref2" %in% names(other_args)) {
         court_ref2 <- other_args$court_ref2
         other_args$court_ref2 <- NULL
-    } else if (!is.null(dvw$court_ref2)) {
-        ## from a saved ods file
-        court_ref2 <- dvw$court_ref2
+    } else if ("detection_refs" %in% names(dvw) && length(video_file2) > 0 && !is.null(chk$detection_refs[[video_file2]])) {
+        ## if it's an ods file we might have saved the court ref into it
+        court_ref2 <- chk$detection_refs[[video_file2]]
     } else {
         court_ref2 <- NULL
     }

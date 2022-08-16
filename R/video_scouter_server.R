@@ -2666,6 +2666,13 @@ ov_scouter_server <- function(app_data) {
                         try({
                             temp <- rdata$dvw
                             temp$scouting_options <- isolate(rdata$options)
+                            ## save court refs
+                            dr <- list()
+                            isolate({
+                                if (!is.null(detection_ref1()$court_ref)) dr[[app_data$video_src]] <- detection_ref1()
+                                if (!is.null(detection_ref2()$court_ref) && "video_src2" %in% names(app_data) && !is.na(app_data$video_src2) && nzchar(app_data$video_src2)) dr[[app_data$video_src2]] <- detection_ref2()
+                            })
+                            temp$detection_refs <- dr
                             saveRDS(temp, file = tf)
                             rds_ok <- file.exists(tf) && file.size(tf) > 0
                         }, silent = TRUE)
@@ -2687,6 +2694,13 @@ ov_scouter_server <- function(app_data) {
                     out$plays <- NULL ## don't save this
                     out$game_state <- isolate(reactiveValuesToList(game_state))
                     out$scouting_options <- isolate(rdata$options)
+                    ## save court refs
+                    dr <- list()
+                    isolate({
+                        if (!is.null(detection_ref1()$court_ref)) dr[[app_data$video_src]] <- detection_ref1()
+                        if (!is.null(detection_ref2()$court_ref) && "video_src2" %in% names(app_data) && !is.na(app_data$video_src2) && nzchar(app_data$video_src2)) dr[[app_data$video_src2]] <- detection_ref2()
+                    })
+                    out$detection_refs <- dr
                     saveRDS(out, file)
                 }, error = function(e) {
                     rds_ok <- FALSE
@@ -2696,6 +2710,13 @@ ov_scouter_server <- function(app_data) {
                         try({
                             out <- rdata$dvw
                             out$scouting_options <- isolate(rdata$options)
+                            ## save court refs
+                            dr <- list()
+                            isolate({
+                                if (!is.null(detection_ref1()$court_ref)) dr[[app_data$video_src]] <- detection_ref1()
+                                if (!is.null(detection_ref2()$court_ref) && "video_src2" %in% names(app_data) && !is.na(app_data$video_src2) && nzchar(app_data$video_src2)) dr[[app_data$video_src2]] <- detection_ref2()
+                            })
+                            out$detection_refs <- dr
                             saveRDS(out, file = tf)
                             rds_ok <- file.exists(tf) && file.size(tf) > 0
                         }, silent = TRUE)
@@ -2858,6 +2879,13 @@ ov_scouter_server <- function(app_data) {
                 dvw$game_state <- isolate(reactiveValuesToList(game_state))
                 dvw$scouting_options <- isolate(rdata$options)
                 tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".ovs")
+                ## save court refs
+                dr <- list()
+                isolate({
+                    if (!is.null(detection_ref1()$court_ref)) dr[[app_data$video_src]] <- detection_ref1()
+                    if (!is.null(detection_ref2()$court_ref) && "video_src2" %in% names(app_data) && !is.na(app_data$video_src2) && nzchar(app_data$video_src2)) dr[[app_data$video_src2]] <- detection_ref2()
+                })
+                dvw$detection_refs <- dr
                 saveRDS(dvw, tf)
                 message("working file has been saved to: ", tf)
             }, error = function(e) {
