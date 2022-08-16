@@ -154,7 +154,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         }
     }
     if (nrow(dvw$meta$video) > 1) {
-        warning("multiple video files have been specified in the dvw file metadata, using only the first one")
+        warning("multiple video files have been specified in the dvw file metadata, using only the first one", immediate. = TRUE)
         dvw$meta$video <- dvw$meta$video[1, ]
     }
 
@@ -191,7 +191,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
             if (is.null(court_ref)) {
                 crfile <- paste0(fs::path_ext_remove(dvw$meta$video$file), "_video_info.rds")
                 if (file.exists(crfile)) tryCatch(court_ref <- readRDS(crfile), error = function(e) {
-                    warning("found video_info.rds file but could not extract court_ref component")
+                    warning("found video_info.rds file but could not extract court_ref component", immediate. = TRUE)
                     NULL
                 })
             }
@@ -277,7 +277,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
                 if (is.null(court_ref2)) {
                     crfile <- paste0(fs::path_ext_remove(video_file2), "_video_info.rds")
                     if (file.exists(crfile)) tryCatch(court_ref2 <- readRDS(crfile), error = function(e) {
-                        warning("found video_info.rds file but could not extract court_ref component")
+                        warning("found video_info.rds file but could not extract court_ref component", immediate. = TRUE)
                         NULL
                     })
                 }
@@ -308,7 +308,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         look_for <- paste0(fs::path_ext_remove(app_data$video_src), "_extra.duckdb")
         if (file.exists(look_for)) {
             if (!requireNamespace("DBI", quietly = TRUE) || !requireNamespace("duckdb", quietly = TRUE) || !requireNamespace("dbplyr", quietly = TRUE)) {
-                message("The duckdb, dbplyr, and DBI packages are required in order to use ball tracking outputs")
+                warning("The duckdb, dbplyr, and DBI packages are required in order to use ball tracking outputs", immediate. = TRUE)
             } else {
                 con <- tryCatch(DBI::dbConnect(duckdb::duckdb(look_for)), error = function(e) NULL)
                 if (!is.null(con)) {
@@ -329,13 +329,12 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     app_data$playlist_display_option <- if (!missing(playlist_display_option)) playlist_display_option else 'dv_codes'
     app_data$season_dir <- if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else NULL ## minimal check of the season_dir
     if (app_data$with_video && !is_url(dvw$meta$video$file)) {
-        ##video_server_port <- sample.int(4000, 1) + 8000 ## random port from 8001
         video_server_port <- get_port(port_range = c(8000L, 12000L), host = host)
         lighttpd_exe <- ov_find_lighttpd()
         if (!is.null(lighttpd_exe)) {
             video_serve_method <- "lighttpd"
         } else {
-            warning("could not find the lighttpd executable, install it with e.g. 'apt install lighttpd' on Ubuntu/Debian or from http://lighttpd.dtech.hu/ on Windows. Using \"servr\" video option, which might be less responsive")
+            warning("could not find the lighttpd executable, install it with e.g. 'apt install lighttpd' on Ubuntu/Debian or from http://lighttpd.dtech.hu/ on Windows. Using \"servr\" video option, which might be less responsive", immediate. = TRUE)
             video_serve_method <- "servr"
         }
         if (video_serve_method == "lighttpd") {
