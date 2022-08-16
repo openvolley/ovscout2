@@ -65,9 +65,9 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         host <- getOption("shiny.host", "127.0.0.1")
         port <- NULL
     }
-    if (host %eq% "0.0.0.0") {
-        ## could guess it using getip::getip("local") but this isn't reliable e.g. on a machine with multiple network interfaces
-    }
+    ##if (host %eq% "0.0.0.0") {
+    ##    ## could guess it using getip::getip("local") but this isn't reliable e.g. on a machine with multiple network interfaces
+    ##}
     if (!is.null(port)) {
         ## if host was specified, figure out port? then can print qr code for client connection
         port <- get_port(port = getOption("ovscout2.lastport"), host = host)
@@ -137,14 +137,12 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     ## make sure we have an attack table, TODO add parm for the default to use here
     if (is.null(dvw$meta$attacks)) dvw$meta$attacks <- ov_simplified_attack_table()
 
-    am_online <- curl::has_internet()
 
     ## deal with video_file parm
     if (is.null(dvw$meta$video)) dvw$meta$video <- tibble(camera = character(), file = character())
 
     if (!missing(video_file) && !is.null(video_file) && !is.na(video_file) && nchar(video_file)) {
         if (is_youtube_id(video_file)) {
-            if (!am_online) warning("YouTube video provided but you appear to be offline")
             video_file <- paste0("https://www.youtube.com/watch?v=", video_file)
         }
         if (is_url(video_file)) {
@@ -237,7 +235,6 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     }
     if (!is.null(video_file2)) {
         if (is_youtube_id(video_file2)) {
-            if (!am_online) warning("YouTube video provided but you appear to be offline")
             video_file2 <- paste0("https://www.youtube.com/watch?v=", video_file2)
         }
         if (is_url(video_file2)) {
@@ -270,7 +267,6 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     }
     if (!is.null(video_file2) && nzchar(video_file2)) {
         if (is_youtube_id(video_file2)) {
-            if (!am_online) warning("YouTube video provided but you appear to be offline")
             video_file2 <- paste0("https://www.youtube.com/watch?v=", video_file2)
         }
         app_data$video_src2 <- video_file2
@@ -299,6 +295,10 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         }
     }
 
+    ## check - if video URL(s) are remote, are we online?
+    if ((is_remote_url(app_data$video_src) || is_remote_url(app_data$video_src2)) && !curl::has_internet()) {
+        warning("video url(s) look like remote addresses, but you appear to be offline", immediate. = TRUE)
+    }
     ## TODO check that both videos are consistent URL/file. Though does it matter?
 
     ## ball tracking, experimental!

@@ -113,6 +113,12 @@ youtube_url_to_id <- function(z) {
         z
     }
 }
+## probably misguided attempt to distinguish internal/public IP addresses/hostnames
+is_remote_url <- function(x) {
+    if (is.null(x) || is.na(x) || !nzchar(x) || !is_url(x)) return(FALSE)
+    hst <- httr::parse_url(x)$hostname
+    !(hst %in% c("localhost") || grepl("^(127|0|192|172\\.16)\\.", hst))
+}
 
 ovscout2_app_dir <- function() rappdirs::user_data_dir(appname = "ovscout2")
 
