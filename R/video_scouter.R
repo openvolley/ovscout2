@@ -186,7 +186,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     ## look for the court ref data, if it hasn't been provided
     if (missing(court_ref)) {
         court_ref <- NULL
-        ## if it's an ods file we might have saved the court ref into it
+        ## if it's an ovs file we might have saved the court ref into it
         if ("detection_refs" %in% names(dvw) && length(chk$meta$video$file) > 0 && !is.null(chk$detection_refs[[chk$meta$video$file]])) {
             court_ref <- chk$detection_refs[[chk$meta$video$file]]
         } else if (!is_url(dvw$meta$video$file)) {
@@ -232,7 +232,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         video_file2 <- other_args$video_file2
         other_args$video_file2 <- NULL
     } else if (!is.null(dvw$video_file2)) {
-        ## from a saved ods file
+        ## from a saved ovs file
         video_file2 <- dvw$video_file2
     } else {
         video_file2 <- NULL
@@ -255,7 +255,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         video2_offset <- other_args$video2_offset
         other_args$video2_offset <- NULL
     } else if (!is.null(dvw$video2_offset)) {
-        ## from a saved ods file
+        ## from a saved ovs file
         video2_offset <- dvw$video2_offset
     } else {
         video2_offset <- NULL
@@ -264,7 +264,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         court_ref2 <- other_args$court_ref2
         other_args$court_ref2 <- NULL
     } else if ("detection_refs" %in% names(dvw) && length(video_file2) > 0 && !is.null(chk$detection_refs[[video_file2]])) {
-        ## if it's an ods file we might have saved the court ref into it
+        ## if it's an ovs file we might have saved the court ref into it
         court_ref2 <- chk$detection_refs[[video_file2]]
     } else {
         court_ref2 <- NULL
