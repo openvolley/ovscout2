@@ -1197,7 +1197,15 @@ ov_scouter_server <- function(app_data) {
                     }
                     if (rdata$options$attacks_by %eq% "codes") {
                         ac <- guess_attack_code(game_state, dvw = rdata$dvw, opts = rdata$options)
-                        ac <- setNames(ac, ac)
+                        ## label with code and description TODO make this a preference, perhaps?
+                        if (TRUE) {
+                            temp <- left_join(tibble(code = ac), rdata$dvw$meta$attacks, by = "code") %>%
+                                mutate(lbl = case_when(!is.na(.data$description) ~ paste0(.data$code, "<br />(", .data$description, ")"), TRUE ~ .data$code))
+                            ac <- setNames(temp$code, temp$lbl)
+                        } else {
+                            ## label by code
+                            ac <- setNames(ac, ac)
+                        }
                         if (!isTRUE(rdata$options$transition_sets) && ph %eq% "Transition") {
                             ac <- head(ac, if (mcols() < 12) 5 else 9) ## wow, we don't have a lot here if we need to leave room for the three below plus space for the attack review pane
                             ## if we aren't scouting transition sets, then this "third" contact could be a setter dump or second-ball attack
@@ -1207,6 +1215,12 @@ ov_scouter_server <- function(app_data) {
                         }
                         ac_others <- c("Choose other", setdiff(rdata$dvw$meta$attacks$code, ac), "Other attack")
                         attack_other_opts(ac_others)
+                        if (TRUE) {
+                            ## label with description
+                            temp <- left_join(tibble(code = ac_others), rdata$dvw$meta$attacks, by = "code") %>%
+                                mutate(lbl = case_when(!is.na(.data$description) ~ paste0(.data$code, " (", .data$description, ")"), TRUE ~ .data$code))
+                            ac_others <- setNames(temp$code, temp$lbl)
+                        }
                     } else {
                         ac <- c("High ball" = "H", "Medium/fast<br />attack" = "M", "Quick attack" = "Q")##, "Other attack" = "O")
                         if (!isTRUE(rdata$options$transition_sets) && ph %eq% "Transition") {
