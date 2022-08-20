@@ -48,7 +48,6 @@ $(document).on('shiny:sessioninitialized', function() {
                        ovideo::ov_video_player(id = "review_player", type = "local", controls = FALSE, poster = "data:image/gif,AAAA", style = "border: 1px solid black; width: 100%;", muted = "true", onloadstart = "set_vspinner();", oncanplay = "remove_vspinner();", onerror = "review_player_onerror(event);"),
                        plotOutputWithAttribs("review_overlay", width = "100%", height = "100%", click = "rv_click", hover = shiny::hoverOpts("rv_hover", delay = 50, delayType = "throttle"), onmouseup = "Shiny.setInputValue('did_rv_mouseup', new Date().getTime());", onmousedown = "Shiny.setInputValue('did_rv_mousedown', new Date().getTime());")),
               fluidRow(column(1, tags$div(id = "bsbar",
-                                          actionButton("general_help", label = "General Help", icon = icon("question"), style = "margin-bottom: 8px;"),
                                           introBox(actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward")),
                                                    actionButton("video_rew_2", label = "Back 2s", icon = icon("step-backward")),
                                                    actionButton("video_pause", label = "Pause", icon = icon("pause-circle")),
@@ -75,8 +74,11 @@ $(document).on('shiny:sessioninitialized', function() {
                                                                                       downloadButton("save_dvw_button", "Export to dvw"),
                                                                                       uiOutput("reports_ui")),
                                           tags$hr(),
-                                          introBox(actionButton("preferences", "Preferences"),
-                                                   actionButton("show_shortcuts", tags$span(icon("keyboard"), HTML("Keyboard<br />shortcuts"))), data.step = 7, data.intro = "Set general preferences, and see the keyboard shortcuts.")
+                                          introBox(actionButton("general_help", label = "General Help", icon = icon("question")),
+                                                   tags$button(class = "btn btn-default", "User manual", onclick = "window.open('https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html', '_blank')"),
+                                                   actionButton("preferences", "Preferences"),
+                                                   actionButton("show_shortcuts", tags$span(icon("keyboard"), HTML("Keyboard<br />shortcuts"))),
+                                                   data.step = 7, data.intro = "Set general preferences, and see the keyboard shortcuts.")
                                           )),
                        column(9,
                               fluidRow(column(8, tags$div(
