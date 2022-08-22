@@ -35,7 +35,7 @@ online <- tryCatch(suppressWarnings(curl::has_internet()), error = function(e) F
 depsl <- c("ovscout2")
 for (pkg in depsl) {
     tryCatch({
-        do_install <- !requireNamespace(pkg, quietly = TRUE)
+        do_install <- TRUE##!requireNamespace(pkg, quietly = TRUE)
         if (!do_install && do_upd && online) {
             ## have it, does it need to be updated?
             latest <- tryCatch(max(jsonlite::fromJSON(paste0("https://openvolley.r-universe.dev/packages/", pkg, "/"))$Version), error = function(e) NA)
