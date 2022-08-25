@@ -79,7 +79,6 @@
 </h1>
 </div>
 <!-- badges: start -->
-
 <div class="section level2">
 <h2 id="about">About<a class="anchor" aria-label="anchor" href="#about"></a>
 </h2>
@@ -110,16 +109,20 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>If you are not an R user, see the <a href="https://ovscout2.openvolley.org" class="external-link">user manual</a> for standalone installers.</p>
+<p>If you are not an R user, see the <a href="https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html" class="external-link">user manual</a> for standalone installers.</p>
 <p>Otherwise:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co">## install.packages("remotes") ## if needed</span>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"ovscout2"</span>, repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://openvolley.r-universe.dev"</span>,
+                                       <span class="st">"https://cloud.r-project.org"</span><span class="op">)</span><span class="op">)</span>
+
+<span class="co">## or</span>
+
+<span class="co">## install.packages("remotes") ## if needed</span>
 <span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"openvolley/ovscout2"</span><span class="op">)</span></code></pre></div>
-<p>Three other system utilities are recommended but not required:</p>
+<p>Two other system utilities are recommended but not required:</p>
 <ol style="list-style-type: decimal">
-<li><p><a href="https://ffmpeg.org/" class="external-link">ffmpeg</a> is used to extract frames from videos, and other video-related functions. If <code>ffmpeg</code> is not available, the <a href="https://github.com/ropensci/av" class="external-link">av</a> package is used for some functionality, but may be considerably slower. Install <code>ffmpeg</code> via your package manager, or (from within R, on Linux and Windows only) using <code><a href="https://rdrr.io/pkg/ovideo/man/ov_install_ffmpeg.html" class="external-link">ovideo::ov_install_ffmpeg()</a></code>.</p></li>
-<li><p><a href="https://www.lighttpd.net/" class="external-link">lighttpd</a> is a lightweight web server that is used to play the match video. Install (from within R, on Windows only) using <code><a href="reference/ov_install_lighttpd.html">ovscout2::ov_install_lighttpd()</a></code> or manually from <a href="http://lighttpd.dtech.hu/" class="external-link uri">http://lighttpd.dtech.hu/</a> (for Windows) or via your package manager for other operating systems (see <a href="https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd" class="external-link uri">https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd</a>). If <code>lighttpd</code> is not installed, the app falls back to <a href="https://github.com/yihui/servr" class="external-link">servr</a> but this is a little slower and less responsive than <code>lighttpd</code>.</p></li>
 <li><p><a href="https://github.com/jgm/pandoc/" class="external-link">pandoc</a> is required for generating match reports. If not present, the report generation menu won’t be shown. If you are using RStudio, you do not need to install pandoc because RStudio comes bundled with its own copy. Otherwise install following <a href="https://github.com/jgm/pandoc/blob/master/INSTALL.md" class="external-link uri">https://github.com/jgm/pandoc/blob/master/INSTALL.md</a>.</p></li>
+<li><p><a href="https://www.lighttpd.net/" class="external-link">lighttpd</a> is a lightweight web server that is used to play the match video (when using a local video file). Install (from within R, on Windows only) using <code><a href="reference/ov_install_lighttpd.html">ovscout2::ov_install_lighttpd()</a></code> or manually from <a href="http://lighttpd.dtech.hu/" class="external-link uri">http://lighttpd.dtech.hu/</a> (for Windows) or via your package manager for other operating systems (see <a href="https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd" class="external-link uri">https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd</a>). If <code>lighttpd</code> is not installed, the app falls back to <a href="https://github.com/yihui/servr" class="external-link">servr</a> but this is a little slower and less responsive than <code>lighttpd</code>.</p></li>
 </ol>
 </div>
 <div class="section level2">
@@ -132,7 +135,7 @@
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span>video_file <span class="op">=</span> <span class="st">"/path/to/video.mp4"</span>, season_dir <span class="op">=</span> <span class="st">"/path/to/existing/files"</span><span class="op">)</span></code></pre></div>
 <p>If you don’t provide the video file path, it will pop up a file navigator for you to select one. The season directory (a directory containing existing .dvw or .ovs files) can also optionally be provided. If a new match is being scouted, the teams can be selected from those in the season directory. You can also provide it with a partially-scouted <code>.dvw</code> or <code>.ovs</code> file, to continue scouting where you left off.</p>
-<p>See <code><a href="reference/ov_scouter.html">help("ov_scouter")</a></code> for more options.</p>
+<p>See <code><a href="reference/ov_scouter.html">help("ov_scouter")</a></code> for more options, or the <a href="https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html" class="external-link">user manual</a>.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
@@ -174,7 +177,6 @@
 <ul class="list-unstyled">
 <li><a href="https://www.tidyverse.org/lifecycle/#experimental" class="external-link"><img src="https://img.shields.io/badge/lifecycle-experimental-orange.svg" alt="lifecycle"></a></li>
 <li><a href="https://github.com/openvolley/ovscout2/actions" class="external-link"><img src="https://github.com/openvolley/ovscout2/workflows/R-CMD-check/badge.svg" alt="R-CMD-check"></a></li>
-<li><a href="https://codecov.io/gh/openvolley/ovscout2?branch=master" class="external-link"><img src="https://codecov.io/gh/openvolley/ovscout2/branch/master/graph/badge.svg" alt="Codecov test coverage"></a></li>
 </ul>
 </div>
 

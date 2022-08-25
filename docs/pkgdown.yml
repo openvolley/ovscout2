@@ -1,7 +1,7 @@
-pandoc: 2.17.1.1
+pandoc: 2.14.2
 pkgdown: 2.0.3
 pkgdown_sha: ~
 articles:
   ovscout2-user-manual: ovscout2-user-manual.html
-last_built: 2022-08-14T08:10Z
+last_built: 2022-08-25T11:15Z
 

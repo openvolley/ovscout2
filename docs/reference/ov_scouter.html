@@ -80,7 +80,7 @@
     <dl><dt>dvw</dt>
 <dd><p>string or datavolley: either the path to a dvw or ovs file or a datavolley object (e.g. as returned by <code><a href="dv_create.html">dv_create()</a></code>. Passing the file name (not the datavolley object) is required if any extra arguments are passed via <code>...</code>. <code>dvw</code> can also be an object as saved by <code>ov_scouter()</code> in ovs format. If <code>dvw</code> is "demo", the app will be started with a demonstration data set</p></dd>
 <dt>video_file</dt>
-<dd><p>string: optionally, the path to the video file. If not supplied (or <code>NULL</code>) the video file specified in the dvw file will be used. <code>video_file</code> can also be a URL (including a YouTube URL or video ID). NOTE that in this case, <code>court_ref</code> must be provided, it can't yet be entered interactively in the app</p></dd>
+<dd><p>string: optionally, the path to the video file. If not supplied (or <code>NULL</code>) the video file specified in the dvw file will be used. <code>video_file</code> can also be a URL (including a YouTube URL or video ID)</p></dd>
 <dt>court_ref</dt>
 <dd><p>data.frame or string: data.frame with the court reference (as returned by <code><a href="https://rdrr.io/pkg/ovideo/man/ov_shiny_court_ref.html" class="external-link">ovideo::ov_shiny_court_ref()</a></code>) or the path to the rds file containing the output from this</p></dd>
 <dt>season_dir</dt>
@@ -104,7 +104,7 @@
 <dt>show_courtref</dt>
 <dd><p>logical: if <code>TRUE</code>, show the court reference lines overlaid on the video</p></dd>
 <dt>host</dt>
-<dd><p>string: the IP address to bind the server to. Probably only required if you intend to connect to the app from a different machine (in which case use <code>ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)</code> (where www.xxx.yyy.zzz is the IP address of the machine running the app)</p></dd>
+<dd><p>string: the IP address of this machine. Only required if you intend to connect to the app from a different machine (in which case use <code>ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)</code>, where www.xxx.yyy.zzz is the IP address of this machine, i.e. the machine running the app)</p></dd>
 <dt>launch_browser</dt>
 <dd><p>logical: if <code>TRUE</code>, launch the app in the system's default web browser (passed to <code><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">shiny::runApp()</a></code>'s <code>launch.browser</code> parameter)</p></dd>
 <dt>prompt_for_files</dt>

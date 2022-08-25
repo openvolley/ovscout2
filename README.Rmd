@@ -51,19 +51,22 @@ If you are not an R user, see the [user manual](https://ovscout2.openvolley.org/
 Otherwise:
 
 ```{r eval = FALSE}
+install.packages("ovscout2", repos = c("https://openvolley.r-universe.dev",
+                                       "https://cloud.r-project.org"))
+
+## or
+
 ## install.packages("remotes") ## if needed
 remotes::install_github("openvolley/ovscout2")
 
 ```
 
-Three other system utilities are recommended but not required:
+Two other system utilities are recommended but not required:
 
-1. [ffmpeg](https://ffmpeg.org/) is used to extract frames from videos, and other video-related functions. If `ffmpeg` is not available, the [av](https://github.com/ropensci/av) package is used for some functionality, but may be considerably slower. Install `ffmpeg` via your package manager, or (from within R, on Linux and Windows only) using `ovideo::ov_install_ffmpeg()`.
+1. [pandoc](https://github.com/jgm/pandoc/) is required for generating match reports. If not present, the report generation menu won't be shown. If you are using RStudio, you do not need to install pandoc because RStudio comes bundled with its own copy. Otherwise install following <https://github.com/jgm/pandoc/blob/master/INSTALL.md>.
 
-2. [lighttpd](https://www.lighttpd.net/) is a lightweight web server that is used to play the match video. Install (from within R, on Windows only) using `ovscout2::ov_install_lighttpd()` or manually from <http://lighttpd.dtech.hu/> (for Windows) or via your package manager for other operating systems (see <https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd>).
+1. [lighttpd](https://www.lighttpd.net/) is a lightweight web server that is used to play the match video (when using a local video file). Install (from within R, on Windows only) using `ovscout2::ov_install_lighttpd()` or manually from <http://lighttpd.dtech.hu/> (for Windows) or via your package manager for other operating systems (see <https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd>).
   If `lighttpd` is not installed, the app falls back to [servr](https://github.com/yihui/servr) but this is a little slower and less responsive than `lighttpd`.
-
-3. [pandoc](https://github.com/jgm/pandoc/) is required for generating match reports. If not present, the report generation menu won't be shown. If you are using RStudio, you do not need to install pandoc because RStudio comes bundled with its own copy. Otherwise install following <https://github.com/jgm/pandoc/blob/master/INSTALL.md>.
 
 ## Usage
 
@@ -83,5 +86,4 @@ ov_scouter(video_file = "/path/to/video.mp4", season_dir = "/path/to/existing/fi
 
 If you don't provide the video file path, it will pop up a file navigator for you to select one. The season directory (a directory containing existing .dvw or .ovs files) can also optionally be provided. If a new match is being scouted, the teams can be selected from those in the season directory. You can also provide it with a partially-scouted `.dvw` or `.ovs` file, to continue scouting where you left off.
 
-See `help("ov_scouter")` for more options.
-
+See `help("ov_scouter")` for more options, or the [user manual](https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html).

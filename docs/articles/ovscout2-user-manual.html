@@ -90,49 +90,26 @@
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>ovscout2 is a free, open-source R/Shiny app for scouting volleyball
-matches. It provides industry-standard dvw files that can be used with
-the <a href="https://openvolley.org" class="external-link">openvolley</a> suite of R packages,
-or with any other volleyball analytics software that takes dvw files as
-inputs.</p>
-<p>The app requires that you have a video of the match <em>from a fixed
-view point</em> (i.e. the camera does not move for the duration of the
-match). Such videos are usually taken from the “scout viewpoint” —
-behind one end of the court, at a reasonable height so that the entire
-court is clearly visible and players on court do not tend to occlude
-each other.</p>
-<p>The app is writen in R, but you do not necessarily need to be an R
-user to be able to use it. We provide script files to launch the app
-from the command line — see the <a href="#standalone">Standalone</a>
-section below for installation and startup.</p>
+<p>ovscout2 is a free, open-source R/Shiny app for scouting volleyball matches. It provides industry-standard dvw files that can be used with the <a href="https://openvolley.org" class="external-link">openvolley</a> suite of R packages, or with any other volleyball analytics software that takes dvw files as inputs.</p>
+<p>The app requires that you have a video of the match <em>from a fixed view point</em> (i.e. the camera does not move for the duration of the match). Such videos are usually taken from the “scout viewpoint” — behind one end of the court, at a reasonable height so that the entire court is clearly visible and players on court do not tend to occlude each other.</p>
+<p>The app is writen in R, but you do not necessarily need to be an R user to be able to use it. We provide script files to launch the app from the command line — see the <a href="#standalone">Standalone</a> section below for installation and startup.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>The app can be run on Windows, Linux, or Mac systems. It is possible
-to run the app on a laptop or desktop and connect to it with a tablet or
-similar touch device to do the actual scouting. See <a href="#device-considerations">Device considerations</a> below.</p>
-<p>You need to be online for installation. The app initially needs to
-download and install some additional R packages (quite a few, in fact).
-Once the app has been installed and run once, it can be used offline
-thereafter if necessary.</p>
+<p>The app can be run on Windows, Linux, or Mac systems. It is possible to run the app on a laptop or desktop and connect to it with a tablet or similar touch device to do the actual scouting. See <a href="#device-considerations">Device considerations</a> below.</p>
+<p>You need to be online for installation. The app initially needs to download and install some additional R packages (quite a few, in fact). Once the app has been installed and run once, it can be used offline thereafter if necessary.</p>
 <p>Also see the “Other system utilities” section, below.</p>
 <div class="section level3">
 <h3 id="standalone">Standalone<a class="anchor" aria-label="anchor" href="#standalone"></a>
 </h3>
-<p>The standalone installer allows you to run the app without having to
-do anything in R.</p>
+<p>The standalone installer allows you to run the app without having to do anything in R.</p>
 <div class="section level4">
 <h4 id="windows">Windows<a class="anchor" aria-label="anchor" href="#windows"></a>
 </h4>
 <ol style="list-style-type: decimal">
-<li><p>Download <a href="https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-win-x64.zip" class="external-link uri">https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-win-x64.zip</a>
-and unzip it to a convenient location.</p></li>
-<li><p>Run the <code>ov_scouter.bat</code> or
-<code>ov_scouter_demo.bat</code> file. The first run will take quite
-some time, because it will install a number of additional R packages.
-Subsequent startups will be much faster (it checks for updates on each
-startup, so might reinstall some packages on occasion).</p></li>
+<li><p>Download <a href="https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-win-x64.zip" class="external-link uri">https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-win-x64.zip</a> and unzip it to a convenient location.</p></li>
+<li><p>Run the <code>ov_scouter.bat</code> or <code>ov_scouter_demo.bat</code> file. The first run will take quite some time, because it will install a number of additional R packages. Subsequent startups will be much faster (it checks for updates on each startup, so might reinstall some packages on occasion).</p></li>
 </ol>
 </div>
 <div class="section level4">
@@ -140,359 +117,194 @@ startup, so might reinstall some packages on occasion).</p></li>
 </h4>
 <ol style="list-style-type: decimal">
 <li><p>Install R, following <a href="https://cran.r-project.org/" class="external-link uri">https://cran.r-project.org/</a></p></li>
-<li><p>Download <a href="https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-unix-x64.zip" class="external-link uri">https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-unix-x64.zip</a>
-and unzip it to a convenient location.</p></li>
-<li><p>Run the <code>ov_scouter</code> or <code>ov_scouter_demo</code>
-script. The first run will take quite some time, because it will install
-a number of additional R packages. Subsequent startups will be much
-faster (it checks for updates on each startup, so might reinstall some
-packages on occasion).</p></li>
+<li><p>On Mac, you will also need to install XQuartz: <a href="https://www.xquartz.org/" class="external-link uri">https://www.xquartz.org/</a></p></li>
+<li><p>Optionally install ‘Other system utilities’ (see below)</p></li>
+<li><p>Download <a href="https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-unix-x64.zip" class="external-link uri">https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-unix-x64.zip</a> and unzip it to a convenient location.</p></li>
+<li><p>Run the <code>ov_scouter</code> or <code>ov_scouter_demo</code> script. The first run will take quite some time, because it will install a number of additional R packages. Subsequent startups will be much faster (it checks for updates on each startup, so might reinstall some packages on occasion).</p></li>
 </ol>
-<p>Note: not tested on Mac.</p>
 </div>
 </div>
 <div class="section level3">
 <h3 id="installation-from-r">Installation from R<a class="anchor" aria-label="anchor" href="#installation-from-r"></a>
 </h3>
 <ol style="list-style-type: decimal">
-<li><p><a href="https://cran.r-project.org/" class="external-link">Install R</a>, and
-optionally <a href="https://www.rstudio.com/products/rstudio/download/" class="external-link">RStudio</a>.</p></li>
+<li><p><a href="https://cran.r-project.org/" class="external-link">Install R</a>, and optionally <a href="https://www.rstudio.com/products/rstudio/download/" class="external-link">RStudio</a>.</p></li>
 <li><p>From R:</p></li>
 </ol>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span> <span class="co">## if needed</span>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"ovscout2"</span>, repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://openvolley.r-universe.dev"</span>,
+                                       <span class="st">"https://cloud.r-project.org"</span><span class="op">)</span><span class="op">)</span>
+
+<span class="co">## or</span>
+
+<span class="co">## install.packages("remotes") ## if needed</span>
 <span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"openvolley/ovscout2"</span><span class="op">)</span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="other-system-utilities">Other system utilities<a class="anchor" aria-label="anchor" href="#other-system-utilities"></a>
 </h3>
-<p>Three other system utilities are recommended but not required. Note
-that the standalone Windows bundle already includes these utilities — no
-further action is needed in that case.</p>
+<p>Two other system utilities are recommended but not required. Note that the standalone Windows bundle already includes these utilities — no further action is needed in that case.</p>
 <ol style="list-style-type: decimal">
-<li><p><a href="https://ffmpeg.org/" class="external-link">ffmpeg</a> is used to extract
-frames from videos, and other video-related functions. If
-<code>ffmpeg</code> is not available, an internal fallback method is
-used for some functionality, but may be considerably slower. Install
-<code>ffmpeg</code> via your package manager, or (from within R, on
-Linux and Windows only) using
-<code><a href="https://rdrr.io/pkg/ovideo/man/ov_install_ffmpeg.html" class="external-link">ovideo::ov_install_ffmpeg()</a></code></p></li>
-<li><p><a href="https://www.lighttpd.net/" class="external-link">lighttpd</a> is a lightweight
-web server that is used to play the match video. Install (from within R,
-on Windows only) using <code><a href="../reference/ov_install_lighttpd.html">ovscout2::ov_install_lighttpd()</a></code> or
-manually from <a href="http://lighttpd.dtech.hu/" class="external-link uri">http://lighttpd.dtech.hu/</a> (for Windows) or via your
-package manager for other operating systems (see <a href="https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd" class="external-link uri">https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd</a>).
-If <code>lighttpd</code> is not installed, the app falls back to a
-built-in web server but this is a little slower and less responsive than
-<code>lighttpd</code>.</p></li>
-<li><p><a href="https://github.com/jgm/pandoc/" class="external-link">pandoc</a> is required
-for generating match reports from scouted files. Install following <a href="https://github.com/jgm/pandoc/blob/master/INSTALL.md" class="external-link uri">https://github.com/jgm/pandoc/blob/master/INSTALL.md</a>. If
-not present, the report generation menu item won’t be shown. If you are
-starting the app from RStudio, you do not need to install pandoc because
-RStudio comes bundled with its own copy.</p></li>
+<li><p><a href="https://github.com/jgm/pandoc/" class="external-link">pandoc</a> is required for generating match reports from scouted files. Install following <a href="https://github.com/jgm/pandoc/blob/master/INSTALL.md" class="external-link uri">https://github.com/jgm/pandoc/blob/master/INSTALL.md</a>. If not present, the report generation menu item won’t be shown. If you are starting the app from RStudio, you do not need to install pandoc because RStudio comes bundled with its own copy.</p></li>
+<li><p><a href="https://www.lighttpd.net/" class="external-link">lighttpd</a> is a lightweight web server that is used to play the match video (when using a local video file). Install (from within R, on Windows only) using <code><a href="../reference/ov_install_lighttpd.html">ovscout2::ov_install_lighttpd()</a></code> or manually from <a href="http://lighttpd.dtech.hu/" class="external-link uri">http://lighttpd.dtech.hu/</a> (for Windows) or via your package manager for other operating systems (see <a href="https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd" class="external-link uri">https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd</a>). If <code>lighttpd</code> is not installed, the app falls back to <a href="https://github.com/yihui/servr" class="external-link">servr</a> but this is a little slower and less responsive than <code>lighttpd</code>.</p></li>
 </ol>
 </div>
 </div>
 <div class="section level2">
 <h2 id="startup-and-usage">Startup and usage<a class="anchor" aria-label="anchor" href="#startup-and-usage"></a>
 </h2>
-<p>Some of startup options are the same regardless of whether you are
-using the standalone version or starting the app from within R:</p>
+<p>Some of startup options are the same regardless of whether you are using the standalone version or starting the app from within R:</p>
 <ul>
-<li><p>the “season directory” is a folder containing dvw files from
-other matches. If you are scouting a new match and you provide a season
-directory, you can choose teams from other matches for the new match.
-This saves having to re-enter team and player details. The season
-directory will also be used as the starting point when selecting a video
-file</p></li>
+<li><p>the “season directory” is a folder containing dvw files from other matches. If you are scouting a new match and you provide a season directory, you can choose teams from other matches for the new match. This saves having to re-enter team and player details. The season directory will also be used as the starting point when selecting a video file</p></li>
 <li><p>the video file is required</p></li>
-<li><p>you can also optionally provide a .dvw or .ovs file (i.e. a
-partially-scouted file that you wish to continue scouting). If you do
-not provide a dvw file, the app creates a new, empty match
-file.</p></li>
+<li><p>you can also optionally provide a .dvw or .ovs file (i.e. a partially-scouted file that you wish to continue scouting). If you do not provide a dvw file, the app creates a new, empty match file.</p></li>
 </ul>
 <div class="section level3">
 <h3 id="startup-standalone">Startup — standalone<a class="anchor" aria-label="anchor" href="#startup-standalone"></a>
 </h3>
-<p>Run the <code>ov_scouter.bat</code> (Windows) or
-<code>ov_scouter</code> (Linux/Mac) script. It will prompt you for a
-season directory, dvw file, and video file. The season directory and dvw
-file are optional (a new match file will be created if no dvw is
-provided) but the video is required.</p>
-<p>Options controlling the app behaviour and scouting preferences can be
-changed via the “Preferences” button in the app.</p>
+<p>Run the <code>ov_scouter.bat</code> (Windows) or <code>ov_scouter</code> (Linux/Mac) script. It will prompt you for a season directory, dvw file, and video file. The season directory and dvw file are optional (a new match file will be created if no dvw is provided) but the video is required.</p>
+<p>Options controlling the app behaviour and scouting preferences can be changed via the “Preferences” button in the app.</p>
 </div>
 <div class="section level3">
 <h3 id="startup-from-r">Startup — from R<a class="anchor" aria-label="anchor" href="#startup-from-r"></a>
 </h3>
-<p>In each session you first need to load the <code>ovscout2</code>
-package:</p>
+<p>In each session you first need to load the <code>ovscout2</code> package:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/openvolley/ovscout2" class="external-link">ovscout2</a></span><span class="op">)</span></code></pre></div>
 <p>Then start the app. You can start it with no arguments:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>
-<p>… and it will prompt you (as for the standalone version) for a season
-directory, dvw file, and video file. The season directory and dvw file
-are optional (a new match file will be created if no dvw is provided)
-but the video is required.</p>
-<p>You can optionally provide those arguments explicitly. To start a new
-match for a certain video file, using teams from already-scouted matches
-in your season directory, you could do:</p>
+<p>… and it will prompt you (as for the standalone version) for a season directory, dvw file, and video file. The season directory and dvw file are optional (a new match file will be created if no dvw is provided) but the video is required.</p>
+<p>You can optionally provide those arguments explicitly. To start a new match for a certain video file, using teams from already-scouted matches in your season directory, you could do:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span>video_file <span class="op">=</span> <span class="st">"/path/to/video.mp4"</span>, season_dir <span class="op">=</span> <span class="st">"/path/to/season_dir"</span><span class="op">)</span></code></pre></div>
-<p>If you have already partially-scouted a match and saved that file,
-you can re-start scouting:</p>
+<p>If you have already partially-scouted a match and saved that file, you can re-start scouting:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span><span class="st">"/path/to/saved_file.ovs"</span><span class="op">)</span></code></pre></div>
-<p>(In this case you do not need to provide the video file path, because
-that is saved within the .ovs file.)</p>
+<p>(In this case you do not need to provide the video file path, because that is saved within the .ovs file.)</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="device-considerations">Device considerations<a class="anchor" aria-label="anchor" href="#device-considerations"></a>
 </h2>
-<p>The scouting process involves clicking the location of actions on
-court, and so a touch screen device (ideally with stylus) is
-recommended. It is possible to run the app on a laptop or desktop and
-connect to it with a tablet or similar touch device to do the actual
-scouting. In this case you would start the app from R on the main device
-using the <code>host</code> and <code>launch_browser</code> options:</p>
+<p>The scouting process involves clicking the location of actions on court, and so a touch screen device (ideally with stylus) is recommended. It is possible to run the app on a laptop or desktop and connect to it with a tablet or similar touch device to do the actual scouting. In this case you would start the app from R on the main device using the <code>host</code> and <code>launch_browser</code> options:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span><span class="va">...</span>, host <span class="op">=</span> <span class="st">"192.168.1.11"</span>, launch_browser <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></code></pre></div>
-<p>where <code>192.168.1.11</code> is the IP address of the main device.
-You should see a message similar to (the port number on the end will
-vary):</p>
+<p>where <code>192.168.1.11</code> is the IP address of the main device. You should see a message similar to (the port number on the end will vary):</p>
 <pre><code>Listening on http://192.168.1.11:5017</code></pre>
-<p>Open a browser on the tablet and enter
-<code>http://192.168.1.11:5017</code> in the address bar.</p>
+<p>Open a browser on the tablet and enter <code>http://192.168.1.11:5017</code> in the address bar.</p>
 </div>
 <div class="section level2">
 <h2 id="preferences">Preferences<a class="anchor" aria-label="anchor" href="#preferences"></a>
 </h2>
-<p>There are a number of options available that alter the behaviour or
-appearance of the app. These can be set (if you are starting the app
-from within R) via parameters to the <code><a href="../reference/ov_scouter.html">ov_scouter()</a></code> function.
-Most can also be set via the “Preferences” button in the app (others
-will be added in due course):</p>
+<p>There are a number of options available that alter the behaviour or appearance of the app. These can be set (if you are starting the app from within R) via parameters to the <code><a href="../reference/ov_scouter.html">ov_scouter()</a></code> function. Most can also be set via the “Preferences” button in the app (others will be added in due course):</p>
 <ul>
 <li>
-<code>auto_save_dir</code> is a directory into which the scouted
-file will be saved (in .dvw format) after each rally. You can use this
-to e.g. provide live file updates to be used by the coaching bench</li>
+<code>auto_save_dir</code> is a directory into which the scouted file will be saved (in .dvw format) after each rally. You can use this to e.g. provide live file updates to be used by the coaching bench</li>
 <li>
-<code>scoreboard</code> - show the scoreboard in the top right-hand
-corner of the video screen (true by default)</li>
+<code>scoreboard</code> - show the scoreboard in the top right-hand corner of the video screen (true by default)</li>
 <li>
-<code>ball_path</code> - show the ball path on the court diagram
-(false by default, because it slows the app down a little)</li>
+<code>ball_path</code> - show the ball path on the court diagram (false by default, because it slows the app down a little)</li>
 <li>
-<code>review_pane</code> - show the video review pane on each data
-entry popup (true by default)</li>
+<code>review_pane</code> - show the video review pane on each data entry popup (true by default)</li>
 <li>
-<code>playlist_display_option</code> - what to show in the plays
-table? Either “dv_codes” (scouted codes) or “commentary” (a
-plain-language interpretation of the touches)</li>
+<code>playlist_display_option</code> - what to show in the plays table? Either “dv_codes” (scouted codes) or “commentary” (a plain-language interpretation of the touches)</li>
 <li>
-<code>shortcuts</code> - a named list that defines the keyboard
-shortcuts used in the app</li>
+<code>shortcuts</code> - a named list that defines the keyboard shortcuts used in the app</li>
 </ul>
-<p>Preferences controlling the scouting conventions can similarly be set
-via the <code><a href="../reference/ov_scouting_options.html">ov_scouting_options()</a></code> function or the “Preferences”
-button. These include:</p>
+<p>Preferences controlling the scouting conventions can similarly be set via the <code><a href="../reference/ov_scouting_options.html">ov_scouting_options()</a></code> function or the “Preferences” button. These include:</p>
 <ul>
 <li>
-<code>end_convention</code> determines whether you are treating the
-end coordinate of an attack or serve as the <strong>actual</strong> end
-location (i.e. where the ball contacted the floor or out of bounds
-area), or the <strong>intended</strong> end location. The actual might
-differ from the intended if there is a block touch or the ball hit the
-net. If ‘actual’, and a block touch is recorded, then the end location
-of the attack will not be used for the dig location (the dig location
-will be missing).</li>
+<code>end_convention</code> determines whether you are treating the end coordinate of an attack or serve as the <strong>actual</strong> end location (i.e. where the ball contacted the floor or out of bounds area), or the <strong>intended</strong> end location. The actual might differ from the intended if there is a block touch or the ball hit the net. If ‘actual’, and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing).</li>
 <li>
-<code>transition_sets</code>. If <code>FALSE</code>, then sets in
-transition are not scouted. After entering an attack end location (and
-play continues) the next click will be for the counterattack start
-location, with no set scouted in between.</li>
+<code>transition_sets</code>. If <code>FALSE</code>, then sets in transition are not scouted. After entering an attack end location (and play continues) the next click will be for the counterattack start location, with no set scouted in between.</li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="starting-a-new-match">Starting a new match<a class="anchor" aria-label="anchor" href="#starting-a-new-match"></a>
 </h2>
-<p>To scout a new match, start the app with the corresponding video
-file, then:</p>
+<p>To scout a new match, start the app with the corresponding video file, then:</p>
 <ol style="list-style-type: decimal">
-<li><p>Define the court reference via the “Court reference” button. This
-requires you to click on the four corners of the court in the video
-image, so that the app can map clicks in the video to real-world court
-coordinates</p></li>
-<li><p>Enter the match details via the “Edit match data” button (match
-date, venue, scout name, etc)</p></li>
-<li><p>Define the teams playing in the match. If you have provided a
-season directory (with existing .dvw or .ovs files in it) you can choose
-from the teams in those files. Otherwise you can enter new
-teams</p></li>
-<li><p>Enter the team lineups for set 1, including the libero(s) for
-each team. If two liberos are entered, then the app will assume that the
-first libero is on court during serve reception (i.e. the “passing”
-libero) and the second libero is on court while serving (the “defending”
-libero). If the team has two liberos but only one takes to the court per
-set, then just enter the libero who is actually going to play in that
-set</p></li>
+<li><p>Define the court reference via the “Court reference” button. This requires you to click on the four corners of the court in the video image, so that the app can map clicks in the video to real-world court coordinates</p></li>
+<li><p>Enter the match details via the “Edit match data” button (match date, venue, scout name, etc)</p></li>
+<li><p>Define the teams playing in the match. If you have provided a season directory (with existing .dvw or .ovs files in it) you can choose from the teams in those files. Otherwise you can enter new teams</p></li>
+<li><p>Enter the team lineups for set 1, including the libero(s) for each team. If two liberos are entered, then the app will assume that the first libero is on court during serve reception (i.e. the “passing” libero) and the second libero is on court while serving (the “defending” libero). If the team has two liberos but only one takes to the court per set, then just enter the libero who is actually going to play in that set</p></li>
 </ol>
 </div>
 <div class="section level2">
 <h2 id="scouting">Scouting<a class="anchor" aria-label="anchor" href="#scouting"></a>
 </h2>
-<p>The scouting process is a guided one. Each contact is marked by
-clicking on the video at the time and point of contact, with the
-<strong>point of contact being the point on the floor directly below the
-ball as it is being played</strong>. This will often be between the
-player’s feet as they dig or set the ball, or below them if they are
-jumping to spike.</p>
+<p>The scouting process is a guided one. Each contact is marked by clicking on the video at the time and point of contact, with the <strong>point of contact being the point on the floor directly below the ball as it is being played</strong>. This will often be between the player’s feet as they dig or set the ball, or below them if they are jumping to spike.</p>
 <div class="section level3">
 <h3 id="start-by">Start by:<a class="anchor" aria-label="anchor" href="#start-by"></a>
 </h3>
 <ul>
-<li><p>checking that the orientation of the court diagram (top right)
-matches the video. Swap it using the ⇵ button if required</p></li>
-<li><p>check that the correct team is serving (indicated by the white
-circle in the court diagram). Swap with the “Change serving team” button
-if required</p></li>
-<li><p>unpause the video. The number of the serving player and their
-serve type (float/jump/etc) will be shown below the video panel. You can
-change the serve type before the serve, if you can see that it is
-wrong</p></li>
+<li><p>checking that the orientation of the court diagram (top right) matches the video. Swap it using the ⇵ button if required</p></li>
+<li><p>check that the correct team is serving (indicated by the white circle in the court diagram). Swap with the “Change serving team” button if required</p></li>
+<li><p>unpause the video. The number of the serving player and their serve type (float/jump/etc) will be shown below the video panel. You can change the serve type before the serve, if you can see that it is wrong</p></li>
 </ul>
 </div>
 <div class="section level3">
 <h3 id="first-contact-serve">First contact (serve)<a class="anchor" aria-label="anchor" href="#first-contact-serve"></a>
 </h3>
 <ul>
-<li><p>click the serve (the point on the court below the ball) as it
-happens. The video will continue playing</p></li>
-<li><p>click the reception location (if the ball is touched by a
-receiver) OR the point where the ball lands/hits the net (if it is an
-untouched ace or an error). The video will automatically pause and a
-dialog will pop up allowing you to select the receiving player and serve
-outcome (serve error, ace, or reception in play). You can also adjust
-the serve type if it was incorrect. In some cases it isn’t clear at this
-point if the serve was an ace or a “reception in play” (e.g. a shanked
-pass that players are chasing down, but we haven’t yet seen if they are
-successful). In this case click “Reception in play”. It can be adjusted
-to an “Ace” at the next step, if necessary</p></li>
+<li><p>click the serve (the point on the court below the ball) as it happens. The video will continue playing</p></li>
+<li><p>click the reception location (if the ball is touched by a receiver) OR the point where the ball lands/hits the net (if it is an untouched ace or an error). The video will automatically pause and a dialog will pop up allowing you to select the receiving player and serve outcome (serve error, ace, or reception in play). You can also adjust the serve type if it was incorrect. In some cases it isn’t clear at this point if the serve was an ace or a “reception in play” (e.g. a shanked pass that players are chasing down, but we haven’t yet seen if they are successful). In this case click “Reception in play”. It can be adjusted to an “Ace” at the next step, if necessary</p></li>
 </ul>
-<p>If you did not click the reception location correctly, or for some
-other reason want to go back and try again, click “Cancel and rewind”.
-Otherwise click “Continue” and the video will resume playing.</p>
+<p>If you did not click the reception location correctly, or for some other reason want to go back and try again, click “Cancel and rewind”. Otherwise click “Continue” and the video will resume playing.</p>
 </div>
 <div class="section level3">
 <h3 id="second-contact-set">Second contact (set)<a class="anchor" aria-label="anchor" href="#second-contact-set"></a>
 </h3>
 <ul>
-<li><p>click the location of the set (or second-contact action if it was
-something else, such as a setter tip. Remember that this is the point on
-the ground directly below the ball, not the ball itself). The video will
-pause and a data entry dialog will pop up</p></li>
-<li><p>choose the correct second-contact action (by default this is a
-“Set” but it can also be a set error, setter tip, second-ball attack, or
-freeball over. If the reception turned out to be an error here (serve
-ace, with no second contact to scout) you can also select that
-here</p></li>
-<li><p>check the pass quality. It will have been automatically given a
-grade, but in some situations you might need to override the automatic
-assessment</p></li>
-<li><p>if the pass was an overpass, you can assign the appropriate
-opposition action (dig, dig error, or overpass attack) and
-player</p></li>
+<li><p>click the location of the set (or second-contact action if it was something else, such as a setter tip. Remember that this is the point on the ground directly below the ball, not the ball itself). The video will pause and a data entry dialog will pop up</p></li>
+<li><p>choose the correct second-contact action (by default this is a “Set” but it can also be a set error, setter tip, second-ball attack, or freeball over. If the reception turned out to be an error here (serve ace, with no second contact to scout) you can also select that here</p></li>
+<li><p>check the pass quality. It will have been automatically given a grade, but in some situations you might need to override the automatic assessment</p></li>
+<li><p>if the pass was an overpass, you can assign the appropriate opposition action (dig, dig error, or overpass attack) and player</p></li>
 </ul>
-<p>The second contact is by default a set, by the assigned setter on
-court. Once you are comfortable with the scouting process, and you see a
-second contact set by the setter, you can hold down shift while clicking
-the second contact. This causes the app to enter a set action (by the
-setter) with the automatically-assigned pass quality, without stopping
-the video or showing the data entry dialog, which makes this part of the
-scouting faster.</p>
-<p>Similarly to a reception error, in some cases it isn’t immediately
-clear if the set is an error or not (e.g. an unhittable set, or a
-delayed double-contact call by the referee). Scout this as a set (by the
-appropriate player) and it can be converted to a set error in the next
-step if necessary.</p>
+<p>The second contact is by default a set, by the assigned setter on court. Once you are comfortable with the scouting process, and you see a second contact set by the setter, you can hold down shift while clicking the second contact. This causes the app to enter a set action (by the setter) with the automatically-assigned pass quality, without stopping the video or showing the data entry dialog, which makes this part of the scouting faster.</p>
+<p>Similarly to a reception error, in some cases it isn’t immediately clear if the set is an error or not (e.g. an unhittable set, or a delayed double-contact call by the referee). Scout this as a set (by the appropriate player) and it can be converted to a set error in the next step if necessary.</p>
 </div>
 <div class="section level3">
 <h3 id="third-contact-attack">Third contact (attack)<a class="anchor" aria-label="anchor" href="#third-contact-attack"></a>
 </h3>
-<p>The third contact is most commonly an attack (but can also be a
-freeball over or set error, or a play by the opposition on an
-overpass/overset.</p>
+<p>The third contact is most commonly an attack (but can also be a freeball over or set error, or a play by the opposition on an overpass/overset.</p>
 <ul>
-<li>click the contact location (remember that this is the point on the
-ground directly below the ball, not the ball itself). The video will
-pause and a data entry dialog will pop up</li>
+<li>click the contact location (remember that this is the point on the ground directly below the ball, not the ball itself). The video will pause and a data entry dialog will pop up</li>
 </ul>
 <p>If it is an attack:</p>
 <ul>
-<li><p>enter the attacking player and either the attack combination code
-(if you are scouting with combo codes) or tempo</p></li>
-<li><p>optionally (but recommended) enter the number of blockers on the
-attack</p></li>
+<li><p>enter the attacking player and either the attack combination code (if you are scouting with combo codes) or tempo</p></li>
+<li><p>optionally (but recommended) enter the number of blockers on the attack</p></li>
 </ul>
 <p>Otherwise enter the appropriate action and player.</p>
 </div>
 <div class="section level3">
 <h3 id="attack-end-point">Attack end point<a class="anchor" aria-label="anchor" href="#attack-end-point"></a>
 </h3>
-<p>After an attack or freeball over, click the end point. If you are
-scouting with “actual” end convention (see <a href="#preferences">Preferences</a>) then this is the point where the
-ball lands, or the point on the court directly below the ball when it is
-played. If end convention is “intended”, this is the point where the
-attacker intended to hit the ball.</p>
-<p>Enter the appropriate details. An attack kill, dig or dig error can
-also involve a block touch — this can be recorded (see “With block touch
-by player …”).</p>
-<p>If the attack was dug (i.e. play continues) and you do not care about
-scouting digs, you can shift-click the attack end point and the app will
-record the end point of the attack without showing a popup dialog. This
-is faster, but note that no dig will be scouted, and no block touch can
-be entered.</p>
+<p>After an attack or freeball over, click the end point. If you are scouting with “actual” end convention (see <a href="#preferences">Preferences</a>) then this is the point where the ball lands, or the point on the court directly below the ball when it is played. If end convention is “intended”, this is the point where the attacker intended to hit the ball.</p>
+<p>Enter the appropriate details. An attack kill, dig or dig error can also involve a block touch — this can be recorded (see “With block touch by player …”).</p>
+<p>If the attack was dug (i.e. play continues) and you do not care about scouting digs, you can shift-click the attack end point and the app will record the end point of the attack without showing a popup dialog. This is faster, but note that no dig will be scouted, and no block touch can be entered.</p>
 </div>
 <div class="section level3">
 <h3 id="transition-play">Transition play<a class="anchor" aria-label="anchor" href="#transition-play"></a>
 </h3>
-<p>Scouting now continues until the point ends, with attacks, digs, and
-other contacts being recorded. By default, <em>sets in transition are
-not scouted</em> (except for set errors, since a set error will end the
-rally). After an attack, we record the dig location and then straight to
-the counter-attack location, with no intervening set being scouted. You
-can choose to include transition sets if you wish (see <a href="#preferences">Preferences</a> to change this behaviour) but there
-is not a huge practical advantage in doing so. It does not enable much
-more in terms of analytics, but takes extra time to scout, so transition
-sets are disabled by default.</p>
+<p>Scouting now continues until the point ends, with attacks, digs, and other contacts being recorded. By default, <em>sets in transition are not scouted</em> (except for set errors, since a set error will end the rally). After an attack, we record the dig location and then straight to the counter-attack location, with no intervening set being scouted. You can choose to include transition sets if you wish (see <a href="#preferences">Preferences</a> to change this behaviour) but there is not a huge practical advantage in doing so. It does not enable much more in terms of analytics, but takes extra time to scout, so transition sets are disabled by default.</p>
 </div>
 <div class="section level3">
 <h3 id="end-of-the-point">End of the point<a class="anchor" aria-label="anchor" href="#end-of-the-point"></a>
 </h3>
-<p>The point can be ended by entering a terminal action (kill or error),
-or if the point ends in a way that doesn’t fit nicely with the available
-options, you can pause the video (press “q” or the pause button) and
-choose “Won current rally” for the appropriate team.</p>
+<p>The point can be ended by entering a terminal action (kill or error), or if the point ends in a way that doesn’t fit nicely with the available options, you can pause the video (press “q” or the pause button) and choose “Won current rally” for the appropriate team.</p>
 </div>
 <div class="section level3">
 <h3 id="end-of-set">End of set<a class="anchor" aria-label="anchor" href="#end-of-set"></a>
 </h3>
-<p>When the set concludes, it will prompt you to confirm whether it is
-the end of the set. Confirm the end of the set and then enter the
-lineups for the next set ready to start scouting that one.</p>
+<p>When the set concludes, it will prompt you to confirm whether it is the end of the set. Confirm the end of the set and then enter the lineups for the next set ready to start scouting that one.</p>
 </div>
 <div class="section level3">
 <h3 id="timeouts-and-substitutions">Timeouts and substitutions<a class="anchor" aria-label="anchor" href="#timeouts-and-substitutions"></a>
 </h3>
-<p>Pausing the video (press “q” or the pause button) will bring up a
-dialog that allows you to enter a timeout or substitution, or change the
-setter on court for a given team (e.g. if the team is playing a
-two-setter system, you will need to change the setter on court each time
-the setters swap).</p>
+<p>Pausing the video (press “q” or the pause button) will bring up a dialog that allows you to enter a timeout or substitution, or change the setter on court for a given team (e.g. if the team is playing a two-setter system, you will need to change the setter on court each time the setters swap).</p>
 </div>
 </div>
 <div class="section level2">
@@ -501,16 +313,8 @@ the setters swap).</p>
 <div class="section level3">
 <h3 id="whats-the-difference-between-a--ovs-file-and-a--dvw-file">What’s the difference between a .ovs file and a .dvw file?<a class="anchor" aria-label="anchor" href="#whats-the-difference-between-a--ovs-file-and-a--dvw-file"></a>
 </h3>
-<p>The .ovs file format is used internally by the app to store a match
-as it is being scouted. It is similar to a .dvw file, but contains more
-information than a .dvw file and in a different format. If you save a
-partially-scouted match and come back to it later to continue scouting,
-use the .ovs file format. (You can continue scouting from a
-partially-scouted file in .dvw format, but the “undo” functionality is
-limited).</p>
-<p>If you have finished scouting a match and wish to use that match file
-in other analysis software (including the openvolley R packages), export
-it to dvw format and use that.</p>
+<p>The .ovs file format is used internally by the app to store a match as it is being scouted. It is similar to a .dvw file, but contains more information than a .dvw file and in a different format. If you save a partially-scouted match and come back to it later to continue scouting, use the .ovs file format. (You can continue scouting from a partially-scouted file in .dvw format, but the “undo” functionality is limited).</p>
+<p>If you have finished scouting a match and wish to use that match file in other analysis software (including the openvolley R packages), export it to dvw format and use that.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
