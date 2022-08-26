@@ -28,7 +28,9 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
 
     output$sr_save_ui <- renderUI({
         ## only if running locally, with a video file provided, and only if we have ffmpeg available
-        if (!is.null(video_file) && cr_is_ok() && !nzchar(Sys.getenv("SHINY_PORT")) && ovideo::ov_ffmpeg_ok(do_error = FALSE)) {
+        ## this also won't work if the video file is locked, which seems to happen with windows (?)
+        ## disable pending further testing
+        if (FALSE) {##(!is.null(video_file) && cr_is_ok() && !nzchar(Sys.getenv("SHINY_PORT")) && ovideo::ov_ffmpeg_ok(do_error = FALSE)) {
             ## check if the file already has court data saved into it
             chk <- tryCatch(!is.null(ovideo::ov_get_video_data(video_file)), error = function(e) FALSE)
             output$sr_save_dialog <- renderUI(if (chk) tags$div("The video file already has court data saved in it.") else NULL)
