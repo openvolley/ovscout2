@@ -37,9 +37,11 @@ The standalone installer allows you to run the app without having to do anything
 
 ## Installation from R
 
-1. [Install R](https://cran.r-project.org/), and optionally [RStudio](https://www.rstudio.com/products/rstudio/download/).
+1. [Install R](https://cran.r-project.org/) and [RStudio](https://www.rstudio.com/products/rstudio/download/).
 
-2. From R:
+1. Optionally install `lighttpd` (see 'Other system utilities' below)
+
+1. From RStudio:
 
 ```{r eval = FALSE}
 install.packages("ovscout2", repos = c("https://openvolley.r-universe.dev",
