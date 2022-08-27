@@ -25,7 +25,7 @@ optsave <- getOption("repos")
 options(repos = c(CRAN = "https://cloud.r-project.org", openvolley = "https://openvolley.r-universe.dev"))
 
 ## dependencies required before installing ovscout2, with optional minimum version number
-depsl <- list(remotes = NA, fs = NA, jsonlite = NA, curl = NA)
+depsl <- list(fs = NA, jsonlite = NA, curl = NA)
 for (pkg in names(depsl)) {
     if (!requireNamespace(pkg, quietly = TRUE) || (!is.na(depsl[[pkg]]) && packageVersion(pkg) < depsl[[pkg]])) {
         tryCatch({
@@ -45,7 +45,7 @@ online <- tryCatch(suppressWarnings(curl::has_internet()), error = function(e) F
 depsl <- c("ovscout2")
 for (pkg in depsl) {
     tryCatch({
-        do_install <- TRUE## !requireNamespace(pkg, quietly = TRUE)
+        do_install <- !requireNamespace(pkg, quietly = TRUE)
         if (!do_install && do_upd && online) {
             ## have it, does it need to be updated?
             latest <- tryCatch(max(jsonlite::fromJSON(paste0("https://openvolley.r-universe.dev/packages/", pkg, "/"))$Version), error = function(e) NA)
@@ -68,29 +68,10 @@ for (pkg in depsl) {
     })
 }
 
-##github_deps <- c("openvolley/ovscout2")
-##for (pkg in github_deps) {
-##    tryCatch({
-##        remotes::install_github(pkg, upgrade = if (!requireNamespace("ovscout2", quietly = TRUE)) "never" else "always")
-##        ## don't upgrade dependencies on first install, to reduce the number of packages being installed multiple times
-##    }, error = function(e) {
-##        if (!requireNamespace(basename(pkg), quietly = TRUE)) {
-##            stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
-##        }
-##    })
-##}
-
 options(repos = optsave) ## restore
 
 ## also try and update this file (ov_scouter.R) and ov_scouter.bat from the potentially-reinstalled ovscout2 pkg
 if (TRUE) {
-    ##dR0 <- dR1 <- NULL
-    ##tryCatch({
-    ##    dR0 <- digest::digest(file.path(mypath, "ov_scouter.R"), file = TRUE)
-    ##    dR1 <- digest::digest(system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2"), file = TRUE)
-    ##}, error = function(e) {
-    ##    warning("could not update ov_scouter.R")
-    ##})
     do_restart <- FALSE
     f1 <- file.path(mypath, "ov_scouter.R")
     f2 <- system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2")
@@ -98,38 +79,18 @@ if (TRUE) {
         file.copy(f2, f1, overwrite = TRUE)
         do_restart <- TRUE
     }
-    ##db0 <- db1 <- NULL
-    ##tryCatch({
-    ##    db0 <- digest::digest(file.path(mypath, "ov_scouter.bat"), file = TRUE)
-    ##    db1 <- digest::digest(system.file("extdata/standalone/win/ov_scouter.bat", package = "ovscout2"), file = TRUE)
-    ##}, error = function(e) {
-    ##    warning("could not update ov_scouter.bat")
-    ##})
     f1 <- file.path(mypath, "ov_scouter.bat")
     f2 <- system.file("extdata/standalone/win/ov_scouter.bat", package = "ovscout2")
     if (file.exists(f1) && file.exists(f2) && fs::file_info(f2)$modification_time > fs::file_info(f1)$modification_time) {
         file.copy(f2, f1, overwrite = TRUE)
         do_restart <- TRUE
     }
-    ##dbd0 <- dbd1 <- NULL
-    ##tryCatch({
-    ##    dbd0 <- digest::digest(file.path(mypath, "ov_scouter_demo.bat"), file = TRUE)
-    ##    dbd1 <- digest::digest(system.file("extdata/standalone/win/ov_scouter_demo.bat", package = "ovscout2"), file = TRUE)
-    ##}, error = function(e) {
-    ##    warning("could not update ov_scouter_demo.bat")
-    ##})
     f1 <- file.path(mypath, "ov_scouter_demo.bat")
     f2 <- system.file("extdata/standalone/win/ov_scouter_demo.bat", package = "ovscout2")
     if (file.exists(f1) && file.exists(f2) && fs::file_info(f2)$modification_time > fs::file_info(f1)$modification_time) {
         file.copy(f2, f1, overwrite = TRUE)
         do_restart <- TRUE
     }
-    ##if ((!is.null(dR0) && !is.null(dR1) && dR0 != dR1) || (!is.null(db0) && !is.null(db1) && db0 != db1) || (!is.null(dbd0) && !is.null(dbd1) && dbd0 != dbd1)) {
-    ##    file.copy(system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2"), file.path(mypath, "ov_scouter.R"), overwrite = TRUE)
-    ##    file.copy(system.file("extdata/standalone/win/ov_scouter.bat", package = "ovscout2"), file.path(mypath,"ov_scouter.bat"), overwrite = TRUE)
-    ##    file.copy(system.file("extdata/standalone/win/ov_scouter_demo.bat", package = "ovscout2"), file.path(mypath,"ov_scouter_demo.bat"), overwrite = TRUE)
-    ##    stop("ovscout2 updated. Please re-launch it!")
-    ##}
     if (do_restart) stop("ovscout2 updated. Please re-launch it!")
 }
 ## add lighttpd folder to path
@@ -165,7 +126,8 @@ if (!ovideo::ov_ffmpeg_ok()) {
         if (DEBUG) cat("could not find system or local ffmpeg binary\n")
     }
 }
-if (!ovideo::ov_ffmpeg_ok()) warning("ffmpeg could not be found, some functionality will be disabled")
+## ffmpeg is not critical, don't warn about this here
+##if (!ovideo::ov_ffmpeg_ok()) warning("ffmpeg could not be found, some functionality will be disabled")
 
 ## check that we have pandoc
 if (!ovscout2:::ov_pandoc_ok()) {
