@@ -36,7 +36,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">ovscout2</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,11 +90,11 @@
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>ovscout2 is a free, open-source R/Shiny app for scouting volleyball
-matches. It provides industry-standard dvw files that can be used with
-the <a href="https://openvolley.org" class="external-link">openvolley</a> suite of R packages,
-or with any other volleyball analytics software that takes dvw files as
-inputs.</p>
+<p><code>ovscout2</code> is a free, open-source R/Shiny app for scouting
+volleyball matches. It provides industry-standard dvw files that can be
+used with the <a href="https://openvolley.org" class="external-link">openvolley</a> suite of R
+packages, or with any other volleyball analytics software that takes dvw
+files as inputs.</p>
 <p>The app requires that you have a video of the match <em>from a fixed
 view point</em> (i.e. the camera does not move for the duration of the
 match). Such videos are usually taken from the “scout viewpoint” —
@@ -510,6 +510,19 @@ limited).</p>
 <p>If you have finished scouting a match and wish to use that match file
 in other analysis software (including the openvolley R packages), export
 it to dvw format and use that.</p>
+</div>
+<div class="section level3">
+<h3 id="the-video-is-black-and-the-app-says-wait-for-the-video-media-information-to-be-loaded">The video is black and the app says “Wait for the video media
+information to be loaded”<a class="anchor" aria-label="anchor" href="#the-video-is-black-and-the-app-says-wait-for-the-video-media-information-to-be-loaded"></a>
+</h3>
+<p><code>ovscout2</code> relies on the browser to do the actual video
+playback, but some videos are not compatible with web browsers.
+<code>*.MOV</code> files recorded with iPhones/iPads are known to suffer
+from this problem. Try playing the video file directly in the web
+browser (open a new tab and drag the video file onto it). If the video
+doesn’t play in the new browser tab, you will need to re-encode the
+video into a browser-compatible format (try <a href="https://handbrake.fr/" class="external-link uri">https://handbrake.fr/</a>, for
+example).</p>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
