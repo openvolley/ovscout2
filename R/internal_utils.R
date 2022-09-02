@@ -157,8 +157,8 @@ ns4js <- function(fun) function(z) gsub("-", "_", fun(z))
 ## @export
 dv_add_freeball_over <- function(x) {
     mutate(x, freeball_over = .data$skill %eq% "Freeball",
-           lag(.data$match_id) %eq% .data$match_id, ##lead(.data$match_id) %eq% .data$match_id,
-           lag(.data$point_id) %eq% .data$point_id, ##lead(.data$point_id) %eq% .data$point_id,
+           ## single match only, and we don't have a match_id column ## lag(.data$match_id) %eq% .data$match_id,
+           lag(.data$point_id) %eq% .data$point_id,
            ((!is.na(lead(.data$team)) & lead(.data$team) != .data$team) | lag(.data$team) %eq% .data$team))
 }
 
