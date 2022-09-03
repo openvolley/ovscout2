@@ -845,7 +845,7 @@ adjusted_backrow_pos <- function(x, y, game_state) {
 
 get_teams_from_dvw_dir <- function(season) {
     if (is.null(season) || is.na(season) || !dir.exists(season)) return(tibble())
-    myfiles <- dir(season, pattern = "\\.(dvw|psvb|ovs)$", ignore.case = TRUE, full.names = TRUE)
+    myfiles <- dir(season, pattern = "\\.(dvw|psvb|ovs|sq)$", ignore.case = TRUE, full.names = TRUE)
     if (length(myfiles) < 1) return(tibble())
     ## remove duplicate files (might be saved in both dvw and ovs, for example)
     ok <- rep(TRUE, length(myfiles))
@@ -856,7 +856,23 @@ get_teams_from_dvw_dir <- function(season) {
     as_ovs <- paste0(fs::path_ext_remove(myfiles), ".ovs") %in% myfiles
     ok <- ok & !(grepl("\\.dvw$", myfiles, ignore.case = TRUE) & is_dup & as_ovs)
     myfiles <- myfiles[ok]
-    out <- lapply(myfiles, function(z) if (grepl("psvb$", z, ignore.case = TRUE)) peranavolley::pv_read(z)$meta else if (grepl("ovs$", z, ignore.case = TRUE)) readRDS(z)$meta else dv_read(z, metadata_only = TRUE)$meta)
+    ## helper function to read .sq file
+    sq2 <- function(fl) {
+        tryCatch({
+            stop("fj")
+            this <- datavolley::dv_read_sq(fl)
+            names(this)[names(this) %eq% "team"] <- "teams"
+            this$teams$shirt_colour <- "#000000"
+            this
+        }, error = function(e) NULL)
+    }
+    out <- lapply(seq_along(myfiles), function(i) {
+        try(setProgress(value = i / length(myfiles)), silent = TRUE)
+        z <- myfiles[i]
+        if (grepl("psvb$", z, ignore.case = TRUE)) tryCatch(peranavolley::pv_read(z)$meta, error = function(e) NULL) else if (grepl("ovs$", z, ignore.case = TRUE)) tryCatch(readRDS(z)$meta, error = function(e) NULL) else if (grepl("sq$", z, ignore.case = TRUE)) sq2(z) else tryCatch(dv_read(z, metadata_only = TRUE)$meta, error = function(e) NULL)
+    })
+    out <- Filter(Negate(is.null), out)
+    if (length(out) < 1) return(tibble())
     team_list <- dplyr::select(do.call(bind_rows, lapply(out, function(z) z$teams)), "team_id", "team", "coach", "assistant", "shirt_colour") %>%
         mutate(team_id = stringr::str_to_upper(.data$team_id),
                team = stringr::str_to_title(.data$team),
@@ -866,10 +882,6 @@ get_teams_from_dvw_dir <- function(season) {
 
     csu <- function(z) paste(unique(na.omit(z)), collapse = ", ") ## comma-separated unique values
     team_list <- team_list %>% group_by(.data$team_id) %>% dplyr::summarize(team = csu(.data$team), coach = csu(.data$coach), assistant = csu(.data$assistant), shirt_colour = most_common_value(.data$shirt_colour, na.rm = TRUE)) %>% ungroup
-    ##  team_list <- left_join(left_join(left_join(aggregate(team ~ team_id, data = team_list, FUN = paste, collapse = ", "),
-    ##                                             aggregate(coach ~ team_id, data = team_list, FUN = paste, collapse = ", "), by = "team_id"),
-    ##                                   aggregate(assistant ~ team_id, data = team_list, FUN = paste, collapse = ", "), by = "team_id"),
-    ##                         aggregate(shirt_colour ~ team_id, data = team_list, FUN = paste, collapse = ", "), by = "team_id")
 
     team_list <- as_tibble(team_list)
     team_list$player_table <- list(NULL)
@@ -878,10 +890,15 @@ get_teams_from_dvw_dir <- function(season) {
     for (t_id in tid_list) {
         player_table_tid <- do.call(bind_rows, lapply(out, function(x) {
             if (t_id %in% stringr::str_to_upper(x$teams$team_id)) {
-                if(x$teams$home_away_team[which(t_id == stringr::str_to_upper(x$teams$team_id))] == "*"){
-                    x$players_h[, c("player_id","number", "lastname", "firstname", "role")]
-                } else if(x$teams$home_away_team[which(t_id == stringr::str_to_upper(x$teams$team_id))] == "a"){
-                    x$players_v[, c("player_id","number", "lastname", "firstname", "role")]}
+                if ("players" %in% names(x)) {
+                    ## from sq file
+                    x$players[, c("player_id","number", "lastname", "firstname", "role"), drop = FALSE]
+                } else {
+                    if(x$teams$home_away_team[which(t_id == stringr::str_to_upper(x$teams$team_id))] == "*"){
+                        x$players_h[, c("player_id", "number", "lastname", "firstname", "role"), drop = FALSE]
+                    } else if(x$teams$home_away_team[which(t_id == stringr::str_to_upper(x$teams$team_id))] == "a"){
+                        x$players_v[, c("player_id", "number", "lastname", "firstname", "role"), drop = FALSE]}
+                }
             } else {
                 tibble(player_id = character(), number = integer(), lastname = character(), firstname = character(), role = character())
             }
