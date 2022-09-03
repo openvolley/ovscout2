@@ -43,14 +43,14 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
     })
     observeEvent(input$sr_save, {
         output$sr_save_dialog <- renderUI({
-            shiny::withProgress(message = "Backing up video file ...", {
+            withProgress(message = "Backing up video file ...", {
                 tryCatch({
                     fs::file_copy(video_file, paste0(video_file, ".bak"), overwrite = TRUE)
-                    shiny::setProgress(value = 0.4, message = "Saving court data ...")
+                    setProgress(value = 0.4, message = "Saving court data ...")
                     temp <- list(court_ref = dplyr::select(left_join(crvt$court[, c("image_x", "image_y", "pos")], court_refs_data[, c("court_x", "court_y", "pos")], by = "pos"), -"pos"),
                                  antenna = crvt$antenna, net_height = crvt$net_height, video_framerate = crvt$video_framerate, video_width = crimg()$width, video_height = crimg()$height)
                     ovideo::ov_set_video_data(video_file, obj = temp, replace = TRUE, overwrite = TRUE)
-                    shiny::setProgress(0.9)
+                    setProgress(0.9)
                     tags$div("Saved")
                 }, error = function(e) {
                     tags$div("Could not save court reference into video file. The error message was:", conditionMessage(e))
