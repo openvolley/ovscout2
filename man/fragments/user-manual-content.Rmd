@@ -243,3 +243,16 @@ If you have finished scouting a match and wish to use that match file in other a
 ## The video is black and the app says "Wait for the video media information to be loaded"
 
 `ovscout2` relies on the browser to do the actual video playback, but some videos are not compatible with web browsers. `*.MOV` files recorded with iPhones/iPads are known to suffer from this problem. Try playing the video file directly in the web browser (open a new tab and drag the video file onto it). If the video doesn't play in the new browser tab, you will need to re-encode the video into a browser-compatible format (try <https://handbrake.fr/>, for example).
+
+## It crashed! Have I lost my work?
+
+No. When the app exits, even if it crashes, it saves your current file. Look for the message `working file has been saved to: /path/to/saved_file.ovs`.
+
+You can re-start scouting with (from R):
+
+```{r eval = FALSE}
+ov_scouter("/path/to/saved_file.ovs")
+
+```
+
+or by navigating to that file in the file chooser on startup.

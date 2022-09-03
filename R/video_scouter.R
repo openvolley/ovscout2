@@ -107,7 +107,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     if ((missing(dvw) || is.null(dvw))) {
         if (prompt_for_files) {
             dvw <- tryCatch({
-                fchoose(caption = "Choose dvw file or cancel to skip", path = if (!is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())
+                fchoose(caption = "Choose dvw/ovs file or cancel to skip", path = if (!is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())
             }, error = function(e) NULL)
             if (!is.null(dvw) && (is.character(dvw) && all(!nzchar(dvw) | is.na(dvw)))) dvw <- NULL
             if (!is.null(dvw)) {
@@ -131,7 +131,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         ## default to an empty one
         suppressWarnings(dvw <- dv_create(teams = c("Home team", "Visiting team"))) ## don't warn about empty rosters
     } else {
-        if (!inherits(dvw, "datavolley")) stop("dvw should be a datavolley object or the path to a .dvw file")
+        if (!inherits(dvw, "datavolley")) stop("dvw should be a datavolley object or the path to a .dvw or .ovs file")
     }
     dvw_filename <- dvw$meta$filename
     ## make sure we have an attack table, TODO add parm for the default to use here
@@ -154,7 +154,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         }
     }
     if (nrow(dvw$meta$video) > 1) {
-        warning("multiple video files have been specified in the dvw file metadata, using only the first one", immediate. = TRUE)
+        warning("multiple video files have been specified in the scout file metadata, using only the first one", immediate. = TRUE)
         dvw$meta$video <- dvw$meta$video[1, ]
     }
 
@@ -178,7 +178,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     }
 
     if (nrow(dvw$meta$video) < 1) {
-        stop("no video files specified, either in the dvw file or via the video_file parameter")
+        stop("no video files specified, either in the scout file or via the video_file parameter")
     } else {
         if (!is_url(dvw$meta$video$file) && !file.exists(dvw$meta$video$file)) stop("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
     }
