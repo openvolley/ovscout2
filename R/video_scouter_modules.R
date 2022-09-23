@@ -144,16 +144,16 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         plxy <- cbind(dv_xy(pseq, end = "lower"), htrot)
         ## player names and circles
         ## home team
-        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "lower"), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight, na.rm = TRUE)
+        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "lower"), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight_colour, na.rm = TRUE)
         if (!beach) {
             ## setter
             ht_setter <- px$ht_setter
             if (!is.null(ht_setter) && sum(ht_setter %eq% plxy$number) == 1) {
-                p <- p + geom_polygon(data = court_circle(cz = which(ht_setter %eq% plxy$number), end = "lower"), fill = styling$h_court_highlight, colour = "black", na.rm = TRUE)
+                p <- p + geom_polygon(data = court_circle(cz = which(ht_setter %eq% plxy$number), end = "lower"), fill = styling$h_court_highlight_colour, colour = "black", na.rm = TRUE)
             }
             ## liberos
             if (!is.null(px$ht_libxy)) {
-                p <- p + geom_polygon(data = court_circle(px$ht_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero, colour = "black", na.rm = TRUE) +
+                p <- p + geom_polygon(data = court_circle(px$ht_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black", na.rm = TRUE) +
                     geom_text(data = px$ht_libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
                     geom_text(data = px$ht_libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5, na.rm = TRUE)
             }
@@ -162,16 +162,16 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5, na.rm = TRUE)
         ## visiting team
         plxy <- cbind(dv_xy(pseq, end = "upper"), vtrot)
-        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "upper"), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight, na.rm = TRUE)
+        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "upper"), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight_colour, na.rm = TRUE)
         if (!beach) {
             ## setter
             vt_setter <- px$vt_setter
             if (!is.null(vt_setter) && sum(vt_setter %eq% plxy$number) == 1) {
-                p <- p + geom_polygon(data = court_circle(cz = which(vt_setter %eq% plxy$number), end = "upper"), fill = styling$v_court_highlight, colour = "black", na.rm = TRUE)
+                p <- p + geom_polygon(data = court_circle(cz = which(vt_setter %eq% plxy$number), end = "upper"), fill = styling$v_court_highlight_colour, colour = "black", na.rm = TRUE)
             }
             ## liberos
             if (!is.null(px$vt_libxy)) {
-                p <- p + geom_polygon(data = court_circle(px$vt_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero, colour = "black", na.rm = TRUE) +
+                p <- p + geom_polygon(data = court_circle(px$vt_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black", na.rm = TRUE) +
                     geom_text(data = px$vt_libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
                     geom_text(data = px$vt_libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5, na.rm = TRUE)
             }

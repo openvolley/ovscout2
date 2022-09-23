@@ -3,7 +3,7 @@ mod_playslist_ui <- function(id, height = "40vh", styling) {
     tagList(
         tags$head(tags$style(paste0(".pl2_fixhdr thead th { position: -webkit-sticky; position: sticky; top: 0; z-index: 2; background-color: #CCC;}",
                            ".pl2-tc {height:", height, "; overflow:hidden} .pl2-tc-inner { overflow-x:hidden; overflow-y:auto; height:100% }",
-                           ".", ns("selected"), " {background-color:", if (!missing(styling) && !is.null(styling$playslist_highlight)) styling$playslist_highlight else "orange", ";}"))),
+                           ".", ns("selected"), " {background-color:", if (!missing(styling) && !is.null(styling$playslist_highlight_colour)) styling$playslist_highlight_colour else "orange", ";}"))),
         tags$div(class = "pl2-tc", tags$div(class = "pl2-tc-inner", id = ns("tbl"), uiOutput(ns("pl")))),
         tags$script(HTML(paste0("document.querySelector('#", ns("tbl"), "').addEventListener('click', function(event) { Shiny.setInputValue('", ns("clicked"), "', event.target.parentNode.rowIndex) });"))) ## click listener
     )

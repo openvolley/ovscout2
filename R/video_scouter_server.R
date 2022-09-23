@@ -970,12 +970,15 @@ ov_scouter_server <- function(app_data) {
         ## rally_codes is a reactive that returns a tibble with columns team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, t, start_x, start_y, end_x, end_y
         ## rally_codes are the actions in the current rally
 
+        ## modal things
+        ## styling
+        scout_modal_width <- 100 - app_data$styling$review_pane_width
         ## keep track of whether we have a modal up or not, so that pause behaviour can be modified
         scout_modal_active <- reactiveVal(FALSE)
-        show_scout_modal <- function(...) {
+        show_scout_modal <- function(mui, with_review_pane = TRUE) {
             scout_modal_active(TRUE)
-            showModal(...)
-            if (isTRUE(prefs$review_pane)) show_review_pane()
+            showModal(mui)
+            if (with_review_pane && isTRUE(prefs$review_pane)) show_review_pane()
         }
         remove_scout_modal <- function() {
             scout_modal_active(FALSE)
@@ -984,7 +987,8 @@ ov_scouter_server <- function(app_data) {
             if (isTRUE(prefs$review_pane)) hide_review_pane()
         }
         mcols <- reactive({
-            if (isTRUE(prefs$review_pane) || isTRUE(app_data$extra_ball_tracking)) 8L else 12L
+            ##if (isTRUE(prefs$review_pane) || isTRUE(app_data$extra_ball_tracking)) 8L else 12L
+            12L
         })
 
         fatradio_class_uuids <- reactiveValues()
@@ -1084,7 +1088,7 @@ ov_scouter_server <- function(app_data) {
                     serve_error_type_buttons <- make_fat_radio_buttons(choices = c("In net" = "=N", "Foot fault/referee call" = "=Z", "Out long" = "=O", "Out left" = "=L", "Out right" = "=R"), selected = if (!is.na(guess_was_err)) guess_was_err else NA, input_var = "serve_error_type", as_radio = "blankable")
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "pass_player")
                     accept_fun("do_assign_serve_outcome")
-                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = scout_modal_width, modal_halign = "left",
                                                    tags$p(tags$strong("Serve type:")),
                                                    do.call(fixedRow, lapply(serve_type_buttons, function(but) column(if (mcols() / length(serve_type_buttons) >= 2) 2 else 1, but))),
                                                    tags$hr(),
@@ -1153,7 +1157,7 @@ ov_scouter_server <- function(app_data) {
                         do_video("play")
                     } else {
                         accept_fun("do_assign_c2")
-                        show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
+                        show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = scout_modal_width, modal_halign = "left",
                                                        do.call(fixedRow, c(list(column(2, tags$strong("Reception quality"))), lapply(c2_pq_buttons, function(but) column(1, but)))),
                                                        tags$br(), tags$hr(),
                                                        tags$p(tags$strong("Second contact:")),
@@ -1251,7 +1255,7 @@ ov_scouter_server <- function(app_data) {
                     opp <- c(opp, Unknown = "Unknown")
                     opp_player_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c3_opp_player")
                     accept_fun("do_assign_c3")
-                    show_scout_modal(vwModalDialog(title = "Details: attack or freeball over", footer = NULL, width = 100,
+                    show_scout_modal(vwModalDialog(title = "Details: attack or freeball over", footer = NULL, width = scout_modal_width, modal_halign = "left",
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
                                                                 if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))))),
                                             tags$br(),
@@ -1366,7 +1370,7 @@ ov_scouter_server <- function(app_data) {
                         do_video("play")
                     }  else {
                         accept_fun("do_assign_c1")
-                        show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
+                        show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = scout_modal_width, modal_halign = "left",
                                                        tags$p(tags$strong("Attack outcome:")),
                                                        do.call(fixedRow, lapply(c1_buttons[1:3], function(but) column(2, but))),
                                                        tags$br(), tags$div(id = "ae_ui", style = "display:none;", do.call(fixedRow, lapply(ae_buttons, function(but) column(1, but)))),
@@ -1411,7 +1415,7 @@ ov_scouter_server <- function(app_data) {
                     digp <- c(digp, Unknown = "Unknown")
                     dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "f1_def_player")
                     accept_fun("do_assign_f1")
-                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = 100,
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = scout_modal_width, modal_halign = "left",
                                             tags$p(tags$strong("Freeball outcome:")),
                                             do.call(fixedRow, lapply(f1_buttons, function(but) column(2, but))),
                                             tags$br(), tags$hr(),
@@ -1455,7 +1459,7 @@ ov_scouter_server <- function(app_data) {
                                 tags$hr(),
                                 fixedRow(column(2, actionButton("end_of_set_cancel", "Cancel", class = "cancel fatradio")),
                                          column(2, offset = 8, actionButton("end_of_set_confirm", "Confirm", class = "continue fatradio")))
-                                ))
+                                ), with_review_pane = FALSE)
                 do_video("pause")
                 rally_state("confirm end of set")
             }

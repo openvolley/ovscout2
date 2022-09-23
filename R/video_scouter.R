@@ -13,6 +13,7 @@
 #' @param review_pane logical: if `TRUE`, entry popups will be accompanied by a small video pane that shows a loop of the video of the action in question
 #' @param shortcuts list: named list of keyboard shortcuts, as returned by [ov_default_shortcuts()]
 #' @param scouting_options list: a named list with entries as per [ov_scouting_options()]
+#' @param app_styling list: named list of styling options, as returned by [ov_app_styling()]
 #' @param scout_name string: the name of the scout (your name)
 #' @param show_courtref logical: if `TRUE`, show the court reference lines overlaid on the video
 #' @param host string: the IP address of this machine. Only required if you intend to connect to the app from a different machine (in which case use `ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)`, where www.xxx.yyy.zzz is the IP address of this machine, i.e. the machine running the app)
@@ -26,7 +27,7 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouting_options(), shortcuts = ov_default_shortcuts(), scout_name = "", show_courtref = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, review_pane = TRUE, playlist_display_option = "dv_codes", scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), shortcuts = ov_default_shortcuts(), scout_name = "", show_courtref = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     assert_that(is.string(scout_name))
     assert_that(is.flag(show_courtref), !is.na(show_courtref))
@@ -378,18 +379,11 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         stop("both the plays and plays2 components of x are non-empty, so I'm not sure which to use")
     }
     ## styling
-    ## note that colours here need to be hex strings or names, but names must be recognized both by R and as CSS colour names
-    app_data$styling <- list(h_court_colour = "#BFEFFF", ## lightblue1
-                             h_court_highlight = "#43AFD3",
-                             v_court_colour = "#BCEE68", ## darkolivegreen2
-                             v_court_highlight = "#5D8022",
-                             court_lines_colour = "#0000CC",
-                             continue = "#10C424", continue_light = "#60FC71",
-                             cancel = "#D41024", cancel_light = "#DF5463",
-                             undo = "#EB6927", undo_light = "#F9AC50",
-                             libero = "yellow", libero_light = "#FFFF70", libero_dark = "#FFCD4C",
-                             setter = "grey90",
-                             playslist_highlight = "orange")
+    def_app_styling <- ov_app_styling()
+    for (nm in names(def_app_styling)) {
+        if (!nm %in% names(app_styling)) app_styling[[nm]] <- def_app_styling[[nm]]
+    }
+    app_data$styling <- app_styling
     ## dir for reports
     if ("reports_dir" %in% names(other_args)) {
         if (!dir.exists(other_args$reports_dir)) stop("reports_dir does not exist")
@@ -445,6 +439,30 @@ ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, def
     list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, attacks_by = attacks_by, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code, default_scouting_table = default_scouting_table, compound_table = compound_table)
 }
 
+
+#' Styling to apply to the app
+#'
+#' Colours can be either hex strings or names, but if using names they must be recognized both by R and as CSS colour names.
+#' @details
+#' * `review_pane_width` is expressed as a percentage of the browser window width
+#'
+#' @return A named list of styling parameters
+#'
+#' @export
+ov_app_styling <- function() {
+    list(h_court_colour = "#BFEFFF", ## lightblue1
+         h_court_highlight_colour = "#43AFD3",
+         v_court_colour = "#BCEE68", ## darkolivegreen2
+         v_court_highlight_colour = "#5D8022",
+         court_lines_colour = "#0000CC",
+         continue_colour = "#10C424", continue_light_colour = "#60FC71",
+         cancel_colour = "#D41024", cancel_light_colour = "#DF5463",
+         undo_colour = "#EB6927", undo_light_colour = "#F9AC50",
+         libero_colour = "yellow", libero_light_colour = "#FFFF70", libero_dark_colour = "#FFCD4C",
+         playslist_highlight_colour = "orange",
+         button_font_size = "11px",
+         review_pane_width = 30)
+}
 
 ov_scouter_demo <- function(...) {
     video_file <- ovdata::ovdata_example_video("190301_kats_beds")

@@ -15,6 +15,7 @@ ov_scouter(
   review_pane = TRUE,
   playlist_display_option = "dv_codes",
   scouting_options = ov_scouting_options(),
+  app_styling = ov_app_styling(),
   shortcuts = ov_default_shortcuts(),
   scout_name = "",
   show_courtref = FALSE,
@@ -44,6 +45,8 @@ ov_scouter(
 \item{playlist_display_option}{string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)}
 
 \item{scouting_options}{list: a named list with entries as per \code{\link[=ov_scouting_options]{ov_scouting_options()}}}
+
+\item{app_styling}{list: named list of styling options, as returned by \code{\link[=ov_app_styling]{ov_app_styling()}}}
 
 \item{shortcuts}{list: named list of keyboard shortcuts, as returned by \code{\link[=ov_default_shortcuts]{ov_default_shortcuts()}}}
 
