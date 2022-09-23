@@ -52,7 +52,7 @@ var2fc <- function(x) {
 ## }
 ##
 ## @export
-vwModalDialog <- function(..., width = 90) {
+vwModalDialog <- function(..., width = 90, modal_halign = "center") {
     rgs <- list(...)
     rgs$size <- "l"
     md <- do.call(shiny::modalDialog, rgs)
@@ -60,7 +60,7 @@ vwModalDialog <- function(..., width = 90) {
     rcc <- function(z) {
         if (is.list(z) && "class" %in% names(z)) {
             idx <- which(names(z) %eq% "class")
-            if (any(z[idx] %eq% "modal-lg")) z <- c(list(style = paste0("width: ", width, "vw;")), z)
+            if (any(z[idx] %eq% "modal-lg")) z <- c(list(style = paste0("width: ", width, "vw;", if (modal_halign == "left") "margin-left:0" else if (modal_halign == "right") "margin-right:0")), z)
             ## note, could left-align by inserting margin-left:0 or ditto right-align
         }
         ## call recursively on list children
