@@ -1454,12 +1454,12 @@ ov_scouter_server <- function(app_data) {
                           }
             if (end_of_set) {
                 show_scout_modal(
-                    modalDialog(title = "End of set", easyClose = FALSE, footer = NULL,
-                                paste0("Confirm end of set ", game_state$set_number, "?"),
-                                tags$hr(),
-                                fixedRow(column(2, actionButton("end_of_set_cancel", "Cancel", class = "cancel fatradio")),
-                                         column(2, offset = 8, actionButton("end_of_set_confirm", "Confirm", class = "continue fatradio")))
-                                ), with_review_pane = FALSE)
+                    vwModalDialog(title = "End of set", footer = NULL, width = scout_modal_width, modal_halign = "left",
+                                  paste0("Confirm end of set ", game_state$set_number, "?"),
+                                  tags$hr(),
+                                  fixedRow(column(2, actionButton("end_of_set_cancel", "Cancel", class = "cancel fatradio")),
+                                           column(2, offset = 8, actionButton("end_of_set_confirm", "Confirm", class = "continue fatradio")))
+                                  ), with_review_pane = FALSE)
                 do_video("pause")
                 rally_state("confirm end of set")
             }
