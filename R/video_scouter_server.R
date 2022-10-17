@@ -2283,10 +2283,10 @@ ov_scouter_server <- function(app_data) {
                                              column(6, tags$strong(datavolley::visiting_team(rdata$dvw), "(visiting)"))),
                                     fluidRow(column(2, make_fat_buttons(choices = c("Won current rally" = "*p"), input_var = "manual_code")),
                                              column(2, make_fat_buttons(choices = c(Timeout = "*T"), input_var = "manual_code")),
-                                             column(2, if (ht_can_sub) make_fat_buttons(choices = c(Substitution = "*C"), input_var = "substitution")),
+                                             column(2, if (ht_can_sub) make_fat_buttons(choices = c(Substitution = "*c"), input_var = "substitution")),
                                              column(2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "manual_code")),
                                              column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "manual_code")),
-                                             column(2, if (vt_can_sub) make_fat_buttons(choices = c(Substitution = "aC"), input_var = "substitution"))),
+                                             column(2, if (vt_can_sub) make_fat_buttons(choices = c(Substitution = "ac"), input_var = "substitution"))),
                                     tags$br(),
                                     fluidRow(column(2, make_fat_buttons(choices = c("Change setter" = "*P"), input_var = "change_setter")),
                                              column(2, offset = 4, make_fat_buttons(choices = c("Change setter" = "aP"), input_var = "change_setter"))),
@@ -2332,7 +2332,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$substitution, {
             if (!is.null(input$substitution)) {
                 ht_sub <- vt_sub <- FALSE
-                if (input$substitution %eq% "*C") {
+                if (input$substitution %eq% "*c") {
                     ## home player sub buttons
                     ht_on <- sort(get_players(game_state, team = "*", dvw = rdata$dvw))
                     names(ht_on) <- player_nums_to(ht_on, team = "*", dvw = rdata$dvw)
@@ -2363,7 +2363,7 @@ ov_scouter_server <- function(app_data) {
                                                              tags$p(tags$strong("Player in")),
                                                              do.call(fixedRow, lapply(vt_sub_in, function(but) column(if (length(vt_other) <= 6) 2 else 1, but)))),
                                         tags$hr(),
-                                        fixedRow(column(2, offset = 8, make_fat_buttons(choices = c("Make substitution" = if (ht_sub) "*C" else "aC"), input_var = "manual_code", class = "continue")),
+                                        fixedRow(column(2, offset = 8, make_fat_buttons(choices = c("Make substitution" = if (ht_sub) "*c" else "ac"), input_var = "manual_code", class = "continue")),
                                                  column(2, actionButton("admin_dismiss", "Cancel", class = "cancel fatradio")))
                                         ))
             }
@@ -2766,9 +2766,9 @@ ov_scouter_server <- function(app_data) {
                 } else if (code %in% c("*p", "ap")) {
                     game_state$point_won_by <- substr(code, 1, 1)
                     rally_ended()
-                } else if (code %in% c("*C", "aC")) {
+                } else if (code %in% c("*c", "ac")) {
                     ## substitution
-                    if (code %eq% "*C") {
+                    if (code %eq% "*c") {
                         p_out <- as.numeric(input$ht_sub_out)
                         p_in <- as.numeric(input$ht_sub_in)
                     } else {
