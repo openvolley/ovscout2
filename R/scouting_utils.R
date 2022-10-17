@@ -501,11 +501,11 @@ create_meta <- function(match, more, teams, players_h, players_v, video_file, at
     if (missing(match)) match <- list()
     assert_that(is.list(match))
     if (is.data.frame(match)) assert_that(nrow(match) == 1)
-    meta$match <- tibble(date = nn_or(match$date, Sys.Date()),
-                         time = nn_or(match$time, time_but_utc()),
-                         season = nn_or(match$season),
-                         league = nn_or(match$league),
-                         phase = nn_or(match$phase),
+    meta$match <- tibble(date = nn_or(match$date, as.Date(NA)),
+                         time = nn_or(match$time, NA),
+                         season = nn_or(match$season, NA_character_),
+                         league = nn_or(match$league, NA_character_),
+                         phase = nn_or(match$phase, NA_character_),
                          home_away = nn_or(match$home_away, NA),
                          day_number = nn_or(match$day_number, NA_integer_),
                          match_number = nn_or(match$match_number, NA_integer_),
@@ -514,7 +514,7 @@ create_meta <- function(match, more, teams, players_h, players_v, video_file, at
                          zones_or_cones = nn_or(match$zones_or_cones, zones_or_cones),
                          X12 = NA)
     if (inherits(meta$match$time, "POSIXt")) meta$match$time <- format(meta$match$time, "%HH %MM %SS")
-    meta$match$time <- tryCatch(lubridate::period(meta$match$time), error = function(e) NA)
+    meta$match$time <- tryCatch(lubridate::period(meta$match$time), error = function(e) lubridate::as.period(NA))
     if (!meta$match$regulation %in% c("indoor sideout", "indoor rally point", "beach rally point")) stop("regulation: '", meta$match$regulation, "' is unrecognized")
 
     ## more
