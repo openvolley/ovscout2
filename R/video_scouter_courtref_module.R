@@ -24,13 +24,14 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
     active <- reactiveVal(FALSE)
     show_frame_image <- is.null(video_url) ## extract a frame and show that, otherwise show the actual video
     yt <- !show_frame_image && is_youtube_url(video_url)
+    do_get_video_time <- !missing(main_video_time_js) && nzchar(main_video_time_js)
     observeEvent(input$do_scref, {
         ## trigger the crvt data to be re-initialized each time a popup is spawned
         did_sr_popup(did_sr_popup() + 1L)
         js_show2(ns("crholder"))
         active(TRUE)
         ## request video time of current source
-        if (!missing(main_video_time_js) && nzchar(main_video_time_js)) dojs(paste0("Shiny.setInputValue('", ns("cr_main_video_time"), "', ", main_video_time_js, ");"))
+        if (do_get_video_time) dojs(paste0("Shiny.setInputValue('", ns("cr_main_video_time"), "', ", main_video_time_js, ");"))
         showModal(vwModalDialog(title = "Set up court reference", uiOutput(ns("srui")),
                                 footer = fluidRow(column(4, uiOutput(ns("sr_save_ui"))), column(4, uiOutput(ns("sr_save_dialog"))),
                                                   column(1, offset = 2, actionButton(ns("sr_cancel"), "Cancel", class = "fatradio cancel")), column(1, uiOutput(ns("sr_apply_ui"), inline = TRUE))), width = 100))##, min_height = 70))
