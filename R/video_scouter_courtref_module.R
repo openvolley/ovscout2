@@ -1,11 +1,23 @@
-mod_courtref_ui <- function(id, button_label = "Court reference") {
+## the UI element includes the crholder div, which holds the video and/or court image, and (if video) to which the videojs player is attached
+## need to keep this in existence all the time, else the player stops working (if the player is attached to an element in a modal, that gets destroyed when the modal gets closed?)
+mod_courtref_ui <- function(id, yt = FALSE, video_url, button_label = "Court reference") {
     ns <- NS(id)
     jsns <- ns4js(ns)
-    tagList(actionButton(ns("do_scref"), button_label))
+    show_frame_image <- is.null(video_url) ## extract a frame and show that, otherwise show the actual video
+    tagList(actionButton(ns("do_scref"), button_label),
+            tags$div(id = ns("crholder"), style = "position:absolute; width:65vw; left:0; top:38px; z-index:9990; display:none;",
+                     if (!show_frame_image) HTML(paste0("<video id=\"", ns("cr_player"), "\" style=\"width:100%; height:70vh;\" class=\"video-js vjs-has-started\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"loop\": true, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": [{", if (yt) " \"type\": \"video/youtube\", ", "\"src\": \"", video_url, "\"}] }'>\n",
+                                                        "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>")),
+                     plotOutputWithAttribs(ns("srplot"),
+                                           click = ns("sr_plot_click"), hover = shiny::hoverOpts(ns("sr_plot_hover"), delay = 50, delayType = "throttle"), onmouseup = paste0("Shiny.setInputValue('", ns("did_sr_plot_mouseup"), "', new Date().getTime());"), onmousedown = paste0("Shiny.setInputValue('", ns("did_sr_plot_mousedown"), "', new Date().getTime());"), style = "margin-top:-600px; position:relative; z-index:9999;")##,
+                     ),
+            ## instantiate the player
+            if (!show_frame_image) tags$head(tags$script(HTML(paste0("$(document).on('shiny:sessioninitialized', function() { ", jsns("crpl"), " = videojs('", ns("cr_player"), "'); ", jsns("crpl"), ".ready(function() {", "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());", "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());", create_resize_observer(ns("cr_player"), fun = paste0("console.log('resizing'); ", "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());", "Shiny.setInputValue('", ns("cr_height"), "', ", jsns("crpl"), ".currentHeight());", "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());", "var voff = $('#", ns("cr_player"), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"), nsfun = jsns), "}); ", "console.dir(", jsns("crpl"), "); });"))))
+            )
 }
-## for video, also need ovideo::ov_video_js(youtube = yt, version = 2), here, but it's already in the outer UI
 
-mod_courtref <- function(input, output, session, video_file = NULL, video_url = NULL, detection_ref, include_net = FALSE, styling) {
+## main_video_time_js is a string giving the js command needed to retrieve the current time of the main video
+mod_courtref <- function(input, output, session, video_file = NULL, video_url = NULL, detection_ref, include_net = FALSE, styling, main_video_time_js) {
     ns <- session$ns
     jsns <- ns4js(ns)
     did_sr_popup <- reactiveVal(0L)
@@ -15,13 +27,23 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
     observeEvent(input$do_scref, {
         ## trigger the crvt data to be re-initialized each time a popup is spawned
         did_sr_popup(did_sr_popup() + 1L)
+        js_show2(ns("crholder"))
         active(TRUE)
+        ## request video time of current source
+        if (!missing(main_video_time_js) && nzchar(main_video_time_js)) dojs(paste0("Shiny.setInputValue('", ns("cr_main_video_time"), "', ", main_video_time_js, ");"))
         showModal(vwModalDialog(title = "Set up court reference", uiOutput(ns("srui")),
                                 footer = fluidRow(column(4, uiOutput(ns("sr_save_ui"))), column(4, uiOutput(ns("sr_save_dialog"))),
-                                                  column(1, offset = 2, actionButton(ns("sr_cancel"), "Cancel", class = "fatradio cancel")), column(1, uiOutput(ns("sr_apply_ui"), inline = TRUE))), width = 100))
+                                                  column(1, offset = 2, actionButton(ns("sr_cancel"), "Cancel", class = "fatradio cancel")), column(1, uiOutput(ns("sr_apply_ui"), inline = TRUE))), width = 100))##, min_height = 70))
+    })
+
+    observeEvent(input$cr_main_video_time, {
+        cat("main video time is: ", input$cr_main_video_time, "\n")
+        dojs(paste0(jsns("crpl"), ".currentTime(", input$cr_main_video_time, ");"))
     })
 
     observeEvent(input$sr_cancel, {
+        dojs(paste0(jsns("crpl"), ".stop();"))
+        js_hide2(ns("crholder"))
         active(FALSE)
         removeModal()
     })
@@ -80,17 +102,15 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
         temp$video_width <- crimg()$width
         temp$video_height <- crimg()$height
         detection_ref(temp)
+        dojs(paste0(jsns("crpl"), ".stop();"))
+        js_hide2(ns("crholder"))
         removeModal()
     })
 
     output$srui <- renderUI({
-        fluidRow(column(8,
-                        if (!show_frame_image) {
-                            HTML(paste0("<video id=\"", ns("cr_player"), "\" style=\"width:100%; height:70vh;\" class=\"video-js\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": false, \"autoplay\": true, \"loop\": true, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": [{", if (yt) " \"type\": \"video/youtube\", ", "\"src\": \"", video_url, "\"}] }'>\n",
-                                        "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>"))
-                        },
-                        plotOutputWithAttribs(ns("srplot"),
-                                              click = ns("sr_plot_click"), hover = shiny::hoverOpts(ns("sr_plot_hover"), delay = 50, delayType = "throttle"), onmouseup = paste0("Shiny.setInputValue('", ns("did_sr_plot_mouseup"), "', new Date().getTime());"), onmousedown = paste0("Shiny.setInputValue('", ns("did_sr_plot_mousedown"), "', new Date().getTime());"), style = "margin-top:-600px; position:relative; z-index:9999;")),
+        blah <- did_sr_popup()
+        cat("rendering srui\n")
+        fluidRow(column(8, tags$div(style = "min-height:68vh;")), ## strut to ensure height of modal, to keep modal background showing behind video
                  column(4, uiOutput(ns("srui_table")),
                         tags$hr(),
                         shiny::fixedRow(column(6, textInput(ns("sr_net_height"), label = "Net height (m):", value = if (!is.null(detection_ref()) && !is.null(detection_ref()$net_height) && !is.na(detection_ref()$net_height)) detection_ref()$net_height else "", width = "10ex")),
@@ -207,14 +227,15 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
                        NULL
                    }
             if (!show_frame_image) {
-                myjs <- paste0(jsns("crpl"), " = videojs('", ns("cr_player"), "'); ", jsns("crpl"), ".ready(function() {",
-                            "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());",
-                            "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());",
-                            create_resize_observer(ns("cr_player"), fun = paste0("console.log('resizing'); ",
-                                                                                 "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());",
-                                                                                 "Shiny.setInputValue('", ns("cr_height"), "', ", jsns("crpl"), ".currentHeight());",
-                                                                                 "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());",
-                                                                                 "var voff = $('#", ns("cr_player"), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"
+                crplvar <- jsns(paste0("crpl", did_sr_popup()))
+                myjs <- paste0(crplvar, " = videojs('", jsns(paste0("cr_player_", did_sr_popup())), "'); ", crplvar, ".ready(function() {",
+                            "Shiny.setInputValue('", ns("cr_media_height"), "', ", crplvar, ".videoHeight());",
+                            "Shiny.setInputValue('", ns("cr_media_width"), "', ", crplvar, ".videoWidth());",
+                            create_resize_observer(jsns(paste0("cr_player_", did_sr_popup())), fun = paste0("console.log('resizing'); ",
+                                                                                 "Shiny.setInputValue('", ns("cr_media_height"), "', ", crplvar, ".videoHeight());",
+                                                                                 "Shiny.setInputValue('", ns("cr_height"), "', ", crplvar, ".currentHeight());",
+                                                                                 "Shiny.setInputValue('", ns("cr_media_width"), "', ", crplvar, ".videoWidth());",
+                                                                                 "var voff = $('#", jsns(paste0("cr_player_", did_sr_popup())), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"
                                                                                  ), nsfun = jsns), "});")
                 dojs(myjs)
             }

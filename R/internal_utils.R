@@ -60,8 +60,7 @@ vwModalDialog <- function(..., width = 90, modal_halign = "center") {
     rcc <- function(z) {
         if (is.list(z) && "class" %in% names(z)) {
             idx <- which(names(z) %eq% "class")
-            if (any(z[idx] %eq% "modal-lg")) z <- c(list(style = paste0("width: ", width, "vw;", if (modal_halign == "left") "margin-left:0" else if (modal_halign == "right") "margin-right:0")), z)
-            ## note, could left-align by inserting margin-left:0 or ditto right-align
+            if (any(z[idx] %eq% "modal-lg")) z <- c(list(style = paste0("width: ", width, "vw;", if (modal_halign == "left") "margin-left:0;" else if (modal_halign == "right") "margin-right:0;")), z)
         }
         ## call recursively on list children
         list_child_idx <- vapply(z, is.list, FUN.VALUE = TRUE)
@@ -181,4 +180,10 @@ get_port <- function(port = NULL, port_range = c(3000L, 8000L), host = "127.0.0.
         }
     }
     port
+}
+
+create_resize_observer <- function(id_to_obs, fun, nsfun) {
+    obsfun <- nsfun("rsz_obs") ## name of the observer function
+    ## if the observer function has not yet been defined, and the element to observe exists, then create the observer function
+    paste0("if (typeof ", obsfun, " === 'undefined' && document.getElementById('", id_to_obs, "')) { ", obsfun, " = new ResizeObserver(() => { ", fun, " }); ", obsfun, ".observe(document.getElementById('", id_to_obs, "')); }")
 }

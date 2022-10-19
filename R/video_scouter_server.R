@@ -212,9 +212,9 @@ ov_scouter_server <- function(app_data) {
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata)
         detection_ref1 <- reactiveVal({ if (!is.null(app_data$court_ref)) app_data$court_ref else NULL })
         ## for the court reference modules, pass the video file as well as the URL. Video will be shown, but the metadata can be stored/retrieved from the file
-        courtref1 <- callModule(mod_courtref, id = "courtref1", video_file = if (!is_url(app_data$video_src)) app_data$video_src else NULL, video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), detection_ref = detection_ref1, styling = app_data$styling)
+        courtref1 <- callModule(mod_courtref, id = "courtref1", video_file = if (!is_url(app_data$video_src)) app_data$video_src else NULL, video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), detection_ref = detection_ref1, main_video_time_js = "vidplayer.currentTime()", styling = app_data$styling)
         detection_ref2 <- reactiveVal({ if (!is.null(app_data$court_ref2)) app_data$court_ref2 else NULL })
-        courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", video_file = if (!is_url(app_data$video_src2)) app_data$video_src2 else NULL, video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), detection_ref = detection_ref2, styling = app_data$styling) else NULL
+        courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", video_file = if (!is_url(app_data$video_src2)) app_data$video_src2 else NULL, video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), detection_ref = detection_ref2, main_video_time_js = "vidplayer.currentTime()", styling = app_data$styling) else NULL
         detection_ref <- reactive(if (current_video_src() < 2) detection_ref1() else detection_ref2()) ## whichever is associated with the current view
         courtref <- reactiveValues(active = FALSE)
         observe({
@@ -655,6 +655,8 @@ ov_scouter_server <- function(app_data) {
                             if (isTRUE(scout_modal_active())) {
                                 ## if we have a scouting modal showing, treat this as cancel and rewind
                                 do_cancel_rew()
+                            } else if (courtref$active()) {
+                                ## do nothing
                             } else if (is.null(editing$active) || !editing$active %in% "teams") {
                                 do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
                                 editing$active <- NULL

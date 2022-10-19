@@ -1,7 +1,7 @@
 ov_scouter_ui <- function(app_data) {
     ## some startup stuff
     running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
-    yt <- isTRUE(is_youtube_url(app_data$video_src))
+    yt <- isTRUE(is_youtube_url(app_data$video_src)) || isTRUE(!is.null(app_data$video_src2) && is_youtube_url(app_data$video_src2))
     fluidPage(theme = shinythemes::shinytheme("lumen"),
               htmltools::findDependencies(shiny::selectizeInput("foo", "bar", choices = "a")), ## workaround for https://github.com/rstudio/shiny/issues/3125
               tags$script("Shiny.addCustomMessageHandler('evaljs', function(jsexpr) { eval(jsexpr) });"), ## handler for running js code directly
@@ -59,9 +59,9 @@ $(document).on('shiny:sessioninitialized', function() {
                                           tags$hr(),
                                           introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
                                               if (!is.null(app_data$video_src2)) {
-                                                  tags$div(style = "display:inline-block;", shinyWidgets::dropdown(inputId = "video_setup", label = "Video setup", mod_courtref_ui(id = "courtref1"), mod_courtref_ui(id = "courtref2", button_label = HTML("Court reference<br />(video 2)")), actionButton("v2_offset", "Video time offset")))
+                                                  tags$div(style = "display:inline-block;", shinyWidgets::dropdown(inputId = "video_setup", label = "Video setup", mod_courtref_ui(id = "courtref1", yt = isTRUE(is_youtube_url(app_data$video_src)), video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src))), mod_courtref_ui(id = "courtref2", yt = is_youtube_url(app_data$video_src2), video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), button_label = HTML("Court reference<br />(video 2)")), actionButton("v2_offset", "Video time offset")))
                                               } else {
-                                                  mod_courtref_ui(id = "courtref1")
+                                                  mod_courtref_ui(id = "courtref1", yt = isTRUE(is_youtube_url(app_data$video_src)), video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)))
                                               },
                                               mod_match_data_edit_ui(id = "match_data_editor"),
                                               mod_team_select_ui(id = "team_selector"),
@@ -90,10 +90,11 @@ $(document).on('shiny:sessioninitialized', function() {
                               if (app_data$with_video)
                                   introBox(tags$div(id = "video_holder", style = "position:relative;",
                                                     if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc")),
-                                                    HTML(paste0("<video id=\"main_video\" style=\"width:100%; height:85vh;\" class=\"video-js\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": ", if (yt) paste0("[{ \"type\": \"video/youtube\", \"src\": \"", app_data$video_src, "\"}]") else paste0("[{ \"src\": \"", if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), "\"}]"), " }'>\n",
+                                                    HTML(paste0("<video id=\"main_video\" style=\"width:100%; height:85vh;\" class=\"video-js vjs-has-started\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"inactivityTimeout\": 0, \"sources\": ", if (yt) paste0("[{ \"type\": \"video/youtube\", \"src\": \"", app_data$video_src, "\"}]") else paste0("[{ \"src\": \"", if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), "\"}]"), " }'>\n",
                                                                 "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>"))
                                                     ),
                                            tags$img(id = "video_overlay_img", style = "position:absolute;"), plotOutput("video_overlay"), data.step = 3, data.intro = "Video of the game to scout."),
+                              tags$div(style = "height:3.1em;"),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
                               tags$div(style = "height: 14px;"),
                               fluidRow(column(7, wellPanel(introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these."))))
