@@ -1,5 +1,10 @@
 #' Launch a Shiny app for scouting
 #'
+#' @details
+#' A note on `scouting_options`
+#'
+#' If a *.ovs file (i.e. a partially-scouted file, that was previously scouted using this app) has been provided in the `dvw` argument, then it will contain the scouting options used during the previous scouting session. Those options will be re-used EXCEPT if `scouting_options` are also provided here. Any scouting options provided here via the `scouting_options` argument will override options saved in the .ovs file. Thus, it is recommended that `scouting_options` not be provided here along with a .ovs file unless absolutely necessary. If necessary, only the specific, relevant elements of the `scouting_options` list should be provided. Note that *.dvw files do not contain saved options, only .ovs files that were scouted with this app.
+#'
 #' @param dvw string or datavolley: either the path to a dvw or ovs file or a datavolley object (e.g. as returned by [dv_create()]. Passing the file name (not the datavolley object) is required if any extra arguments are passed via `...`. `dvw` can also be an object as saved by `ov_scouter()` in ovs format. If `dvw` is "demo", the app will be started with a demonstration data set
 #' @param video_file string: optionally, the path to the video file. If not supplied (or `NULL`) the video file specified in the dvw file will be used. `video_file` can also be a URL (including a YouTube URL or video ID)
 # @param video_file2 string: optionally, the file path or URL to a second video file (e.g. video from the opposite end of the court to `video_file`). If this is a local file, it must be in the same directory as `video_file`
@@ -12,7 +17,7 @@
 #' @param playlist_display_option string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)
 #' @param review_pane logical: if `TRUE`, entry popups will be accompanied by a small video pane that shows a loop of the video of the action in question
 #' @param shortcuts list: named list of keyboard shortcuts, as returned by [ov_default_shortcuts()]
-#' @param scouting_options list: a named list with entries as per [ov_scouting_options()]
+#' @param scouting_options list: a named list with entries as per [ov_scouting_options()]. See Details, below
 #' @param app_styling list: named list of styling options, as returned by [ov_app_styling()]
 #' @param scout_name string: the name of the scout (your name)
 #' @param show_courtref logical: if `TRUE`, show the court reference lines overlaid on the video
@@ -34,7 +39,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 
     ## user data directory
     ## are we running under shiny server, shiny (locally) or shiny (docker)?
-    run_env <- if (file.exists("/.dockerenv") || suppressWarnings(tryCatch(any(grepl("docker", readLines("/proc/1/cgroup"))), error = function(e) FALSE))) "shiny_docker" else if (nzchar(Sys.getenv("SHINY_PORT"))) "shiny_server" else "shiny_local"
+    run_env <- if (file.exists("/.dockerenv") || (file.exists("/proc/1/cgroup") && isTRUE(any(grepl("docker", readLines("/proc/1/cgroup")))))) "shiny_docker" else if (nzchar(Sys.getenv("SHINY_PORT"))) "shiny_server" else "shiny_local"
 
     user_dir <- if (run_env %eq% "shiny_local") ovscout2_app_dir() else tempfile()
     if (!dir.exists(user_dir)) tryCatch(dir.create(user_dir, recursive = TRUE), error = function(e) {
@@ -135,9 +140,6 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         if (!inherits(dvw, "datavolley")) stop("dvw should be a datavolley object or the path to a .dvw or .ovs file")
     }
     dvw_filename <- dvw$meta$filename
-    ## make sure we have an attack table, TODO add parm for the default to use here
-    if (is.null(dvw$meta$attacks)) dvw$meta$attacks <- ov_simplified_attack_table()
-
 
     ## deal with video_file parm
     if (is.null(dvw$meta$video)) dvw$meta$video <- tibble(camera = character(), file = character())
@@ -220,12 +222,17 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         for (nm in names(dvw$scouting_options)) opts[[nm]] <- dvw$scouting_options[[nm]]
     }
     ## and finally if the user has specifically provided scouting options, use those
-    if (!missing(scouting_options)) {
+    did_provide_s_opts <- FALSE
+    if (!missing(scouting_options) && length(scouting_options) > 0) {
+        did_provide_s_opts <- TRUE
         for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
     }
     ## same with shortcuts
     scts <- ov_default_shortcuts()
     for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
+
+    ## attack_table in options overrides the one in the file. Also if we have no attack table, we need one
+    if ((did_provide_s_opts && "attack_table" %in% names(scouting_options)) || is.null(dvw$meta$attacks)) dvw$meta$attacks <- opts$attack_table
 
     ## finally the shiny app
     app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, shortcuts = scts, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout_name = scout_name, show_courtref = show_courtref)
@@ -415,11 +422,12 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 #' @param overpass_attack_code string: the attack combination code for an attack on an overpass
 #' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
 #' @param compound_table tibble: the table of compound codes
+#' @param attack_table tibble: table of attack codes (X5, V5, etc) as returned by [ov_default_attack_table()] or [ov_simplified_attack_table()]
 #'
 #' @return A named list
 #'
 #' @export
-ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR", default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table()) {
+ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR", default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), attack_table = ov_simplified_attack_table()) {
     end_convention <- match.arg(end_convention, c("actual", "intended"))
     assert_that(is.flag(nblockers), !is.na(nblockers))
     if (is.null(default_nblockers)) default_nblockers <- NA
@@ -436,7 +444,11 @@ ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, def
                                "Serve", "H", "Float serve",
                                "Serve", "T", "Topspin serve")
     ## or (some) beach conventions are T=jump-float, H=standing; VM use H=float far from the service line and T=float from the service line
-    list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, attacks_by = attacks_by, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code, default_scouting_table = default_scouting_table, compound_table = compound_table)
+    ## TODO check validity of compound_table
+    if (!is.data.frame(attack_table) || !all(c("code", "description", "type", "set_type", "attacker_position", "start_coordinate") %in% names(attack_table)) || nrow(attack_table) < 1) {
+        stop("attack_table does not appear to be valid. It should be a tibble or data.frame as returned by e.g. ov_default_attack_table()")
+    }
+    list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, attacks_by = attacks_by, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code, default_scouting_table = default_scouting_table, compound_table = compound_table, attack_table = attack_table)
 }
 
 

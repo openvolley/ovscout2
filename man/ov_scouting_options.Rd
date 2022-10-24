@@ -15,7 +15,8 @@ ov_scouting_options(
   second_ball_attack_code = "P2",
   overpass_attack_code = "PR",
   default_scouting_table = ov_default_scouting_table(),
-  compound_table = ov_default_compound_table()
+  compound_table = ov_default_compound_table(),
+  attack_table = ov_simplified_attack_table()
 )
 }
 \arguments{
@@ -43,6 +44,8 @@ ov_scouting_options(
 \item{default_scouting_table}{tibble: the table of scouting defaults (skill type and evaluation)}
 
 \item{compound_table}{tibble: the table of compound codes}
+
+\item{attack_table}{tibble: table of attack codes (X5, V5, etc) as returned by \code{\link[=ov_default_attack_table]{ov_default_attack_table()}} or \code{\link[=ov_simplified_attack_table]{ov_simplified_attack_table()}}}
 }
 \value{
 A named list

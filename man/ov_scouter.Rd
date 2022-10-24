@@ -44,7 +44,7 @@ ov_scouter(
 
 \item{playlist_display_option}{string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)}
 
-\item{scouting_options}{list: a named list with entries as per \code{\link[=ov_scouting_options]{ov_scouting_options()}}}
+\item{scouting_options}{list: a named list with entries as per \code{\link[=ov_scouting_options]{ov_scouting_options()}}. See Details, below}
 
 \item{app_styling}{list: named list of styling options, as returned by \code{\link[=ov_app_styling]{ov_app_styling()}}}
 
@@ -64,6 +64,11 @@ ov_scouter(
 }
 \description{
 Launch a Shiny app for scouting
+}
+\details{
+A note on \code{scouting_options}
+
+If a *.ovs file (i.e. a partially-scouted file, that was previously scouted using this app) has been provided in the \code{dvw} argument, then it will contain the scouting options used during the previous scouting session. Those options will be re-used EXCEPT if \code{scouting_options} are also provided here. Any scouting options provided here via the \code{scouting_options} argument will override options saved in the .ovs file. Thus, it is recommended that \code{scouting_options} not be provided here along with a .ovs file unless absolutely necessary. If necessary, only the specific, relevant elements of the \code{scouting_options} list should be provided. Note that *.dvw files do not contain saved options, only .ovs files that were scouted with this app.
 }
 \examples{
 \dontrun{

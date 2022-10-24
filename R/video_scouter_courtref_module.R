@@ -34,7 +34,7 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
         if (do_get_video_time) dojs(paste0("Shiny.setInputValue('", ns("cr_main_video_time"), "', ", main_video_time_js, ");"))
         showModal(vwModalDialog(title = "Set up court reference", uiOutput(ns("srui")),
                                 footer = fluidRow(column(4, uiOutput(ns("sr_save_ui"))), column(4, uiOutput(ns("sr_save_dialog"))),
-                                                  column(1, offset = 2, actionButton(ns("sr_cancel"), "Cancel", class = "fatradio cancel")), column(1, uiOutput(ns("sr_apply_ui"), inline = TRUE))), width = 100))##, min_height = 70))
+                                                  column(1, offset = 2, actionButton(ns("sr_cancel"), "Cancel", class = "fatradio cancel")), column(1, uiOutput(ns("sr_apply_ui"), inline = TRUE))), width = 100))
     })
 
     observeEvent(input$cr_main_video_time, {
