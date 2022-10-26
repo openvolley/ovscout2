@@ -277,7 +277,7 @@ mod_match_data_edit <- function(input, output, session, rdata, editing, styling)
                                   ##column(2, shiny::selectInput("match_edit_regulation", "Regulation:", choices = c("indoor sideout", "indoor rally point", "beach rally point"), selected = rdata$dvw$meta$match$regulation)),
                                   column(4, shiny::selectInput(ns("match_edit_zones_or_cones"), "Zones or cones:", choices = c("C", "Z"), selected = rdata$dvw$meta$match$zones_or_cones))),
                          fluidRow(column(4, textInput(ns("more_edit_scout"), "Scout:", value = rdata$dvw$meta$more$scout)),
-                                column(4, offset = 4, tags$span(style = "font-size:small", "Note: changing cones/zones here will only change the indicator in the file header, it will not convert a file recorded with zones into one recorded with cones, or vice-versa. Don't change this unless you know what you are doing!")))
+                                column(4, offset = 4, tags$span(style = "font-size:small", "Note: changing cones/zones here will only affect the exported dvw file. ovscout2 always uses coordinates and zones/subzones internally. Changing the setting here will not convert a dvw file recorded with zones into one recorded with cones, or vice-versa. Don't change this unless you know what you are doing!")))
                      )
             ))
     })
