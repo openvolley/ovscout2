@@ -414,6 +414,20 @@ dv_write2 <- function(x, file, text_encoding = "UTF-8") {
         ##this[this %eq% "Reception"] <- "r"
         ##xp$attack_phase <- this
 
+        ## ovs files use coordinates as their primary location source, and these are converted to zones/subzones
+        ## if our meta$match$zones_or_cones is "C", i.e. we want cones, then we need to modify the scouted attack code lines now before saving to dvw
+        if (x$meta$match$zones_or_cones %eq% "C") {
+            ## attacks with end positions
+            aidx <- which(nchar(x$plays2$code) > 10 & substr(x$plays2$code, 4, 4) %in% "A" & !is.na(x$plays2$start_coordinate) & !is.na(x$plays2$end_coordinate))
+            if (length(aidx) > 0) {
+                sz <- dv_xy2zone(x$plays2$start_coordinate[aidx]) ## start zone for each attack
+                ec <- as.character(dv_xy2cone(x$plays2$end_coordinate[aidx], start_zones = sz)) ## end cone for each attack, from coord and start zone
+                ec[!ec %in% 1:8] <- "~"
+                if (length(ec) != length(aidx)) ec <- "~" ## just in case we are out of whack
+                ## rebuild code
+                x$plays2$code[aidx] <- sub("~+$", "", paste0(substr(x$plays2$code[aidx], 1, 10), ec, "~", substr(x$plays2$code[aidx], 13, 99)))
+            }
+        }
         ## setter position uses 0 or 5 when unknown
         x$plays2$home_setter_position[is.na(x$plays2$home_setter_position)] <- 5
         x$plays2$visiting_setter_position[is.na(x$plays2$visiting_setter_position)] <- 5
