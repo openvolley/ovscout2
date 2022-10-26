@@ -859,7 +859,6 @@ get_teams_from_dvw_dir <- function(season) {
     ## helper function to read .sq file
     sq2 <- function(fl) {
         tryCatch({
-            stop("fj")
             this <- datavolley::dv_read_sq(fl)
             names(this)[names(this) %eq% "team"] <- "teams"
             this$teams$shirt_colour <- "#000000"
