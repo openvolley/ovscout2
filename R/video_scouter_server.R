@@ -2851,21 +2851,29 @@ ov_scouter_server <- function(app_data) {
 ##            cat(str(reactiveValuesToList(game_state)))
 ##        })
 
-        observeEvent(input$general_help, introjs(session, options = list("nextLabel"="Next", "prevLabel"="Previous", "skipLabel"="Skip")))
+        observeEvent(input$general_help, introjs(session, options = list("nextLabel" = "Next", "prevLabel" = "Previous", "skipLabel" = "Skip")))
         observeEvent(input$show_shortcuts, {
             c_or <- function(...) paste0(..., collapse = " or ")
+            content <- list(tags$li(paste0("[", c_or(app_data$shortcuts$pause), "] pause")),
+                            tags$li(paste0("[", c_or(app_data$shortcuts$pause_no_popup), "] pause (without the admin popup)")),
+                            tags$li(paste0("[", c_or(app_data$shortcuts$go_to_time), "] jump the video to the time of the currently-selected event in the plays table")),
+                            tags$li(paste0("[", c_or(app_data$shortcuts$undo), "] undo last rally action")))
+            if (have_second_video) content <- c(content, list(tags$li(paste0("[", c_or(app_data$shortcuts$switch_video), "] switch video source"))))
+            content <- list(tags$p(tags$strong("General controls")), do.call(tags$ul, content))
+            if (app_data$with_video) {
+                content <- c(content,
+                             list(tags$p(tags$strong("Video controls")),
+                                  tags$ul(
+                                           tags$li(paste0("[", c_or(app_data$shortcuts$video_forward_2), "] forward 2s, [", c_or(app_data$shortcuts$video_forward_10), "] forward 10s, [", c_or(app_data$shortcuts$video_forward_0.1), "] forwards 0.1s, [", c_or(app_data$shortcuts$video_forward_1_30), "] forwards 1 frame")),
+                                           tags$li(paste0("[", c_or(app_data$shortcuts$video_rewind_2), "] backward 2s, [", c_or(app_data$shortcuts$video_rewind_10), "] backward 10s, [", c_or(app_data$shortcuts$video_rewind_0.1), "] backwards 0.1s, [", c_or(app_data$shortcuts$video_rewind_1_30), "] backwards 1 frame")),
+                                           tags$li(paste0("[", c_or(app_data$shortcuts$pause), "] pause video")),
+                                           tags$li(paste0("[", c_or(app_data$shortcuts$go_to_time), "] go to currently-selected event")),
+                                           tags$li(paste0("[", c_or(app_data$shortcuts$switch_video), "] switch videos (if two available)"))
+                                       )))
+            }
             showModal(
                 modalDialog(title = "Keyboard shortcuts", easyClose = TRUE, size = "l",
-                            if (app_data$with_video) {
-                                tagList(tags$p(tags$strong("Video controls")),
-                                        tags$ul(
-                                                 tags$li(paste0("[", c_or(app_data$shortcuts$video_forward_2), "] forward 2s, [", c_or(app_data$shortcuts$video_forward_10), "] forward 10s, [", c_or(app_data$shortcuts$video_forward_0.1), "] forwards 0.1s, [", c_or(app_data$shortcuts$video_forward_1_30), "] forwards 1 frame")),
-                                                 tags$li(paste0("[", c_or(app_data$shortcuts$video_rewind_2), "] backward 2s, [", c_or(app_data$shortcuts$video_rewind_10), "] backward 10s, [", c_or(app_data$shortcuts$video_rewind_0.1), "] backwards 0.1s, [", c_or(app_data$shortcuts$video_rewind_1_30), "] backwards 1 frame")),
-                                                 tags$li(paste0("[", c_or(app_data$shortcuts$pause), "] pause video")),
-                                                 tags$li(paste0("[", c_or(app_data$shortcuts$go_to_time), "] go to currently-selected event")),
-                                                 tags$li(paste0("[", c_or(app_data$shortcuts$switch_video), "] switch videos (if two available)"))
-                                             ))
-                            },
+                            do.call(tagList, content)
                             ## none of these are relevant yet
                             ##fluidRow(column(6, tags$strong("Keyboard controls"),
                             ##         tags$ul(tags$li("[r or 5] sync selected event video time"),
