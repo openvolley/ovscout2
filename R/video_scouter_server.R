@@ -555,9 +555,7 @@ ov_scouter_server <- function(app_data) {
                         do_video("play")
                     } else if (editing$active %eq% "admin") {
                         ## otherwise, and only if we have the admin modal showing, dismiss it and unpause
-                        editing$active <- NULL
-                        removeModal()
-                        do_video("play")
+                        dismiss_admin_modal()
                     }
                 } else {
                     ## not paused, so pause and show admin modal
@@ -2297,12 +2295,13 @@ ov_scouter_server <- function(app_data) {
                                     fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Return to scouting", class = "continue fatradio")))
                                     ))
         }
-        observeEvent(input$admin_dismiss, {
+        dismiss_admin_modal <- function() {
             ## dismiss the admin modal and unpause the video
             editing$active <- NULL
             removeModal()
             do_video("play")
-        })
+        }
+        observeEvent(input$admin_dismiss, dismiss_admin_modal())
 
         observeEvent(input$change_setter, {
             if (!is.null(input$change_setter)) {
@@ -2514,8 +2513,7 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$undo, {
             do_undo()
-            removeModal()
-            do_video("play")
+            dismiss_admin_modal()
         })
 
         do_undo <- function() {
