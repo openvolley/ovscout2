@@ -63,16 +63,13 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
         scores_end_of_point <- c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point) + as.integer(c(game_state$point_won_by == "*", game_state$point_won_by == "a"))
         pcode <- paste0(game_state$point_won_by, "p", sprintf("%02d:%02d", scores_end_of_point[1], scores_end_of_point[2]))
         codes <- make_auto_codes(c(codes, pcode), dvw)
-        if (length(start_coord) > 1 || !is.na(start_coord)) {
-            ## we've added entries to code, so we need to add dummy (NA) coord and video time values as well
-            n_extra <- length(codes) - nrow(rally_codes)
-            start_coord <- c(start_coord, rep(NA_integer_, n_extra))
-            mid_coord <- c(mid_coord, rep(NA_integer_, n_extra))
-            end_coord <- c(end_coord, rep(NA_integer_, n_extra))
-            vt <- c(vt, rep(NA_real_, n_extra))
-            phase <- c(phase, rep(NA_character_, n_extra))
-            rcv <- c(rcv, vector("list", n_extra))
-        }
+        ## if we've added entries to code, add dummy (NA) coord and video times
+        if ((length(codes) - length(start_coord)) > 0) start_coord <- c(start_coord, rep(NA_integer_, length(codes) - length(start_coord)))
+        if ((length(codes) - length(mid_coord)) > 0) mid_coord <- c(mid_coord, rep(NA_integer_, length(codes) - length(mid_coord)))
+        if ((length(codes) - length(end_coord)) > 0) end_coord <- c(end_coord, rep(NA_integer_, length(codes) - length(end_coord)))
+        if ((length(codes) - length(vt)) > 0) vt <- c(vt, rep(NA_real_, length(codes) - length(vt)))
+        if ((length(codes) - length(phase)) > 0) phase <- c(phase, rep(NA_character_, length(codes) - length(phase)))
+        if ((length(codes) - length(rcv)) > 0) rcv <- c(rcv, vector("list", length(codes) - length(rcv)))
     }
     out <- tibble(code = codes, ## col 1
                   point_phase = NA_character_, ## col 2
