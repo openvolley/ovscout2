@@ -1,6 +1,6 @@
 `%eq%` <- function (x, y) x == y & !is.na(x) & !is.na(y)
 
-is_nnn <- function(z) is.null(z) || is.na(z) || !nzchar(z)
+is_nnn <- function(z) length(z) < 1 || (length(z) == 1 && (is.na(z) || (z %eq% "none")))
 nn_or <- function(z, or = "") if (is.null(z)) or else z
 
 most_common_value <- function(x, na.rm = FALSE) {

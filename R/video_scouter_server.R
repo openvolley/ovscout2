@@ -874,7 +874,7 @@ ov_scouter_server <- function(app_data) {
 
         courtxy <- reactiveVal(list(x = NA_real_, y = NA_real_)) ## keeps track of click locations (in court x, y space)
         loop_trigger <- reactiveVal(0L)
-        observeEvent(input$video_click, {
+        observeEvent(input$video_click, priority = 99, {
             ## when video clicked, get the corresponding video time and trigger the loop
             flash_screen() ## visual indicator that click has registered
             ## calculate the normalized x,y coords
@@ -1020,7 +1020,7 @@ ov_scouter_server <- function(app_data) {
 
         accept_fun <- reactiveVal(NULL) ## use this to determine what function should be run when the "Continue" button on a modal is clicked, or the enter key is used to shortcut it
         ## single click the video to register a tag location, or starting ball coordinates
-        observeEvent(loop_trigger(), {
+        observeEvent(loop_trigger(), priority = 99, {
             if (loop_trigger() > 0 && rally_state() != "fix required information before scouting can begin") {
                 if (rally_state() == "click or unpause the video to start") {
                     if (meta_is_valid()) {
