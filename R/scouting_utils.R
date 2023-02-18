@@ -332,7 +332,7 @@ update_meta <- function(x, set_ended = FALSE) {
                     sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
                 }
             }
-            iss <- if (is_beach) c(5, 10, 15) else if (si == 5) c(5, 10, 12) else c(8, 16, 21) ## intermediate score levels
+            iss <- if (is_beach) c(5, 10, 15) else if (si >= 5) c(5, 10, 12) else c(8, 16, 21) ## intermediate score levels
             for (issi in seq_along(iss)) {
                 idx <- which(set_plays2$home_score_start_of_point == iss[issi] | set_plays2$visiting_score_start_of_point == iss[issi])
                 if (length(idx) > 0) {
