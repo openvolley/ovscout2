@@ -18,7 +18,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                                    "Advanced code", "Start zone", "ac_sz", 10, as.character(c(1:9)),                 # 8
                                    "Advanced code", "End zone / Cone", "ac_ez", 11, as.character(c(1:9)),            # 9
                                    "Advanced code", "End subzone", "ac_es", 12, c("A", "B", "C", "D"),               # 10
-                                   "Extended code", "Skill type", "ec_st", 13, list(c("H", "P", "T"),  # Attack
+                                   "Extended code", "Skill type", "ec_st", 13, list(c("H", "P", "T"),  # Attack      # 11
                                                                                     c("A","T"), # Block
                                                                                     c("L", "R", "W", "O", "M"), # Reception
                                                                                     as.character(c(1:5)), # Set
@@ -58,8 +58,8 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                 value_list <- dplyr::case_when(new_code[4] == "A" ~syntax_table$value_list[[i]][1],
                                               new_code[4] == "B" ~syntax_table$value_list[[i]][2],
                                               new_code[4] == "R" ~syntax_table$value_list[[i]][3],
-                                              new_code[4] == "S" ~syntax_table$value_list[[i]][4],
-                                              new_code[4] == "D" ~syntax_table$value_list[[i]][5], 
+                                              new_code[4] == "E" ~syntax_table$value_list[[i]][4],
+                                              new_code[4] == "D" ~syntax_table$value_list[[i]][5],
                                               TRUE ~ syntax_table$value_list[[i]][5])[[1]]
                 c_tmp <- str_sub(cc_tmp, 1, length(syntax_table$range[[i]]))
                 tmp <- str_match(c_tmp, value_list)
@@ -76,9 +76,10 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                                               new_code[4] == "B" ~syntax_table$value_list[[i]][2],
                                               new_code[4] == "R" ~syntax_table$value_list[[i]][3],
                                               new_code[4] == "S" ~syntax_table$value_list[[i]][4],
-                                              new_code[4] == "D" ~syntax_table$value_list[[i]][5], 
-                                              new_code[4] == "F" ~syntax_table$value_list[[i]][6], 
-                                              TRUE ~ syntax_table$value_list[[i]][6])[[1]]
+                                              new_code[4] == "E" ~syntax_table$value_list[[i]][5],
+                                              new_code[4] == "D" ~syntax_table$value_list[[i]][6],
+                                              new_code[4] == "F" ~syntax_table$value_list[[i]][7],
+                                              TRUE ~ syntax_table$value_list[[i]][7])[[1]]
                 c_tmp <- str_sub(cc_tmp, 1, length(syntax_table$range[[i]]))
                 tmp <- str_match(c_tmp, value_list)
                 tmp <- tail(tmp[!is.na(tmp)], 1)
@@ -175,14 +176,14 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                 value_list1 = dplyr::case_when(new_code_1[4] == "A" ~syntax_table$value_list[[i]][1],
                                                new_code_1[4] == "B" ~syntax_table$value_list[[i]][2],
                                                new_code_1[4] == "R" ~syntax_table$value_list[[i]][3],
-                                               new_code_1[4] == "S" ~syntax_table$value_list[[i]][4],
-                                               new_code_1[4] == "D" ~syntax_table$value_list[[i]][5], 
+                                               new_code_1[4] == "E" ~syntax_table$value_list[[i]][4],
+                                               new_code_1[4] == "D" ~syntax_table$value_list[[i]][5],
                                                TRUE ~ syntax_table$value_list[[i]][5])[[1]]
                 value_list2 = dplyr::case_when(new_code_2[4] == "A" ~syntax_table$value_list[[i]][1],
                                                new_code_2[4] == "B" ~syntax_table$value_list[[i]][2],
                                                new_code_2[4] == "R" ~syntax_table$value_list[[i]][3],
-                                               new_code_2[4] == "S" ~syntax_table$value_list[[i]][4],
-                                               new_code_2[4] == "D" ~syntax_table$value_list[[i]][5], 
+                                               new_code_2[4] == "E" ~syntax_table$value_list[[i]][4],
+                                               new_code_2[4] == "D" ~syntax_table$value_list[[i]][5],
                                                TRUE ~ syntax_table$value_list[[i]][5])[[1]]
                 c_tmp1 <- str_sub(cc_tmp1, 1, length(syntax_table$range[[i]]))
                 tmp1 <- str_match(c_tmp1, value_list1)
@@ -214,16 +215,18 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                                                new_code_1[4] == "B" ~syntax_table$value_list[[i]][2],
                                                new_code_1[4] == "R" ~syntax_table$value_list[[i]][3],
                                                new_code_1[4] == "S" ~syntax_table$value_list[[i]][4],
-                                               new_code_1[4] == "D" ~syntax_table$value_list[[i]][5], 
-                                               new_code_1[4] == "F" ~syntax_table$value_list[[i]][6], 
-                                               TRUE ~ syntax_table$value_list[[i]][5])[[1]]
+                                               new_code_1[4] == "E" ~syntax_table$value_list[[i]][5],
+                                               new_code_1[4] == "D" ~syntax_table$value_list[[i]][6],
+                                               new_code_1[4] == "F" ~syntax_table$value_list[[i]][7],
+                                               TRUE ~ syntax_table$value_list[[i]][5])[[1]] ##???
                 value_list2 = dplyr::case_when(new_code_2[4] == "A" ~syntax_table$value_list[[i]][1],
                                                new_code_2[4] == "B" ~syntax_table$value_list[[i]][2],
                                                new_code_2[4] == "R" ~syntax_table$value_list[[i]][3],
                                                new_code_2[4] == "S" ~syntax_table$value_list[[i]][4],
-                                               new_code_2[4] == "D" ~syntax_table$value_list[[i]][5],
-                                               new_code_2[4] == "F" ~syntax_table$value_list[[i]][6], 
-                                               TRUE ~ syntax_table$value_list[[i]][5])[[1]]
+                                               new_code_2[4] == "E" ~syntax_table$value_list[[i]][5],
+                                               new_code_2[4] == "D" ~syntax_table$value_list[[i]][6],
+                                               new_code_2[4] == "F" ~syntax_table$value_list[[i]][7],
+                                               TRUE ~ syntax_table$value_list[[i]][5])[[1]] ##???
                 c_tmp1 <- str_sub(cc_tmp1, 1, length(syntax_table$range[[i]]))
                 tmp1 <- str_match(c_tmp1, value_list1)
                 tmp1 <- tail(tmp1[!is.na(tmp1)], 1)
@@ -248,8 +251,8 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                 cc_tmp2 <- str_remove(cc_tmp2, tail(value_list2[str_detect(tmp2, value_list2)], 1))
             }
             if (reverse) {
-                cc_tmp2 <- str_remove(cc_tmp2, tail(value_list1[str_detect(tmp1, value_list1)], 1))
-                reverse  = FALSE
+                if (length(tmp1) > 0) cc_tmp2 <- str_remove(cc_tmp2, tail(value_list1[str_detect(tmp1, value_list1)], 1))
+                reverse <- FALSE
             }
             if (i == 1) {
                 if (length(tmp1)==0) tmp1 <- "*"
