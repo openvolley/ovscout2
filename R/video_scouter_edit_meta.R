@@ -52,6 +52,9 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         ## currently disabled dvw$meta$match$regulation <- input[[md_ns("match_edit_regulation")]]
         dvw$meta$match$zones_or_cones <- input[[md_ns("match_edit_zones_or_cones")]]
         dvw$meta$more$scout <- input[[md_ns("more_edit_scout")]]
+        ## comments
+        null2na <- function(z) if (length(z) < 1) NA_character_ else z
+        dvw$meta$comments <- tibble(comment_1 = null2na(input[[md_ns("edit_comments1")]]), comment_2 = null2na(input[[md_ns("edit_comments2")]]), comment_3 = null2na(input[[md_ns("edit_comments3")]]), comment_4 = null2na(input[[md_ns("edit_comments4")]]))
         do_reparse <- TRUE
     } else if (editing_active %eq% "change starting lineup") {
         le_ns <- function(id) paste0("lineup_editor-", id) ## to reference the UI elements in the lineup_editor module. Note the hard-coding of the 'lineup_editor' id
