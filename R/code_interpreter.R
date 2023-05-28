@@ -139,6 +139,11 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                 new_code[syntax_table$range[[i]]] <- ttmp
             }
         }
+        ## fix setting E codes, positions are always end zone
+        if (isTRUE(new_code[4] == "E" && new_code[10] != "~" && new_code[11] == "~")) {
+            new_code[11] <- new_code[10]
+            new_code[10] <- "~"
+        }
         paste0(new_code, collapse = "")
     } else {
         ## Compound code, separate in two codes, before and after the dot.
@@ -335,6 +340,16 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                 ttmp2 <- c("0", unlist(str_split(tmp2, "")))
                 new_code_2[syntax_table$range[[i]]] <- ttmp2
             }
+        }
+        ## fix setting E codes, positions are always end zone
+        if (isTRUE(new_code_1[4] == "E" && new_code_1[10] != "~" && new_code_1[11] == "~")) {
+            new_code_1[11] <- new_code_1[10]
+            new_code_1[10] <- "~"
+        }
+        ## fix setting E codes, positions are always end zone
+        if (isTRUE(new_code_2[4] == "E" && new_code_2[10] != "~" && new_code_2[11] == "~")) {
+            new_code_2[11] <- new_code_2[10]
+            new_code_2[10] <- "~"
         }
         c(paste0(new_code_1, collapse = ""), paste0(new_code_2, collapse = ""))
     }
