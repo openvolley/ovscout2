@@ -108,6 +108,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     plot_data_digest <- reactiveVal("")
     observe({
         plot_data_digest(digest::digest(plot_data()))
+        ##cat("courtrot2 plot data digest:", isolate(plot_data_digest()), "\n")
     })
 
     ss <- reactive({
@@ -130,6 +131,11 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         }
         sets_won
     })
+    ss_digest <- reactiveVal("")
+    observe({
+        ss_digest(digest::digest(ss()))
+        ##cat("courtrot2 ss digest:", isolate(ss_digest()), "\n")
+    })
 
     ## generate the ggplot object of the court with players, this doesn't change within a rally
     base_plot <- reactive({
@@ -138,7 +144,8 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour, na.rm = TRUE) +
             ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
         px <- isolate(plot_data()) ## don't redraw on every invalidation of plot_data(), because the actual data might not have changed
-        blah <- plot_data_digest() ## trigger on this
+        ssi <- isolate(ss())
+        blah <- list(plot_data_digest(), ss_digest()) ## trigger on these
         htrot <- px$htrot
         vtrot <- px$vtrot
         plxy <- cbind(dv_xy(pseq, end = "lower"), htrot)
@@ -193,9 +200,9 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             scxy <- tibble(x = c(-0.5, -0.5), y = c(3.15, 3.85), score = c(px$home_score_start_of_point, px$visiting_score_start_of_point))
             if (!need_to_flip(current_video_src(), game_state$home_team_end)) scxy$x <- scxy$x + 5
             p <- p + ggplot2::annotate(x = scxy$x, y = scxy$y, label = scxy$score, geom = "label", size = 9, fontface = "bold", vjust = 0.5, na.rm = TRUE)
-            if (length(ss()) == 2 && !any(is.na(ss()))) {
+            if (length(ssi) == 2 && !any(is.na(ssi))) {
                 ## set scores
-                ssxy <- tibble(set_score = ss(), x = c(-0.5, -0.5), y = c(2.6, 4.4))
+                ssxy <- tibble(set_score = ssi, x = c(-0.5, -0.5), y = c(2.6, 4.4))
                 if (!need_to_flip(current_video_src(), game_state$home_team_end)) ssxy$x <- ssxy$x + 5
                 p <- p + ggplot2::annotate(x = ssxy$x, y = ssxy$y, label = ssxy$set_score, geom = "label", size = 6, fontface = "bold", vjust = 0.5, na.rm = TRUE)
             }
