@@ -875,6 +875,7 @@ ov_scouter_server <- function(app_data) {
         courtxy <- reactiveVal(list(x = NA_real_, y = NA_real_)) ## keeps track of click locations (in court x, y space)
         loop_trigger <- reactiveVal(0L)
         observeEvent(input$video_click, priority = 99, {
+            if (debug) dojs("var thisct = new Date().getTime(); var thiscd = thisct - clktm; console.log('click processing delta: ' + thiscd + ' (' + thisct + ')')")
             ## when video clicked, get the corresponding video time and trigger the loop
             flash_screen() ## visual indicator that click has registered
             ## calculate the normalized x,y coords
@@ -895,6 +896,7 @@ ov_scouter_server <- function(app_data) {
             }
             if (rally_state() != "click or unpause the video to start") courtxy(vid_to_crt(this_click))
             loop_trigger(loop_trigger() + 1L)
+            process_action()
             ## TODO MAYBE also propagate the click to elements below the overlay?
         })
         observeEvent(court_inset$click(), {
@@ -905,6 +907,7 @@ ov_scouter_server <- function(app_data) {
             do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@1 or @2)
             courtxy(court_inset$click())
             loop_trigger(loop_trigger() + 1L)
+            process_action()
         })
         do_contact <- function() {
             ## keyboard entry indicating a contact at this time
@@ -945,6 +948,7 @@ ov_scouter_server <- function(app_data) {
             }
             courtxy(data.frame(x = thisx, y = thisy))
             loop_trigger(loop_trigger() + 1L)
+            process_action()
         })
 
         ## video times are a pain, because we get asynchronous replies from the browser via input$video_time
@@ -1020,7 +1024,7 @@ ov_scouter_server <- function(app_data) {
 
         accept_fun <- reactiveVal(NULL) ## use this to determine what function should be run when the "Continue" button on a modal is clicked, or the enter key is used to shortcut it
         ## single click the video to register a tag location, or starting ball coordinates
-        observeEvent(loop_trigger(), priority = 99, {
+        process_action <- function() {
             if (loop_trigger() > 0 && rally_state() != "fix required information before scouting can begin") {
                 if (rally_state() == "click or unpause the video to start") {
                     if (meta_is_valid()) {
@@ -1438,7 +1442,7 @@ ov_scouter_server <- function(app_data) {
                     cat("rally state: ", rally_state(), "\n")
                 }
             }
-        })
+        }
 
 
         rally_ended <- function() {
