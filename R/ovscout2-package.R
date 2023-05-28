@@ -5,7 +5,7 @@
 #' @name ovscout2
 #' @docType package
 #' @importFrom assertthat assert_that has_name is.flag is.string
-#' @importFrom datavolley dv_read dv_example_file dv_cone2xy dv_cone_polygons dv_flip_xy dv_index2xy dv_xy dv_xy2index dv_xy2subzone dv_xy2zone dv_write ggcourt read_dv skill_evaluation_decoder
+#' @importFrom datavolley dv_read dv_example_file dv_cone2xy dv_cone_polygons dv_flip_xy dv_index2xy dv_xy dv_xy2index dv_xy2cone dv_xy2subzone dv_xy2zone dv_write ggcourt read_dv skill_evaluation_decoder
 #' @importFrom dplyr %>% .data as_tibble bind_cols bind_rows case_when collect desc group_by group_by_at lag lead left_join mutate row_number tbl tibble tribble ungroup
 #' @importFrom ggplot2 aes aes_string arrow coord_flip element_blank element_rect geom_label geom_path geom_point geom_polygon geom_segment geom_text ggplot scale_size_continuous scale_x_continuous scale_x_reverse scale_y_continuous scale_y_reverse theme unit xlim ylim
 #' @importFrom graphics par points segments
