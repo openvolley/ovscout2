@@ -32,6 +32,7 @@ Imports:
     ovideo (>= 0.17.2),
     peranavolley,
     qrcode,
+    R6,
     R.utils,
     rappdirs,
     rintrojs,
