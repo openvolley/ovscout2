@@ -239,11 +239,11 @@ ov_scouter_server <- function(app_data) {
                 this <- as.numeric(input$dv_height)
                 vo_height(this)
                 dojs(paste0("document.getElementById('video_overlay').style.height = '", this, "px';"))
-                dojs(paste0("document.getElementById('video_overlay_img').style.height = '", this, "px';"))
+                dojs(paste0("document.getElementById('video_overlay_canvas').height = '", this, "';"))
             } else {
                 vo_height("auto")
                 dojs(paste0("document.getElementById('video_overlay').style.height = '400px';"))
-                dojs(paste0("document.getElementById('video_overlay_img').style.height = '400px';"))
+                dojs(paste0("document.getElementById('video_overlay_canvas').height = '400';"))
             }
         })
         vo_width <- reactiveVal("auto")
@@ -252,11 +252,11 @@ ov_scouter_server <- function(app_data) {
                 this <- as.numeric(input$dv_width)
                 vo_width(this)
                 dojs(paste0("document.getElementById('video_overlay').style.width = '", this, "px';"))
-                dojs(paste0("document.getElementById('video_overlay_img').style.width = '", this, "px';"))
+                dojs(paste0("document.getElementById('video_overlay_canvas').width = '", this, "';"))
             } else {
                 vo_width("auto")
                 dojs(paste0("document.getElementById('video_overlay').style.width = '600px';"))
-                dojs(paste0("document.getElementById('video_overlay_img').style.width = '600px';"))
+                dojs(paste0("document.getElementById('video_overlay_canvas').width = '600';"))
             }
         })
         ## height of the video player container, use as negative vertical offset on the overlay element
@@ -264,11 +264,11 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(input$vo_voffset) && as.numeric(input$vo_voffset) > 0) {
                 ##dojs(paste0("document.getElementById('rallystate').style.marginTop = '-", input$vo_voffset - 50, "px';"))
                 dojs(paste0("document.getElementById('video_overlay').style.marginTop = '-", input$vo_voffset, "px';"))
-                dojs(paste0("document.getElementById('video_overlay_img').style.marginTop = '-", input$vo_voffset, "px';"))
+                dojs(paste0("document.getElementById('video_overlay_canvas').style.marginTop = '-", input$vo_voffset, "px';"))
             } else {
                 ##dojs("document.getElementById('rallystate').style.marginTop = '-50px';")
                 dojs("document.getElementById('video_overlay').style.marginTop = '0px';")
-                dojs("document.getElementById('video_overlay_img').style.marginTop = '0px';")
+                dojs("document.getElementById('video_overlay_canvas').style.marginTop = '0px';")
             }
         })
 
@@ -822,11 +822,39 @@ ov_scouter_server <- function(app_data) {
                 NULL
             }
         })
+
         observe({
-            output$video_overlay <- renderPlot({
+            if (!isTRUE(input$overlay_nocanvas > 0)) {
+                ## draw directly with canvas
+                w <- vo_width(); if (identical(w, "auto")) w <- 600L
+                h <- vo_height(); if (identical(h, "auto")) h <- 400L
+                cc <- html_canvas$new(id = "video_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('overlay_nocanvas', 1);")
+                ## if context fails, fall back to base plotting
+                cc$clear_all()
+                if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
+                    oxy <- overlay_court_lines()
+                    ## account for aspect ratios
+                    oxy$image_x <- ar_fix_x(oxy$image_x)
+                    oxy$xend <- ar_fix_x(oxy$xend)
+                    oxy$image_y <- ar_fix_y(oxy$image_y)
+                    oxy$yend <- ar_fix_y(oxy$yend)
+                    cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = "#0000FF")
+                }
+                if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
+                    ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
+                    if (any(overlay_points()$valid)) {
+                        cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.01, col = "#FFFFFF", fill_col = "#1E90FF") ## dodgerblue
+                    }
+                    if (!all(overlay_points()$valid)) {
+                        cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.01, col = "#FFFFFF", fill_col = "#B22222") ## firebrick
+                    }
+                }
+                dojs(cc$js())
+            } else {
+                ## do the overlay by base plotting, but this is slow
+                output$video_overlay <- renderPlot({
                 ## test - red diagonal line across the overlay plot
                 ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red") + gg_tight
-                ## TODO move the court overlay to video_overlay_img
                 opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
                 plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
                 if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
@@ -845,6 +873,7 @@ ov_scouter_server <- function(app_data) {
                 }
                 par(opar)
             }, bg = "transparent", width = vo_width(), height = vo_height())
+            }
         })
         vid_to_crt <- function(obj, arfix = TRUE) {
             courtxy <- data.frame(x = rep(NA_real_, length(obj$x)), y = rep(NA_real_, length(obj$x)))
