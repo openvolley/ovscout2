@@ -2622,7 +2622,7 @@ ov_scouter_server <- function(app_data) {
                                       if (entry_guide) paste0(if (op == "edit") "Edit" else "Enter", " the code either in the top text box or in the individual boxes (but not both)"),
                                       textInput("code_entry", label = "Code:", value = if (op == "edit") rdata$dvw$plays$code[ridx] else ""), if (entry_guide) "or", if (entry_guide) build_code_entry_guide(sub(" .*", "", op), thisrow = rdata$dvw$plays[ridx, ])
                                       ))
-                focus_in_code_entry("code_entry")
+                focus_to_modal_element("code_entry")
             }
         }
 

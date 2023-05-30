@@ -187,3 +187,21 @@ create_resize_observer <- function(id_to_obs, fun, nsfun) {
     ## if the observer function has not yet been defined, and the element to observe exists, then create the observer function
     paste0("if (typeof ", obsfun, " === 'undefined' && document.getElementById('", id_to_obs, "')) { ", obsfun, " = new ResizeObserver(() => { ", fun, " }); ", obsfun, ".observe(document.getElementById('", id_to_obs, "')); }")
 }
+
+focus_to_modal_element <- function(id, highlight_all = TRUE) {
+    ## function to set the cursor focus to a particular entry box in a modal popup
+    if (!highlight_all) {
+        dojs(paste0("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById('", id, "'); el.selectionStart = el.selectionEnd = el.value.length; el.focus(); });"))
+    } else {
+        dojs(paste0("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById('", id, "'); el.selectionStart = 0; el.selectionEnd = el.value.length; el.focus(); });"))
+    }
+}
+focus_to_element <- function(id, highlight_all = TRUE) {
+    ## function to set the cursor focus to a particular entry box
+    ## this entry box can be in a modal popup, so long as the popup is already displayed
+    if (!highlight_all) {
+        dojs(paste0("var el = document.getElementById('", id, "'); el.selectionStart = el.selectionEnd = el.value.length; el.focus();"))
+    } else {
+        dojs(paste0("var el = document.getElementById('", id, "'); el.selectionStart = 0; el.selectionEnd = el.value.length; el.focus();"))
+    }
+}

@@ -700,6 +700,8 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 updateTextInput(session, "ht_new_firstname", value = "")
                 updateSelectInput(session, "ht_new_role", selected = "")
                 updateSelectInput(session, "ht_new_special", selected = "")
+                ## focus to number box
+                focus_to_element(ns("ht_new_id"))
             })
         }
     })
@@ -755,6 +757,8 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 updateTextInput(session, "vt_new_firstname", value = "")
                 updateSelectInput(session, "vt_new_role", selected = "")
                 updateSelectInput(session, "vt_new_special", selected = "")
+                ## focus to number box
+                focus_to_element(ns("vt_new_id"))
             })
         }
     })

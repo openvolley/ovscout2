@@ -81,12 +81,3 @@ code_bits_tbl$helper <- c(mu2html("{Team}---[*]&nbsp;H|[a]&nbsp;V"), ## team
 ## note that if any other helpers are turned into functions, they need extra code added below to handle them (see ADD HANDLERS HERE)
 code_bits_tbl$start <- cumsum(lag(code_bits_tbl$width, default = 0))+1L
 code_bits_tbl$end <- code_bits_tbl$start+code_bits_tbl$width-1L
-focus_in_code_entry <- function(id, highlight_all = TRUE) {
-    ## function to set the cursor focus to a particular entry box
-    if (!highlight_all) {
-        dojs(paste0("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById('", id, "'); el.selectionStart = el.selectionEnd = el.value.length; el.focus(); });"))
-    } else {
-        dojs(paste0("$(\"#shiny-modal\").on('shown.bs.modal', function (e) { var el = document.getElementById('", id, "'); el.selectionStart = 0; el.selectionEnd = el.value.length; el.focus(); });"))
-    }
-}
-
