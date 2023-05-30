@@ -1,6 +1,6 @@
 ov_scouter_server <- function(app_data) {
     function(input, output, session) {
-        debug <- 1L
+        debug <- 0L
         cstr <- function(z) capture.output(str(z))
         have_warned_auto_save <- FALSE
         extra_db_con <- NULL
