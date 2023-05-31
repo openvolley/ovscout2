@@ -2429,13 +2429,15 @@ ov_scouter_server <- function(app_data) {
                 dojs(paste0("document.getElementById('review_overlay_canvas').width = '", input$rv_width, "';"))
             }
         })
+        ## for the review overlay, we always need the plot shown (so it can capture click/drags). But if we are using canvas, then only plot once (blank plot) and don't update it
         observe({
-            if (!isTRUE(input$overlay_nocanvas > 0)) {
+            ## canvas overlay plot
+            if (!isTRUE(input$review_overlay_nocanvas > 0)) {
                 req(input$rv_width, input$rv_height)
                 ## draw directly with canvas
                 w <- input$rv_width
                 h <- input$rv_height
-                cc <- canvas_drawing$new(id = "review_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('overlay_nocanvas', 1);")
+                cc <- canvas_drawing$new(id = "review_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('review_overlay_nocanvas', 1);")
                 ## if context fails, fall back to base plotting
                 cc$clear_all()
                 if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
@@ -2453,7 +2455,23 @@ ov_scouter_server <- function(app_data) {
                     }
                 }
                 dojs(cc$js())
-            } else {
+            }
+        })
+        observe({
+            ## review overlay blank plot
+            blah <- list(input$rv_width, input$rv_height)
+            if (!isTRUE(input$review_overlay_nocanvas > 0)) {
+                ## using canvas, so make a blank plot and react only to size
+                output$review_overlay <- renderPlot({
+                    opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
+                    plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
+                    par(opar)
+                }, bg = "transparent", height = input$rv_height)
+            }
+        })
+        observe({
+            ## review overlay full plot
+            if (isTRUE(input$review_overlay_nocanvas > 0)) {
                 ## do the overlay by base plotting, but this is slow
                 output$review_overlay <- renderPlot({
                     opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
