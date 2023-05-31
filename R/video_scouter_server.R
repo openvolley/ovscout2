@@ -830,7 +830,6 @@ ov_scouter_server <- function(app_data) {
                 h <- vo_height(); if (identical(h, "auto")) h <- 400L
                 cc <- canvas_drawing$new(id = "video_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('overlay_nocanvas', 1);")
                 ## if context fails, fall back to base plotting
-                cc$clear_all()
                 if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
                     oxy <- overlay_court_lines()
                     ## account for aspect ratios
@@ -849,7 +848,7 @@ ov_scouter_server <- function(app_data) {
                         cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.01, col = "white", fill_col = "firebrick", unit = "npc")
                     }
                 }
-                dojs(cc$js())
+                cc$draw()
             } else {
                 ## do the overlay by base plotting, but this is slow
                 output$video_overlay <- renderPlot({
@@ -2439,7 +2438,6 @@ ov_scouter_server <- function(app_data) {
                 h <- input$rv_height
                 cc <- canvas_drawing$new(id = "review_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('review_overlay_nocanvas', 1);")
                 ## if context fails, fall back to base plotting
-                cc$clear_all()
                 if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
                     oxy <- overlay_court_lines()
                     ## don't need to account for aspect ratios, because the review pane will not be letterboxed
@@ -2454,7 +2452,7 @@ ov_scouter_server <- function(app_data) {
                         cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.02, col = "white", fill_col = "firebrick", unit = "npc")
                     }
                 }
-                dojs(cc$js())
+                cc$draw()
             }
         })
         observe({

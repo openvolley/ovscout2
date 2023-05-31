@@ -10,19 +10,25 @@ canvas_drawing <- R6::R6Class("canvas",
                                ## #' @param on_fail string: js code to run if the canvas cannot be initialized
                                ## #' @param canvas_var string: the canvas variable name to use in the js. Should not need to modify from the default
                                ## #' @param context_var string: the context variable name to use for the plotting operations. Should not need to modify from the default
-                               initialize = function(id, width = 300, height = 150, on_fail = "", canvas_var = "cvs", context_var = "ctx") {
+                               initialize = function(id, width = 300, height = 150, on_fail = "", canvas_var = "cvs", context_var = "ctx", resize_html_element = TRUE, clear = TRUE) {
                                    private$w <- width
                                    private$h <- height
+                                   if (isTRUE(resize_html_element)) {
+                                       ## ensure the html element is the same size
+                                       dojs(paste0("document.getElementById('", id, "').height = '", height, "';"))
+                                       dojs(paste0("document.getElementById('", id, "').width = '", width, "';"))
+                                   }
                                    private$id <- id
                                    ## use the id to 'namespace' the var names
                                    private$cvs <- canvas_var <- paste0(id, "_", canvas_var)
                                    private$ctx <- context_var <- paste0(id, "_", context_var)
                                    private$code <- c(paste0("const ", canvas_var, " = document.getElementById('", id, "')"),
                                                      paste0("if (!", canvas_var, ".getContext) { ", if (!is.null(on_fail) && nzchar(on_fail)) on_fail, " } else { const ", context_var, " = ", canvas_var, ".getContext('2d')"))
+                                   if (isTRUE(clear)) self$clear()
                                },
                                ## #' @description
                                ## #' Clear the canvas
-                               clear_all = function() {
+                               clear = function() {
                                    private$code <- c(private$code, paste0(private$ctx, ".clearRect(0, 0, ", private$w - 1, ", ", private$h - 1, ")"))
                                },
                                ## #' @description
@@ -67,7 +73,10 @@ canvas_drawing <- R6::R6Class("canvas",
                                },
                                ## #' @description
                                ## #' Return the js for the current canvas drawing
-                               js = function() paste(c(private$code, " }"), collapse = ";")
+                               js = function() paste(c(private$code, " }"), collapse = ";"),
+                               ## #' @description
+                               ## #' Send the current drawing object to the browser
+                               draw = function() dojs(self$js())
                            ),
                            private = list(
                                id = "",
