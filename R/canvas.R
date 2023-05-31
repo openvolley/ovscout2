@@ -41,25 +41,29 @@ canvas_drawing <- R6::R6Class("canvas",
                                },
                                ## #' @description
                                ## #' Draw one or more lines
-                               ## #' @param x0,y0 integer: x, y start coords. Or numeric less than 1 for normalized coords
-                               ## #' @param x1,y1 integer: x, y end coords. Or numeric less than 1 for normalized coords
+                               ## #' @param x0,y0 integer: x, y start coords
+                               ## #' @param x1,y1 integer: x, y end coords
                                ## #' @param col string: hex colour string
-                               lines = function(x0, y0, x1, y1, col = "#000000") {
+                               ## #' @param unit string: coordinate system for points. Either "native" (x, y locations are actual coordinates) or "npc" (x, y locations are normalized coordinates on [0, 1])
+                               lines = function(x0, y0, x1, y1, col = "#000000", unit = "native") {
+                                   npc <- isTRUE(tolower(unit) == "npc")
                                    if (!is.null(col) && nzchar(col)) self$stroke_style(col)
-                                   for (i in seq_along(x0)) private$code <- c(private$code, paste0(private$ctx, ".beginPath()"), paste0(private$ctx, ".moveTo(", if (x0[i] < 1) x0[i] * private$w else x0[i], ", ", if (y0[i] < 1) (1 - y0[i]) * private$h else private$h - y0[i], ")"), paste0(private$ctx, ".lineTo(", if (x1[i] < 1) x1[i] * private$w else x1[i], ", ", if (y1[i] < 1) (1 - y1[i]) * private$h else private$h - y1[i], ")"), paste0(private$ctx, ".stroke()"))
+                                   for (i in seq_along(x0)) private$code <- c(private$code, paste0(private$ctx, ".beginPath()"), paste0(private$ctx, ".moveTo(", if (npc) x0[i] * private$w else x0[i], ", ", if (npc) (1 - y0[i]) * private$h else private$h - y0[i], ")"), paste0(private$ctx, ".lineTo(", if (npc) x1[i] * private$w else x1[i], ", ", if (npc) (1 - y1[i]) * private$h else private$h - y1[i], ")"), paste0(private$ctx, ".stroke()"))
                                },
                                ## #' @description
                                ## #' Draw one or more circles
-                               ## #' @param x,y integer: x, y centre coords. Or numeric less than 1 for normalized coords
-                               ## #' @param r integer: radius. Or numeric less than one for a radius expressed as a fraction of min(c(w, h))
+                               ## #' @param x,y integer: x, y centre coords
+                               ## #' @param r integer: radius. If using unit = "npc", `r` is expressed as a fraction of min(c(w, h))
                                ## #' @param col string: hex colour string
                                ## #' @param fill_col string: hex colour string
-                               circles = function(x, y, r, col = "#000000", fill_col = "") {
+                               ## #' @param unit string: coordinate system for points. Either "native" (x, y locations are actual coordinates) or "npc" (x, y locations are normalized coordinates on [0, 1])
+                               circles = function(x, y, r, col = "#000000", fill_col = "", unit = "native") {
+                                   npc <- isTRUE(tolower(unit) == "npc")
                                    if (length(r) == 1 && length(x) > 1) r <- rep(r, length(x))
-                                   r[r < 1] <- round(min(c(private$w, private$h)) * r[r < 1])
+                                   if (npc) r <- round(min(c(private$w, private$h)) * r)
                                    if (!is.null(col) && nzchar(col)) self$stroke_style(col)
                                    if (!is.null(fill_col) && nzchar(fill_col)) self$fill_style(fill_col)
-                                   for (i in seq_along(x)) private$code <- c(private$code, paste0(private$ctx, ".beginPath()"), paste0(private$ctx, ".arc(", if (x[i] < 1) x[i] * private$w else x[i], ", ", if (y[i] < 1) (1 - y[i]) * private$h else private$h - y[i], ", ", r[i], ", 0, 2*Math.PI)"), if (!is.null(fill_col) && nzchar(fill_col)) paste0(private$ctx, ".fill()"), if (!is.null(col) && nzchar(col)) paste0(private$ctx, ".stroke()"))
+                                   for (i in seq_along(x)) private$code <- c(private$code, paste0(private$ctx, ".beginPath()"), paste0(private$ctx, ".arc(", if (npc) x[i] * private$w else x[i], ", ", if (npc) (1 - y[i]) * private$h else private$h - y[i], ", ", r[i], ", 0, 2*Math.PI)"), if (!is.null(fill_col) && nzchar(fill_col)) paste0(private$ctx, ".fill()"), if (!is.null(col) && nzchar(col)) paste0(private$ctx, ".stroke()"))
                                },
                                ## #' @description
                                ## #' Return the js for the current canvas drawing

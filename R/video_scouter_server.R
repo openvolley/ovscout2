@@ -838,15 +838,15 @@ ov_scouter_server <- function(app_data) {
                     oxy$xend <- ar_fix_x(oxy$xend)
                     oxy$image_y <- ar_fix_y(oxy$image_y)
                     oxy$yend <- ar_fix_y(oxy$yend)
-                    cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
+                    cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour, unit = "npc")
                 }
                 if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
                     ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
                     if (any(overlay_points()$valid)) {
-                        cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.01, col = "white", fill_col = "dodgerblue")
+                        cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.01, col = "white", fill_col = "dodgerblue", unit = "npc")
                     }
                     if (!all(overlay_points()$valid)) {
-                        cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.01, col = "white", fill_col = "firebrick")
+                        cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.01, col = "white", fill_col = "firebrick", unit = "npc")
                     }
                 }
                 dojs(cc$js())
@@ -2443,15 +2443,15 @@ ov_scouter_server <- function(app_data) {
                 if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
                     oxy <- overlay_court_lines()
                     ## don't need to account for aspect ratios, because the review pane will not be letterboxed
-                    cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
+                    cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour, unit = "npc")
                 }
                 if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
                     ixy <- setNames(crt_to_vid(overlay_points(), arfix = FALSE), c("x", "y"))
                     if (any(overlay_points()$valid)) {
-                        cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.02, col = "white", fill_col = "dodgerblue")
+                        cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.02, col = "white", fill_col = "dodgerblue", unit = "npc")
                     }
                     if (!all(overlay_points()$valid)) {
-                        cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.02, col = "white", fill_col = "firebrick")
+                        cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.02, col = "white", fill_col = "firebrick", unit = "npc")
                     }
                 }
                 dojs(cc$js())
