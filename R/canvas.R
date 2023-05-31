@@ -1,21 +1,22 @@
 ## #' Helper code for html canvas drawing
 ## #' @docType class
 ## #' @export
-html_canvas <- R6::R6Class("canvas",
+canvas_drawing <- R6::R6Class("canvas",
                            public = list(
                                ## #' @description
                                ## #' Create a new canvas object
                                ## #' @param id string: the id of the associated html element
                                ## #' @param width,height integer: the width and height of the canvas
-                               ## #' @param canvas_var string: the canvas variable name to use in the js
-                               ## #' @param context_var string: the context variable name to use for the plotting operations
                                ## #' @param on_fail string: js code to run if the canvas cannot be initialized
-                               initialize = function(id, width = 300, height = 150, canvas_var = "cvs", context_var = "ctx", on_fail = "") {
+                               ## #' @param canvas_var string: the canvas variable name to use in the js. Should not need to modify from the default
+                               ## #' @param context_var string: the context variable name to use for the plotting operations. Should not need to modify from the default
+                               initialize = function(id, width = 300, height = 150, on_fail = "", canvas_var = "cvs", context_var = "ctx") {
                                    private$w <- width
                                    private$h <- height
                                    private$id <- id
-                                   private$cvs <- canvas_var
-                                   private$ctx <- context_var
+                                   ## use the id to 'namespace' the var names
+                                   private$cvs <- canvas_var <- paste0(id, "_", canvas_var)
+                                   private$ctx <- context_var <- paste0(id, "_", context_var)
                                    private$code <- c(paste0("const ", canvas_var, " = document.getElementById('", id, "')"),
                                                      paste0("if (!", canvas_var, ".getContext) { ", if (!is.null(on_fail) && nzchar(on_fail)) on_fail, " } else { const ", context_var, " = ", canvas_var, ".getContext('2d')"))
                                },

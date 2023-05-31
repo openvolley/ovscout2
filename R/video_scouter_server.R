@@ -828,7 +828,7 @@ ov_scouter_server <- function(app_data) {
                 ## draw directly with canvas
                 w <- vo_width(); if (identical(w, "auto")) w <- 600L
                 h <- vo_height(); if (identical(h, "auto")) h <- 400L
-                cc <- html_canvas$new(id = "video_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('overlay_nocanvas', 1);")
+                cc <- canvas_drawing$new(id = "video_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('overlay_nocanvas', 1);")
                 ## if context fails, fall back to base plotting
                 cc$clear_all()
                 if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
@@ -838,41 +838,41 @@ ov_scouter_server <- function(app_data) {
                     oxy$xend <- ar_fix_x(oxy$xend)
                     oxy$image_y <- ar_fix_y(oxy$image_y)
                     oxy$yend <- ar_fix_y(oxy$yend)
-                    cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = "#0000FF")
+                    cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
                 }
                 if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
                     ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
                     if (any(overlay_points()$valid)) {
-                        cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.01, col = "#FFFFFF", fill_col = "#1E90FF") ## dodgerblue
+                        cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.01, col = "white", fill_col = "dodgerblue")
                     }
                     if (!all(overlay_points()$valid)) {
-                        cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.01, col = "#FFFFFF", fill_col = "#B22222") ## firebrick
+                        cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.01, col = "white", fill_col = "firebrick")
                     }
                 }
                 dojs(cc$js())
             } else {
                 ## do the overlay by base plotting, but this is slow
                 output$video_overlay <- renderPlot({
-                ## test - red diagonal line across the overlay plot
-                ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red") + gg_tight
-                opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
-                plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
-                if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
-                    oxy <- overlay_court_lines()
-                    ## account for aspect ratios
-                    oxy$image_x <- ar_fix_x(oxy$image_x)
-                    oxy$xend <- ar_fix_x(oxy$xend)
-                    oxy$image_y <- ar_fix_y(oxy$image_y)
-                    oxy$yend <- ar_fix_y(oxy$yend)
-                    segments(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
-                }
-                if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
-                    ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
-                    points(ixy$x[overlay_points()$valid], ixy$y[overlay_points()$valid], bg = "dodgerblue", pch = 21, col = "white", cex = 2.5)
-                    points(ixy$x[!overlay_points()$valid], ixy$y[!overlay_points()$valid], bg = "firebrick", pch = 21, col = "white", cex = 2.5)
-                }
-                par(opar)
-            }, bg = "transparent", width = vo_width(), height = vo_height())
+                    ## test - red diagonal line across the overlay plot
+                    ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red") + gg_tight
+                    opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
+                    plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
+                    if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
+                        oxy <- overlay_court_lines()
+                        ## account for aspect ratios
+                        oxy$image_x <- ar_fix_x(oxy$image_x)
+                        oxy$xend <- ar_fix_x(oxy$xend)
+                        oxy$image_y <- ar_fix_y(oxy$image_y)
+                        oxy$yend <- ar_fix_y(oxy$yend)
+                        segments(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
+                    }
+                    if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
+                        ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
+                        points(ixy$x[overlay_points()$valid], ixy$y[overlay_points()$valid], bg = "dodgerblue", pch = 21, col = "white", cex = 2.5)
+                        points(ixy$x[!overlay_points()$valid], ixy$y[!overlay_points()$valid], bg = "firebrick", pch = 21, col = "white", cex = 2.5)
+                    }
+                    par(opar)
+                }, bg = "transparent", width = vo_width(), height = vo_height())
             }
         })
         vid_to_crt <- function(obj, arfix = TRUE) {
@@ -904,7 +904,7 @@ ov_scouter_server <- function(app_data) {
         courtxy <- reactiveVal(list(x = NA_real_, y = NA_real_)) ## keeps track of click locations (in court x, y space)
         loop_trigger <- reactiveVal(0L)
         observeEvent(input$video_click, priority = 99, {
-            if (debug) dojs("var thisct = new Date().getTime(); var thiscd = thisct - clktm; console.log('click processing delta: ' + thiscd + ' (' + thisct + ')')")
+            if (debug) dojs("var thisct = new Date().getTime(); var thiscd = thisct - clktm; console.log('click processing time: ' + thiscd + ' (' + thisct + ')')")
             ## when video clicked, get the corresponding video time and trigger the loop
             flash_screen() ## visual indicator that click has registered
             ## calculate the normalized x,y coords
@@ -2410,36 +2410,68 @@ ov_scouter_server <- function(app_data) {
             revsrc <- get_src_type(if (current_video_src() == 1L) app_data$video_src else app_data$video_src2)
             dojs(paste0("var start_t=vidplayer.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", revsrc$src, "','start_time':start_t,'duration':4,'type':'", revsrc$type, "'}], 'review_player', '", revsrc$type, "', true); revpl.set_playback_rate(1.4);"))
             js_show2("review_pane")
-            dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight());")
+            dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());")
             review_pane_active(TRUE)
         }
         observeEvent(input$rv_height, {
             ##cat("rv_height: ", cstr(input$rv_height), "\n")
             if ((length(input$rv_height) < 1 || is.na(input$rv_height) || input$rv_height <= 0) && review_pane_active()) {
-                dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight());")
+                dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight())")
+            } else {
+                dojs(paste0("document.getElementById('review_overlay_canvas').height = '", input$rv_height, "';"))
+            }
+        })
+        observeEvent(input$rv_width, {
+            ##cat("rv_width: ", cstr(input$rv_width), "\n")
+            if ((length(input$rv_width) < 1 || is.na(input$rv_width) || input$rv_width <= 0) && review_pane_active()) {
+                dojs("Shiny.setInputValue('rv_width', $('#review_player').innerWidth());")
+            } else {
+                dojs(paste0("document.getElementById('review_overlay_canvas').width = '", input$rv_width, "';"))
             }
         })
         observe({
-            output$review_overlay <- renderPlot({
-                opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
-                plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
-                if (TRUE) {##isTRUE(prefs$show_courtref)) {
+            if (!isTRUE(input$overlay_nocanvas > 0)) {
+                req(input$rv_width, input$rv_height)
+                ## draw directly with canvas
+                w <- input$rv_width
+                h <- input$rv_height
+                cc <- canvas_drawing$new(id = "review_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('overlay_nocanvas', 1);")
+                ## if context fails, fall back to base plotting
+                cc$clear_all()
+                if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
                     oxy <- overlay_court_lines()
-                    ## account for aspect ratios
-                    ## ?? oxy$image_x <- ar_fix_x(oxy$image_x)
-                    ## ?? oxy$xend <- ar_fix_x(oxy$xend)
-                    ## ?? oxy$image_y <- ar_fix_y(oxy$image_y)
-                    ## ?? oxy$yend <- ar_fix_y(oxy$yend)
-                    segments(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
+                    ## don't need to account for aspect ratios, because the review pane will not be letterboxed
+                    cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
                 }
                 if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
                     ixy <- setNames(crt_to_vid(overlay_points(), arfix = FALSE), c("x", "y"))
-                    ## points as blue, invalid points as red
-                    points(ixy$x[overlay_points()$valid], ixy$y[overlay_points()$valid], bg = "dodgerblue", pch = 21, col = "white", cex = 2.5)
-                    points(ixy$x[!overlay_points()$valid], ixy$y[!overlay_points()$valid], bg = "firebrick", pch = 21, col = "white", cex = 2.5)
+                    if (any(overlay_points()$valid)) {
+                        cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.02, col = "white", fill_col = "dodgerblue")
+                    }
+                    if (!all(overlay_points()$valid)) {
+                        cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.02, col = "white", fill_col = "firebrick")
+                    }
                 }
-                par(opar)
-            }, bg = "transparent", height = input$rv_height)
+                dojs(cc$js())
+            } else {
+                ## do the overlay by base plotting, but this is slow
+                output$review_overlay <- renderPlot({
+                    opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
+                    plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
+                    if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
+                        oxy <- overlay_court_lines()
+                        ## don't need to account for aspect ratios, because the review pane will not be letterboxed
+                        segments(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
+                    }
+                    if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
+                        ixy <- setNames(crt_to_vid(overlay_points(), arfix = FALSE), c("x", "y"))
+                        ## points as blue, invalid points as red
+                        points(ixy$x[overlay_points()$valid], ixy$y[overlay_points()$valid], bg = "dodgerblue", pch = 21, col = "white", cex = 2.5)
+                        points(ixy$x[!overlay_points()$valid], ixy$y[!overlay_points()$valid], bg = "firebrick", pch = 21, col = "white", cex = 2.5)
+                    }
+                    par(opar)
+                }, bg = "transparent", height = input$rv_height)
+            }
         })
         hide_review_pane <- function() {
             js_hide2("review_pane")
