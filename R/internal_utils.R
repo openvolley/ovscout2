@@ -183,6 +183,7 @@ get_port <- function(port = NULL, port_range = c(3000L, 8000L), host = "127.0.0.
 }
 
 create_resize_observer <- function(id_to_obs, fun, nsfun) {
+    if (missing(nsfun)) nsfun <- function(x) paste0(id_to_obs, "_", x)
     obsfun <- nsfun("rsz_obs") ## name of the observer function
     ## if the observer function has not yet been defined, and the element to observe exists, then create the observer function
     paste0("if (typeof ", obsfun, " === 'undefined' && document.getElementById('", id_to_obs, "')) { ", obsfun, " = new ResizeObserver(() => { ", fun, " }); ", obsfun, ".observe(document.getElementById('", id_to_obs, "')); }")
