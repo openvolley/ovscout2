@@ -2412,20 +2412,9 @@ ov_scouter_server <- function(app_data) {
             dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());")
             review_pane_active(TRUE)
         }
-        observeEvent(input$rv_height, {
-            ##cat("rv_height: ", cstr(input$rv_height), "\n")
-            if ((length(input$rv_height) < 1 || is.na(input$rv_height) || input$rv_height <= 0) && review_pane_active()) {
-                dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight())")
-            } else {
-                dojs(paste0("document.getElementById('review_overlay_canvas').height = '", input$rv_height, "';"))
-            }
-        })
-        observeEvent(input$rv_width, {
-            ##cat("rv_width: ", cstr(input$rv_width), "\n")
-            if ((length(input$rv_width) < 1 || is.na(input$rv_width) || input$rv_width <= 0) && review_pane_active()) {
-                dojs("Shiny.setInputValue('rv_width', $('#review_player').innerWidth());")
-            } else {
-                dojs(paste0("document.getElementById('review_overlay_canvas').width = '", input$rv_width, "';"))
+        observeEvent(list(input$rv_height, input$rv_width), {
+            if ((length(input$rv_height) < 1 || is.na(input$rv_height) || input$rv_height <= 0 || length(input$rv_width) < 1 || is.na(input$rv_width) || input$rv_width <= 0) && review_pane_active()) {
+                dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());")
             }
         })
         ## for the review overlay, we always need the plot shown (so it can capture click/drags). But if we are using canvas, then only plot once (blank plot) and don't update it

@@ -25,7 +25,7 @@ ov_scouter_ui <- function(app_data) {
                         tags$script("document.addEventListener('click', function (e) { Shiny.setInputValue('shiftkey', e.shiftKey) });"),
                         if (app_data$with_video) tags$script(HTML("var vo_rsztmr;
 var vo_doneResizing = function() {
-    Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth()); Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); Shiny.setInputValue('vo_voffset', $('#video_holder').innerHeight()); Shiny.setInputValue('rv_height', $('#review_player').innerHeight());
+    Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth()); Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); Shiny.setInputValue('vo_voffset', $('#video_holder').innerHeight()); Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());
 }
 $(document).on('shiny:sessioninitialized', function() {
     Shiny.setInputValue('window_height', $(window).innerHeight()); Shiny.setInputValue('window_width', $(window).innerWidth());
