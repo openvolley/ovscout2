@@ -195,7 +195,7 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
             out <- if (!is.null(crimg()$image)) {
                        ## plot in 0,1 norm coords
                        asp <- if (!is.null(crimg()$height) && !is.na(crimg()$height) && crimg()$height > 0 && !is.null(crimg()$width) && !is.na(crimg()$width) && crimg()$width > 0) crimg()$height/crimg()$width else 9/16
-                       p <- ggplot2::ggplot(mapping = aes_string(x = "image_x", y = "image_y")) + ggplot2::coord_fixed(ratio = asp, xlim = c(0, 1), ylim = c(0, 1), expand = FALSE)
+                       p <- ggplot2::ggplot(mapping = aes(x = .data$image_x, y = .data$image_y)) + ggplot2::coord_fixed(ratio = asp, xlim = c(0, 1), ylim = c(0, 1), expand = FALSE)
                        if (show_frame_image) p <- p + ggplot2::annotation_custom(grid::rasterGrob(crimg()$image), xmin = 0, xmax = 1, ymin = 0, ymax = 1)
                        ## convert our crvt (edited ref data) into the court overlay data to plot
                        crox <- tryCatch({
@@ -207,21 +207,21 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
                            out
                        }, error = function(e) NULL)
                        if (!is.null(crox)) {
-                           p <- p + geom_segment(data = crox$courtxy, aes_string(xend = "xend", yend = "yend"), color = court_colour, na.rm = TRUE) + ggplot2::theme_bw()
+                           p <- p + geom_segment(data = crox$courtxy, aes(xend = .data$xend, yend = .data$yend), color = court_colour, na.rm = TRUE) + ggplot2::theme_bw()
                        }
                        if (!is.null(crvt$court)) {
                            p <- p + geom_label(data = mutate(crvt$court, point_num = row_number()), ## double check that point_num always matches the UI inputs ordering
-                                               aes_string(label = "point_num"), color = "white", fill = court_colour, na.rm = TRUE)
+                                               aes(label = .data$point_num), color = "white", fill = court_colour, na.rm = TRUE)
                        }
                        if (isTRUE(include_net) && !is.null(crvt$antenna)) {
                            plotx <- mutate(crvt$antenna, n = case_when(.data$antenna == "left" & .data$where == "floor" ~ 5L,
                                                                        .data$antenna == "right" & .data$where == "floor" ~ 6L,
                                                                        .data$antenna == "right" & .data$where == "net_top" ~ 7L,
                                                                        .data$antenna == "left" & .data$where == "net_top" ~ 8L))
-                           p <- p + geom_path(data = plotx, aes_string(group = "antenna"), color = antenna_colour, na.rm = TRUE) +
+                           p <- p + geom_path(data = plotx, aes(group = .data$antenna), color = antenna_colour, na.rm = TRUE) +
                                geom_path(data = plotx[plotx$where == "net_top", ], color = antenna_colour, na.rm = TRUE) +
                                geom_path(data = plotx[plotx$where == "floor", ], color = antenna_colour, na.rm = TRUE) +
-                               geom_label(data = plotx, aes_string(label = "n"), color = "white", fill = antenna_colour, na.rm = TRUE)
+                               geom_label(data = plotx, aes(label = .data$n), color = "white", fill = antenna_colour, na.rm = TRUE)
                        }
                        p + ggplot2::theme_void()
                    } else {

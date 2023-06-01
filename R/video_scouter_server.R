@@ -813,7 +813,7 @@ ov_scouter_server <- function(app_data) {
                 ## do the overlay by base plotting, but this is slow
                 output$video_overlay <- renderPlot({
                     ## test - red diagonal line across the overlay plot
-                    ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes_string("x", "y")) + geom_path(color = "red") + gg_tight
+                    ##ggplot(data.frame(x = c(0, 1), y = c(0, 1)), aes(.data$x, .data$y)) + geom_path(color = "red") + gg_tight
                     opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
                     plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
                     if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
