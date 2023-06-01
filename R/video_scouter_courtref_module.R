@@ -12,7 +12,7 @@ mod_courtref_ui <- function(id, yt = FALSE, video_url, button_label = "Court ref
                                            click = ns("sr_plot_click"), hover = shiny::hoverOpts(ns("sr_plot_hover"), delay = 50, delayType = "throttle"), onmouseup = paste0("Shiny.setInputValue('", ns("did_sr_plot_mouseup"), "', new Date().getTime());"), onmousedown = paste0("Shiny.setInputValue('", ns("did_sr_plot_mousedown"), "', new Date().getTime());"), style = "margin-top:-600px; position:relative; z-index:9999;")##,
                      ),
             ## instantiate the player
-            if (!show_frame_image) tags$head(tags$script(HTML(paste0("$(document).on('shiny:sessioninitialized', function() { ", jsns("crpl"), " = videojs('", ns("cr_player"), "'); ", jsns("crpl"), ".ready(function() {", "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());", "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());", create_resize_observer(ns("cr_player"), fun = paste0("console.log('resizing'); ", "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());", "Shiny.setInputValue('", ns("cr_height"), "', ", jsns("crpl"), ".currentHeight());", "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());", "var voff = $('#", ns("cr_player"), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"), nsfun = jsns), "}); ", "console.dir(", jsns("crpl"), "); });"))))
+            if (!show_frame_image) tags$head(tags$script(HTML(paste0("$(document).on('shiny:sessioninitialized', function() { ", jsns("crpl"), " = videojs('", ns("cr_player"), "'); ", jsns("crpl"), ".ready(function() {", "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());", "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());", resize_observer(ns("cr_player"), fun = paste0("console.log('resizing'); ", "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());", "Shiny.setInputValue('", ns("cr_height"), "', ", jsns("crpl"), ".currentHeight());", "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());", "var voff = $('#", ns("cr_player"), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"), nsfun = jsns, as = "string"), "});  });"))))
             )
 }
 
@@ -232,23 +232,17 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
                 myjs <- paste0(crplvar, " = videojs('", jsns(paste0("cr_player_", did_sr_popup())), "'); ", crplvar, ".ready(function() {",
                             "Shiny.setInputValue('", ns("cr_media_height"), "', ", crplvar, ".videoHeight());",
                             "Shiny.setInputValue('", ns("cr_media_width"), "', ", crplvar, ".videoWidth());",
-                            create_resize_observer(jsns(paste0("cr_player_", did_sr_popup())), fun = paste0("console.log('resizing'); ",
-                                                                                 "Shiny.setInputValue('", ns("cr_media_height"), "', ", crplvar, ".videoHeight());",
-                                                                                 "Shiny.setInputValue('", ns("cr_height"), "', ", crplvar, ".currentHeight());",
-                                                                                 "Shiny.setInputValue('", ns("cr_media_width"), "', ", crplvar, ".videoWidth());",
-                                                                                 "var voff = $('#", jsns(paste0("cr_player_", did_sr_popup())), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"
-                                                                                 ), nsfun = jsns), "});")
+                            resize_observer(jsns(paste0("cr_player_", did_sr_popup())), fun = paste0("console.log('resizing'); ",
+                                                        "Shiny.setInputValue('", ns("cr_media_height"), "', ", crplvar, ".videoHeight());",
+                                                        "Shiny.setInputValue('", ns("cr_height"), "', ", crplvar, ".currentHeight());",
+                                                        "Shiny.setInputValue('", ns("cr_media_width"), "', ", crplvar, ".videoWidth());",
+                                                        "var voff = $('#", jsns(paste0("cr_player_", did_sr_popup())), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"
+                                                        ), nsfun = jsns, as = "string"), "});")
                 dojs(myjs)
             }
             out
         }, bg = "transparent", height = if (show_frame_image || length(input$cr_height) < 1 || is.na(input$cr_height) || input$cr_height <= 0) 600 else input$cr_height)
     })
-
-    create_resize_observer <- function(id_to_obs, fun, nsfun) {
-        obsfun <- nsfun("rsz_obs") ## name of the observer function
-        ## if the observer function has not yet been defined, and the element to observe exists, then create the observer function
-        paste0("if (typeof ", obsfun, " === 'undefined' && document.getElementById('", id_to_obs, "')) { ", obsfun, " = new ResizeObserver(() => { ", fun, " }); ", obsfun, ".observe(document.getElementById('", id_to_obs, "')); }")
-    }
 
     crimg <- reactive({
         vt <- if (!is.null(input$video_time) && !is.na(input$video_time)) input$video_time else 10

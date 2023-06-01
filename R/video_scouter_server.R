@@ -232,46 +232,6 @@ ov_scouter_server <- function(app_data) {
         video_state <- reactiveValues(paused = TRUE, muted = TRUE) ## starts paused and muted
         editing <- reactiveValues(active = NULL)
 
-        ## height of the video player element
-        vo_height <- reactiveVal("auto")
-        observe({
-            if (!is.null(input$dv_height) && as.numeric(input$dv_height) > 0) {
-                this <- as.numeric(input$dv_height)
-                vo_height(this)
-                dojs(paste0("document.getElementById('video_overlay').style.height = '", this, "px';"))
-                dojs(paste0("document.getElementById('video_overlay_canvas').height = '", this, "';"))
-            } else {
-                vo_height("auto")
-                dojs(paste0("document.getElementById('video_overlay').style.height = '400px';"))
-                dojs(paste0("document.getElementById('video_overlay_canvas').height = '400';"))
-            }
-        })
-        vo_width <- reactiveVal("auto")
-        observe({
-            if (!is.null(input$dv_width) && as.numeric(input$dv_width) > 0) {
-                this <- as.numeric(input$dv_width)
-                vo_width(this)
-                dojs(paste0("document.getElementById('video_overlay').style.width = '", this, "px';"))
-                dojs(paste0("document.getElementById('video_overlay_canvas').width = '", this, "';"))
-            } else {
-                vo_width("auto")
-                dojs(paste0("document.getElementById('video_overlay').style.width = '600px';"))
-                dojs(paste0("document.getElementById('video_overlay_canvas').width = '600';"))
-            }
-        })
-        ## height of the video player container, use as negative vertical offset on the overlay element
-        observe({
-            if (!is.null(input$vo_voffset) && as.numeric(input$vo_voffset) > 0) {
-                ##dojs(paste0("document.getElementById('rallystate').style.marginTop = '-", input$vo_voffset - 50, "px';"))
-                dojs(paste0("document.getElementById('video_overlay').style.marginTop = '-", input$vo_voffset, "px';"))
-                dojs(paste0("document.getElementById('video_overlay_canvas').style.marginTop = '-", input$vo_voffset, "px';"))
-            } else {
-                ##dojs("document.getElementById('rallystate').style.marginTop = '-50px';")
-                dojs("document.getElementById('video_overlay').style.marginTop = '0px';")
-                dojs("document.getElementById('video_overlay_canvas').style.marginTop = '0px';")
-            }
-        })
-
         ## video functions
         do_video <- function(what, ..., id = "main_video") {
             getel <- "vidplayer"
@@ -826,8 +786,8 @@ ov_scouter_server <- function(app_data) {
         observe({
             if (!isTRUE(input$overlay_nocanvas > 0)) {
                 ## draw directly with canvas
-                w <- vo_width(); if (identical(w, "auto")) w <- 600L
-                h <- vo_height(); if (identical(h, "auto")) h <- 400L
+                w <- input$dv_width; w <- if (identical(w, "auto")) 600L else as.numeric(w)
+                h <- input$dv_height; h <- if (identical(h, "auto")) 400L else as.numeric(h)
                 cc <- canvas_drawing$new(id = "video_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('overlay_nocanvas', 1);")
                 ## if context fails, fall back to base plotting
                 if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
@@ -871,7 +831,7 @@ ov_scouter_server <- function(app_data) {
                         points(ixy$x[!overlay_points()$valid], ixy$y[!overlay_points()$valid], bg = "firebrick", pch = 21, col = "white", cex = 2.5)
                     }
                     par(opar)
-                }, bg = "transparent", width = vo_width(), height = vo_height())
+                }, bg = "transparent", width = as.numeric(input$dv_width), height = as.numeric(input$dv_height))
             }
         })
         vid_to_crt <- function(obj, arfix = TRUE) {
