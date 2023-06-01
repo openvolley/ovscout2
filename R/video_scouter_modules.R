@@ -26,10 +26,10 @@ mod_courtrot2_ui <- function(id) {
     ns <- NS(id)
     tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;}"))),
             tags$div(style = "border-radius: 4px; padding: 4px;",
-                     plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:45vh;"),##, height = "45vh"))),
+                     plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:48vh;"),
                      fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")))),
                               column(3, actionButton(ns("switch_serving"), HTML("Switch<br />serving team"))),
-                              column(2, actionButton(ns("court_inset_swap"), label = "\u21f5", class = "iconbut")),
+                              column(2, actionButton(ns("court_inset_swap"), label = span(style = "font-size:150%;", "\u21f5"), class = "iconbut")),
                               column(2, offset = 1, actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")))))
                      ))
 }
@@ -81,8 +81,10 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
 
         htrot <- tibble(number = get_players(gs, team = "*", dvw = rdata$dvw))
         htrot <- dplyr::left_join(htrot, dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
+        htrot$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", htrot$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
         vtrot <- tibble(number = get_players(gs, team = "a", dvw = rdata$dvw))
         vtrot <- dplyr::left_join(vtrot, dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
+        vtrot$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", vtrot$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
         ht_setter <- get_setter(gs, team = "*")
         ht_libxy <- vt_libxy <- NULL
         libs <- get_liberos(gs, team = "*", dvw = rdata$dvw)
@@ -90,6 +92,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             ht_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             ht_libxy$pos <- c(5, 7)[seq_len(nrow(ht_libxy))]
+            ht_libxy$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", ht_libxy$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
             ht_libxy <- cbind(dv_xy(ht_libxy$pos, end = "lower"), ht_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), gs$home_team_end) ~ .data$x - 1,
                                                                                                      TRUE ~ .data$x + 3))
         }
@@ -99,6 +102,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             vt_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             vt_libxy$pos <- c(1, 9)[seq_len(nrow(vt_libxy))]
+            vt_libxy$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", vt_libxy$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
             vt_libxy <- cbind(dv_xy(vt_libxy$pos, end = "upper"), vt_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), gs$home_team_end) ~ .data$x - 1,
                                                                                                      TRUE ~ .data$x + 3))
         }
@@ -139,7 +143,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
 
     ## generate the ggplot object of the court with players, this doesn't change within a rally
     base_plot <- reactive({
-        p <- ggplot(data = data.frame(x = c(-0.25, 4.25, 4.25, -0.25), y = c(-0.25, -0.25, 7.25, 7.25)), mapping = aes_string("x", "y")) +
+        p <- ggplot(data = data.frame(x = c(-0.25, 4.25, 4.25, -0.25), y = c(-0.25, -0.25, 7.25, 7.25)), mapping = aes(.data$x, .data$y)) +
             geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour, na.rm = TRUE) +
             geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour, na.rm = TRUE) +
             ggcourt(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, court_colour = "indoor")
@@ -151,7 +155,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         plxy <- cbind(dv_xy(pseq, end = "lower"), htrot)
         ## player names and circles
         ## home team
-        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "lower"), aes_string(group = "id"), fill = styling$h_court_colour, colour = styling$h_court_highlight_colour, na.rm = TRUE)
+        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "lower"), aes(group = .data$id), fill = styling$h_court_colour, colour = styling$h_court_highlight_colour, na.rm = TRUE)
         if (!beach) {
             ## setter
             ht_setter <- px$ht_setter
@@ -160,16 +164,16 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             }
             ## liberos
             if (!is.null(px$ht_libxy)) {
-                p <- p + geom_polygon(data = court_circle(px$ht_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black", na.rm = TRUE) +
-                    geom_text(data = px$ht_libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
-                    geom_text(data = px$ht_libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5, na.rm = TRUE)
+                p <- p + geom_polygon(data = court_circle(px$ht_libxy[, c("x", "y")], end = "lower"), aes(group = .data$id), fill = styling$libero_colour, colour = "black", na.rm = TRUE) +
+                    geom_text(data = px$ht_libxy, aes(.data$x, .data$y, label = .data$number), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
+                    geom_text(data = px$ht_libxy, aes(.data$x, .data$y + if (need_to_flip(current_video_src(), game_state$home_team_end)) 0.07 else - 0.07, label = .data$lastname_wrapped), size = 3, vjust = 1, lineheight = 1, na.rm = TRUE)
             }
         }
-        p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
-            geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5, na.rm = TRUE)
+        p <- p + geom_text(data = plxy, aes(.data$x, .data$y, label = .data$number), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
+            geom_text(data = plxy, aes(.data$x, .data$y + if (need_to_flip(current_video_src(), game_state$home_team_end)) 0.07 else - 0.07, label = .data$lastname_wrapped), size = 3, vjust = 1, lineheight = 1, na.rm = TRUE)
         ## visiting team
         plxy <- cbind(dv_xy(pseq, end = "upper"), vtrot)
-        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "upper"), aes_string(group = "id"), fill = styling$v_court_colour, colour = styling$v_court_highlight_colour, na.rm = TRUE)
+        p <- p + geom_polygon(data = court_circle(cz = pseq, end = "upper"), aes(group = .data$id), fill = styling$v_court_colour, colour = styling$v_court_highlight_colour, na.rm = TRUE)
         if (!beach) {
             ## setter
             vt_setter <- px$vt_setter
@@ -178,13 +182,13 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             }
             ## liberos
             if (!is.null(px$vt_libxy)) {
-                p <- p + geom_polygon(data = court_circle(px$vt_libxy[, c("x", "y")], end = "lower"), aes_string(group = "id"), fill = styling$libero_colour, colour = "black", na.rm = TRUE) +
-                    geom_text(data = px$vt_libxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
-                    geom_text(data = px$vt_libxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5, na.rm = TRUE)
+                p <- p + geom_polygon(data = court_circle(px$vt_libxy[, c("x", "y")], end = "lower"), aes(group = .data$id), fill = styling$libero_colour, colour = "black", na.rm = TRUE) +
+                    geom_text(data = px$vt_libxy, aes(.data$x, .data$y, label = .data$number), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
+                    geom_text(data = px$vt_libxy, aes(.data$x, .data$y + if (need_to_flip(current_video_src(), game_state$home_team_end)) 0.07 else - 0.07, label = .data$lastname_wrapped), size = 3, vjust = 1, lineheight = 1, na.rm = TRUE)
             }
         }
-        p <- p + geom_text(data = plxy, aes_string("x", "y", label = "number"), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
-            geom_text(data = plxy, aes_string("x", "y", label = "lastname"), size = 3, vjust = 1.5, na.rm = TRUE)
+        p <- p + geom_text(data = plxy, aes(.data$x, .data$y, label = .data$number), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
+            geom_text(data = plxy, aes(.data$x, .data$y + if (need_to_flip(current_video_src(), game_state$home_team_end)) 0.07 else - 0.07, label = .data$lastname_wrapped), size = 3, vjust = 1, lineheight = 1, na.rm = TRUE)
 
         ## add the serving team indicator
         temp <- court_circle(cz = 1, r = 0.2, end = "upper")
@@ -199,15 +203,19 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             ## point scores
             scxy <- tibble(x = c(-0.5, -0.5), y = c(3.15, 3.85), score = c(px$home_score_start_of_point, px$visiting_score_start_of_point))
             if (!need_to_flip(current_video_src(), game_state$home_team_end)) scxy$x <- scxy$x + 5
-            p <- p + ggplot2::annotate(x = scxy$x, y = scxy$y, label = scxy$score, geom = "label", size = 9, fontface = "bold", vjust = 0.5, na.rm = TRUE)
+            p <- p + ggplot2::annotate(x = scxy$x, y = scxy$y, label = scxy$score, geom = "label", size = 9, fontface = "bold", vjust = 0.5, na.rm = TRUE)#^^^, hjust = 1)
             if (length(ssi) == 2 && !any(is.na(ssi))) {
                 ## set scores
                 ssxy <- tibble(set_score = ssi, x = c(-0.5, -0.5), y = c(2.6, 4.4))
                 if (!need_to_flip(current_video_src(), game_state$home_team_end)) ssxy$x <- ssxy$x + 5
-                p <- p + ggplot2::annotate(x = ssxy$x, y = ssxy$y, label = ssxy$set_score, geom = "label", size = 6, fontface = "bold", vjust = 0.5, na.rm = TRUE)
+                p <- p + ggplot2::annotate(x = ssxy$x, y = ssxy$y, label = ssxy$set_score, geom = "label", size = 6, fontface = "bold", vjust = 0.5, na.rm = TRUE)#, hjust = 1)
             }
         }
-        if (need_to_flip(current_video_src(), game_state$home_team_end)) p <- p + scale_x_reverse() + scale_y_reverse()
+        if (need_to_flip(current_video_src(), game_state$home_team_end)) {
+            p <- p + scale_x_reverse(limits = c(NA_real_, -1), expand = c(0.01, 0.01)) + scale_y_reverse(expand = c(0.01, 0.01))
+        } else {
+            p <- p + scale_x_continuous(limits = c(NA_real_, 5), expand = c(0.01, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01))
+        }
         p
     })
 
@@ -239,7 +247,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                 }
             }
         })
-        p
+        p + theme(plot.margin = rep(unit(0, "null"), 4))
     }, height = 950, width = 600, res = 180)
 
     observeEvent(input$rotate_home, {

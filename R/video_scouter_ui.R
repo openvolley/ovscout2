@@ -73,7 +73,7 @@ ov_scouter_ui <- function(app_data) {
                                                    actionButton("show_shortcuts", tags$span(icon("keyboard"), HTML("Keyboard<br />shortcuts"))),
                                                    data.step = 7, data.intro = "Set general preferences, and see the keyboard shortcuts.")
                                           )),
-                       column(9,
+                       column(9, style = "padding-right:2px;",
                               fluidRow(column(8, tags$div(
                                                       )),
                                        column(4, ),
