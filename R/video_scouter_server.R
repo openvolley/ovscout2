@@ -2382,32 +2382,34 @@ ov_scouter_server <- function(app_data) {
             ## canvas overlay plot
             if (!isTRUE(input$review_overlay_nocanvas > 0)) {
                 req(input$rv_width, input$rv_height)
-                ## draw directly with canvas
-                w <- input$rv_width
-                h <- input$rv_height
-                cc <- canvas_drawing$new(id = "review_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('review_overlay_nocanvas', 1);")
-                ## if context fails, fall back to base plotting
-                if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
-                    oxy <- overlay_court_lines()
-                    ## don't need to account for aspect ratios, because the review pane will not be letterboxed
-                    cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour, unit = "npc")
-                }
-                if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
-                    ixy <- setNames(crt_to_vid(overlay_points(), arfix = FALSE), c("x", "y"))
-                    if (any(overlay_points()$valid)) {
-                        cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.02, col = "white", fill_col = "dodgerblue", unit = "npc")
+                if (input$rv_width > 0 && input$rv_height > 0) {
+                    ## draw directly with canvas
+                    w <- input$rv_width
+                    h <- input$rv_height
+                    cc <- canvas_drawing$new(id = "review_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('review_overlay_nocanvas', 1);")
+                    ## if context fails, fall back to base plotting
+                    if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
+                        oxy <- overlay_court_lines()
+                        ## don't need to account for aspect ratios, because the review pane will not be letterboxed
+                        cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour, unit = "npc")
                     }
-                    if (!all(overlay_points()$valid)) {
-                        cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.02, col = "white", fill_col = "firebrick", unit = "npc")
+                    if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
+                        ixy <- setNames(crt_to_vid(overlay_points(), arfix = FALSE), c("x", "y"))
+                        if (any(overlay_points()$valid)) {
+                            cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.02, col = "white", fill_col = "dodgerblue", unit = "npc")
+                        }
+                        if (!all(overlay_points()$valid)) {
+                            cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.02, col = "white", fill_col = "firebrick", unit = "npc")
+                        }
                     }
+                    cc$draw()
                 }
-                cc$draw()
             }
         })
         observe({
             ## review overlay blank plot
-            blah <- list(input$rv_width, input$rv_height)
-            if (!isTRUE(input$review_overlay_nocanvas > 0)) {
+            req(input$rv_width, input$rv_height)
+            if (!isTRUE(input$review_overlay_nocanvas > 0) && input$rv_width > 0 && input$rv_height > 0) {
                 ## using canvas, so make a blank plot and react only to size
                 output$review_overlay <- renderPlot({
                     opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
@@ -2418,7 +2420,8 @@ ov_scouter_server <- function(app_data) {
         })
         observe({
             ## review overlay full plot
-            if (isTRUE(input$review_overlay_nocanvas > 0)) {
+            req(input$rv_width, input$rv_height)
+            if (isTRUE(input$review_overlay_nocanvas > 0) && input$rv_width > 0 && input$rv_height > 0) {
                 ## do the overlay by base plotting, but this is slow
                 output$review_overlay <- renderPlot({
                     opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
