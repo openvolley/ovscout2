@@ -1230,6 +1230,8 @@ ov_scouter_server <- function(app_data) {
                     ac <- c(ac, "Freeball over" = "F", "Set error" = "E=")
                     c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aF", "Opp. dig error" = "aF=", "Opp. overpass attack" = "aPR")), input_var = "c3")
                     fatradio_class_uuids$c3 <- attr(c3_buttons, "class")
+                    hit_type_buttons <- make_fat_radio_buttons(choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"), input_var = "hit_type")
+                    fatradio_class_uuids$hit_type <- attr(hit_type_buttons, "class")
                     attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     ap <- sort(attack_pl_opts$choices)
                     names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
@@ -1251,8 +1253,9 @@ ov_scouter_server <- function(app_data) {
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
                                                                 if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))))),
                                             tags$br(),
-                                            ## the freeball over and set error buttons, shift them to the right
-                                            fixedRow(column(2, offset = 4, c3_buttons[n_ac + 1L]), column(2, c3_buttons[n_ac + 2L])),
+                                            ## hit type and then the freeball over and set error buttons, shift them to the right
+                                            fixedRow(column(1, hit_type_buttons[1]), column(1, hit_type_buttons[2]), column(1, hit_type_buttons[3]),
+                                                     column(2, offset = 2, c3_buttons[n_ac + 1L]), column(2, c3_buttons[n_ac + 2L])),
                                             ##do.call(fixedRow, lapply(c3_buttons[c(n_ac + seq_len(n_ac2))], function(but) column(2, but))),
                                             tags$br(),
                                             tags$div(id = "c3_pl_ui", tags$p("by player"), tags$br(),
@@ -2166,6 +2169,7 @@ ov_scouter_server <- function(app_data) {
                 game_state$point_won_by <- other(game_state$current_team)
                 rally_ended()
             } else {
+                ## attack
                 ap <- if (!is.null(input$c3_player)) input$c3_player else 0L
                 ac <- input$c3
                 if (is.null(input$c3)) ac <- ""
@@ -2208,7 +2212,7 @@ ov_scouter_server <- function(app_data) {
                 if (tail(rc$skill, 1) == "E" && tempo != "~") rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], tempo = tempo, game_state = game_state)
                 nb <- input$nblockers
                 if (is.null(nb) || !nb %in% 0:3) nb <- "~"
-                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = ap, skill = "A", tempo = tempo, combo = ac, sz = sz, num_p = nb, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, start_zone_valid = szvalid, default_scouting_table = rdata$options$default_scouting_table)))
+                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = ap, skill = "A", tempo = tempo, combo = ac, sz = sz, x_type = if (!is.null(input$hit_type) && input$hit_type %in% c("H", "P", "T")) input$hit_type else "~", num_p = nb, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, start_zone_valid = szvalid, default_scouting_table = rdata$options$default_scouting_table)))
                 rally_state("click attack end point")
                 game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
             }
