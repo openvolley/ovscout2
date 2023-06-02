@@ -2817,7 +2817,7 @@ ov_scouter_server <- function(app_data) {
                         tm <- substr(code, 1, 1)
                         current_setter <- get_setter(game_state, team = tm)
                         game_state <- game_state_make_substitution(game_state, team = tm, player_out = p_out, player_in = p_in, dvw = rdata$dvw)
-                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0(substr(code, 1, 1), "C", p_out, ".", p_in), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
+                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0(substr(code, 1, 1), "C", ldz(p_out), ".", ldz(p_in)), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
                         ## if we just substituted the player about to serve, we need to update the serve preselect buttons
                         do_serve_preselect()
                         ## did we substitute the setter?
@@ -2863,7 +2863,7 @@ ov_scouter_server <- function(app_data) {
                             game_state$visiting_setter_position <- new_pos
                         }
                         ## and add the aPXX, azYY codes
-                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(c(paste0(substr(code, 1, 1), "P", sprintf("%02d", new_setr)), paste0(substr(code, 1, 1), "z", sprintf("%02d", new_pos))), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
+                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(c(paste0(substr(code, 1, 1), "P", ldz(new_setr)), paste0(substr(code, 1, 1), "z", new_pos)), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
                     } else {
                         ok <- FALSE
                     }

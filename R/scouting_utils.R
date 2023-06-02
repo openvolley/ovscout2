@@ -204,7 +204,7 @@ add_substitution <- function(x, team, player_out, player_in) {
         this_lup[this_lup == player_out] <- player_in
         x$game_state[, lup_cols] <- as.list(this_lup)
         message(if (team == "*") "home" else "visiting", " team player ", player_in, " in for player ", player_out)
-        x <- add_non_rally(x, codes = paste0(team, "C", player_out, ".", player_in))
+        x <- add_non_rally(x, codes = paste0(team, "C", ldz(player_out), ".", ldz(player_in)))
     }
     x
 }
@@ -220,7 +220,7 @@ change_setter <- function(x, team, new_setter) {
         setter_pos <- which(this_lup == new_setter)
         if (team == "*") x$game_state$home_setter_position <- setter_pos else x$game_state$visiting_setter_position <- setter_pos
         message(if (team == "*") "home" else "visiting", " team player ", new_setter, " is now the setter on court")
-        x <- add_non_rally(x, codes = paste0(team, "P", new_setter))
+        x <- add_non_rally(x, codes = paste0(team, "P", ldz(new_setter)))
     }
     x
 }
@@ -719,7 +719,6 @@ df2txt <- function(z) {
     for (lc in which(findlogicalcols(z))) z[[lc]] <- logical2char(z[[lc]])
     ## convert period cols to text
     findperiodcols <- function(w) vapply(seq_len(ncol(w)), function(ci) lubridate::is.period(w[[ci]]), FUN.VALUE = TRUE)
-    ldz <- function(nn, width = 2) formatC(nn, flag = "0", width = width) ## leading zeros
     for (pc in which(findperiodcols(z))) {
         nnaidx <- which(!is.na(z[[pc]]))
         temp <- rep("", nrow(z))
