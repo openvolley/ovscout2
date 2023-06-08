@@ -41,7 +41,8 @@ ov_scouter_ui <- function(app_data) {
                        tags$canvas(id = "review_overlay_canvas", style = "position:absolute;", height = "125", width = "200"),
                        plotOutputWithAttribs("review_overlay", width = "100%", height = "100%", click = "rv_click", hover = shiny::hoverOpts("rv_hover", delay = 50, delayType = "throttle"), onmouseup = "Shiny.setInputValue('did_rv_mouseup', new Date().getTime());", onmousedown = "Shiny.setInputValue('did_rv_mousedown', new Date().getTime());")),
               fluidRow(column(1, tags$div(id = "bsbar",
-                                          introBox(actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward")),
+                                          introBox(
+                                              actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward")),
                                                    actionButton("video_rew_2", label = "Back 2s", icon = icon("step-backward")),
                                                    actionButton("video_pause", label = "Pause", icon = icon("pause-circle")),
                                                    actionButton("video_ff_2", label = "Forward 2s", icon = icon("step-forward")),
@@ -62,6 +63,8 @@ ov_scouter_ui <- function(app_data) {
                                               mod_lineup_edit_ui(id = "lineup_editor"),
                                               if (!is.null(app_data$video_src2)) actionButton("switch_video", "Switch video"),
                                               data.step = 2, data.intro = "Click on these buttons if you want to edit the court reference, starting lineups, rosters, or match metadata. The court reference defines where the court is located in the video image."),
+                                          tags$hr(),
+                                          mod_edit_mode_ui(id = "edit_mode"),
                                           tags$hr(),
                                           if (!is.null(app_data$dvw$plays2)) tags$div(downloadButton("save_rds_button", "Save file"),
                                                                                       downloadButton("save_dvw_button", "Export to dvw"),

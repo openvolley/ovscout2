@@ -306,6 +306,10 @@ ov_scouter_server <- function(app_data) {
         team_select_mod <- callModule(mod_team_select, id = "team_selector", rdata = rdata, editing = editing, app_data = app_data)
         lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, video_state = video_state, styling = app_data$styling)
 
+        edit_mod <-callModule(mod_edit_mode, id = "edit_mode",  rdata = rdata, editing = editing, app_data = app_data)
+        start_syncing_mod <-callModule(mod_start_syncing, id = "start_syncing",  rdata = rdata, editing = editing, app_data = app_data)
+        review_warning_mod <-callModule(mod_review_warning, id = "review_warning",  rdata = rdata, editing = editing, app_data = app_data)
+
         observeEvent(input$edit_cancel, {
             if (!is.null(editing$active) && editing$active %in% "teams") {
                 team_edit_mod$htdata_edit(NULL)
