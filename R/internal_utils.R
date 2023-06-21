@@ -12,6 +12,8 @@ most_common_value <- function(x, na.rm = FALSE) {
     ux[which.max(tabulate(match(x, ux)))]
 }
 
+ldz <- function(nn, width = 2) formatC(as.integer(nn), flag = "0", width = width) ## leading zeros
+
 ## plotting
 court_circle <- function(cxy, r = 0.45, cz = NULL, end = "lower", nseg = 31) {
     ## cxy must be data.frame with x and y centres

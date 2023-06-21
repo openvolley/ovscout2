@@ -960,3 +960,7 @@ was_mouse_drag <- function(start, dragtime = 500) {
         isTRUE((R.utils::System$currentTimeMillis() - start$mousedown_time) > dragtime)
     }
 }
+
+check_hit_type <- function(htype) {
+    if (length(htype) != 1 || !htype %in% c("H", "T", "P")) "H" else htype
+}
