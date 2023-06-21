@@ -1256,7 +1256,6 @@ ov_scouter_server <- function(app_data) {
                                             ## hit type and then the freeball over and set error buttons, shift them to the right
                                             fixedRow(column(1, hit_type_buttons[1]), column(1, hit_type_buttons[2]), column(1, hit_type_buttons[3]),
                                                      column(2, offset = 2, c3_buttons[n_ac + 1L]), column(2, c3_buttons[n_ac + 2L])),
-                                            ##do.call(fixedRow, lapply(c3_buttons[c(n_ac + seq_len(n_ac2))], function(but) column(2, but))),
                                             tags$br(),
                                             tags$div(id = "c3_pl_ui", tags$p("by player"), tags$br(),
                                                      do.call(fixedRow, lapply(attacker_buttons, function(but) column(1, but)))
@@ -1291,6 +1290,10 @@ ov_scouter_server <- function(app_data) {
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
                     c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (play continues)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"), selected = "D", input_var = "c1") ## defaults to dig
+                    ## allow the possibility to change the hit type
+                    htype <- check_hit_type(input$hit_type) ## the currently-selected hit type, default to "H" if not assigned
+                    hit_type_buttons <- make_fat_radio_buttons(choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"), selected = htype, input_var = "hit_type")
+                    fatradio_class_uuids$hit_type <- attr(hit_type_buttons, "class")
                     ae_buttons <- make_fat_radio_buttons(choices = c("Out long" = "O", "Out side" = "S", "In net" = "N", "Net contact" = "I", Antenna = "A", "Other/referee call" = "Z"), selected = NA, input_var = "attack_error_type")
                     ## blocking players
                     blockp <- get_players(game_state, team = game_state$current_team, dvw = rdata$dvw)
@@ -1366,8 +1369,9 @@ ov_scouter_server <- function(app_data) {
                     }  else {
                         accept_fun("do_assign_c1")
                         show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = scout_modal_width, modal_halign = "left",
-                                                       tags$p(tags$strong("Attack outcome:")),
-                                                       do.call(fixedRow, lapply(c1_buttons[1:3], function(but) column(2, but))),
+                                                       tags$p(tags$strong("Attack outcome and hit type:")),
+                                                       fixedRow(column(2, c1_buttons[1]), column(2, c1_buttons[2]), column(3, c1_buttons[3]),
+                                                                column(1, hit_type_buttons[1]), column(1, hit_type_buttons[2]), column(1, hit_type_buttons[3])),
                                                        tags$br(), tags$div(id = "ae_ui", style = "display:none;", do.call(fixedRow, lapply(ae_buttons, function(but) column(1, but)))),
                                                        tags$div("OR", tags$strong("Defence outcome:")),
                                                        do.call(fixedRow, lapply(c1_buttons[4:7], function(but) column(2, but))),
@@ -1750,6 +1754,7 @@ ov_scouter_server <- function(app_data) {
                         ## game_state$current_team is the defending team
                         esz <- as.character(dv_xy2subzone(game_state$end_x, if (isTRUE((game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower"))) 3.55 else 3.45))
                     }
+                    rc$x_type[Aidx] <- check_hit_type(input$hit_type) ## update hit type if needed
                     if (FALSE) {
                         sz <- rc$sz[Aidx] ## default to existing start zone
                         if (isTRUE(game_state$startxy_valid)) {
@@ -1799,6 +1804,7 @@ ov_scouter_server <- function(app_data) {
                     rc <- head(rc, -1)
                 }
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else NA_integer_
+                if (!is.na(Aidx)) rc$x_type[Aidx] <- check_hit_type(input$hit_type) ## update hit type if needed
                 ## TODO if we already have a block skill here, don't add a new one, just update the existing one ... though there should never already be block skill here
                 ## block fault player should be in input$c1_def_player, but we'll take input$b1_block_touch_player otherwise
                 bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
@@ -1844,6 +1850,7 @@ ov_scouter_server <- function(app_data) {
                 bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
                 if (!is.na(Aidx)) {
                     ## adjust the attack row
+                    rc$x_type[Aidx] <- check_hit_type(input$hit_type) ## update hit type if needed
                     sz <- rc$sz[Aidx] ## default to existing start zone
                     if (isTRUE(game_state$startxy_valid)) {
                         ## update start pos, it may have been edited by the user
@@ -1878,6 +1885,7 @@ ov_scouter_server <- function(app_data) {
                 bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
                 if (!is.na(Aidx)) {
                     ## adjust the attack row
+                    rc$x_type[Aidx] <- check_hit_type(input$hit_type) ## update hit type if needed
                     sz <- rc$sz[Aidx] ## default to existing start zone
                     if (isTRUE(game_state$startxy_valid)) {
                         ## update start pos, it may have been edited by the user
@@ -1910,6 +1918,7 @@ ov_scouter_server <- function(app_data) {
                 ## was the previous skill an attack, or one previous to that an attack with a block in between
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
                 if (!is.na(Aidx)) {
+                    rc$x_type[Aidx] <- check_hit_type(input$hit_type) ## update hit type if needed
                     sz <- rc$sz[Aidx] ## existing start zone
                     if (isTRUE(game_state$startxy_valid)) {
                         szv <- TRUE
