@@ -632,7 +632,7 @@ guess_freeball_dig_player_options <- function(game_state, dvw, system, weighted 
     list(choices = pp, selected = plsel)
 }
 
-do_responsibility_posterior <- function(history, game_state, prior, home_visiting, weighted, current_team, start_end, pseq, weight = 1.5, liberos = TRUE) {
+do_responsibility_posterior <- function(history, game_state, prior, home_visiting, weighted, current_team, start_end, pseq, weight = 2.5, liberos = TRUE) {
     if (!liberos) stop("do_responsibility_posterior does not yet work without liberos")
     if (missing(current_team)) current_team <- game_state$current_team
     posterior <- prior
@@ -680,7 +680,9 @@ do_responsibility_posterior <- function(history, game_state, prior, home_visitin
                 mutate(lib = sum(.data$value %eq% .data$player_number) < 1)
             history <- bind_rows(history  %>% ungroup %>% dplyr::filter(!.data$lib) %>% dplyr::filter(.data$value == .data$player_number),
                                  history %>% dplyr::filter(.data$lib) %>% dplyr::slice(1L) %>% mutate(name = "libero"))
-            history <- history %>% dplyr::group_by(.data$name) %>% dplyr::summarise(n_times = sum(.data$w)) %>% dplyr::ungroup()
+##            history <- history %>% dplyr::group_by(.data$name) %>% dplyr::summarise(n_times = sum(.data$w)) %>% dplyr::ungroup()
+            ## don't use sum(w), because a player that passes (or whatever skill) a lot, but nowhere near this particular point on the court, will get upweighted too much
+            history <- history %>% dplyr::group_by(.data$name) %>% dplyr::summarise(n_times = mean(.data$w) * nrow(history)) %>% dplyr::ungroup() ## take mean of w, but weight the whole lot by the number of attempts so that as the match progresses, this outweighs the prior
             posterior[history$name] <- posterior[history$name] + history$n_times
         }
     }
