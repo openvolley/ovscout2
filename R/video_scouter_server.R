@@ -1649,7 +1649,8 @@ ov_scouter_server <- function(app_data) {
             game_state$home_team_end <- other_end(game_state$home_team_end) ## TODO deal with 5th set
             if ((!app_data$is_beach && game_state$set_number < 5) || (app_data$is_beach && game_state$set_number < 3)) {
                 ## serving team is the one that did not serve first in the previous set
-                temp <- na.omit(rdata$dvw$plays2$serving[rdata$dvw$plays2$set_number %eq% (game_state$set_number - 1L)])
+                temp <- rdata$dvw$plays2[rdata$dvw$plays2$set_number %eq% (game_state$set_number - 1L), ]
+                temp <- temp$serving[!grepl("^\\*\\*[[:digit:]]set", temp$code) & !grepl(">LUp", temp$code, ignore.case = TRUE) & !is.na(temp$serving)]
                 if (length(temp) > 0) game_state$serving <- other(head(temp, 1))
             }
             ## update match metadata
