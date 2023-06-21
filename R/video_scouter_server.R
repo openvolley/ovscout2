@@ -2027,6 +2027,7 @@ ov_scouter_server <- function(app_data) {
                     }
                 } else {
                     ## aPR
+                    game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                     rally_state("click attack end point")
                 }
