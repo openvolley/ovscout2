@@ -360,7 +360,7 @@ update_meta <- function(x, set_ended = FALSE) {
                 if (length(pl_row) == 1) x$meta$players_h[[paste0("starting_position_set", si)]][pl_row] <- as.character(j)
             }
             ## subs
-            all_home_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set_number == si & !grepl(">LUp|\\*\\*[[:digit:]]set", x$plays2$code, ignore.case = TRUE)), paste0("home_p", pseq)]))))
+            all_home_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set_number == si & !grepl("^(>LUp|\\*\\*[[:digit:]]set)", x$plays2$code, ignore.case = TRUE)), paste0("home_p", pseq)]))))
             ## also any players recorded making a play, because liberos won't appear in the home_pX lineup columns
             ## reconstruct home player number from the code column because there isn't a player_number column in the plays2 dataframe, grr
             temp_hpn <- unique(na.omit(as.numeric(stringr::str_match(x$plays2$code[which(x$plays2$set_number == si)], "^\\*([[:digit:]]+)[SREABDF]")[, 2])))
@@ -375,7 +375,7 @@ update_meta <- function(x, set_ended = FALSE) {
                 if (length(pl_row) == 1) x$meta$players_v[[paste0("starting_position_set", si)]][pl_row] <- as.character(j)
             }
             ## subs
-            all_visiting_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set_number == si & !grepl(">LUp|\\*\\*[[:digit:]]set", x$plays2$code, ignore.case = TRUE)), paste0("visiting_p", pseq)]))))
+            all_visiting_pl <- unique(na.omit(as.numeric(unlist(x$plays2[which(x$plays2$set_number == si & !grepl("^(>LUp|\\*\\*[[:digit:]]set)", x$plays2$code, ignore.case = TRUE)), paste0("visiting_p", pseq)]))))
             temp_vpn <- unique(na.omit(as.numeric(stringr::str_match(x$plays2$code[which(x$plays2$set_number == si)], "^a([[:digit:]]+)[SREABDF]")[, 2])))
             all_home_pl <- unique(c(all_home_pl, temp_vpn))
             visiting_subs <- na.omit(setdiff(all_visiting_pl, visiting_starting_lineup))
