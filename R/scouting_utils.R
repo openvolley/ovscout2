@@ -204,7 +204,7 @@ add_substitution <- function(x, team, player_out, player_in) {
         this_lup[this_lup == player_out] <- player_in
         x$game_state[, lup_cols] <- as.list(this_lup)
         message(if (team == "*") "home" else "visiting", " team player ", player_in, " in for player ", player_out)
-        x <- add_non_rally(x, codes = paste0(team, "C", ldz(player_out), ".", ldz(player_in)))
+        x <- add_non_rally(x, codes = paste0(team, "c", ldz(player_out), ":", ldz(player_in)))
     }
     x
 }
