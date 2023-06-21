@@ -12,8 +12,9 @@ ov_scouter(
   auto_save_dir,
   scoreboard = TRUE,
   ball_path = FALSE,
-  review_pane = TRUE,
   playlist_display_option = "dv_codes",
+  review_pane = TRUE,
+  playback_rate = 1,
   scouting_options = ov_scouting_options(),
   app_styling = ov_app_styling(),
   shortcuts = ov_default_shortcuts(),
@@ -40,9 +41,11 @@ ov_scouter(
 
 \item{ball_path}{logical: if \code{TRUE}, show the ball path on the court inset diagram. Note that this will slow the app down slightly}
 
+\item{playlist_display_option}{string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)}
+
 \item{review_pane}{logical: if \code{TRUE}, entry popups will be accompanied by a small video pane that shows a loop of the video of the action in question}
 
-\item{playlist_display_option}{string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)}
+\item{playback_rate}{numeric: starting playback rate of the video (1.0 is normal speed, higher is faster)}
 
 \item{scouting_options}{list: a named list with entries as per \code{\link[=ov_scouting_options]{ov_scouting_options()}}. See Details, below}
 

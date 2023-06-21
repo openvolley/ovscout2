@@ -54,6 +54,7 @@ ov_scouter_server <- function(app_data) {
         if (!is.null(app_data$video_src2)) app_data$dvw$video_file2 <- app_data$video_src2
         rdata <- reactiveValues(dvw = app_data$dvw, options = app_data$options)
         prefs <- reactiveValues(scout_name = app_data$scout_name, show_courtref = app_data$show_courtref, scoreboard = app_data$scoreboard, ball_path = app_data$ball_path, playlist_display_option = app_data$playlist_display_option, review_pane = app_data$review_pane)
+        if (!is.null(app_data$playback_rate) && isTRUE(app_data$playback_rate > 0)) updateSliderInput(session, "playback_rate", value = app_data$playback_rate)
 
         ## function to reference a video time measured on the time scale of video "from", to its equivalent time relative to video "to"
         rebase_time <- function(t, time_to = 1, time_from) {
@@ -720,6 +721,7 @@ ov_scouter_server <- function(app_data) {
         })
         observeEvent(input$prefs_save, {
             thisprefs <- list(scout_name = if (is.null(input$prefs_scout) || is.na(input$prefs_scout)) "" else input$prefs_scout, show_courtref = isTRUE(input$prefs_show_courtref), scoreboard = isTRUE(input$prefs_scoreboard), ball_path = isTRUE(input$prefs_ball_path), playlist_display_option = input$prefs_playlist_display_option, review_pane = input$prefs_review_pane)
+            if (!is.null(input$playback_rate)) thisprefs$playback_rate <- input$playback_rate ## add playback rate here, but it's set directly by the slider not by this popup
             this_opts <- list(end_convention = input$scopts_end_convention, nblockers = input$scopts_nblockers, default_nblockers = as.numeric(input$scopts_default_nblockers), transition_sets = input$scopts_transition_sets, attacks_by = input$scopts_attacks_by, team_system = input$scopts_team_system, setter_dump_code = if (nzchar(input$scopts_setter_dump_code)) input$scopts_setter_dump_code else ov_scouting_options()$setter_dump_code, second_ball_attack_code = if (nzchar(input$scopts_second_ball_attack_code)) input$scopts_second_ball_attack_code else ov_scouting_options()$second_ball_attack_code, overpass_attack_code = if (nzchar(input$scopts_overpass_attack_code)) input$scopts_overpass_attack_code else ov_scouting_options()$overpass_attack_code)
 
             ## save prefs
