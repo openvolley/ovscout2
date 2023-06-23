@@ -1233,6 +1233,10 @@ ov_scouter_server <- function(app_data) {
                     ## always offer set error option
                     n_ac2 <- 2L
                     ac <- c(ac, "Freeball over" = "F", "Set error" = "E=")
+                    if (nrow(rally_codes()) > 0 && tail(rally_codes()$skill, 1) %eq% "E") {
+                        ac <- c(ac, "Change prev. set<br />to setter dump" = "PP")
+                        n_ac2 <- n_ac2 + 1L
+                    }
                     c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aF", "Opp. dig error" = "aF=", "Opp. overpass attack" = "aPR")), input_var = "c3")
                     fatradio_class_uuids$c3 <- attr(c3_buttons, "class")
                     hit_type_buttons <- make_fat_radio_buttons(choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"), input_var = "hit_type")
@@ -1257,9 +1261,9 @@ ov_scouter_server <- function(app_data) {
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
                                                                 if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))))),
                                             tags$br(),
-                                            ## hit type and then the freeball over and set error buttons, shift them to the right
+                                            ## hit type and then the freeball over, set error, setter dump buttons, shift them to the right
                                             fixedRow(column(1, hit_type_buttons[1]), column(1, hit_type_buttons[2]), column(1, hit_type_buttons[3]),
-                                                     column(2, offset = 2, c3_buttons[n_ac + 1L]), column(2, c3_buttons[n_ac + 2L])),
+                                                     column(2, offset = 2, c3_buttons[n_ac + 1L]), column(2, c3_buttons[n_ac + 2L]), if (n_ac2 > 2) column(2, c3_buttons[n_ac + 3L])),
                                             tags$br(),
                                             tags$div(id = "c3_pl_ui", tags$p("by player"), tags$br(),
                                                      do.call(fixedRow, lapply(attacker_buttons, function(but) column(1, but)))
@@ -2136,7 +2140,7 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$assign_c3, do_assign_c3())
         do_assign_c3 <- function() {
-            ## possible values for input$c3 are: an attack code, Other attack, "F" Freeball or "E=" set error (if not scouting transition sets)
+            ## possible values for input$c3 are: an attack code, Other attack, "F" Freeball, "E=" set error (if not scouting transition sets), or in some cases "PP"
             ##    "Opp. dig" = "aF", "Opp. overpass attack" = "aPR"
             start_t <- retrieve_video_time(game_state$start_t)
             sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
@@ -2171,6 +2175,20 @@ ov_scouter_server <- function(app_data) {
                 ## TODO add end pos to this on next contact
                 game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                 rally_state("click freeball end point")
+            } else if (input$c3 == "PP") {
+                ## setter dump, but in this case we are changing the previously-scouted set to a setter dump
+                if (tail(rc$skill, 1) %eq% "E") {
+                    sp <- tail(rc$pnum, 1)
+                    rc <- head(rc, -1) ## remove the preceding set row
+                } else {
+                    sp <- NA_integer_
+                }
+                ## do we have to remove anything from the game_state codes history? TO CHECK
+                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = rdata$options$setter_dump_code, sz = dv_xy2zone(game_state$start_x, game_state$start_y), t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                ## now this was clicked in "third contact" context, but the clicked location is actually now the first contact of other team after setter dump
+                rally_state("click attack end point")
+                game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
+                return(process_action()) ## and jump straight to the c1 modal
             } else if (input$c3 == "E=") {
                 ## set error
                 ## this is the third contact, so we should modify the existing set if we have scouted a set
