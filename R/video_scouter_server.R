@@ -1194,7 +1194,8 @@ ov_scouter_server <- function(app_data) {
                         ph <- NA_character_
                     }
                     if (rdata$options$attacks_by %eq% "codes") {
-                        ac <- guess_attack_code(game_state, dvw = rdata$dvw, opts = rdata$options)
+                        atk <- guess_attack(game_state, dvw = rdata$dvw, opts = rdata$options, system = rdata$options$team_system)
+                        ac <- atk$code
                         ## label with code and description TODO make this a preference, perhaps?
                         if (TRUE) {
                             temp <- left_join(tibble(code = ac), rdata$dvw$meta$attacks, by = "code") %>%
@@ -1219,12 +1220,14 @@ ov_scouter_server <- function(app_data) {
                                 mutate(lbl = case_when(!is.na(.data$description) ~ paste0(.data$code, " (", .data$description, ")"), TRUE ~ .data$code))
                             ac_others <- setNames(temp$code, temp$lbl)
                         }
+                        attack_pl_opts <- atk$player
                     } else {
                         ac <- c("High ball" = "H", "Medium/fast<br />attack" = "M", "Quick attack" = "Q")##, "Other attack" = "O")
                         if (!isTRUE(rdata$options$transition_sets) && ph %eq% "Transition") {
                             ## if we aren't scouting transition sets, then this "third" contact could be a setter dump or second-ball attack
                             ac <- c(ac, c("Setter dump" = rdata$options$setter_dump_code, "Second-ball<br />attack" = rdata$options$second_ball_attack_code))
                         }
+                        attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     }
                     n_ac <- length(ac)
                     ## always offer set error option
@@ -1234,7 +1237,6 @@ ov_scouter_server <- function(app_data) {
                     fatradio_class_uuids$c3 <- attr(c3_buttons, "class")
                     hit_type_buttons <- make_fat_radio_buttons(choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"), input_var = "hit_type")
                     fatradio_class_uuids$hit_type <- attr(hit_type_buttons, "class")
-                    attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     ap <- sort(attack_pl_opts$choices)
                     names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
                     ap <- c(ap, Unknown = "Unknown")

@@ -509,10 +509,75 @@ guess_attack_player_options <- function(game_state, dvw, system) {
     list(choices = pp, selected = plsel)
 }
 
-guess_attack_code <- function(game_state, dvw, opts) {
-    exclude_codes <- if (!missing(opts) && !is.null(opts$setter_dump_code)) opts$setter_dump_code else "PP"
-    exclude_codes <- c(exclude_codes, if (!missing(opts) && !is.null(opts$second_ball_attack_code)) opts$second_ball_attack_code else "P2")
-    exclude_codes <- c(exclude_codes, if (!missing(opts) && !is.null(opts$overpass_attack_code)) opts$overpass_attack_code else "PR")
+## combined guess of attack code and player
+guess_attack <- function(game_state, dvw, opts, system, weight = 2.5) {
+    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
+    prior <- guess_attack_code_prior(game_state = game_state, dvw = dvw, opts = opts)
+    if (!game_state$current_team %in% c("*", "a")) {
+        ## can't refine code guess from data
+        return(list(code = head(prior$code, 5), player = guess_attack_player_options(game_state = game_state, dvw = dvw, system = system)))
+    }
+    beach <- is_beach(dvw)
+    pseq <- seq_len(if (beach) 2L else 6L)
+    home_visiting <- if (game_state$current_team %eq% "a") "visiting" else "home"
+    setter_position <- game_state[[paste0(home_visiting, "_setter_position")]]
+    exclude_codes <- c(if (!missing(opts) && !is.null(opts$setter_dump_code)) opts$setter_dump_code else "PP",
+                       if (!missing(opts) && !is.null(opts$second_ball_attack_code)) opts$second_ball_attack_code else "P2",
+                       if (!missing(opts) && !is.null(opts$overpass_attack_code)) opts$overpass_attack_code else "PR")
+    history <- dplyr::filter(dvw$plays, .data$skill == "Attack", .data[[paste0(home_visiting, "_setter_position")]] == setter_position, .data$team == game_state$current_team, !.data$attack_code %in% exclude_codes)
+    ## TODO perhaps - filter history by pass quality as well (at least into poor/OK/good)
+    if (nrow(history) > 0) {
+        histxy <- history[, c("start_coordinate_x", "start_coordinate_y")]
+        thisxy <- c(game_state$start_x, game_state$start_y)
+        flipidx <- history$start_coordinate_y > 3.5 ## flip by start loc
+        ## use flipidx to refer all locations to the lower end of court
+        histxy[flipidx, ] <- dv_flip_xy(histxy[flipidx, ])
+        ## and flip the current action if needed
+        if (isTRUE(game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower")) {
+            thisxy <- as.numeric(dv_flip_xy(thisxy[1], thisxy[2]))
+        }
+        history$dist <- sqrt((thisxy[1] - histxy[, 1])^2 + (thisxy[2] - histxy[, 2])^2)
+        history$w <- exp(-weight*history$dist)
+        history <- mutate(history, skill_id = dplyr::row_number()) %>% dplyr::select("skill_id", "team", "attack_code", "player_number", paste0(home_visiting, "_p", pseq), "w") %>%
+                tidyr::pivot_longer(cols = paste0(home_visiting, "_p", pseq)) %>%
+            ## libero doesn't appear in _p* cols
+            group_by(.data$skill_id) %>%
+            mutate(lib = sum(.data$value %eq% .data$player_number) < 1)
+        history <- bind_rows(history  %>% ungroup %>% dplyr::filter(!.data$lib) %>% dplyr::filter(.data$value == .data$player_number),
+                             history %>% dplyr::filter(.data$lib) %>% dplyr::slice(1L) %>% mutate(name = "libero"))
+        history <- history %>% dplyr::group_by(.data$name, .data$attack_code) %>% dplyr::summarise(n_times = mean(.data$w) * nrow(history)) %>% dplyr::ungroup() ## take mean of w, but weight the whole lot by the number of attempts so that as the match progresses, this outweighs the prior
+        serving <- isTRUE(game_state$serving == game_state$current_team)
+        prior <- prior %>% mutate(name = attack_player_prior_by_code(system = system, setter_position = setter_position, set_type = .data$set_type, attacker_position = .data$attacker_position, home_visiting = home_visiting, serving = serving),
+                                  n_times_prior = exp(-weight * .data$d))
+        history <- dplyr::full_join(history, prior %>% dplyr::select("name", attack_code = "code", "n_times_prior"), by = c("attack_code", "name"))
+        history <- history %>% mutate(n_times = if_else(is.na(.data$n_times), 0.0, .data$n_times), n_times_prior = if_else(is.na(.data$n_times_prior), 0.0, .data$n_times_prior),
+                                      n_times = .data$n_times + .data$n_times_prior) %>%
+            group_by(.data$attack_code) %>% dplyr::summarize(n_times = sum(n_times), name = case_when(all(is.na(.data$name)) ~ NA_character_, TRUE ~ most_common_value(na.omit(.data$name)))) %>% ungroup %>%
+            dplyr::arrange(desc(.data$n_times))
+        ## now we can take the most likely player along with the most likely code
+        pp <- tryCatch({
+            poc <- na.omit(as.numeric(sub(".*_p", "", unique(na.omit(history$name))))) ## player pos in most likely order
+            if (length(poc) < 1) {
+                ## got nothing, fall back to guessing player independent of attack code
+                NULL
+            } else {
+                poc <- paste0(home_visiting, "_p", c(poc, setdiff(pseq, poc))) ## any missing ones added
+                pp <- sort(as.numeric(game_state[poc])) ## as jersey numbers, sorted
+                plsel <- as.numeric(game_state[poc[1]]) ## most likely
+                list(choices = pp, selected = plsel)
+            }
+        }, error = function(e) NULL)
+        if (is.null(pp)) pp <- guess_attack_player_options(game_state = game_state, dvw = dvw, system = system)
+        list(code = head(history$attack_code, 5), player = pp)
+    } else {
+        list(code = head(prior$code, 5), player = guess_attack_player_options(game_state = game_state, dvw = dvw, system = system))
+    }
+}
+
+guess_attack_code_prior <- function(game_state, dvw, opts) {
+    exclude_codes <- c(if (!missing(opts) && !is.null(opts$setter_dump_code)) opts$setter_dump_code else "PP",
+                       exclude_codes <- if (!missing(opts) && !is.null(opts$second_ball_attack_code)) opts$second_ball_attack_code else "P2",
+                       exclude_codes <- if (!missing(opts) && !is.null(opts$overpass_attack_code)) opts$overpass_attack_code else "PR")
     atbl <- dvw$meta$attacks %>% dplyr::filter(!.data$code %in% exclude_codes)
     do_flip_click <- (game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower")
     thisxy <- if (isTRUE(do_flip_click)) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
@@ -530,10 +595,11 @@ guess_attack_code <- function(game_state, dvw, opts) {
     }
     ## TODO also incorporate set -> attack contact time and distance, to infer tempo
     d[is.na(d)] <- Inf
-    ac <- head(atbl$code[order(d)], 5)
-    for (i in head(seq_along(ac), -1)) {
+    atbl$d <- d
+    ac <- atbl[order(d), ]
+    for (i in head(seq_len(nrow(ac)), -1)) {
         ## swap e.g. V5 X5 so that X5 is first
-        if (substr(ac[i], 2, 2) == substr(ac[i+1], 2, 2) && grepl("^V", ac[i]) && grepl("^X", ac[i+1])) ac[c(i, i+1)] <- ac[c(i+1, i)]
+        if (substr(ac$code[i], 2, 2) == substr(ac$code[i+1], 2, 2) && grepl("^V", ac$code[i]) && grepl("^X", ac$code[i+1])) ac[c(i, i+1), ] <- ac[c(i+1, i), ]
     }
     ac
 }
