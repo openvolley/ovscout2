@@ -886,7 +886,9 @@ ov_scouter_server <- function(app_data) {
             }
             if (rally_state() != "click or unpause the video to start") courtxy(vid_to_crt(this_click))
             loop_trigger(loop_trigger() + 1L)
-            process_action()
+            ## 6th element of input$video_click gives status of shift key during click
+            shiftclick <- (length(input$video_click) > 5) && isTRUE(input$video_click[6] > 0)
+            process_action(shiftclick)
             ## TODO MAYBE also propagate the click to elements below the overlay?
         })
         observeEvent(court_inset$click(), {
@@ -1014,7 +1016,7 @@ ov_scouter_server <- function(app_data) {
 
         accept_fun <- reactiveVal(NULL) ## use this to determine what function should be run when the "Continue" button on a modal is clicked, or the enter key is used to shortcut it
         ## single click the video to register a tag location, or starting ball coordinates
-        process_action <- function() {
+        process_action <- function(was_shift_click = FALSE) {
             if (loop_trigger() > 0 && rally_state() != "fix required information before scouting can begin") {
                 if (rally_state() == "click or unpause the video to start") {
                     if (meta_is_valid()) {
@@ -1134,7 +1136,7 @@ ov_scouter_server <- function(app_data) {
                     names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
                     opp <- c(opp, Unknown = "Unknown")
                     opp_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c2_opp_player")
-                    if (isTRUE(input$shiftkey)) {
+                    if (was_shift_click) {
                         ## accept set by setter on court, with no popup
                         esz <- as.character(dv_xy2subzone(game_state$start_x, game_state$start_y))
                         passq <- guess_pass_quality(game_state, dvw = rdata$dvw)
@@ -1325,7 +1327,7 @@ ov_scouter_server <- function(app_data) {
                     names(coverp) <- player_nums_to(coverp, team = other(game_state$current_team), dvw = rdata$dvw)
                     coverp <- c(coverp, Unknown = "Unknown", "No cover dig" = "No cover dig")
                     cover_player_buttons <- make_fat_radio_buttons(choices = coverp, selected = cover_pl_opts$selected, input_var = "c1_cover_player")
-                    if (isTRUE(input$shiftkey)) {
+                    if (was_shift_click) {
                         ## attack in play (i.e. was dug), but we are not stopping to enter details
                         ## we can either - insert a dig with an unknown dig player
                         ##               - insert a dig with the suggested dig player (though this might be incorrect)
