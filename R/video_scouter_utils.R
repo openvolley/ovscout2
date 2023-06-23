@@ -552,7 +552,7 @@ guess_attack <- function(game_state, dvw, opts, system, weight = 2.5) {
         history <- dplyr::full_join(history, prior %>% dplyr::select("name", attack_code = "code", "n_times_prior"), by = c("attack_code", "name"))
         history <- history %>% mutate(n_times = if_else(is.na(.data$n_times), 0.0, .data$n_times), n_times_prior = if_else(is.na(.data$n_times_prior), 0.0, .data$n_times_prior),
                                       n_times = .data$n_times + .data$n_times_prior) %>%
-            group_by(.data$attack_code) %>% dplyr::summarize(n_times = sum(n_times), name = case_when(all(is.na(.data$name)) ~ NA_character_, TRUE ~ most_common_value(na.omit(.data$name)))) %>% ungroup %>%
+            group_by(.data$attack_code) %>% dplyr::summarize(n_times = sum(.data$n_times), name = case_when(all(is.na(.data$name)) ~ NA_character_, TRUE ~ most_common_value(na.omit(.data$name)))) %>% ungroup %>%
             dplyr::arrange(desc(.data$n_times))
         ## now we can take the most likely player along with the most likely code
         pp <- tryCatch({

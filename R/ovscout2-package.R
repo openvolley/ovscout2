@@ -11,7 +11,7 @@
 #' @importFrom graphics par points segments
 #' @importFrom htmltools HTML tagList tags
 #' @import R6
-#' @importFrom shiny actionButton callModule checkboxInput column downloadButton downloadHandler fixedRow fluidPage fluidRow isolate isTruthy modalDialog NS numericInput observeEvent observe onStop plotOutput reactive reactiveVal reactiveValues reactiveValuesToList removeModal renderPlot renderText renderUI req selectInput setProgress showModal sliderInput tabPanel tabsetPanel textInput uiOutput updateSelectInput updateTextInput verbatimTextOutput wellPanel withProgress
+#' @importFrom shiny actionButton callModule checkboxInput column downloadButton downloadHandler fixedRow fluidPage fluidRow isolate isTruthy modalDialog NS numericInput observeEvent observe onStop plotOutput reactive reactiveVal reactiveValues reactiveValuesToList removeModal renderPlot renderText renderUI req selectInput setProgress showModal sliderInput tabPanel tabsetPanel textInput uiOutput updateSelectInput updateSliderInput updateTextInput verbatimTextOutput wellPanel withProgress
 #' @importFrom stats aggregate na.omit setNames
 #' @importFrom stringr str_c str_count str_detect str_match str_pad str_remove str_split str_sub str_to_upper str_trim
 #' @importFrom uuid UUIDgenerate
