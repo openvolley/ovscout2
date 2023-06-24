@@ -200,7 +200,7 @@ resize_observer <- function(id, fun, nsfun, debounce = 0, as = "tag") {
         js <- paste0(js, " const ", obsfun, " = new ResizeObserver(() => { ", fun, " }); ")
     }
     js <- paste0(js, " ", obsfun, ".observe(document.getElementById('", id, "')); }")
-    if (as == "tag") tags$script(HTML(js)) else js
+    if (as == "tag") tags$script(HTML(js)) else paste0(js, ";")
 }
 
 focus_to_modal_element <- function(id, highlight_all = TRUE) {

@@ -790,27 +790,30 @@ ov_scouter_server <- function(app_data) {
                 ## draw directly with canvas
                 w <- input$dv_width; w <- if (identical(w, "auto")) 600L else as.numeric(w)
                 h <- input$dv_height; h <- if (identical(h, "auto")) 400L else as.numeric(h)
-                cc <- canvas_drawing$new(id = "video_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('overlay_nocanvas', 1);")
-                ## if context fails, fall back to base plotting
-                if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
-                    oxy <- overlay_court_lines()
-                    ## account for aspect ratios
-                    oxy$image_x <- ar_fix_x(oxy$image_x)
-                    oxy$xend <- ar_fix_x(oxy$xend)
-                    oxy$image_y <- ar_fix_y(oxy$image_y)
-                    oxy$yend <- ar_fix_y(oxy$yend)
-                    cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour, unit = "npc")
-                }
-                if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
-                    ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
-                    if (any(overlay_points()$valid)) {
-                        cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.01, col = "white", fill_col = "dodgerblue", unit = "npc")
+                ## these are NULL on startup, so make sure they are populated before drawing
+                if (length(w) == 1 && !is.na(w) && length(h) == 1 && !is.na(h)) {
+                    cc <- canvas_drawing$new(id = "video_overlay_canvas", width = w, height = h, on_fail = "Shiny.setInputValue('overlay_nocanvas', 1);")
+                    ## if context fails, fall back to base plotting
+                    if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
+                        oxy <- overlay_court_lines()
+                        ## account for aspect ratios
+                        oxy$image_x <- ar_fix_x(oxy$image_x)
+                        oxy$xend <- ar_fix_x(oxy$xend)
+                        oxy$image_y <- ar_fix_y(oxy$image_y)
+                        oxy$yend <- ar_fix_y(oxy$yend)
+                        cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour, unit = "npc")
                     }
-                    if (!all(overlay_points()$valid)) {
-                        cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.01, col = "white", fill_col = "firebrick", unit = "npc")
+                    if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
+                        ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
+                        if (any(overlay_points()$valid)) {
+                            cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.01, col = "white", fill_col = "dodgerblue", unit = "npc")
+                        }
+                        if (!all(overlay_points()$valid)) {
+                            cc$circles(x = ixy$x[!overlay_points()$valid], y = ixy$y[!overlay_points()$valid], r = 0.01, col = "white", fill_col = "firebrick", unit = "npc")
+                        }
                     }
+                    cc$draw()
                 }
-                cc$draw()
             } else {
                 ## do the overlay by base plotting, but this is slow
                 output$video_overlay <- renderPlot({
