@@ -355,7 +355,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         if (video_serve_method == "lighttpd") {
             ## build config file to pass to lighttpd
             lighttpd_conf_file <- tempfile(fileext = ".conf")
-            cat("server.document-root = \"", fs::path_dir(fs::path(app_data$video_src)), "\"\nserver.port = \"", video_server_port, "\"\n", sep = "", file = lighttpd_conf_file, append = FALSE)
+            cat("server.document-root = \"", fs::path_dir(fs::path(app_data$video_src)), "\"\nserver.port = \"", video_server_port, "\"\nserver.modules = (\"mod_setenv\")\nsetenv.add-response-header = ( \"Access-Control-Allow-Origin\" => \"*\" )\n", sep = "", file = lighttpd_conf_file, append = FALSE)
             lighttpd_pid <- sys::exec_background(lighttpd_exe, c("-D", "-f", lighttpd_conf_file), std_out = FALSE) ## start lighttpd not in background mode
             lighttpd_cleanup <- function() {
                 message("cleaning up lighttpd")
