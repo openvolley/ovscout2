@@ -105,6 +105,7 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
         detection_ref(temp)
         dojs(paste0(jsns("crpl"), ".stop();"))
         js_hide2(ns("crholder"))
+        active(FALSE)
         removeModal()
     })
 
