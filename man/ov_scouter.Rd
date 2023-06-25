@@ -58,7 +58,7 @@ ov_scouter(
 
 \item{show_courtref}{logical: if \code{TRUE}, show the court reference lines overlaid on the video}
 
-\item{dash}{logical: support live MPEG DASH streams? If not specified, will default to \code{TRUE} if \code{video_file} is a \verb{*.mpd} stream}
+\item{dash}{logical: support live MPEG DASH streams? If not specified, will default to \code{TRUE} if \code{video_file} is a \verb{*.mpd} stream. Note that DASH support is fragile at best. HLS streams are automatically supported and likely to be more reliable}
 
 \item{host}{string: the IP address of this machine. Only required if you intend to connect to the app from a different machine (in which case use \code{ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)}, where www.xxx.yyy.zzz is the IP address of this machine, i.e. the machine running the app)}
 

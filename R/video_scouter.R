@@ -22,7 +22,7 @@
 #' @param app_styling list: named list of styling options, as returned by [ov_app_styling()]
 #' @param scout_name string: the name of the scout (your name)
 #' @param show_courtref logical: if `TRUE`, show the court reference lines overlaid on the video
-#' @param dash logical: support live MPEG DASH streams? If not specified, will default to `TRUE` if `video_file` is a `*.mpd` stream
+#' @param dash logical: support live MPEG DASH streams? If not specified, will default to `TRUE` if `video_file` is a `*.mpd` stream. Note that DASH support is fragile at best. HLS streams are automatically supported and likely to be more reliable
 #' @param host string: the IP address of this machine. Only required if you intend to connect to the app from a different machine (in which case use `ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)`, where www.xxx.yyy.zzz is the IP address of this machine, i.e. the machine running the app)
 #' @param launch_browser logical: if `TRUE`, launch the app in the system's default web browser (passed to [shiny::runApp()]'s `launch.browser` parameter)
 #' @param prompt_for_files logical: if `dvw` was not specified, prompt the user to select the dvw file
