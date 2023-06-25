@@ -2,6 +2,7 @@ ov_scouter_ui <- function(app_data) {
     ## some startup stuff
     running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
     yt <- isTRUE(is_youtube_url(app_data$video_src)) || isTRUE(!is.null(app_data$video_src2) && is_youtube_url(app_data$video_src2))
+    dash <- isTRUE(app_data$dash)
     fluidPage(theme = shinythemes::shinytheme("lumen"),
               htmltools::findDependencies(shiny::selectizeInput("foo", "bar", choices = "a")), ## workaround for https://github.com/rstudio/shiny/issues/3125
               tags$script("Shiny.addCustomMessageHandler('evaljs', function(jsexpr) { eval(jsexpr) });"), ## handler for running js code directly
@@ -16,6 +17,8 @@ ov_scouter_ui <- function(app_data) {
                         tags$style(".vjs-control-bar { visibility: visible !important; opacity: 1 !important; bottom: -3.1em !important; background-color: rgba(7, 20, 30, 1) !important; }"),
                         tags$link(href = if (running_locally) "css/video-js.min.css" else "//vjs.zencdn.net/8.3.0/video-js.min.css", rel = "stylesheet"),
                         tags$script(src = if (running_locally) "js/video.min.js" else "//vjs.zencdn.net/8.3.0/video.min.js"),
+                        if (dash) tags$script(src = if (running_locally) "js/dash.all.min.js" else "//cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.1/dash.all.min.js"),
+                        if (dash) tags$script(src = if (running_locally) "js/videojs-dash.min.js" else "//cdnjs.cloudflare.com/ajax/libs/videojs-contrib-dash/5.1.1/videojs-dash.min.js"),
                         if (yt) tags$script(src = "https://cdn.jsdelivr.net/npm/videojs-youtube@2.6.1/dist/Youtube.min.js"), ## for youtube
                         tags$style(".video-js .vjs-big-play-button { display: none; } .bareslider { display:inline-block; margin-left:4px; margin-right:4px;} .bareslider .irs-max, .bareslider .irs-min, .bareslider .irs-single, .bareslider .irs-from, .bareslider .irs-to { display:none; } .bareslider .irs-handle { top:0px; } .bareslider .irs-line { top:7px;} .bareslider .irs-bar {top:8px;} #bsbar .btn { width:100%; margin-bottom:2px;}"),
                         ##key press handling

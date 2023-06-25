@@ -22,6 +22,7 @@
 #' @param app_styling list: named list of styling options, as returned by [ov_app_styling()]
 #' @param scout_name string: the name of the scout (your name)
 #' @param show_courtref logical: if `TRUE`, show the court reference lines overlaid on the video
+#' @param dash logical: support live MPEG DASH streams? If not specified, will default to `TRUE` if `video_file` is a `*.mpd` stream
 #' @param host string: the IP address of this machine. Only required if you intend to connect to the app from a different machine (in which case use `ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)`, where www.xxx.yyy.zzz is the IP address of this machine, i.e. the machine running the app)
 #' @param launch_browser logical: if `TRUE`, launch the app in the system's default web browser (passed to [shiny::runApp()]'s `launch.browser` parameter)
 #' @param prompt_for_files logical: if `dvw` was not specified, prompt the user to select the dvw file
@@ -33,7 +34,7 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), shortcuts = ov_default_shortcuts(), scout_name = "", show_courtref = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), shortcuts = ov_default_shortcuts(), scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     assert_that(is.string(scout_name))
     assert_that(is.flag(show_courtref), !is.na(show_courtref))
@@ -314,6 +315,10 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         warning("video url(s) look like remote addresses, but you appear to be offline", immediate. = TRUE)
     }
     ## TODO check that both videos are consistent URL/file. Though does it matter?
+
+    ## mpeg-dash support
+    if (missing(dash) && (isTRUE(grepl("\\.mpd$", app_data$video_src, ignore.case = TRUE)) || isTRUE(grepl("\\.mpd$", app_data$video_src2, ignore.case = TRUE)))) dash <- TRUE
+    app_data$dash <- isTRUE(dash)
 
     ## ball tracking, experimental!
     app_data$extra_db <- NULL
