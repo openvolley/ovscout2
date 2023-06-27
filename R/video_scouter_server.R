@@ -2114,6 +2114,10 @@ ov_scouter_server <- function(app_data) {
                     new_eval <- if (tail(rc$skill, 1) %eq% "E") "-" else "/"
                     rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval, game_state = game_state)
                 }
+                ## and if prev was reception and prev to that was serve, adjust that too
+                if (tail(rc$skill, 1) %eq% "R" && tail(rc$skill, 2)[1] %eq% "S" && tail(rc$team, 1) %eq% game_state$current_team) {
+                    rc$eval[nrow(rc) - 1L] <- "/"
+                }
                 op <- if (!is.null(input$c2_opp_player)) input$c2_opp_player else 0L
                 ## esz here actually came from start_x and start_y above
                 rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = esz[1], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
@@ -2154,6 +2158,7 @@ ov_scouter_server <- function(app_data) {
                 ## adjust the prior skill, if it was a dig or reception then evaluation is "/", otherwise "-"
                 ## but we can only do this if we are scouting transition sets, otherwise we can't be sure if it was e.g. D/ or a set over (E-)
                 if (isTRUE(rdata$options$transition_sets) && tail(rc$skill, 1) %in% c("R", "D", "E", "F") && tail(rc$team, 1) %eq% game_state$current_team) {
+                    ## is the R needed here, surely we can never see a preceding R on 3rd contact?
                     new_eval <- if (tail(rc$skill, 1) %in% c("R", "D")) "/" else "-"
                     rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval, game_state = game_state)
                 }
