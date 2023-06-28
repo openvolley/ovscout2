@@ -534,7 +534,8 @@ guess_attack <- function(game_state, dvw, opts, system, weight = 2.5) {
     setter_position <- game_state[[paste0(home_visiting, "_setter_position")]]
     exclude_codes <- c(if (!missing(opts) && !is.null(opts$setter_dump_code)) opts$setter_dump_code else "PP",
                        if (!missing(opts) && !is.null(opts$second_ball_attack_code)) opts$second_ball_attack_code else "P2",
-                       if (!missing(opts) && !is.null(opts$overpass_attack_code)) opts$overpass_attack_code else "PR")
+                       if (!missing(opts) && !is.null(opts$overpass_attack_code)) opts$overpass_attack_code else "PR",
+                       NA_character_)
     history <- dplyr::filter(dvw$plays, .data$skill == "Attack", .data[[paste0(home_visiting, "_setter_position")]] == setter_position, .data$team == game_state$current_team, !.data$attack_code %in% exclude_codes)
     ## TODO perhaps - filter history by pass quality as well (at least into poor/OK/good)
     if (nrow(history) > 0) {
@@ -588,7 +589,8 @@ guess_attack <- function(game_state, dvw, opts, system, weight = 2.5) {
 guess_attack_code_prior <- function(game_state, dvw, opts) {
     exclude_codes <- c(if (!missing(opts) && !is.null(opts$setter_dump_code)) opts$setter_dump_code else "PP",
                        exclude_codes <- if (!missing(opts) && !is.null(opts$second_ball_attack_code)) opts$second_ball_attack_code else "P2",
-                       exclude_codes <- if (!missing(opts) && !is.null(opts$overpass_attack_code)) opts$overpass_attack_code else "PR")
+                       exclude_codes <- if (!missing(opts) && !is.null(opts$overpass_attack_code)) opts$overpass_attack_code else "PR",
+                       NA_character_)
     atbl <- dvw$meta$attacks %>% dplyr::filter(!.data$code %in% exclude_codes)
     do_flip_click <- (game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower")
     thisxy <- if (isTRUE(do_flip_click)) as.numeric(dv_flip_xy(game_state$start_x, game_state$start_y)) else c(game_state$start_x, game_state$start_y)
