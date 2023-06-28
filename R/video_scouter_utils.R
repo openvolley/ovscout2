@@ -566,6 +566,13 @@ guess_attack <- function(game_state, dvw, opts, system, weight = 2.5) {
                                       n_times = .data$n_times + .data$n_times_prior) %>%
             group_by(.data$attack_code) %>% dplyr::summarize(n_times = sum(.data$n_times), name = case_when(all(is.na(.data$name)) ~ NA_character_, TRUE ~ most_common_value(na.omit(.data$name)))) %>% ungroup %>%
             dplyr::arrange(desc(.data$n_times))
+        ## swap e.g. V5 X5 so that X5 is first, if the probabilities are the same
+        for (i in head(seq_len(nrow(history)), -1)) {
+            if (substr(history$attack_code[i], 2, 2) == substr(history$attack_code[i+1], 2, 2) && grepl("^V", history$attack_code[i]) && grepl("^X", history$attack_code[i+1]) &&
+                abs(history$n_times[i] - history$n_times[i+1]) < 0.01) {
+                history[c(i, i+1), ] <- history[c(i+1, i), ]
+            }
+        }
         ## now we can take the most likely player along with the most likely code
         pp <- tryCatch({
             poc <- na.omit(as.numeric(sub(".*_p", "", unique(na.omit(history$name))))) ## player pos in most likely order
