@@ -370,12 +370,23 @@ player_nums_to <- function(nums, team, dvw, to = "number lastname") {
     to <- match.arg(to, c("name", "number lastname"))
     temp_players <- if (team == "*") dvw$meta$players_h else if (team == "a") dvw$meta$players_v else stop("team should be '*' or 'a'")
     temp_players <- temp_players %>% dplyr::filter(!is.na(.data$number))
-    temp <- left_join(tibble(number = nums), temp_players[, c("number", if (to == "name") "name", if (to == "number lastname") "lastname", "special_role")], by = "number")
+    temp <- left_join(tibble(number = nums), temp_players[, c("number", if (to == "name") "name", if (to == "number lastname") c("lastname", "firstname"), "special_role")], by = "number")
     if (to == "name") {
         temp$name[is.na(temp$name)] <- ""
         temp$name
     } else if (to == "number lastname") {
         temp$lastname[is.na(temp$lastname)] <- ""
+        ## also include first initial if surnames are duplicated
+        if (any(duplicated(temp$lastname))) {
+            for (ninit in 1:4) {
+                didx <- temp$lastname %in% temp$lastname[duplicated(temp$lastname)]
+                chk <- temp$lastname
+                chk[didx] <- paste(temp$lastname[didx], substr(temp$firstname[didx], 1, ninit))
+                if (!any(duplicated(chk))) break
+                chk <- temp$lastname ## so that if the last loop fails to give unique names, we fall back to just surnames
+            }
+            temp$lastname <- chk
+        }
         temp$lastname[grepl("L", temp$special_role)] <- paste0(temp$lastname[grepl("L", temp$special_role)], " (L)")
         paste(temp$number, temp$lastname, sep = "<br />")
     } else {
