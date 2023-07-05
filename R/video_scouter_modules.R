@@ -1,3 +1,4 @@
+## TODO: special_role column has been hidden, todo add a column of checkbox inputs allowing the captain to be specified?
 mod_teamslists_ui <- function(id) {
     ns <- NS(id)
     tagList(tags$head(tags$style("#hroster {padding-left: 0px; padding-right: 0px; background-color: #bfefff; padding: 12px;} #vroster {padding-left: 0px; padding-right: 0px; background-color: #bcee68; padding: 12px;}")),
@@ -478,7 +479,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
     })
 
     output$ht_display_team <- DT::renderDataTable({
-        this <- rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "role", "special_role")]
+        this <- rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "role")]##, "special_role")]
         if (!is.null(this)) {
             DT::datatable(names_first_to_capital(this), rownames = FALSE, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
         } else {
@@ -487,7 +488,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
     })
 
     output$vt_display_team <- DT::renderDataTable({
-        this <- rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "role", "special_role")]
+        this <- rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "role")]##, "special_role")]
         if (!is.null(this)) {
             DT::datatable(names_first_to_capital(this), rownames = FALSE, selection = "single", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
         } else {
@@ -629,12 +630,13 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                     column(4, textInput(ns("ht_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[htidx]))),
                                            DT::dataTableOutput(ns("ht_edit_team")),
                                            wellPanel(
-                                               fluidRow(column(2, textInput(ns("ht_new_id"), label = "ID:", placeholder = "ID")),
-                                                        column(1, textInput(ns("ht_new_number"), label = "Number:", placeholder = "Number")),
+                                               fluidRow(column(1, textInput(ns("ht_new_number"), label = "Number:", placeholder = "Number")),
                                                         column(3, textInput(ns("ht_new_lastname"), label = "Last name:", placeholder = "Last name")),
                                                         column(3, textInput(ns("ht_new_firstname"), label = "First name:", placeholder = "First name")),
+                                                        column(2, textInput(ns("ht_new_id"), label = "ID:", placeholder = "ID")),
                                                         column(2, selectInput(ns("ht_new_role"), label = "Role", choices = c("", "libero", "outside", "opposite", "middle", "setter", "unknown"))),
-                                                        column(1, selectInput(ns("ht_new_special"), label = "Special", choices = c("", "L", "C")))),
+                                                        ##column(1, selectInput(ns("ht_new_special"), label = "Special", choices = c("", "L", "C")))
+                                                        ),
                                                fluidRow(column(3, offset = 9, actionButton(ns("ht_add_player_button"), "Add player")))
                                            ),
                                            #actionButton(ns("load_home_team"), label = "Load home team", class = "updating"),
@@ -647,12 +649,13 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                     column(4, textInput(ns("vt_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[vtidx]))),
                                            DT::dataTableOutput(ns("vt_edit_team")),
                                            wellPanel(
-                                               fluidRow(column(2, textInput(ns("vt_new_id"), label = "ID:", placeholder = "ID")),
-                                                        column(1, textInput(ns("vt_new_number"), label = "Number:", placeholder = "Number")),
+                                               fluidRow(column(1, textInput(ns("vt_new_number"), label = "Number:", placeholder = "Number")),
                                                         column(3, textInput(ns("vt_new_lastname"), label = "Last name:", placeholder = "Last name")),
                                                         column(3, textInput(ns("vt_new_firstname"), label = "First name:", placeholder = "First name")),
+                                                        column(2, textInput(ns("vt_new_id"), label = "ID:", placeholder = "ID")),
                                                         column(2, selectInput(ns("vt_new_role"), label = "Role", choices = c("", "libero", "outside", "opposite", "middle", "setter", "unknown"))),
-                                                        column(1, selectInput(ns("vt_new_special"), label = "Special", choices = c("", "L", "C")))),
+                                                        ##column(1, selectInput(ns("vt_new_special"), label = "Special", choices = c("", "L", "C")))
+                                                        ),
                                                fluidRow(column(3, offset = 9, actionButton(ns("vt_add_player_button"), "Add player")))
                                            ),
                                            #actionButton(ns("load_visiting_team"), label = "Load visiting team", class = "updating"),
@@ -665,7 +668,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
     output$ht_edit_team <- DT::renderDataTable({
         if (is.null(htdata_edit())) htdata_edit(rdata$dvw$meta$players_h)
         if (!is.null(htdata_edit())) {
-            cols_to_hide <- which(!names(htdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
+            cols_to_hide <- which(!names(htdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role"))-1L ## 0-based because no row names ##"special_role"
             cnames <- names(names_first_to_capital(htdata_edit()))
             DT::datatable(htdata_edit(), rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
         } else {
@@ -697,11 +700,46 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
             htdata_edit(temp)
         }
     })
+    observe({
+        ## fill in player ID automatically
+        if (!is.null(input$ht_new_id) && !is.null(input$ht_new_lastname) && !is.null(input$ht_new_firstname) &&
+            !nzchar(input$ht_new_id) && nzchar(input$ht_new_lastname) && nzchar(input$ht_new_firstname)) {
+            pid <- toupper(paste0(substr(input$ht_new_lastname, 1, 3), "-", substr(input$ht_new_firstname, 1, 3)))
+            ## check that this is unique
+            isolate({
+                if (pid %in% htdata_edit()$player_id) {
+                    pid0 <- pid
+                    for (ii in 1:9) {
+                        pid <- paste0(pid0, ii)
+                        if (!pid %in% htdata_edit()$player_id) break
+                    }
+                    if (pid %in% htdata_edit()$player_id) pid <- "" ## can't figure it out
+                }
+            })
+            updateTextInput(session, "ht_new_id", value = pid)
+        }
+        if (!is.null(input$vt_new_id) && !is.null(input$vt_new_lastname) && !is.null(input$vt_new_firstname) &&
+            !nzchar(input$vt_new_id) && nzchar(input$vt_new_lastname) && nzchar(input$vt_new_firstname)) {
+            pid <- toupper(paste0(substr(input$vt_new_lastname, 1, 3), "-", substr(input$vt_new_firstname, 1, 3)))
+            ## check that this is unique
+            isolate({
+                if (pid %in% vtdata_edit()$player_id) {
+                    pid0 <- pid
+                    for (ii in 1:9) {
+                        pid <- paste0(pid0, ii)
+                        if (!pid %in% vtdata_edit()$player_id) break
+                    }
+                    if (pid %in% vtdata_edit()$player_id) pid <- "" ## can't figure it out
+                }
+            })
+            updateTextInput(session, "vt_new_id", value = pid)
+        }
+    })
     observeEvent(input$ht_add_player_button, {
         chk <- list(input$ht_new_id, input$ht_new_number, input$ht_new_lastname, input$ht_new_firstname)
         if (!any(vapply(chk, is_nnn, FUN.VALUE = TRUE))) {
             try({
-                newrow <- tibble(number = as.numeric(input$ht_new_number), player_id = input$ht_new_id, lastname = input$ht_new_lastname, firstname = input$ht_new_firstname, role = if (nzchar(input$ht_new_role)) input$ht_new_role else NA_character_, special_role = if (nzchar(input$ht_new_special)) input$ht_new_special else NA_character_)
+                newrow <- tibble(number = as.numeric(input$ht_new_number), player_id = input$ht_new_id, lastname = input$ht_new_lastname, firstname = input$ht_new_firstname, role = if (nzchar(input$ht_new_role)) input$ht_new_role else NA_character_, special_role = if (input$ht_new_role %eq% "libero") "L" else NA_character_) ##(if (nzchar(input$ht_new_special)) input$ht_new_special else NA_character_)
                 newrow$name <- paste(newrow$firstname, newrow$lastname)
                 temp <- bind_rows(htdata_edit(), newrow)
                 temp <- dplyr::arrange(temp, .data$number)
@@ -713,9 +751,9 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 updateTextInput(session, "ht_new_lastname", value = "")
                 updateTextInput(session, "ht_new_firstname", value = "")
                 updateSelectInput(session, "ht_new_role", selected = "")
-                updateSelectInput(session, "ht_new_special", selected = "")
+                ##updateSelectInput(session, "ht_new_special", selected = "")
                 ## focus to number box
-                focus_to_element(ns("ht_new_id"))
+                focus_to_element(ns("ht_new_number"))
             })
         }
     })
@@ -723,7 +761,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
     output$vt_edit_team <- DT::renderDataTable({
         if (is.null(vtdata_edit())) vtdata_edit(rdata$dvw$meta$players_v)
         if (!is.null(vtdata_edit())) {
-            cols_to_hide <- which(!names(vtdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role", "special_role"))-1L ## 0-based because no row names
+            cols_to_hide <- which(!names(vtdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role"))-1L ## 0-based because no row names ## , "special_role"
             cnames <- names(names_first_to_capital(vtdata_edit()))
             DT::datatable(vtdata_edit(), rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
         } else {
@@ -758,7 +796,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         chk <- list(input$vt_new_id, input$vt_new_number, input$vt_new_lastname, input$vt_new_firstname)
         if (!any(vapply(chk, is_nnn, FUN.VALUE = TRUE))) {
             try({
-                newrow <- tibble(number = as.numeric(input$vt_new_number), player_id = input$vt_new_id, lastname = input$vt_new_lastname, firstname = input$vt_new_firstname, role = if (nzchar(input$vt_new_role)) input$vt_new_role else NA_character_, special_role = if (nzchar(input$vt_new_special)) input$vt_new_special else NA_character_)
+                newrow <- tibble(number = as.numeric(input$vt_new_number), player_id = input$vt_new_id, lastname = input$vt_new_lastname, firstname = input$vt_new_firstname, role = if (nzchar(input$vt_new_role)) input$vt_new_role else NA_character_, special_role = if (input$vt_new_role %eq% "libero") "L" else NA_character_) ## if (nzchar(input$vt_new_special)) input$vt_new_special else NA_character_)
                 newrow$name <- paste(newrow$firstname, newrow$lastname)
                 temp <- bind_rows(vtdata_edit(), newrow)
                 temp <- dplyr::arrange(temp, .data$number)
@@ -770,7 +808,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 updateTextInput(session, "vt_new_lastname", value = "")
                 updateTextInput(session, "vt_new_firstname", value = "")
                 updateSelectInput(session, "vt_new_role", selected = "")
-                updateSelectInput(session, "vt_new_special", selected = "")
+                ##updateSelectInput(session, "vt_new_special", selected = "")
                 ## focus to number box
                 focus_to_element(ns("vt_new_id"))
             })
