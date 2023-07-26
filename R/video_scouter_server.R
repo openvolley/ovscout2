@@ -272,6 +272,11 @@ ov_scouter_server <- function(app_data) {
                 dojs(paste0(getel, ".currentTime(", getel, ".currentTime() + ", myargs[[1]], ");"))
             } else if (what == "playback_rate") {
                 dojs(paste0(getel, ".playbackRate(", myargs[[1]], ");"))
+            } else if (what == "playback_rate_faster") {
+                ## update the slider, and the observer will see it and send the video command
+                if (!is.null(input$playback_rate) && !is.na(input$playback_rate)) updateSliderInput(session, "playback_rate", value = input$playback_rate + 0.1)
+            } else if (what == "playback_rate_slower") {
+                if (!is.null(input$playback_rate) && !is.na(input$playback_rate) && isTRUE(input$playback_rate > 0.1)) updateSliderInput(session, "playback_rate", value = max(input$playback_rate - 0.1, 0.1, na.rm = TRUE))
             } else if (what == "get_volume") {
                 dojs(paste0(getel, ".volume();"))
             } else if (what == "set_volume") {
@@ -578,6 +583,10 @@ ov_scouter_server <- function(app_data) {
                     } else if (ky %in% app_data$shortcuts$edit_code) {
                         ## edit_data_row()
                         ## not enabled yet
+                    } else if (ky %in% app_data$shortcuts$video_faster) {
+                        do_video("playback_rate_faster")
+                    } else if (ky %in% app_data$shortcuts$video_slower) {
+                        do_video("playback_rate_slower")
                     } else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)", names(app_data$shortcuts))])) {
                         if (is.null(editing$active)) {
                             ## video forward/backward nav
@@ -2949,7 +2958,9 @@ ov_scouter_server <- function(app_data) {
                                            tags$li(paste0("[", c_or(app_data$shortcuts$video_rewind_2), "] backward 2s, [", c_or(app_data$shortcuts$video_rewind_10), "] backward 10s, [", c_or(app_data$shortcuts$video_rewind_0.1), "] backwards 0.1s, [", c_or(app_data$shortcuts$video_rewind_1_30), "] backwards 1 frame")),
                                            tags$li(paste0("[", c_or(app_data$shortcuts$pause), "] pause video")),
                                            tags$li(paste0("[", c_or(app_data$shortcuts$go_to_time), "] go to currently-selected event")),
-                                           tags$li(paste0("[", c_or(app_data$shortcuts$switch_video), "] switch videos (if two available)"))
+                                           tags$li(paste0("[", c_or(app_data$shortcuts$switch_video), "] switch videos (if two available)")),
+                                           tags$li(paste0("[", c_or(app_data$shortcuts$video_faster), "] increase video playback speed")),
+                                           tags$li(paste0("[", c_or(app_data$shortcuts$video_slower), "] decrease video playback speed"))
                                        )))
             }
             showModal(

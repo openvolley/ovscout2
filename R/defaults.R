@@ -170,7 +170,9 @@ ov_default_shortcuts <- function() {
          video_forward_1_30 = c(",", "9"),
          video_forward_0.1 = c("m", "3"),
          video_forward_2 = c("l", "6", "d"),
-         video_forward_10 = c(";", "^")
+         video_forward_10 = c(";", "^"),
+         video_faster = ">",
+         video_slower = "<"
          )
 }
 
