@@ -172,6 +172,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         }
         p <- p + geom_text(data = plxy, aes(.data$x, .data$y, label = .data$number), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
             geom_text(data = plxy, aes(.data$x, .data$y + if (need_to_flip(current_video_src(), game_state$home_team_end)) 0.07 else - 0.07, label = .data$lastname_wrapped), size = 3, vjust = 1, lineheight = 1, na.rm = TRUE)
+        p <- p + ggplot2::annotate(geom = "text", x = 2, y = 2, label = datavolley::home_team(rdata$dvw), size = 5, hjust = 0.5)
         ## visiting team
         plxy <- cbind(dv_xy(pseq, end = "upper"), vtrot)
         p <- p + geom_polygon(data = court_circle(cz = pseq, end = "upper"), aes(group = .data$id), fill = styling$v_court_colour, colour = styling$v_court_highlight_colour, na.rm = TRUE)
@@ -190,6 +191,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         }
         p <- p + geom_text(data = plxy, aes(.data$x, .data$y, label = .data$number), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
             geom_text(data = plxy, aes(.data$x, .data$y + if (need_to_flip(current_video_src(), game_state$home_team_end)) 0.07 else - 0.07, label = .data$lastname_wrapped), size = 3, vjust = 1, lineheight = 1, na.rm = TRUE)
+        p <- p + ggplot2::annotate(geom = "text", x = 2, y = 5, label = datavolley::visiting_team(rdata$dvw), size = 5, hjust = 0.5)
 
         ## add the serving team indicator
         temp <- court_circle(cz = 1, r = 0.2, end = "upper")
