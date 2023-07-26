@@ -378,7 +378,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
             vwModalDialog(
                 title = "Edit starting line up", size = "l", footer = tags$div(uiOutput(ns("edit_lineup_commit_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", class = "cancel")),
                 tabsetPanel(
-                    tabPanel("Home team",
+                    tabPanel(paste0(datavolley::home_team(rdata$dvw), " (home)"),
                              tags$style(paste0("#ht_display_team {border: 2px solid ", styling$h_court_colour, ";}")),
                              DT::dataTableOutput(ns("ht_display_team")),
                              wellPanel(
@@ -396,7 +396,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                                      column(1, offset = 1, tags$br(), actionButton(ns("rot_home_fwd"), tags$span("Rotate", icon("redo"))), actionButton(ns("rot_home_back"), tags$span("Rotate back", icon("undo"))))),
                                  style = paste0("background: ", styling$h_court_colour)
                              )),
-                    tabPanel("Visiting team", id = ns("vlpan"),
+                    tabPanel(paste0(datavolley::visiting_team(rdata$dvw), " (visiting)"), id = ns("vlpan"),
                              tags$style(paste0("#vt_display_team {border: 2px solid ", styling$v_court_colour, ";}")),
                              DT::dataTableOutput(ns("vt_display_team")),
                              wellPanel(
@@ -812,7 +812,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 updateSelectInput(session, "vt_new_role", selected = "")
                 ##updateSelectInput(session, "vt_new_special", selected = "")
                 ## focus to number box
-                focus_to_element(ns("vt_new_id"))
+                focus_to_element(ns("vt_new_number"))
             })
         }
     })
