@@ -1090,7 +1090,6 @@ ov_scouter_server <- function(app_data) {
                         ## if it's on the serving team's side, or only just over, assume it was an error
                         guess_was_err <- "=N"
                     }
-                    ## TODO possibly also guess foot fault, although that will be confusing because the (legal) serve contact might be inside the baseline
                     ## we pre-select either the passer, or the error type, depending on whether we thought it was an error or not
                     serve_outcome_initial_buttons <- make_fat_radio_buttons(choices = c("Serve error" = "=", "Reception error (serve ace)" = "S#", "Reception in play" = "R~"), input_var = "serve_initial_outcome", selected = if (!is.na(guess_was_err)) "=" else "R~")
                     serve_error_type_buttons <- make_fat_radio_buttons(choices = c("In net" = "=N", "Foot fault/referee call" = "=Z", "Out long" = "=O", "Out left" = "=L", "Out right" = "=R"), selected = if (!is.na(guess_was_err)) guess_was_err else NA, input_var = "serve_error_type", as_radio = "blankable")
@@ -2195,19 +2194,39 @@ ov_scouter_server <- function(app_data) {
                 game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                 rally_state("click freeball end point")
             } else if (input$c3 == "PP") {
-                ## setter dump, but in this case we are changing the previously-scouted set to a setter dump
-                if (tail(rc$skill, 1) %eq% "E") {
-                    sp <- tail(rc$pnum, 1)
-                    rc <- head(rc, -1) ## remove the preceding set row
+                ## setter dump
+                ## if we are in reception phase, or we are scouting transition sets, then we are changing the previously-scouted set to a setter dump
+                ## otherwise (transition phase and not scouting transition sets) it's a new touch
+                if (nrow(rally_codes()) > 0) {
+                    temp <- make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)
+                    ph <- tail(temp$phase, 1)
                 } else {
-                    sp <- NA_integer_
+                    ph <- NA_character_
                 }
-                ## do we have to remove anything from the game_state codes history? TO CHECK
-                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = rdata$options$setter_dump_code, sz = dv_xy2zone(game_state$start_x, game_state$start_y), t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
-                ## now this was clicked in "third contact" context, but the clicked location is actually now the first contact of other team after setter dump
+                replace_set_with_dump <- isTRUE(rdata$options$transition_sets) || !ph %eq% "Transition"
+                if (replace_set_with_dump) {
+                    if (nrow(rc) > 0 && tail(rc$skill, 1) %eq% "E") {
+                        sp <- tail(rc$pnum, 1)
+                        ## set position was recorded in start xy but end zone, need to move the end zone to start attack zone
+                        asz <- tail(rc$ez, 1)
+                        rc <- head(rc, -1) ## remove the preceding set row
+                    } else {
+                        sp <- NA_integer_
+                        asz <- NA_integer_
+                    }
+                    ## also modify the rally state that we think was in operation for the rc entry we are about to add, because a PP should have happened on second contact (but currently we think it's third). If we don't do this, the undo sequence will be out of whack
+                    rs <- "click second contact"
+                } else {
+                    sp <- if (!is.null(input$c3_player)) input$c3_player else 0L
+                    rs <- rally_state()
+                    asz <- dv_xy2zone(game_state$start_x, game_state$start_y)
+                }
+                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = rdata$options$setter_dump_code, sz = asz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rs, game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
+                ## if we are replacing a set with dump, this was clicked in "third contact" context, but the clicked location is actually now the first contact of other team after setter dump
                 rally_state("click attack end point")
                 game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
-                return(process_action()) ## and jump straight to the c1 modal
+                if (replace_set_with_dump) return(process_action()) ## jump straight to the c1 modal
+                rally_state("click attack end point")
             } else if (input$c3 == "E=") {
                 ## set error
                 ## this is the third contact, so we should modify the existing set if we have scouted a set
