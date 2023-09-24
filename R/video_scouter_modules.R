@@ -30,7 +30,7 @@ mod_courtrot2_ui <- function(id) {
                      plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:48vh;"),
                      fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")))),
                               column(3, actionButton(ns("switch_serving"), HTML("Switch<br />serving team"))),
-                              column(2, actionButton(ns("court_inset_swap"), label = tags$span(style = "font-size:150%;", "\u21f5"), class = "iconbut")),
+                              column(2, actionButton(ns("court_inset_swap"), label = tags$span(style = "font-size:150%;", "\u21f5"), class = "iconbut")), ## flip court diagram
                               column(2, offset = 1, actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")))))
                      ))
 }
