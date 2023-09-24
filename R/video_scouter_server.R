@@ -1272,7 +1272,7 @@ ov_scouter_server <- function(app_data) {
                     accept_fun("do_assign_c3")
                     show_scout_modal(vwModalDialog(title = "Details: attack or freeball over", footer = NULL, width = scout_modal_width, modal_halign = "left",
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
-                                                                if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", selectInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))))),
+                                                                if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", pickerInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))))),
                                             tags$br(),
                                             ## hit type and then the freeball over, set error, setter dump buttons, shift them to the right
                                             fixedRow(column(1, hit_type_buttons[1]), column(1, hit_type_buttons[2]), column(1, hit_type_buttons[3]),
