@@ -537,6 +537,8 @@ guess_attack <- function(game_state, dvw, opts, system, weight = 2.5) {
                        if (!missing(opts) && !is.null(opts$overpass_attack_code)) opts$overpass_attack_code else "PR",
                        NA_character_)
     history <- dplyr::filter(dvw$plays, .data$skill == "Attack", .data[[paste0(home_visiting, "_setter_position")]] == setter_position, .data$team == game_state$current_team, !.data$attack_code %in% exclude_codes)
+    serving <- isTRUE(game_state$serving == game_state$current_team)
+    history <- if (serving) dplyr::filter(history, .data$serving_team == .data$team) else dplyr::filter(history, .data$serving_team != .data$team)
     ## TODO perhaps - filter history by pass quality as well (at least into poor/OK/good)
     if (nrow(history) > 0) {
         histxy <- history[, c("start_coordinate_x", "start_coordinate_y")]
@@ -558,7 +560,6 @@ guess_attack <- function(game_state, dvw, opts, system, weight = 2.5) {
         history <- bind_rows(history  %>% ungroup %>% dplyr::filter(!.data$lib) %>% dplyr::filter(.data$value == .data$player_number),
                              history %>% dplyr::filter(.data$lib) %>% dplyr::slice(1L) %>% mutate(name = "libero"))
         history <- history %>% dplyr::group_by(.data$name, .data$attack_code) %>% dplyr::summarise(n_times = mean(.data$w) * nrow(history)) %>% dplyr::ungroup() ## take mean of w, but weight the whole lot by the number of attempts so that as the match progresses, this outweighs the prior
-        serving <- isTRUE(game_state$serving == game_state$current_team)
         prior <- prior %>% mutate(name = attack_player_prior_by_code(system = system, setter_position = setter_position, set_type = .data$set_type, attacker_position = .data$attacker_position, home_visiting = home_visiting, serving = serving),
                                   n_times_prior = exp(-weight * .data$d))
         history <- dplyr::full_join(history, prior %>% dplyr::select("name", attack_code = "code", "n_times_prior"), by = c("attack_code", "name"))
