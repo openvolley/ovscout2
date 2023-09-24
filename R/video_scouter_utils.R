@@ -960,9 +960,9 @@ get_teams_from_dvw_dir <- function(season) {
     if (length(out) < 1) return(tibble())
     team_list <- dplyr::select(do.call(bind_rows, lapply(out, function(z) z$teams)), "team_id", "team", "coach", "assistant", "shirt_colour") %>%
         mutate(team_id = stringr::str_to_upper(.data$team_id),
-               team = stringr::str_to_title(.data$team),
-               coach = stringr::str_to_title(.data$coach),
-               assistant = stringr::str_to_title(.data$assistant),
+               team = .data$team, ##stringr::str_to_title(.data$team),
+               coach = .data$coach, ##stringr::str_to_title(.data$coach),
+               assistant = .data$assistant, ##stringr::str_to_title(.data$assistant),
                shirt_colour = stringr::str_to_lower(.data$shirt_colour))
 
     csu <- function(z) paste(unique(na.omit(z)), collapse = ", ") ## comma-separated unique values
@@ -988,8 +988,8 @@ get_teams_from_dvw_dir <- function(season) {
                 tibble(player_id = character(), number = integer(), lastname = character(), firstname = character(), role = character())
             }
         })) %>% mutate(player_id = stringr::str_to_upper(.data$player_id),
-                       lastname = stringr::str_to_title(.data$lastname),
-                       firstname = stringr::str_to_title(.data$firstname),
+                       lastname = .data$lastname, ##stringr::str_to_title(.data$lastname),
+                       firstname = .data$firstname, ##stringr::str_to_title(.data$firstname),
                        role = stringr::str_to_lower(.data$role)) %>% dplyr::distinct()
 
         player_table_tid <- player_table_tid %>% group_by(.data$player_id, .data$lastname, .data$firstname, .data$number) %>% mutate(role = case_when(is.na(.data$role) ~ "", TRUE ~ .data$role)) %>% dplyr::summarize(role = paste(.data$role)) %>% ungroup
