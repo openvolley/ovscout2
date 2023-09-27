@@ -111,9 +111,13 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     })
     ## keep track of the digest of the plot_data() object so that we can trigger downstream actions when it has actually changed
     plot_data_digest <- reactiveVal("")
+    last_plot_data_digest <- "xx"
     observe({
-        plot_data_digest(digest::digest(plot_data()))
+        dig <- digest::digest(plot_data())
+        plot_data_digest(dig)
         ##cat("courtrot2 plot data digest:", isolate(plot_data_digest()), "\n")
+        if (dig != last_plot_data_digest) update_base_plot()
+        last_plot_data_digest <<- dig
     })
 
     ss <- reactive({
@@ -137,13 +141,18 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         sets_won
     })
     ss_digest <- reactiveVal("")
+    last_ss_digest <- "xx"
     observe({
-        ss_digest(digest::digest(ss()))
+        dig <- digest::digest(ss())
+        ss_digest(dig)
         ##cat("courtrot2 ss digest:", isolate(ss_digest()), "\n")
+        if (dig != last_ss_digest) update_base_plot()
+        last_ss_digest <<- dig
     })
 
     ## generate the ggplot object of the court with players, this doesn't change within a rally
-    base_plot <- reactive({
+    base_plot <- reactiveVal(NULL)
+    update_base_plot <- function() {
         p <- ggplot(data = data.frame(x = c(-0.25, 4.25, 4.25, -0.25), y = c(-0.25, -0.25, 7.25, 7.25)), mapping = aes(.data$x, .data$y)) +
             geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = c(0.5, 0.5, 3.5, 3.5)), fill = styling$h_court_colour, na.rm = TRUE) +
             geom_polygon(data = data.frame(x = c(0.5, 3.5, 3.5, 0.5), y = 3 + c(0.5, 0.5, 3.5, 3.5)), fill = styling$v_court_colour, na.rm = TRUE) +
@@ -219,8 +228,8 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         } else {
             p <- p + scale_x_continuous(limits = c(NA_real_, 5), expand = c(0.01, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01))
         }
-        p
-    })
+      base_plot(p)
+    }
 
     ## keep track of the digest of the rally_codes() object so that we can trigger the plot update when it has actually changed AND only if we are showing ball coords
     rally_codes_digest <- reactiveVal("")
