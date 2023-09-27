@@ -2037,6 +2037,7 @@ ov_scouter_server <- function(app_data) {
                 if (!is.na(Fidx)) {
                     rc$eval[Fidx] <- if (input$f1 %eq% "FD=") "+" else "-"
                 }
+                ## game_state$current_team is digging team
                 if (was_f) {
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "F", eval = if (input$f1 %eq% "FD=") "=" else default_skill_eval("F"), sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                     if (input$f1 == "FD=") {
@@ -2048,7 +2049,6 @@ ov_scouter_server <- function(app_data) {
                     }
                 } else {
                     ## aPR
-                    game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                     rally_state("click attack end point")
                 }
