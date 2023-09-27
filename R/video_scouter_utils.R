@@ -567,6 +567,12 @@ guess_attack <- function(game_state, dvw, opts, system, weight = 2.5) {
                                       n_times = .data$n_times + .data$n_times_prior) %>%
             group_by(.data$attack_code) %>% dplyr::summarize(n_times = sum(.data$n_times), name = case_when(all(is.na(.data$name)) ~ NA_character_, TRUE ~ most_common_value(na.omit(.data$name)))) %>% ungroup %>%
             dplyr::arrange(desc(.data$n_times))
+        ## if the pass was poor, favour Vx over Xx
+        if (identical(tail(dvw$plays$skill, 2), c("Reception", "Set")) && isTRUE(game_state$current_team %eq% tail(dvw$plays$team, 2)[1]) && isTRUE(grepl("^Negative", tail(dvw$plays$evaluation, 2)[1]))) {
+            idx <- grepl("^V", history$attack_code)
+            history$n_times[idx] <- history$n_times[idx] * 2
+            history <- history %>% dplyr::arrange(desc(.data$n_times))
+        }
         ## swap e.g. V5 X5 so that X5 is first, if the probabilities are the same
         for (i in head(seq_len(nrow(history)), -1)) {
             if (substr(history$attack_code[i], 2, 2) == substr(history$attack_code[i+1], 2, 2) && grepl("^V", history$attack_code[i]) && grepl("^X", history$attack_code[i+1]) &&
