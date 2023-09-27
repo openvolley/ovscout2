@@ -1318,14 +1318,18 @@ ov_scouter_server <- function(app_data) {
                     ae_buttons <- make_fat_radio_buttons(choices = c("Out long" = "O", "Out side" = "S", "In net" = "N", "Net contact" = "I", Antenna = "A", "Other/referee call" = "Z"), selected = NA, input_var = "attack_error_type")
                     ## blocking players
                     blockp <- get_players(game_state, team = game_state$current_team, dvw = rdata$dvw)
+                    ## note that block fault could be a backrow player, so need to show all 6 for this
+                    blockp_all <- blockp
                     if (length(blockp) == 6) blockp <- blockp[2:4] ## front-row only
                     blockp <- sort(blockp)
                     names(blockp) <- player_nums_to(blockp, team = game_state$current_team, dvw = rdata$dvw)
                     blockp <- c(blockp, Unknown = "Unknown")
-                    block_player_buttons <- make_fat_radio_buttons(choices = blockp, selected = NA, input_var = "c1_block_touch_player")
-                    ## also blocking players, to show for block fault/kill in different part of form
-                    ## define this here because selected is NA, whereas we make a default selection for c1_def_player below
-                    block1_player_buttons <- make_fat_radio_buttons(choices = blockp, selected = NA, input_var = "c1_def_player")
+                    block_player_buttons <- make_fat_radio_buttons(choices = blockp, selected = NA, input_var = "c1_block_touch_player") ## use for block touch or kill
+                    ## and another set of buttons for block fault, because this could be a backrow player
+                    blockp_all <- sort(blockp_all)
+                    names(blockp_all) <- player_nums_to(blockp_all, team = game_state$current_team, dvw = rdata$dvw)
+                    blockp_all <- c(blockp_all, Unknown = "Unknown")
+                    block_fault_player_buttons <- make_fat_radio_buttons(choices = blockp_all, selected = NA, input_var = "c1_block_fault_player")
                     ## identify defending players
                     dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     digp <- dig_pl_opts$choices
@@ -1404,8 +1408,10 @@ ov_scouter_server <- function(app_data) {
                                                        tags$div(id = "c1_coverp_ui", style = "display:none;", tags$p(tags$strong("Cover dig player")),
                                                                 do.call(fixedRow, lapply(cover_player_buttons, function(but) column(1, but)))),
                                                        ## or block players
-                                                       tags$div(id = "c1_blockp_ui", style = "display:none;", tags$p(tags$strong("Block player")),
-                                                                do.call(fixedRow, lapply(block1_player_buttons, function(but) column(2, but)))),
+                                                       tags$div(id = "c1_blockp_ui", style = "display:none;", tags$p(tags$strong("Block kill"), "by player"),
+                                                                do.call(fixedRow, lapply(block_player_buttons, function(but) column(2, but)))),
+                                                       tags$div(id = "c1_blockfaultp_ui", style = "display:none;", tags$p(tags$strong("Block fault"), "by player"),
+                                                                do.call(fixedRow, lapply(block_fault_player_buttons, function(but) column(1, but)))),
                                                        tags$br(),
                                                        tags$div(id = "c1_touchp_ui", tags$hr(), tags$div("WITH", tags$strong("Block touch"), "by player"), tags$br(),
                                                                 do.call(fixedRow, lapply(block_player_buttons, function(but) column(2, but)))),
@@ -1508,21 +1514,30 @@ ov_scouter_server <- function(app_data) {
             ## D, D=, show def players and block touch
             ## A# show block touch
             ## A= hide all player selectors
-            ## B#, B/ show block1
+            ## B# show block touch, B/ show block fault
             ## cover player buttons (c1_coverp_ui), block player buttons (c1_blockp_ui), and dig player buttons (c1_digp_ui) are alternatives, only one of these should be shown at any one time
             if (!is.null(input$c1)) {
                 if (input$c1 %eq% "A!") {
                     js_show2("c1_coverp_ui")
                     js_hide2("c1_blockp_ui")
+                    js_hide2("c1_blockfaultp_ui")
                     js_hide2("c1_digp_ui")
                     js_show2("c1_touchp_ui")
                 } else if (input$c1 %in% c("D", "D=")) {
                     js_hide2("c1_coverp_ui")
                     js_hide2("c1_blockp_ui")
+                    js_hide2("c1_blockfaultp_ui")
                     js_show2("c1_digp_ui")
                     js_show2("c1_touchp_ui")
-                } else if (input$c1 %in% c("B#", "B/")) {
+                } else if (input$c1 %in% c("B#")) {
                     js_show2("c1_blockp_ui")
+                    js_hide2("c1_blockfaultp_ui")
+                    js_hide2("c1_coverp_ui")
+                    js_hide2("c1_digp_ui")
+                    js_hide2("c1_touchp_ui")
+                } else if (input$c1 %in% c("B/")) {
+                    js_show2("c1_blockfaultp_ui")
+                    js_hide2("c1_blockp_ui")
                     js_hide2("c1_coverp_ui")
                     js_hide2("c1_digp_ui")
                     js_hide2("c1_touchp_ui")
@@ -1530,12 +1545,14 @@ ov_scouter_server <- function(app_data) {
                     js_hide2("c1_coverp_ui")
                     js_hide2("c1_digp_ui")
                     js_hide2("c1_blockp_ui")
+                    js_hide2("c1_blockfaultp_ui")
                     js_show2("c1_touchp_ui")
                 } else {
                     ## A=
                     js_hide2("c1_coverp_ui")
                     js_hide2("c1_digp_ui")
                     js_hide2("c1_blockp_ui")
+                    js_hide2("c1_blockfaultp_ui")
                     js_hide2("c1_touchp_ui")
                     if (!is.na(game_state$end_x) && !is.na(game_state$end_y)) {
                         guess_att_err <- NA_character_
@@ -1828,8 +1845,7 @@ ov_scouter_server <- function(app_data) {
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else NA_integer_
                 if (!is.na(Aidx)) rc$x_type[Aidx] <- check_hit_type(input$hit_type) ## update hit type if needed
                 ## TODO if we already have a block skill here, don't add a new one, just update the existing one ... though there should never already be block skill here
-                ## block fault player should be in input$c1_def_player, but we'll take input$b1_block_touch_player otherwise
-                bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
+                bp <- if (!is_nnn(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
                 if (!is.na(Aidx)) {
                     ## adjust the attack row
                     sz <- rc$sz[Aidx] ## default to existing start zone
@@ -1858,7 +1874,7 @@ ov_scouter_server <- function(app_data) {
                                       ## the block
                                       code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "!", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table),
                                       ## and the dig cover
-                                      if (!input$c1_cover_player %eq% "No cover dig") code_trow(team = other(game_state$current_team), pnum = if (!is.na(input$c1_cover_player)) input$c1_cover_player else 0L, skill = "D", eval = default_skill_eval("D"), sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)
+                                      if (!input$c1_cover_player %eq% "No cover dig") code_trow(team = other(game_state$current_team), pnum = if (!is_nnn(input$c1_cover_player)) input$c1_cover_player else 0L, skill = "D", eval = default_skill_eval("D"), sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)
                                       ))
                 game_state$current_team <- other(game_state$current_team) ## attacking team now playing
                 rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
@@ -1868,8 +1884,7 @@ ov_scouter_server <- function(app_data) {
                     rc <- head(rc, -1)
                 }
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc)  else NA_integer_
-                ## block fault player should be in input$c1_def_player, but we'll take input$b1_block_touch_player otherwise
-                bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
+                bp <- if (!is_nnn(input$c1_block_fault_player)) input$c1_block_fault_player else 0L
                 if (!is.na(Aidx)) {
                     ## adjust the attack row
                     rc$x_type[Aidx] <- check_hit_type(input$hit_type) ## update hit type if needed
@@ -1903,8 +1918,7 @@ ov_scouter_server <- function(app_data) {
                     rc <- head(rc, -1)
                 }
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else NA_integer_
-                ## block player should be in input$c1_def_player, but we'll take input$b1_block_touch_player otherwise
-                bp <- if (!is.na(input$c1_def_player)) input$c1_def_player else if (!is.na(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
+                bp <- if (!is_nnn(input$c1_block_touch_player)) input$c1_block_touch_player else 0L
                 if (!is.na(Aidx)) {
                     ## adjust the attack row
                     rc$x_type[Aidx] <- check_hit_type(input$hit_type) ## update hit type if needed
