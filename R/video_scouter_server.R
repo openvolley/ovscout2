@@ -2164,8 +2164,14 @@ ov_scouter_server <- function(app_data) {
             rc <- rally_codes()
             if (input$c3 %in% c("aPR", "aF", "aF=")) {
                 ## adjust the prior skill, if it was a dig or reception then evaluation is "/", otherwise "-"
-                ## but we can only do this if we are scouting transition sets, otherwise we can't be sure if it was e.g. D/ or a set over (E-)
-                if (isTRUE(rdata$options$transition_sets) && tail(rc$skill, 1) %in% c("R", "D", "E", "F") && tail(rc$team, 1) %eq% game_state$current_team) {
+                ## but we can only do this in transition if we are scouting transition sets, otherwise we can't be sure if it was e.g. D/ or a set over (E-)
+                ph <- if (nrow(rally_codes()) > 0) {
+                          temp <- make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)
+                          tail(temp$phase, 1)
+                      } else {
+                          NA_character_
+                      }
+                if ((!ph %eq% "Transition" || isTRUE(rdata$options$transition_sets)) && tail(rc$skill, 1) %in% c("R", "D", "E", "F") && tail(rc$team, 1) %eq% game_state$current_team) {
                     ## is the R needed here, surely we can never see a preceding R on 3rd contact?
                     new_eval <- if (tail(rc$skill, 1) %in% c("R", "D")) "/" else "-"
                     rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], eval = new_eval, game_state = game_state)
