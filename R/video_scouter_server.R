@@ -1648,6 +1648,7 @@ ov_scouter_server <- function(app_data) {
                         temp_dvw_file <- file.path(app_data$auto_save_dir, paste0(save_file_basename(), "-live.dvw"))
                         if (file.exists(temp_dvw_file)) unlink(temp_dvw_file)
                         dv_write2(update_meta(rp2(rdata$dvw)), file = temp_dvw_file)
+                        ## TODO send to pantry
                     }, error = function(e) warning("could not auto-save file"))
                 }
             }
