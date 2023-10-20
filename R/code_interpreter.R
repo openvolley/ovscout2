@@ -116,7 +116,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
             if (length(tmp) == 0) {
                 ## Check for existing default scouting convention
                 if (i == 3) {
-                    tmp <- default_scouting_table$skill[default_scouting_table$default_skill == TRUE]
+                    tmp <- default_scouting_table$skill[default_scouting_table$default_skill]
                 } else if (i == 4) {
                     tmp <- default_scouting_table$tempo[default_scouting_table$skill == new_code[4]]
                 } else if (i == 5) {
@@ -265,7 +265,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
             }
 
             if (i == 3 && length(tmp1) > 0) {
-                tmp2 <- unique(compound_table$compound_skill[compound_table$skill == tmp1 & compound_table$default_compound_skills == TRUE])
+                tmp2 <- unique(compound_table$compound_skill[compound_table$skill == tmp1 & compound_table$default_compound_skills])
             }
             if (i == 4) tmp2 <- tmp1
             if (i == 5) {
@@ -280,7 +280,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                 if (tmp1 %in% attack_table$code) {
                     cmb <- TRUE
                     new_code_1[4] <- "A"
-                    if(new_code_2[4] == "~") new_code_2[4] = unique(compound_table$compound_skill[compound_table$skill == "A" & compound_table$default_compound_skills == TRUE])
+                    if(new_code_2[4] == "~") new_code_2[4] = unique(compound_table$compound_skill[compound_table$skill == "A" & compound_table$default_compound_skills])
                     if (new_code_2[6] != "~") new_code_1[6]  <- compound_table$code[compound_table$compound_code == new_code_2[6] & compound_table$skill == new_code_1[4] & compound_table$compound_skill == new_code_2[4]] 
                     if (new_code_1[6] != "~") new_code_2[6]  <- compound_table$compound_code[compound_table$code == new_code_1[6] & compound_table$compound_skill == new_code_2[4] & compound_table$skill == new_code_1[4]]
                     new_code_1[5] <- attack_table$type[attack_table$code == tmp1]

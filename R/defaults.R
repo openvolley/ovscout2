@@ -128,7 +128,10 @@ ov_default_compound_table <- function() {
                    "A", "B", "+", "-", TRUE,
                    "A", "B", "#", "=", TRUE,
                    "A", "D", "-", "#", FALSE,
+                   "A", "D", "-", "+", FALSE,
+                   "A", "D", "-", "!", FALSE,
                    "A", "D", "+", "-", FALSE,
+                   "A", "D", "+", "/", FALSE,
                    "A", "D", "#", "=", FALSE)
 }
 

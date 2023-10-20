@@ -1154,7 +1154,7 @@ ov_scouter_server <- function(app_data) {
                         rc <- rally_codes()
                         rc$eval[rc$skill %eq% "R"] <- passq
                         ## find corresponding serve evaluation code
-                        seval <- rdata$options$compound_table$code[rdata$options$compound_table$skill %eq% "S" & rdata$options$compound_table$compound_skill %eq% "R" & rdata$options$compound_table$compound_code %eq% passq]
+                        seval <- rdata$options$compound_table %>% dplyr::filter(.data$skill == "S", .data$compound_skill == "R", .data$compound_code == passq) %>% pull(.data$code)
                         if (nchar(seval) != 1) seval <- "~"
                         rc$eval[rc$skill %eq% "S"] <- seval
                         start_t <- retrieve_video_time(game_state$start_t)
@@ -1163,9 +1163,11 @@ ov_scouter_server <- function(app_data) {
                         rally_state("click third contact")
                         do_video("play")
                     } else {
+                        ## current phase
+                        ph <- if (nrow(rally_codes()) > 0) tail(make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)$phase, 1) else NA_character_
                         accept_fun("do_assign_c2")
                         show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = scout_modal_width, modal_halign = "left",
-                                                       do.call(fixedRow, c(list(column(2, tags$strong("Reception quality"))), lapply(c2_pq_buttons, function(but) column(1, but)))),
+                                                       do.call(fixedRow, c(list(column(2, tags$strong(paste0(if (ph %eq% "Transition") "Dig" else "Reception", " quality")))), lapply(c2_pq_buttons, function(but) column(1, but)))),
                                                        tags$br(), tags$hr(),
                                                        tags$p(tags$strong("Second contact:")),
                                                        do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(if (mcols() < 12) 1 else 2, but))),
@@ -1199,13 +1201,8 @@ ov_scouter_server <- function(app_data) {
                     sxy$start_end <- "start"
                     overlay_points(sxy)
                     ## popup
-                    ## figure current phase
-                    if (nrow(rally_codes()) > 0) {
-                        temp <- make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)
-                        ph <- tail(temp$phase, 1)
-                    } else {
-                        ph <- NA_character_
-                    }
+                    ## current phase
+                    ph <- if (nrow(rally_codes()) > 0) tail(make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)$phase, 1) else NA_character_
                     if (rdata$options$attacks_by %eq% "codes") {
                         atk <- guess_attack(game_state, dvw = rdata$dvw, opts = rdata$options, system = rdata$options$team_system)
                         ac <- atk$code
@@ -2078,13 +2075,41 @@ ov_scouter_server <- function(app_data) {
         do_assign_c2 <- function() {
             ## set uses end position for zone/subzone
             esz <- if (isTRUE(game_state$startxy_valid)) as.character(dv_xy2subzone(game_state$start_x, game_state$start_y)) else c("~", "~")
-            passq <- if (!is.null(input$c2_pq)) input$c2_pq else guess_pass_quality(game_state, dvw = rdata$dvw)
+            passq <- if (!is.null(input$c2_pq) && nchar(input$c2_pq) == 1) input$c2_pq else guess_pass_quality(game_state, dvw = rdata$dvw)
             rc <- rally_codes()
-            rc$eval[rc$skill %eq% "R"] <- passq
-            ## find corresponding serve evaluation code
-            seval <- rdata$options$compound_table$code[rdata$options$compound_table$skill %eq% "S" & rdata$options$compound_table$compound_skill %eq% "R" & rdata$options$compound_table$compound_code %eq% passq]
-            if (nchar(seval) != 1) seval <- "~"
-            rc$eval[rc$skill %eq% "S"] <- seval
+            ph <- if (nrow(rally_codes()) > 0) tail(make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)$phase, 1) else NA_character_
+            ## if we are scouting transition sets this c2 could be in transition
+            if (ph %eq% "Transition") {
+                ## look for preceding dig, and its matching attack. Adjust evaluation codes
+                if (isTRUE(rdata$options$transition_sets)) {
+                    if (isTRUE(tail(rc$skill, 1) %in% c("D", "F"))) { ## can be a dig or freeball-dig
+                        tempeval <- rc$eval
+                        tempeval[length(tempeval)] <- passq ## dig qual
+                        aeval <- rdata$options$compound_table %>% dplyr::filter(.data$skill == "A", .data$compound_skill == "D", .data$compound_code == passq) %>% pull(.data$code)
+                        if (nchar(aeval) == 1) {
+                            if (length(tempeval) > 1 && isTRUE(rc$skill[nrow(rc) - 1] == "A")) {
+                                ## dig direct off attack
+                                tempeval[length(tempeval) - 1] <- aeval
+                            } else if (length(tempeval) > 2 && isTRUE(rc$skill[nrow(rc) - 2] == "A") && isTRUE(c$skill[nrow(rc) - 1] == "B") && isTRUE(rc$team[nrow(rc) - 1] != rc$team[nrow(rc)])) {
+                                ## dig off block touch, ensuring that digging team was not attacking team, though that should not happen anyway
+                                tempeval[length(tempeval) - 2] <- aeval
+                            }
+                        }
+                        rc$eval <- tempeval
+                    }
+                } else {
+                    ## this should not happen
+                    stop("not expecting second contact in transition because transition_sets scouting option is FALSE")
+                }
+            } else if (ph %eq% "Reception") {
+                rc$eval[rc$skill %eq% "R"] <- passq
+                ## find corresponding serve evaluation code
+                seval <- rdata$options$compound_table %>% dplyr::filter(.data$skill == "S", .data$compound_skill == "R", .data$compound_code == passq) %>% pull(.data$code)
+                if (nchar(seval) != 1) seval <- "~"
+                rc$eval[rc$skill %eq% "S"] <- seval
+            } else {
+                warning("unknown play phase for second contact, the scouted code will probably be wrong at this point")
+            }
             start_t <- retrieve_video_time(game_state$start_t)
             ## possible values for input$c2 are: Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball attack" = "P2", "Freeball over" = "F", R= rec error
             ##                                   "Opp. dig" = "aF", error "aF=", "Opp. overpass attack" = "aPR"
@@ -2179,12 +2204,7 @@ ov_scouter_server <- function(app_data) {
             if (input$c3 %in% c("aPR", "aF", "aF=")) {
                 ## adjust the prior skill, if it was a dig or reception then evaluation is "/", otherwise "-"
                 ## but we can only do this in transition if we are scouting transition sets, otherwise we can't be sure if it was e.g. D/ or a set over (E-)
-                ph <- if (nrow(rally_codes()) > 0) {
-                          temp <- make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)
-                          tail(temp$phase, 1)
-                      } else {
-                          NA_character_
-                      }
+                ph <- if (nrow(rally_codes()) > 0) tail(make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)$phase, 1) else NA_character_
                 if ((!ph %eq% "Transition" || isTRUE(rdata$options$transition_sets)) && tail(rc$skill, 1) %in% c("R", "D", "E", "F") && tail(rc$team, 1) %eq% game_state$current_team) {
                     ## is the R needed here, surely we can never see a preceding R on 3rd contact?
                     new_eval <- if (tail(rc$skill, 1) %in% c("R", "D")) "/" else "-"
@@ -2217,12 +2237,7 @@ ov_scouter_server <- function(app_data) {
                 ## setter dump
                 ## if we are in reception phase, or we are scouting transition sets, then we are changing the previously-scouted set to a setter dump
                 ## otherwise (transition phase and not scouting transition sets) it's a new touch
-                if (nrow(rally_codes()) > 0) {
-                    temp <- make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)
-                    ph <- tail(temp$phase, 1)
-                } else {
-                    ph <- NA_character_
-                }
+                ph <- if (nrow(rally_codes()) > 0) tail(make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)$phase, 1) else NA_character_
                 replace_set_with_dump <- isTRUE(rdata$options$transition_sets) || !ph %eq% "Transition"
                 if (replace_set_with_dump) {
                     if (nrow(rc) > 0 && tail(rc$skill, 1) %eq% "E") {
