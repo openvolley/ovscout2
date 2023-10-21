@@ -1155,7 +1155,7 @@ ov_scouter_server <- function(app_data) {
                         rc$eval[rc$skill %eq% "R"] <- passq
                         ## find corresponding serve evaluation code
                         seval <- rdata$options$compound_table %>% dplyr::filter(.data$skill == "S", .data$compound_skill == "R", .data$compound_code == passq) %>% pull(.data$code)
-                        if (nchar(seval) != 1) seval <- "~"
+                        if (length(seval) != 1 || nchar(seval) != 1) seval <- "~"
                         rc$eval[rc$skill %eq% "S"] <- seval
                         start_t <- retrieve_video_time(game_state$start_t)
                         ## note that the position gets assigned to the start coordinates, but end zone/subzone
@@ -2087,14 +2087,16 @@ ov_scouter_server <- function(app_data) {
                         tempeval <- rc$eval
                         tempeval[length(tempeval)] <- passq ## dig qual
                         aeval <- rdata$options$compound_table %>% dplyr::filter(.data$skill == "A", .data$compound_skill == "D", .data$compound_code == passq) %>% pull(.data$code)
-                        if (nchar(aeval) == 1) {
+                        if (length(aeval) == 1 && nchar(aeval) == 1) {
                             if (length(tempeval) > 1 && isTRUE(rc$skill[nrow(rc) - 1] == "A")) {
                                 ## dig direct off attack
                                 tempeval[length(tempeval) - 1] <- aeval
-                            } else if (length(tempeval) > 2 && isTRUE(rc$skill[nrow(rc) - 2] == "A") && isTRUE(c$skill[nrow(rc) - 1] == "B") && isTRUE(rc$team[nrow(rc) - 1] != rc$team[nrow(rc)])) {
+                            } else if (length(tempeval) > 2 && isTRUE(rc$skill[nrow(rc) - 2] == "A") && isTRUE(rc$skill[nrow(rc) - 1] == "B") && isTRUE(rc$team[nrow(rc) - 2] != rc$team[nrow(rc)])) {
                                 ## dig off block touch, ensuring that digging team was not attacking team, though that should not happen anyway
                                 tempeval[length(tempeval) - 2] <- aeval
                             }
+                        } else {
+                            warning("could not adjust attack evaluation for dig with evaluation: ", capture.output(str(passq)))
                         }
                         rc$eval <- tempeval
                     }
@@ -2106,7 +2108,7 @@ ov_scouter_server <- function(app_data) {
                 rc$eval[rc$skill %eq% "R"] <- passq
                 ## find corresponding serve evaluation code
                 seval <- rdata$options$compound_table %>% dplyr::filter(.data$skill == "S", .data$compound_skill == "R", .data$compound_code == passq) %>% pull(.data$code)
-                if (nchar(seval) != 1) seval <- "~"
+                if (length(seval) != 1 || nchar(seval) != 1) seval <- "~"
                 rc$eval[rc$skill %eq% "S"] <- seval
             } else {
                 warning("unknown play phase for second contact, the scouted code will probably be wrong at this point")
@@ -2283,7 +2285,7 @@ ov_scouter_server <- function(app_data) {
                 ## if the attack was by code, then the start zone is valid even if the coords are not, because zone is inferred from code not coords
                 szvalid <- game_state$startxy_valid
                 if (rdata$options$attacks_by %eq% "codes") {
-                    if (nchar(ac) == 2) {
+                    if (length(ac) == 1 && nchar(ac) == 2) {
                         tempo <- tryCatch(rdata$dvw$meta$attacks$type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
                         targ <- tryCatch(rdata$dvw$meta$attacks$set_type[rdata$dvw$meta$attacks$code %eq% ac], error = function(e) "~")
                         ## use the start zone from the attacks combo table
