@@ -343,6 +343,7 @@ ov_scouter_server <- function(app_data) {
 
         do_edit_commit <- function() {
             if (!is.null(editing$active)) {
+                dismiss_modal <- TRUE
                 if (editing$active %in% c("edit", "insert above", "insert below")) {
                     ## user has changed EITHER input$code_entry or used the code_entry_guide
                     ## infer code from code_entry_guide elements
@@ -354,6 +355,8 @@ ov_scouter_server <- function(app_data) {
                         val
                     })
                     newcode1 <- sub("~+$", "", paste(newcode1, collapse = ""))## trim trailing ~'s
+                    ## if the user has pressed enter directly after editing text in the code_entry field (without tabbing out of that, or clicking on the commit button) the input$code_entry variable will not have been updated. So focus out of it first
+                    focus_to_modal_element("edit_commit")
                     newcode2 <- input$code_entry
                     if (editing$active %eq% "edit") {
                         crc <- get_current_rally_code() ## this is from rally_codes BUT this won't have the actual scout code unless it was a non-skill code, hrumph
@@ -398,7 +401,9 @@ ov_scouter_server <- function(app_data) {
                             newcode <- NULL
                         }
                         if (editing$active %eq% "insert below" && !is.null(newcode)) {
-                            handle_manual_code(newcode)
+                            res <- handle_manual_code(newcode)
+                            ## the manual code could have been *p or ap, in which case the rally has ended
+                            if (res$end_of_set) dismiss_modal <- FALSE
                         } else if (editing$active %in% c("insert above")) {
                             ## not handled yet
                         }
@@ -417,7 +422,7 @@ ov_scouter_server <- function(app_data) {
                     ## will happen in deal_with_pause below
                 }
                 editing$active <- NULL
-                removeModal()
+                if (dismiss_modal) removeModal()
                 ##deal_with_pause() ## no need to unpause after any of these actions?
             }
         }
@@ -1486,6 +1491,7 @@ ov_scouter_server <- function(app_data) {
                 do_video("pause")
                 rally_state("confirm end of set")
             }
+            end_of_set
         }
 
         observe({
@@ -2894,16 +2900,19 @@ ov_scouter_server <- function(app_data) {
         )
 
         observeEvent(input$manual_code, {
-            ok <- handle_manual_code(input$manual_code)
-            if (ok) {
+            res <- handle_manual_code(input$manual_code)
+            if (res$ok) {
                 editing$active <- NULL
-                removeModal()
-                do_video("play")
+                if (!res$end_of_set) {
+                    removeModal()
+                    do_video("play")
+                }
             }
         })
 
         handle_manual_code <- function(code) {
             ok <- TRUE
+            end_of_set <- FALSE
             if (!is.null(code)) {
                 if (grepl("^>", code)) {
                     ## comment, or perhaps >LUp
@@ -2912,7 +2921,7 @@ ov_scouter_server <- function(app_data) {
                     rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
                 } else if (code %in% c("*p", "ap")) {
                     game_state$point_won_by <- substr(code, 1, 1)
-                    rally_ended()
+                    end_of_set <- rally_ended()
                 } else if (code %in% c("*c", "ac")) {
                     ## substitution
                     if (code %eq% "*c") {
@@ -2978,7 +2987,7 @@ ov_scouter_server <- function(app_data) {
                     }
                 }
             }
-            ok
+            list(ok = ok, end_of_set = end_of_set)
         }
 ##        ## auto save
 ##        shinyFiles::shinyFileSave(input, id = "auto_save_file", roots = c(root = '/'))
