@@ -143,7 +143,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     ss_digest <- reactiveVal("")
     last_ss_digest <- "xx"
     observe({
-        dig <- digest::digest(ss())
+        dig <- digest::digest(list(ss(), game_state$home_team_end))
         ss_digest(dig)
         ##cat("courtrot2 ss digest:", isolate(ss_digest()), "\n")
         if (dig != last_ss_digest) update_base_plot()
