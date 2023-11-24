@@ -2,7 +2,7 @@
 #'
 #' @param match list or single-row data.frame: (optional) with components `date` (defaults to current date), `time` (defaults to current time), `season`, `league`, `phase`, `home_away`, `day_number`, `match_number`, `regulation`, `zones_or_cones`. `zones_or_cones` can also be provided directly
 #' @param more list or single-row data.frame: (optional) with components `referees`, `spectators`, `receipts`, `city`, `arena`, `scout`
-#' @param teams data.frame: a 2-row data frame, with required columns `team_id`, `team` and optional columns `coach`, `assistant`, `shirt_colour`
+#' @param teams data.frame: a 2-row data frame describing the home and visiting teams, with required columns `team_id`, `team` and optional columns `coach`, `assistant`, `shirt_colour`. The home team must be in the first row of this data frame
 #' @param players_h,players_v data.frame: with required columns `number`, `firstname`, `lastname`, and optional columns `player_id`, `role` (character vector with "outside", "opposite", "middle", "libero", "setter"), `nickname`, `special_role` (character vector with "L", "C", or NA), `foreign` (logical, defaults to `FALSE`)
 #' @param video_file string: (optional) path to video file
 #' @param attacks data.frame: as returned by [ov_simplified_attack_table()] or [ov_default_attack_table()]
@@ -563,6 +563,7 @@ create_meta <- function(match, more, teams, players_h, players_v, video_file, at
     if (!"coach" %in% names(teams)) teams$coach <- ""
     if (!"assistant" %in% names(teams)) teams$assistant <- ""
     if (!"shirt_colour" %in% names(teams)) teams$shirt_colour <- c("#FF0000", "#0000FF")
+    if ("home_away_team" %in% names(team) && identical(teams$home_away_team, c("a", "*"))) teams <- teams[2:1, ]
     meta$teams <- tibble(team_id = teams$team_id, team = teams$team,
                          sets_won = c(0L, 0L),
                          coach = teams$coach,
