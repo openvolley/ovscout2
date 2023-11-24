@@ -563,7 +563,7 @@ create_meta <- function(match, more, teams, players_h, players_v, video_file, at
     if (!"coach" %in% names(teams)) teams$coach <- ""
     if (!"assistant" %in% names(teams)) teams$assistant <- ""
     if (!"shirt_colour" %in% names(teams)) teams$shirt_colour <- c("#FF0000", "#0000FF")
-    if ("home_away_team" %in% names(team) && identical(teams$home_away_team, c("a", "*"))) teams <- teams[2:1, ]
+    if ("home_away_team" %in% names(teams) && identical(teams$home_away_team, c("a", "*"))) teams <- teams[2:1, ]
     meta$teams <- tibble(team_id = teams$team_id, team = teams$team,
                          sets_won = c(0L, 0L),
                          coach = teams$coach,
