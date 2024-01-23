@@ -24,7 +24,7 @@ dv_create(
 
 \item{more}{list or single-row data.frame: (optional) with components \code{referees}, \code{spectators}, \code{receipts}, \code{city}, \code{arena}, \code{scout}}
 
-\item{teams}{data.frame: a 2-row data frame, with required columns \code{team_id}, \code{team} and optional columns \code{coach}, \code{assistant}, \code{shirt_colour}}
+\item{teams}{data.frame: a 2-row data frame describing the home and visiting teams, with required columns \code{team_id}, \code{team} and optional columns \code{coach}, \code{assistant}, \code{shirt_colour}. The home team must be in the first row of this data frame}
 
 \item{players_h, players_v}{data.frame: with required columns \code{number}, \code{firstname}, \code{lastname}, and optional columns \code{player_id}, \code{role} (character vector with "outside", "opposite", "middle", "libero", "setter"), \code{nickname}, \code{special_role} (character vector with "L", "C", or NA), \code{foreign} (logical, defaults to \code{FALSE})}
 

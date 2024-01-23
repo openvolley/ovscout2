@@ -57,5 +57,5 @@ Suggests:
     tcltk,
     testthat
 Remotes: openvolley/datavolley, openvolley/ovdata, openvolley/ovideo, openvolley/peranavolley, openvolley/volleyreport
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 VignetteBuilder: knitr
