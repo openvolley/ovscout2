@@ -52,10 +52,12 @@ ov_scouter_ui <- function(app_data) {
                                                    tags$div(class = "bareslider", sliderInput("video_volume", label = "Volume", min = 0, max = 1, value = 0, width = "100%", ticks = FALSE), style = "width:100%"),
                                                    actionButton("video_toggle_mute", label = "Unmute", icon = icon("volume-mute")),
                                                    sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1), data.step = 4, data.intro = "Video controls. Also can be controlled by keyboard shortcuts."),
-                                          tags$hr(),
                                           introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
                                               if (!is.null(app_data$video_src2)) {
-                                                  tags$div(style = "display:inline-block;", shinyWidgets::dropdown(inputId = "video_setup", label = "Video setup", mod_courtref_ui(id = "courtref1", yt = isTRUE(is_youtube_url(app_data$video_src)), video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src))), mod_courtref_ui(id = "courtref2", yt = is_youtube_url(app_data$video_src2), video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), button_label = HTML("Court reference<br />(video 2)")), actionButton("v2_offset", "Video time offset")))
+                                                  tags$div(style = "display:inline-block;",
+                                                           mod_courtref_ui(id = "courtref1", yt = isTRUE(is_youtube_url(app_data$video_src)), video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src))),
+                                                           mod_courtref_ui(id = "courtref2", yt = is_youtube_url(app_data$video_src2), video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), button_label = HTML("Court reference<br />(video 2)")),
+                                                           actionButton("v2_offset", "Video 2 time offset"))
                                               } else {
                                                   mod_courtref_ui(id = "courtref1", yt = isTRUE(is_youtube_url(app_data$video_src)), video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)))
                                               },
