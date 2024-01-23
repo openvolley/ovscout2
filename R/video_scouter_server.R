@@ -117,7 +117,7 @@ ov_scouter_server <- function(app_data) {
             showModal(vwModalDialog(title = "Video setup", footer = NULL, width = 100,
                                     uiOutput("preview_header"),
                                     HTML(paste0("<video id=\"video_preview\" style=\"width:100%; height:50vh;\" class=\"video-js\" data-setup='{ ", if (prevsrc$type == "youtube") "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": true, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": ", if (prevsrc$type == "youtube") paste0("[{ \"type\": \"video/youtube\", \"src\": \"", prevsrc$src, "\"}]") else paste0("[{ \"src\": \"", prevsrc$src, "\"}]"), " }'>\n", "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>")),
-                                    fluidRow(column(4, offset = 2, numericInput("v2_offset_value", "Video 2 offset (s):", value = rdata$dvw$video2_offset)),
+                                    fluidRow(style = "margin-top:40px;", column(4, offset = 2, numericInput("v2_offset_value", "Video 2 offset (s):", value = rdata$dvw$video2_offset)),
                                              column(4, actionButton("switch_preview", "Switch video"))),
                                     tags$br(),
                                     tags$hr(),
