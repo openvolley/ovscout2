@@ -104,7 +104,7 @@ ov_scouter_server <- function(app_data) {
                     offs <- rdata$dvw$video2_offset
                 }
                 new_src <- get_src_type(new_src)
-                myjs <- paste0("var ct=vidplayer.currentTime(); ct=ct", if (offs >= 0) "+", offs, "; if (ct >= 0) { vidplayer.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); vidplayer.currentTime(ct); vidplayer.play(); Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight()); }")
+                myjs <- paste0("var ct=vidplayer.currentTime(); ct=ct", if (offs >= 0) "+", offs, "; if (ct >= 0) { vidplayer.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); vidplayer.currentTime(ct);", if (!video_state$paused) "vidplayer.play();", "Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight()); }")
                 dojs(myjs)
             }
         }
