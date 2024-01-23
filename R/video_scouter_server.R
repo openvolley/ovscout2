@@ -217,13 +217,8 @@ ov_scouter_server <- function(app_data) {
         detection_ref2 <- reactiveVal({ if (!is.null(app_data$court_ref2)) app_data$court_ref2 else NULL })
         courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", video_file = if (!is_url(app_data$video_src2)) app_data$video_src2 else NULL, video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), detection_ref = detection_ref2, main_video_time_js = "vidplayer.currentTime()", styling = app_data$styling) else NULL
         detection_ref <- reactive(if (current_video_src() < 2) detection_ref1() else detection_ref2()) ## whichever is associated with the current view
-        courtref <- reactiveValues(active = FALSE)
-        observe({
-            if (current_video_src() < 2) {
-                courtref$active <- courtref1$active
-            } else {
-                courtref$active <- courtref2$active
-            }
+        courtref_active <- reactive({
+            isTRUE(courtref1$active()) || (!is.null(courtref2) && isTRUE(courtref2$active()))
         })
         tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata, styling = app_data$styling, visible = reactive(prefs$scoreboard))
 
@@ -560,13 +555,13 @@ ov_scouter_server <- function(app_data) {
                     ## but only for the admin, lineup modal or the ones that pop up during the rally, not the editing modals for teams or rosters
                     if (is.null(editing$active) || editing$active %in% c("admin", "change starting lineup")) hide_popup()
                 } else if (ky %in% c(app_data$shortcuts$pause, app_data$shortcuts$pause_no_popup)) {
-                    ## only accept this if we are not editing, or it's the admin modal being shown
-                    if (is.null(editing$active) || editing$active %eq% "admin") {
+                    ## only accept this if we are not doing a courtref, not editing, or it's the admin modal being shown
+                    if ((is.null(editing$active) || editing$active %eq% "admin") && !courtref_active()) {
                         ## video pause/unpause
                         ## Q (uppercase) does just pause, with no admin modal
                         deal_with_pause(show_modal = !ky %in% app_data$shortcuts$pause_no_popup)
                     }
-                } else if (is.null(editing$active) && !courtref$active()) {
+                } else if (is.null(editing$active) && !courtref_active()) {
                     ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
                     if (ky %in% app_data$shortcuts$go_to_time) {
                         ## video go to currently-selected event
@@ -628,12 +623,11 @@ ov_scouter_server <- function(app_data) {
                             if (isTRUE(scout_modal_active())) {
                                 ## if we have a scouting modal showing, treat this as cancel and rewind
                                 do_cancel_rew()
-                            } else if (courtref$active()) {
+                            } else if (courtref_active()) {
                                 ## do nothing
                             } else if (is.null(editing$active) || !editing$active %in% "teams") {
                                 do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
                                 editing$active <- NULL
-                                courtref$active(FALSE)
                                 removeModal()
                                 if (do_unpause) do_video("play")
                             }
