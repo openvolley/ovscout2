@@ -5,7 +5,8 @@ DEBUG <- FALSE
 rgs <- commandArgs(trailingOnly = TRUE)
 
 options(warn = 1) ## show warnings immediately
-
+## rgs can contain quoted strings (e.g. the script path) which might contain spaces
+rgs <- as.character(read.csv(text = paste(rgs, collapse = " "), header = FALSE, sep = "")) ## split on [[:space:]]+, but respecting quoted strings
 mypath <- gsub("^\"+", "", gsub("\"+$", "", rgs[1]))
 ## force R to use local library path
 Rlibpath <- file.path(mypath, "lib")

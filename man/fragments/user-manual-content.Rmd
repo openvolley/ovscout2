@@ -1,6 +1,6 @@
 `ovscout2` is a free, open-source R/Shiny app for scouting volleyball matches. It provides industry-standard dvw files that can be used with the [openvolley](https://openvolley.org) suite of R packages, or with any other volleyball analytics software that takes dvw files as inputs.
 
-The app requires that you have a video of the match *from a fixed view point* (i.e. the camera does not move for the duration of the match). Such videos are usually taken from the "scout viewpoint" &mdash; behind one end of the court, at a reasonable height so that the entire court is clearly visible and players on court do not tend to occlude each other.
+The app requires that you have a video of the match *from a fixed view point* (i.e. the camera does not move for the duration of the match, or at the very least it only moves occasionally). Such videos are usually taken from the "scout viewpoint" &mdash; behind one end of the court, at a reasonable height so that the entire court is clearly visible and players on court do not tend to occlude each other.
 
 The app is writen in R, but you do not necessarily need to be an R user to be able to use it. We provide script files to launch the app from the command line &mdash; see the [Standalone] section below for installation and startup.
 
