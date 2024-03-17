@@ -306,6 +306,59 @@ update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target
               game_state = gs)
 }
 
+## take a vector of scout codes (character) and return a list. List elements will be NULL for non-skill codes (timeouts, subs, end-of-set, etc) or a one-row x 14 column data frame otherwise, with the 14 code components in columns
+## roughly similar to datavolley:::parse_code but does not return interpreted columns, nor add player names, etc
+parse_code_minimal <- function(codes) {
+    out <- vector("list", length(codes))
+    if (length(codes) < 1) return(out)
+    ## for timeouts, subs, green codes, point assignments, setter pos, end-of-set markers return NULL
+    idx <- which(!codes %in% c("T", "*T", "aT") | ## timeouts
+        grepl("^[a\\*]?[zcCpP]", codes) | ## subs, setter pos, point assignments
+        grepl("^\\*\\*[[:digit:]]set", codes, ignore.case = TRUE) | ## end of set
+        grepl("^[a\\*]\\$\\$&H", codes) | ## green codes
+        grepl(">LUp", codes, ignore.case = TRUE)) ## lineup codes
+    codes <- codes[idx]
+    codes <- str_pad(codes, 20, side = "right", pad = "~")
+
+    ## split codes into components
+    ss <- setNames(matrix(c(1, 1, ## 1 = team
+                            2, 3, ## 2 = player number
+                            4, 4, ## 3 = skill
+                            5, 5, ## 4 = tempo
+                            6, 6, ## 5 = eval
+                            7, 8, ## 6 = combo
+                            9, 9, ## 7 = target
+                            10, 10, ## 8 = start zone
+                            11, 11, ## 9 = end zone
+                            12, 12, ## 10 = end subzone
+                            13, 13, ## 11 = skill subtype
+                            14, 14, ## 12 = num players
+                            15, 15, ## 13 = special
+                            16, 20), ## 14 = custom
+                          ncol = 2, byrow = TRUE), c("start", "end"))
+    csplit <- do.call(rbind, stringr::str_sub_all(codes, start = ss))
+    flt <- function(z, allowed, repl = "~") {
+        z[!z %in% allowed] <- repl
+        z
+    }
+    custom <- sub("~+$", "", csplit[, 14])
+    out[idx] <- split(tibble(team = flt(csplit[, 1], c("*", "a"), repl = NA_character_),
+                             pnum = ldz2(csplit[, 2]),
+                             skill = flt(csplit[, 3], c("S", "R", "A", "B", "D", "E", "F")),
+                             tempo = flt(csplit[, 4], c("H", "M", "Q", "T", "U", "N", "O")),
+                             eval = flt(csplit[, 5], c("#", "+", "!", "-", "/", "=")),
+                             combo = csplit[, 6],
+                             target = flt(csplit[, 7], c("F", "C", "B", "P", "S")),
+                             sz = flt(csplit[, 8], 1:9),
+                             ez = flt(csplit[, 9], 1:9),
+                             esz = flt(csplit[, 10], c("A", "B", "C", "D")),
+                             x_type = csplit[, 11],
+                             num_p = flt(csplit[, 12], 0:9),
+                             special = csplit[, 13],
+                             custom = custom), seq_along(idx))
+    out
+ }
+
 get_setter_pos <- function(game_state, team) {
     if (missing(team)) team <- game_state$current_team
     if (team == "*") game_state$home_setter_position else if (team == "a") game_state$visiting_setter_position else NA_integer_

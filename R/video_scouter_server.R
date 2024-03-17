@@ -350,20 +350,19 @@ ov_scouter_server <- function(app_data) {
                         val
                     })
                     newcode1 <- sub("~+$", "", paste(newcode1, collapse = ""))## trim trailing ~'s
-                    ## if the user has pressed enter directly after editing text in the code_entry field (without tabbing out of that, or clicking on the commit button) the input$code_entry variable will not have been updated. So focus out of it first
-                    focus_to_modal_element("edit_commit")
                     newcode2 <- input$code_entry
                     if (editing$active %eq% "edit") {
                         crc <- get_current_rally_code() ## this is from rally_codes BUT this won't have the actual scout code unless it was a non-skill code, hrumph
-                        old_code <- if (is.null(crc$code) || is.na(crc$code)) rdata$dvw$plays$code[playslist_mod$current_row()] else crc$code
                         ridx <- playslist_mod$current_row()
                         if (!is.null(crc) && !is.null(ridx) && !is.na(ridx)) {
+                            old_code <- if (is.null(crc$code) || is.na(crc$code)) rdata$dvw$plays2$code[ridx] else crc$code
                             ## user has changed EITHER input$code_entry or used the code_entry_guide
                             changed1 <- (!newcode1 %eq% old_code) && nzchar(newcode1)
                             changed2 <- (!newcode2 %eq% old_code) && nzchar(newcode2)
                             if (!changed1 && changed2) {
                                 newcode <- newcode2
                                 ## if we entered via the text box, then run this through the code parser
+                                ## TODO this can't handle non-skill codes
                                 newcode <- sub("~+$", "", ov_code_interpret(newcode))
                                 ## TODO deal with a compound code that returns multiple codes here
                             } else if (!changed1 && !changed2) {
@@ -374,10 +373,17 @@ ov_scouter_server <- function(app_data) {
                             }
                             if (!is.null(newcode)) {
                                 crc$code <- newcode
+                                ## so we have a new code, but the (changed) information in that won't be in the other columns of crc yet
                                 ## if ridx is greater than the length of plays2 rows, then put this in rally_codes()
                                 if (ridx <= nrow(rdata$dvw$plays2)) {
-                                    newrc <- make_plays2(crc, game_state = crc$game_state[[1]], rally_ended = FALSE, dvw = rdata$dvw)
-                                    rdata$dvw$plays2[ridx, ] <- newrc
+                                    ## need to update crc$rally_codes with the info held in newcode
+                                    temp <- parse_code_minimal(new_code)[[1]]
+                                    if (!is.null(temp)) {
+                                        ## should not be NULL, that's only for non-skill rows
+                                        crc <- bind_cols(crc[, setdiff(names(crc), names(temp))], temp)[, names(crc)]
+                                        newrc <- make_plays2(crc, game_state = crc$game_state[[1]], rally_ended = FALSE, dvw = rdata$dvw)
+                                        rdata$dvw$plays2[ridx, ] <- newrc[, names(rdata$dvw$plays2)]
+                                    }
                                 } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
                                     rc <- rally_codes()
                                     rc[ridx - nrow(rdata$dvw$plays2), ] <- crc
@@ -581,8 +587,7 @@ ov_scouter_server <- function(app_data) {
                         ## player contact with the ball
                         do_contact()
                     } else if (ky %in% app_data$shortcuts$edit_code) {
-                        ## edit_data_row()
-                        ## not enabled yet
+                        edit_data_row()
                     } else if (ky %in% app_data$shortcuts$video_faster) {
                         do_video("playback_rate_faster")
                     } else if (ky %in% app_data$shortcuts$video_slower) {
@@ -636,6 +641,11 @@ ov_scouter_server <- function(app_data) {
                             ## if editing, treat as update
                             ## but not for team editing, because pressing enter in the DT fires this too
                             if (!is.null(editing$active) && !editing$active %eq% "teams") {
+                                ## if this is the code editing modal, we need to focus out of the text entry box first otherwise changes there won't be seen in the corresponding input$xyz variable
+                                if (editing$active %in% c("insert below", "insert above", "edit")) {
+                                    ## if the user has pressed enter directly after editing text in the code_entry field (without tabbing out of that, or clicking on the commit button) the input$code_entry variable will not have been updated. So focus out of it first
+                                    focus_to_modal_element("edit_commit")
+                                }
                                 do_edit_commit()
                             } else if (isTRUE(scout_modal_active())) {
                                 ## if we have a scouting modal showing, and a valid accept_fun entry, run that function
