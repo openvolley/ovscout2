@@ -566,7 +566,7 @@ ov_scouter_server <- function(app_data) {
                     if (ky %in% app_data$shortcuts$go_to_time) {
                         ## video go to currently-selected event
                         ridx <- playslist_mod$current_row()
-                        vt <- if (!is.na(ridx) && !is.na(ridx)) rdata$dvw$plays$video_time[ridx] else NA
+                        vt <- if (!is.na(ridx) && !is.na(ridx)) rdata$dvw$plays2$video_time[ridx] else NA
                         if (!is.null(vt) && !is.na(vt)) {
                             if (debug > 1) cat("jumping to video time: ", vt, "\n")
                             do_video("set_time", rebase_time(vt, time_to = current_video_src()))
@@ -2763,7 +2763,7 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(ridx) && !is.na(ridx)) {
                 showModal(modalDialog(title = if (grepl("insert", op)) paste0("Insert new code ", sub("insert ", "", op), " current row") else "Edit code", size = "l", footer = tags$div(actionButton("edit_commit", label = paste0(if (grepl("insert", op)) "Insert" else "Update", " code (or press Enter)")), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
                                       if (entry_guide) paste0(if (op == "edit") "Edit" else "Enter", " the code either in the top text box or in the individual boxes (but not both)"),
-                                      textInput("code_entry", label = "Code:", value = if (op == "edit") rdata$dvw$plays$code[ridx] else ""), if (entry_guide) "or", if (entry_guide) build_code_entry_guide(sub(" .*", "", op), thisrow = rdata$dvw$plays[ridx, ])
+                                      textInput("code_entry", label = "Code:", value = if (op == "edit") rdata$dvw$plays2$code[ridx] else ""), if (entry_guide) "or", if (entry_guide) build_code_entry_guide(sub(" .*", "", op), thisrow = rdata$dvw$plays[ridx, ])
                                       ))
                 focus_to_modal_element("code_entry")
             }

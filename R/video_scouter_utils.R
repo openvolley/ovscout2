@@ -21,7 +21,7 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
     if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
     if (is.data.frame(rally_codes)) {
         if (nrow(rally_codes) > 0) {
-            codes <- codes_from_rc_rows(rally_codes)
+            codes <- codes_from_rc_rows(rally_codes) ## the actual scout code (char)
             start_coord <- dv_xy2index(as.numeric(rally_codes$start_x), as.numeric(rally_codes$start_y))
             mid_coord <- dv_xy2index(as.numeric(rally_codes$mid_x), as.numeric(rally_codes$mid_y))
             end_coord <- dv_xy2index(as.numeric(rally_codes$end_x), as.numeric(rally_codes$end_y))
@@ -165,21 +165,21 @@ plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
         }
         return(out)
     }
-out <- bind_cols(mutate(datavolley:::parse_code(plays2$code, meta = dvw$meta, evaluation_decoder = evaluation_decoder, file_type = if (is_beach(dvw)) "beach" else "indoor")$plays,
-                        home_setter_position = plays2$home_setter_position,
-                        visiting_setter_position = plays2$visiting_setter_position,
-                        home_team_score = plays2$home_score_start_of_point, ## TODO FIX
-                        visiting_team_score = plays2$visiting_score_start_of_point, ## TODO FIX
-                        phase = if ("phase" %in% names(plays2)) plays2$phase else NA_character_,
-                        set_number = plays2$set_number,
-                        video_time = plays2$video_time),
-                 setNames(dv_index2xy(plays2$start_coordinate), c("start_coordinate_x", "start_coordinate_y")),
-                 setNames(dv_index2xy(plays2$mid_coordinate), c("mid_coordinate_x", "mid_coordinate_y")),
-                 setNames(dv_index2xy(plays2$end_coordinate), c("end_coordinate_x", "end_coordinate_y")))
-  ##code team player_number player_name player_id skill skill_type evaluation_code evaluation attack_code
-  ##attack_description set_code set_description set_type start_zone end_zone end_subzone end_cone skill_subtype num_players
-  ##num_players_numeric special_code timeout end_of_set substitution point home_team_score visiting_team_score
-  ##home_setter_position visiting_setter_position custom_code file_line_number
+    out <- bind_cols(mutate(datavolley:::parse_code(plays2$code, meta = dvw$meta, evaluation_decoder = evaluation_decoder, file_type = if (is_beach(dvw)) "beach" else "indoor")$plays,
+                            home_setter_position = plays2$home_setter_position,
+                            visiting_setter_position = plays2$visiting_setter_position,
+                            home_team_score = plays2$home_score_start_of_point, ## TODO FIX
+                            visiting_team_score = plays2$visiting_score_start_of_point, ## TODO FIX
+                            phase = if ("phase" %in% names(plays2)) plays2$phase else NA_character_,
+                            set_number = plays2$set_number,
+                            video_time = plays2$video_time),
+                     setNames(dv_index2xy(plays2$start_coordinate), c("start_coordinate_x", "start_coordinate_y")),
+                     setNames(dv_index2xy(plays2$mid_coordinate), c("mid_coordinate_x", "mid_coordinate_y")),
+                     setNames(dv_index2xy(plays2$end_coordinate), c("end_coordinate_x", "end_coordinate_y")))
+    ##code team player_number player_name player_id skill skill_type evaluation_code evaluation attack_code
+    ##attack_description set_code set_description set_type start_zone end_zone end_subzone end_cone skill_subtype num_players
+    ##num_players_numeric special_code timeout end_of_set substitution point home_team_score visiting_team_score
+    ##home_setter_position visiting_setter_position custom_code file_line_number
     ## add point_id
     pid <- 0
     temp_point_id <- rep(NA, nrow(out))

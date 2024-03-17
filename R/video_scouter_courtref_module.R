@@ -111,7 +111,6 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
 
     output$srui <- renderUI({
         blah <- did_sr_popup()
-        cat("rendering srui\n")
         fluidRow(column(8, tags$div(style = "min-height:68vh;")), ## strut to ensure height of modal, to keep modal background showing behind video
                  column(4, uiOutput(ns("srui_table")),
                         tags$hr(),
