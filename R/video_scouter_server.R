@@ -3017,7 +3017,8 @@ ov_scouter_server <- function(app_data) {
             content <- list(tags$li(paste0("[", c_or(app_data$shortcuts$pause), "] pause")),
                             tags$li(paste0("[", c_or(app_data$shortcuts$pause_no_popup), "] pause (without the admin popup)")),
                             tags$li(paste0("[", c_or(app_data$shortcuts$go_to_time), "] jump the video to the time of the currently-selected event in the plays table")),
-                            tags$li(paste0("[", c_or(app_data$shortcuts$undo), "] undo last rally action")))
+                            tags$li(paste0("[", c_or(app_data$shortcuts$undo), "] undo last rally action")),
+                            tags$li(paste0("[", c_or(app_data$shortcuts$edit_code), "] edit the currently-selected event in the plays table (EXPERIMENTAL)")))
             if (have_second_video) content <- c(content, list(tags$li(paste0("[", c_or(app_data$shortcuts$switch_video), "] switch video source"))))
             content <- list(tags$p(tags$strong("General controls")), do.call(tags$ul, content))
             if (app_data$with_video) {
