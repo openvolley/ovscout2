@@ -12,7 +12,14 @@ most_common_value <- function(x, na.rm = FALSE) {
     ux[which.max(tabulate(match(x, ux)))]
 }
 
-ldz <- function(nn, width = 2) formatC(as.integer(nn), flag = "0", width = width) ## leading zeros
+## leading zeros on numbers, e.g. jersey numbers
+ldz <- function(nn, width = 2) formatC(suppressWarnings(as.integer(nn)), flag = "0", width = width)
+## same but forcing NAs to 0L
+ldz2 <- function(n, width = 2) {
+    z <- suppressWarnings(as.integer(n))
+    z[is.na(z)] <- 0L
+    formatC(z, flag = "0", width = width)
+}
 
 ## plotting
 court_circle <- function(cxy, r = 0.45, cz = NULL, end = "lower", nseg = 31) {

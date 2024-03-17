@@ -1728,7 +1728,7 @@ ov_scouter_server <- function(app_data) {
                     }
                     if (length(Sidx) == 1) {
                         ## update the serve code entry
-                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, eval = "=", sz = sz, ez = esz[1], esz = esz[2], special = if (nzchar(special_code)) special_code else "~", t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, game_state = game_state)
+                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = ldz(sp), tempo = st, eval = "=", sz = sz, ez = esz[1], esz = esz[2], special = if (nzchar(special_code)) special_code else "~", t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, game_state = game_state)
                     }
                     rally_codes(rc)
                     game_state$point_won_by <- other(game_state$serving)
@@ -1738,7 +1738,7 @@ ov_scouter_server <- function(app_data) {
                     pp <- if (!is.null(input$pass_player)) input$pass_player else 0L
                     remove_scout_modal()
                     if (length(Sidx) == 1) {
-                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, eval = "#", sz = sz, ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, game_state = game_state)
+                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = ldz(sp), tempo = st, eval = "#", sz = sz, ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, game_state = game_state)
                     }
                     rally_codes(bind_rows(rc, code_trow(team = other(game_state$serving), pnum = pp, skill = "R", eval = "=", tempo = st, sz = sz, ez = esz[1], esz = esz[2], t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
 
@@ -1751,7 +1751,7 @@ ov_scouter_server <- function(app_data) {
                     remove_scout_modal()
                     if (length(Sidx) == 1) {
                         ## update the serve code entry
-                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = zpn(sp), tempo = st, ez = esz[1], esz = esz[2], t = start_t, end_x = game_state$end_x, end_y = game_state$end_y, game_state = game_state)
+                        rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = ldz(sp), tempo = st, ez = esz[1], esz = esz[2], t = start_t, end_x = game_state$end_x, end_y = game_state$end_y, game_state = game_state)
                     }
                     rally_codes(bind_rows(rc, code_trow(team = other(game_state$serving), pnum = pp, skill = "R", tempo = st, sz = sz, ez = esz[1], esz = esz[2], t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     rally_state("click second contact")

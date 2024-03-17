@@ -203,7 +203,6 @@ out <- bind_cols(mutate(datavolley:::parse_code(plays2$code, meta = dvw$meta, ev
 
 is_skill <- function(z) !is.na(z) & (!z %in% c("Timeout", "Technical timeout", "Substitution"))
 is_beach <- function(dvw) isTRUE(grepl("beach", dvw$meta$match$regulation))
-zpn <- function(n) sprintf("%02d", as.numeric(n))
 other <- function(tm) { oth <- rep(NA_character_, length(tm)); oth[tm %eq% "*"] <- "a"; oth[tm %eq% "a"] <- "*"; oth }
 ##other <- function(tm) c("a", "*")[as.numeric(factor(tm, levels = c("*", "a")))]
 
@@ -257,7 +256,7 @@ code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target 
        if (missing(eval) || is.null(eval) || eval %eq% "~" || is.na(eval)) eval <- tryCatch(default_scouting_table$evaluation_code[default_scouting_table$skill == skill], error = function(e) "~")
         if ((missing(x_type) || is.null(x_type) ||x_type %eq% "~" || is.na(x_type)) && skill %eq% "A") x_type <- "H" ## default to hard hit
         if (is.null(pnum) || is.null(pnum) || is.na(pnum) || pnum %eq% "Unknown") pnum <- 0L
-        as_tibble(c(lapply(list(team = team, pnum = zpn(pnum), skill = skill, tempo = tempo, eval = eval, combo = na2t(combo, 2), target = na2t(target), sz = na2t(sz), ez = na2t(ez), esz = na2t(esz), x_type = na2t(x_type), num_p = na2t(num_p), special = na2t(special), custom = if (is.na(custom)) "" else custom), as.character), list(code = code, t = t, start_x = start_x, start_y = start_y, mid_x = mid_x, mid_y = mid_y, end_x = end_x, end_y = end_y, rally_state = rally_state, game_state = list(game_state), current_team = game_state$current_team)))
+        as_tibble(c(lapply(list(team = team, pnum = ldz(pnum), skill = skill, tempo = tempo, eval = eval, combo = na2t(combo, 2), target = na2t(target), sz = na2t(sz), ez = na2t(ez), esz = na2t(esz), x_type = na2t(x_type), num_p = na2t(num_p), special = na2t(special), custom = if (is.na(custom)) "" else custom), as.character), list(code = code, t = t, start_x = start_x, start_y = start_y, mid_x = mid_x, mid_y = mid_y, end_x = end_x, end_y = end_y, rally_state = rally_state, game_state = list(game_state), current_team = game_state$current_team)))
     }
 }
 
