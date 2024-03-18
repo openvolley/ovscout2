@@ -12,14 +12,17 @@ mod_teamslists_ui <- function(id) {
 mod_teamslists <- function(input, output, session, rdata) {
     output$htroster <- renderUI({
         re <- names2roster(rdata$dvw$meta$players_h)
+        re1 <- re[seq_len(ceiling(length(re) / 2))]
         htn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]
-        do.call(tags$div, c(list(tags$strong(htn), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
-
+        tags$div(tags$strong(htn), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
+                                            do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
     })
     output$vtroster <- renderUI({
         re <- names2roster(rdata$dvw$meta$players_v)
+        re1 <- re[seq_len(ceiling(length(re) / 2))]
         vtn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]
-        do.call(tags$div, c(list(tags$strong(vtn), tags$br()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+        tags$div(tags$strong(vtn), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
+                                            do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
     })
 }
 

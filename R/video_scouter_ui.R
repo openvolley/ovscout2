@@ -88,14 +88,14 @@ ov_scouter_ui <- function(app_data) {
                               if (app_data$with_video)
                                   introBox(tags$div(id = "video_holder", style = "position:relative;",
                                                     if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc")),
-                                                    HTML(paste0("<video id=\"main_video\" style=\"width:100%; height:85vh;\" class=\"video-js vjs-has-started\" crossorigin=\"anonymous\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"inactivityTimeout\": 0, \"sources\": ", if (yt) paste0("[{ \"type\": \"video/youtube\", \"src\": \"", app_data$video_src, "\"}]") else paste0("[{ \"src\": \"", if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), "\"}]"), " }'>\n",
+                                                    HTML(paste0("<video id=\"main_video\" style=\"width:100%; height:", if (app_data$scout_mode == "type") 50 else 85, "vh;\" class=\"video-js vjs-has-started\" crossorigin=\"anonymous\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"inactivityTimeout\": 0, \"sources\": ", if (yt) paste0("[{ \"type\": \"video/youtube\", \"src\": \"", app_data$video_src, "\"}]") else paste0("[{ \"src\": \"", if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), "\"}]"), " }'>\n",
                                                                 "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>"))
                                                     ),
                                            tags$canvas(id = "video_overlay_canvas", style = "position:absolute;", height = "400", width = "600"), plotOutput("video_overlay"), data.step = 3, data.intro = "Video of the game to scout."),
                               tags$div(style = "height:3.1em;"),
                               fluidRow(column(12, uiOutput("serve_preselect"))),
                               tags$div(style = "height: 14px;"),
-                              fluidRow(column(7, wellPanel(introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these."))))
+                              wellPanel(introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these."))
                               ),
                        column(2, style = "padding-left:5px; padding-right:5px",
                               introBox(mod_courtrot2_ui(id = "courtrot"), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
