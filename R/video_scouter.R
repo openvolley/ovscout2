@@ -13,6 +13,7 @@
 #' @param season_dir string: optional path to a directory with other dvw/ovs files from this season
 #' @param auto_save_dir string: optional path to a directory where the dvw will be saved automatically after each rally
 # TODO @param pantry_id string: optional ID for <https://getpantry.cloud>. The dvw will be saved automatically to your pantry after each rally. Your `pantry_id` can also be specified as the `PANTRY_ID` environment variable (i.e. use `Sys.setenv(PANTRY_ID = "xyz")` before launching `ov_scouter()`)
+#' @param scout_mode string: either "click" for the guided point-and-click scouting interface, or "type" for the typing-based interface
 #' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
 #' @param ball_path logical: if `TRUE`, show the ball path on the court inset diagram. Note that this will slow the app down slightly
 #' @param playlist_display_option string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)
@@ -35,7 +36,7 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), shortcuts = ov_default_shortcuts(), scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scout_mode = "click", scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), shortcuts = ov_default_shortcuts(scout_mode), scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     assert_that(is.string(scout_name))
     assert_that(is.flag(show_courtref), !is.na(show_courtref))
@@ -69,7 +70,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     assert_that(playlist_display_option %in% c("dv_codes", "commentary"))
     dots <- list(...)
-
+    scout_mode <- tolower(scout_mode)
+    scout_mode <- match.arg(scout_mode, c("click", "type"))
     port <- NA
     if (missing(host) || is.null(host)) {
         host <- getOption("shiny.host", "127.0.0.1")
@@ -184,11 +186,25 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         }
     }
 
-    if (nrow(dvw$meta$video) < 1) {
-        stop("no video files specified, either in the scout file or via the video_file parameter")
+    with_video <- TRUE
+    if (scout_mode == "type") {
+        ## don't necessarily need a video, we might be scouting live
+        ## TODO better handling/warning
+        if (nrow(dvw$meta$video) < 1) {
+            warning("no video files specified, either in the scout file or via the video_file parameter")
+            with_video <- FALSE
+        } else if (!is_url(dvw$meta$video$file) && !file.exists(dvw$meta$video$file)) {
+            warning("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
+            with_video <- FALSE
+        }
     } else {
-        if (!is_url(dvw$meta$video$file) && !file.exists(dvw$meta$video$file)) stop("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
+        if (nrow(dvw$meta$video) < 1) {
+            stop("no video files specified, either in the scout file or via the video_file parameter")
+        } else {
+            if (!is_url(dvw$meta$video$file) && !file.exists(dvw$meta$video$file)) stop("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
+        }
     }
+    if (!with_video) stop("operation without video is not supported yet")
 
     ## look for the court ref data, if it hasn't been provided
     if (missing(court_ref)) {
@@ -232,14 +248,14 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
     }
     ## same with shortcuts
-    scts <- ov_default_shortcuts()
+    scts <- ov_default_shortcuts(scout_mode)
     for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
 
     ## attack_table in options overrides the one in the file. Also if we have no attack table, we need one
     if ((did_provide_s_opts && "attack_table" %in% names(scouting_options)) || is.null(dvw$meta$attacks)) dvw$meta$attacks <- opts$attack_table
 
     ## finally the shiny app
-    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = TRUE, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, shortcuts = scts, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout_name = scout_name, show_courtref = show_courtref)
+    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = with_video, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, shortcuts = scts, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout_name = scout_name, show_courtref = show_courtref, scout_mode = scout_mode)
     if ("video_file2" %in% names(other_args)) {
         video_file2 <- other_args$video_file2
         other_args$video_file2 <- NULL

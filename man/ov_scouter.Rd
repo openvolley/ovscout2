@@ -10,6 +10,7 @@ ov_scouter(
   court_ref,
   season_dir,
   auto_save_dir,
+  scout_mode = "click",
   scoreboard = TRUE,
   ball_path = FALSE,
   playlist_display_option = "dv_codes",
@@ -17,7 +18,7 @@ ov_scouter(
   playback_rate = 1,
   scouting_options = ov_scouting_options(),
   app_styling = ov_app_styling(),
-  shortcuts = ov_default_shortcuts(),
+  shortcuts = ov_default_shortcuts(scout_mode),
   scout_name = "",
   show_courtref = FALSE,
   dash = FALSE,
@@ -37,6 +38,8 @@ ov_scouter(
 \item{season_dir}{string: optional path to a directory with other dvw/ovs files from this season}
 
 \item{auto_save_dir}{string: optional path to a directory where the dvw will be saved automatically after each rally}
+
+\item{scout_mode}{string: either "click" for the guided point-and-click scouting interface, or "type" for the typing-based interface}
 
 \item{scoreboard}{logical: if \code{TRUE}, show a scoreboard in the top-right of the video pane}
 
