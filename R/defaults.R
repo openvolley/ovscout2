@@ -182,12 +182,13 @@ ov_default_shortcuts <- function(scout_mode = "click") {
              video_slower = "<"
              )
     } else {
+        ## shortcuts in typing mode can use modifier keys: C-x is ctrl and x, A-x is alt-x, M-x is meta-x
         list(hide_popup = c(),
              pause = c(),
              pause_no_popup = c(),
              go_to_time = c(),
              edit_code = c(),
-             undo = c("ctrl-a", "ctrl-A"),
+             undo = c("C-a", "C-S-a"),
              switch_video = c(),
              contact = c(),
              video_rewind_1_30 = c(),
@@ -204,4 +205,37 @@ ov_default_shortcuts <- function(scout_mode = "click") {
     }
 }
 
+#' Default keyboard remapping for ov_scouter
+#'
+#' @param scout_mode string: either "click" for the guided point-and-click scouting interface, or "type" for the typing-based interface. Currently remapping has no effect with "click"
+#' @return A named list
+#'
+#' @export
+ov_default_key_remapping <- function(scout_mode = "click") {
+    scout_mode <- tolower(scout_mode)
+    scout_mode <- match.arg(scout_mode, c("click", "type"))
+    if (scout_mode == "click") {
+        list()
+    } else {
+        ## shortcuts in typing mode can use modifier keys: C-x is ctrl and x, A-x is alt-x, M-x is meta-x, S-x is shift-x
+        list(`!` = "S-a")
+    }
+}
 
+shortcut2json <- function(key, to) {
+    paste0("'", tolower(grepl("C-", key, fixed = TRUE)), "|", ## ctrl
+           tolower(grepl("A-", key, fixed = TRUE)), "|", ## alt
+           tolower(grepl("S-", key, fixed = TRUE)), "|", ## shift
+           tolower(grepl("M-", key, fixed = TRUE)), "|", ## meta
+           sub("C-", "", sub("A-", "", sub("S-", "", sub("M-", "", key, fixed = TRUE), fixed = TRUE), fixed = TRUE), fixed = TRUE),
+           "': '", to, "'")
+}
+
+make_js_keymap <- function(sc) {
+    ## e.g. list(undo = c("C-a")) to "{'true|false|false|false|a': 'undo'}"
+    paste0("{",
+           paste(unique(unlist(lapply(seq_along(sc), function(i) {
+               if (length(sc[[i]]) > 0) shortcut2json(sc[[i]], to = names(sc)[i])
+           }))), collapse = ", "),
+           "}")
+}

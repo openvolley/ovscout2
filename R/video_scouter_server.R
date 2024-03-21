@@ -69,6 +69,15 @@ ov_scouter_server <- function(app_data) {
 
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
+        ## TODO add button to change scout mode from click (guided) to typing
+        ## when changing mode, change the #main_video height css to 85vh (click) or 50vh (typing)
+
+        ## send shortcuts to js
+        if (app_data$scout_mode == "type") {
+            if (length(app_data$shortcuts) > 0) dojs(paste0("shortcut_map = ", make_js_keymap(app_data$shortcuts), ";"))
+            if (length(app_data$remapping) > 0) dojs(paste0("key_map = ", make_js_keymap(app_data$remapping), ";"))
+        }
+
         have_second_video <- !is.null(app_data$video_src2)
         current_video_src <- reactiveVal(1L) ## start with video 1
         preview_video_src <- reactiveVal(1L)
