@@ -18,4 +18,4 @@
 #' @importFrom uuid UUIDgenerate
 #' @importFrom utils capture.output flush.console head modifyList packageVersion str tail write.csv
 #' @importFrom rintrojs introjsUI introjs introBox
-NULL
+"_PACKAGE"

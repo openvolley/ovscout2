@@ -2,8 +2,33 @@
 % Please edit documentation in R/ovscout2-package.R
 \docType{package}
 \name{ovscout2}
+\alias{ovscout2-package}
 \alias{ovscout2}
 \title{\pkg{ovscout2}}
 \description{
 Functions for scouting volleyball match files.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/openvolley/ovscout2}
+  \item Report bugs at \url{https://github.com/openvolley/ovscout2/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: Ben Raymond \email{ben@untan.gl}
+
+Authors:
+\itemize{
+  \item Adrien Ickowicz
+}
+
+Other contributors:
+\itemize{
+  \item Krystian Kowalski [contributor]
+  \item Brady Williams [contributor]
+  \item openvolley.org [originator]
+}
+
 }
