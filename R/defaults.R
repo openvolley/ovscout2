@@ -154,29 +154,54 @@ ov_default_scouting_table <- function() {
 
 #' Default keyboard shortcuts for ov_scouter
 #'
+#' @param scout_mode string: either "click" for the guided point-and-click scouting interface, or "type" for the typing-based interface
 #' @return A named list
 #'
 #' @export
-ov_default_shortcuts <- function() {
-    list(hide_popup = c("z", "Z"),
-         pause = c("q", "0"),
-         pause_no_popup = c("Q"),
-         go_to_time = c("g", "G", "#"),
-         edit_code = c("e", "E"),
-         undo = c("u", "U"),
-         switch_video = c("s"),
-         contact = c("w"), ## TODO add to help popup
-         video_rewind_1_30 = c("b", "7"),
-         video_rewind_0.1 = c("n", "1"),
-         video_rewind_2 = c("j", "4", "a"),
-         video_rewind_10 = c("h", "$"),
-         video_forward_1_30 = c(",", "9"),
-         video_forward_0.1 = c("m", "3"),
-         video_forward_2 = c("l", "6", "d"),
-         video_forward_10 = c(";", "^"),
-         video_faster = ">",
-         video_slower = "<"
-         )
+ov_default_shortcuts <- function(scout_mode = "click") {
+    scout_mode <- tolower(scout_mode)
+    scout_mode <- match.arg(scout_mode, c("click", "type"))
+    if (scout_mode == "click") {
+        list(hide_popup = c("z", "Z"),
+             pause = c("q", "0"),
+             pause_no_popup = c("Q"),
+             go_to_time = c("g", "G", "#"),
+             edit_code = c("e", "E"),
+             undo = c("u", "U"),
+             switch_video = c("s"),
+             contact = c("w"), ## TODO add to help popup
+             video_rewind_1_30 = c("b", "7"),
+             video_rewind_0.1 = c("n", "1"),
+             video_rewind_2 = c("j", "4", "a"),
+             video_rewind_10 = c("h", "$"),
+             video_forward_1_30 = c(",", "9"),
+             video_forward_0.1 = c("m", "3"),
+             video_forward_2 = c("l", "6", "d"),
+             video_forward_10 = c(";", "^"),
+             video_faster = ">",
+             video_slower = "<"
+             )
+    } else {
+        list(hide_popup = c(),
+             pause = c(),
+             pause_no_popup = c(),
+             go_to_time = c(),
+             edit_code = c(),
+             undo = c("ctrl-a", "ctrl-A"),
+             switch_video = c(),
+             contact = c(),
+             video_rewind_1_30 = c(),
+             video_rewind_0.1 = c(),
+             video_rewind_2 = c(),
+             video_rewind_10 = c(),
+             video_forward_1_30 = c(),
+             video_forward_0.1 = c(),
+             video_forward_2 = c(),
+             video_forward_10 = c(),
+             video_faster = c(),
+             video_slower = c()
+             )
+    }
 }
 
 

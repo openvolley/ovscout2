@@ -4,7 +4,10 @@
 \alias{ov_default_shortcuts}
 \title{Default keyboard shortcuts for ov_scouter}
 \usage{
-ov_default_shortcuts()
+ov_default_shortcuts(scout_mode = "click")
+}
+\arguments{
+\item{scout_mode}{string: either "click" for the guided point-and-click scouting interface, or "type" for the typing-based interface}
 }
 \value{
 A named list
