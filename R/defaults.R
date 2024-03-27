@@ -182,9 +182,10 @@ ov_default_shortcuts <- function(scout_mode = "click") {
              video_slower = "<"
              )
     } else {
-        ## shortcuts in typing mode can use modifier keys: C-x is ctrl and x, A-x is alt-x, M-x is meta-x
+        ## shortcuts in typing mode can use modifier keys: C-x is ctrl and x, A-x is alt-x, M-x is meta-x, S-x is shift-x
+        ## NOTE that the actual key should be lower case here (not the modifiers C-, A-, S-, or M-)
         list(hide_popup = c(),
-             pause = c(),
+             pause = c("escape"),
              pause_no_popup = c(),
              go_to_time = c(),
              edit_code = c(),
