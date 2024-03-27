@@ -37,24 +37,40 @@ function mapshortcut(ev) {
     return shortcut_map[ckey];
 };
 var scoutin = [];
+var scout_in_el;
 $(document).on("shiny:sessioninitialized", function() {
+    scout_in_el = $("#scout_in");
+    $("#scout_in").on("keyup", function(e) {
+	if (e.key === "Enter") {
+	    // echo the actual text in the box
+            Shiny.setInputValue("scout_input", scout_in_el.text(), { priority: "event" });
+	    scout_in_el.text(""); // clear it
+	    scoutin = [];
+            Shiny.setInputValue("scout_input_times", scoutin);
+	}
+    });
     $("#scout_in").on("keydown", function(e) {
-        console.log("key:" + e.ctrlKey + "|" + e.altKey + "|" + e.shiftKey + "|" + e.metaKey + "|" + e.key);
+        // console.log("scout input key:" + e.ctrlKey + "|" + e.altKey + "|" + e.shiftKey + "|" + e.metaKey + "|" + e.key);
         var newchar = mapkey(e);
+	// console.log(" -- maps to key: " + newchar);
         // log each character entered into #scout_in along with their corresponding clock and video times
         var vt = vidplayer ? vidplayer.currentTime() : "";
+	var d = new Date();
+	var dloc = d.getTime() - d.getTimezoneOffset() * 60 * 1000;
+	// time is returned in local time, if we want UTC then use just d.getTime()
         if (newchar) {
             insertTextAtCursor(newchar);
-            scoutin.push({ "key":newchar, "time":new Date().getTime(), "video_time":vt });
-            Shiny.setInputValue("scout_input", scoutin);
+            scoutin.push({ "key":newchar, "time":dloc, "video_time":vt });
+            Shiny.setInputValue("scout_input_times", scoutin);
             return false;
         }
 	newchar = mapshortcut(e);
+	// console.log(" -- maps to shortcut: " + newchar);
 	if (newchar) {
 	    Shiny.setInputValue("scout_shortcut", newchar, { priority: "event" });
 	    return false;
 	}
-	scoutin.push({ "key":e.key, "time":new Date().getTime(), "video_time":vt });
-        Shiny.setInputValue("scout_input", scoutin);
+	scoutin.push({ "key":e.key, "time":dloc, "video_time":vt });
+        Shiny.setInputValue("scout_input_times", scoutin);
     })
 });

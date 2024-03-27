@@ -386,7 +386,7 @@ ov_scouter_server <- function(app_data) {
                                 ## if ridx is greater than the length of plays2 rows, then put this in rally_codes()
                                 if (ridx <= nrow(rdata$dvw$plays2)) {
                                     ## need to update crc$rally_codes with the info held in newcode
-                                    temp <- parse_code_minimal(new_code)[[1]]
+                                    temp <- parse_code_minimal(newcode)[[1]]
                                     if (!is.null(temp)) {
                                         ## should not be NULL, that's only for non-skill rows
                                         crc <- bind_cols(crc[, setdiff(names(crc), names(temp))], temp)[, names(crc)]
@@ -690,6 +690,99 @@ ov_scouter_server <- function(app_data) {
                         }
                     }
                 }
+            }
+        })
+
+        ## deal with what's being typed into the scout entry box
+        observeEvent(input$scout_shortcut, {
+            if (!is.null(input$scout_shortcut)) {
+                if (debug > 1) cat("scout shortcut: ", input$scout_shortcut, "\n")
+                if (input$scout_shortcut %in% c("pause")) {
+                    deal_with_pause(show_modal = TRUE)
+                }
+            }
+        })
+
+        ## helper function to retrieve the time-stamped keypresses
+        ref_dt <- as.POSIXct("1970-01-01", tz = format(Sys.time(), "%Z"))
+        get_scout_input_times <- function() {
+            if (!is.null(input$scout_input_times)) {
+                tryCatch({
+                    this <- as.data.frame(matrix(input$scout_input_times, ncol = 3, byrow = TRUE))
+                    names(this) <- c("key", "time", "video_time")
+                    this$time <- as.numeric(this$time) / 1e3 + ref_dt;
+                    this$video_time <- as.numeric(this$video_time)
+                    ## we don't care about modifier keys here
+                    this <- this[!this$key %in% c("Alt", "Shift", "Control", "Meta", "Tab"), ]
+                    i <- 1
+                    while (i < nrow(this)) {
+                        if (i > 1 && this$key[i] %eq% "Backspace") {
+                            this <- this[-c(i, i - 1L), ]
+                        } else if (i < nrow(this) && this$key[i] %eq% "Delete") {
+                            this <- this[-c(i, i + 1L), ]
+                            i <- i + 1L
+                        } else {
+                            i <- i + 1L
+                        }
+                    }
+                    this
+                }, error = function(e) NULL)
+            } else {
+                NULL
+            }
+        }
+        observeEvent(input$scout_input_times, print(get_scout_input_times()))
+
+        observeEvent(input$scout_input, {
+            codes <- input$scout_input
+            ## split on spaces
+            codes <- strsplit(codes, "[[:space:]]+")[[1]]
+            ## also get the time stamps
+            keypress_times <- get_scout_input_times()
+            ## and split on spaces
+            keypress_times <- split(keypress_times, cumsum(keypress_times$key %eq% " "))
+            for (i in seq_along(codes)) {
+                code <- codes[i]
+                if (grepl("^[TpcPC]", code)) code <- paste0("*", code)
+                cat("to process: ", code, "\n")
+                if (grepl("^(>|\\*T|aT|\\*p|ap|\\*c|ac|\\*P\\aP)", code)) {
+                    res <- handle_manual_code(code) ## this automatically handles end-of-rally ap, *p codes
+                    if (!res$ok) {
+                        ## TODO something
+                    } else if (res$end_of_set) {
+                        ## handle_manual_code will have called rally_ended if appropriate, which also detects end of set (shows the modal to confirm)
+                        ## what else needs to happend? TODO
+                    }
+                } else {
+                    ## add to rally codes
+                    newcode <- sub("~+$", "", ov_code_interpret(code, attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table))
+                    cat("code after interpretation:", newcode, "\n")
+                    ## code can be length > 1 now, because the scout might have entered a compound code
+                    ptemp <- parse_code_minimal(newcode) ## convert to tibble row(s)
+                    for (temp in ptemp) {
+                        if (!is.null(temp)) {
+                            ## should not be NULL, that's only for non-skill rows
+                            rc <- rally_codes()
+                            this_clock_time <- time_but_utc()
+                            this_video_time <- NA_real_
+                            ## use clock and video times from the input$scout_input_times time-logged keypresses if we can
+                            this_keypress_times <- keypress_times[[i]][keypress_times[[i]]$key %eq% temp$skill, ]
+                            if (nrow(this_keypress_times) == 1) {
+                                this_clock_time <- this_keypress_times$time
+                                this_video_time <- this_keypress_times$video_time
+                            }
+                            newrc <- code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, start_zone_valid = TRUE, endxy_valid = TRUE, t = this_video_time, time = this_clock_time, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)
+                            rally_codes(bind_rows(rc, newrc)) ## start_x = NA_real_, start_y = NA_real_
+                        }
+                    }
+                }
+
+                ## if (grepl("^undo", tolower(code))) {
+                ##     n_to_undo <- as.numeric(sub("undo[[:space:]]*", "", code, ignore.case = TRUE))
+                ##     if (is.na(n_to_undo)) n_to_undo <- 1L
+                ##     x <- undo(x, n = n_to_undo)
+                ##     if (length(rally_codes) >= n_to_undo) rally_codes <- head(rally_codes, -n_to_undo)
+                ## }
             }
         })
 
@@ -2366,22 +2459,24 @@ ov_scouter_server <- function(app_data) {
         })
 
         do_serve_preselect <- function() {
-            sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
-            ## sp should be the serving player
-            ## other players that could be serving, if the rotation is somehow wrong
-            other_sp <- get_players(game_state, team = game_state$serving, dvw = rdata$dvw) ## includes sp in here too
-            names(other_sp) <- player_nums_to(other_sp, team = game_state$serving, dvw = rdata$dvw)
-            serve_player_buttons <- make_fat_radio_buttons(choices = sort(other_sp), selected = sp, input_var = "serve_preselect_player")
-            ## default serve type is either the most common serve type by this player, or the default serve type
-            st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state, opts = rdata$options)
-            if (is.na(st_default)) st_default <- default_skill_tempo("S")
-            chc <- rdata$options$skill_tempo_map %>% dplyr::filter(.data$skill == "Serve") %>% mutate(tempo = sub(" serve", "", .data$tempo))
-            chc <- setNames(chc$tempo_code, chc$tempo)
-            serve_type_buttons <- make_fat_radio_buttons(choices = chc, selected = st_default, input_var = "serve_preselect_type")
-            output$serve_preselect <- renderUI(
-                tags$div(tags$strong("Serve type:"), do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),
-                         tags$strong("Serve player:"), do.call(fixedRow, lapply(serve_player_buttons, function(but) column(2, but))))
-            )
+            if (app_data$scout_mode != "type") { ## don't show if using typing input
+                sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
+                ## sp should be the serving player
+                ## other players that could be serving, if the rotation is somehow wrong
+                other_sp <- get_players(game_state, team = game_state$serving, dvw = rdata$dvw) ## includes sp in here too
+                names(other_sp) <- player_nums_to(other_sp, team = game_state$serving, dvw = rdata$dvw)
+                serve_player_buttons <- make_fat_radio_buttons(choices = sort(other_sp), selected = sp, input_var = "serve_preselect_player")
+                ## default serve type is either the most common serve type by this player, or the default serve type
+                st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state, opts = rdata$options)
+                if (is.na(st_default)) st_default <- default_skill_tempo("S")
+                chc <- rdata$options$skill_tempo_map %>% dplyr::filter(.data$skill == "Serve") %>% mutate(tempo = sub(" serve", "", .data$tempo))
+                chc <- setNames(chc$tempo_code, chc$tempo)
+                serve_type_buttons <- make_fat_radio_buttons(choices = chc, selected = st_default, input_var = "serve_preselect_type")
+                output$serve_preselect <- renderUI(
+                    tags$div(tags$strong("Serve type:"), do.call(fixedRow, lapply(serve_type_buttons, function(but) column(2, but))),
+                             tags$strong("Serve player:"), do.call(fixedRow, lapply(serve_player_buttons, function(but) column(2, but))))
+                )
+            }
         }
 
         show_admin_modal <- function() {
@@ -2935,16 +3030,20 @@ ov_scouter_server <- function(app_data) {
                 } else if (code %in% c("*p", "ap")) {
                     game_state$point_won_by <- substr(code, 1, 1)
                     end_of_set <- rally_ended()
-                } else if (code %in% c("*c", "ac")) {
+                } else if (grepl("^[a\\*][cC]", code)) {
                     ## substitution
-                    if (code %eq% "*c") {
+                    if (code %in% c("*c", "*C")) {
                         p_out <- as.numeric(input$ht_sub_out)
                         p_in <- as.numeric(input$ht_sub_in)
-                    } else {
+                    } else if (code %in% c("ac", "aC")) {
                         p_out <- as.numeric(input$vt_sub_out)
                         p_in <- as.numeric(input$vt_sub_in)
+                    } else {
+                        ## get numbers from code
+                        p_out <- as.numeric(sub("[:\\.].*", "", substr(code, 3, 99)))
+                        p_in <- as.numeric(sub(".*[:\\.]", "", substr(code, 3, 99)))
                     }
-                    if (length(p_out) == 1 && length(p_in) == 1) {
+                    if (length(p_out) == 1 && length(p_in) == 1 && !is.na(p_out) && !is.na(p_in)) {
                         tm <- substr(code, 1, 1)
                         current_setter <- get_setter(game_state, team = tm)
                         game_state <- game_state_make_substitution(game_state, team = tm, player_out = p_out, player_in = p_in, dvw = rdata$dvw)
