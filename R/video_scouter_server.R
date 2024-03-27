@@ -988,7 +988,6 @@ ov_scouter_server <- function(app_data) {
         courtxy <- reactiveVal(list(x = NA_real_, y = NA_real_)) ## keeps track of click locations (in court x, y space)
         loop_trigger <- reactiveVal(0L)
         observeEvent(input$video_click, priority = 99, {
-            if (debug) dojs("var thisct = new Date().getTime(); var thiscd = thisct - clktm; console.log('click processing time: ' + thiscd + ' (' + thisct + ')')")
             ## when video clicked, get the corresponding video time and trigger the loop
             flash_screen() ## visual indicator that click has registered
             ## calculate the normalized x,y coords
