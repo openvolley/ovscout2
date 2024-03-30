@@ -44,7 +44,10 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
     all_codes <- NULL
     blank_code <- str_c(rep("~", 20))
     for (c in c_list) {
-        if (str_detect(c, "~")) {
+        if (grepl("^(>|T|\\*T|aT|p|\\*p|ap|c|\\*c|ac|C|\\*C|aC|P|\\*P|aP)", c)) {
+            ## this is not a skill code (timeout, sub, point assignment, setter position, comment) - leave as-is except for prepending "*" if needed
+            int_code <- paste0(if (grepl("^[TpcCP]", c)) "*", c)
+        } else if (str_detect(c, "~")) {
             int_code <- paste0(c, paste0(rep("~", 20 - nchar(c)), collapse = ""), collapse = "")
         } else if (!str_detect(c, "\\.")) {
             ## no compound code

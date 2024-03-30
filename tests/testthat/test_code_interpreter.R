@@ -3,7 +3,8 @@ context("interpretation of scouted codes")
 test_that("code interpretation works correctly", {
     trim <- function(z) sub("~+$", "", z)
     check_code <- function(tocheck, expected) {
-        expect_equal(nchar(tocheck), rep(20L, length(tocheck)))
+        e20 <- !grepl("^(>|\\*T|aT|\\*p|ap|\\*c|ac|\\*C|aC|\\*P|aP)", tocheck) ## expect skill rows to be length 20
+        if (any(e20)) expect_equal(nchar(tocheck[e20]), rep(20L, sum(e20)))
         expect_equal(trim(tocheck), expected)
     }
     check_code(ov_code_interpret("a10BH-"), "a10BH-")
@@ -33,7 +34,7 @@ test_that("code interpretation works correctly", {
     check_code(ov_code_interpret("*02EH+KPF4"), "*02EH+KPF~4") ## Check that a proper code is left unchanged (v1)
     check_code(ov_code_interpret("*05AT+X5~45~H2"), "*05AT+X5~45~H2")  ## Check that a proper code is left unchanged (v2)
     ## space-separated
-    check_code(ov_code_interpret("*05AT+X5~45~H2 2HK1"), c("*05AT+X5~45~H2", "*02EH+K1"))  ## Check that a proper code is left unchanged (v2)
+    check_code(ov_code_interpret("*05AT+X5~45~H2 2HK1"), c("*05AT+X5~45~H2", "*02EH+K1"))
     ## setter call without player number
     check_code(ov_code_interpret("K1"), "*00EH+K1")
     check_code(ov_code_interpret("aK1"), "a00EH+K1")
@@ -41,4 +42,6 @@ test_that("code interpretation works correctly", {
     check_code(ov_code_interpret("*K1", home_setter_num = NA), "*00EH+K1")
     check_code(ov_code_interpret("*K1", home_setter_num = 123), "*00EH+K1")
     check_code(ov_code_interpret("*K1", home_setter_num = -1), "*00EH+K1")
+    ## non-skill codes
+    check_code(ov_code_interpret("aT T ac3:2 c8.5 a2SM57.16="), c("aT", "*T", "ac3:2", "*c8.5", "a02SM#~~~57", "*16RM=~~~57"))
 })
