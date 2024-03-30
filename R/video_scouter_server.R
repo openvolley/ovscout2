@@ -90,12 +90,14 @@ ov_scouter_server <- function(app_data) {
         current_video_src <- reactiveVal(1L) ## start with video 1
         preview_video_src <- reactiveVal(1L)
         observe({
-            chk <- is.null(input$video_width) || is.na(input$video_width) || is.null(input$video_height) || is.na(input$video_height) ||
-                ## zero width or height is also invalid, except if it's a YT video
-                (current_video_src() == 1L && !is_youtube_url(app_data$video_src) && input$video_width < 1) || (current_video_src() == 2L && !is_youtube_url(app_data$video_src2) && input$video_height < 1)
-            if (chk) {
-                dojs("Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());")
-                shiny::invalidateLater(200)
+            if (app_data$with_video) {
+                chk <- is.null(input$video_width) || is.na(input$video_width) || is.null(input$video_height) || is.na(input$video_height) ||
+                    ## zero width or height is also invalid, except if it's a YT video
+                    (current_video_src() == 1L && !is_youtube_url(app_data$video_src) && input$video_width < 1) || (current_video_src() == 2L && !is_youtube_url(app_data$video_src2) && input$video_height < 1)
+                if (chk) {
+                    dojs("Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());")
+                    shiny::invalidateLater(200)
+                }
             }
         })
         get_src_type <- function(src) {
@@ -491,17 +493,19 @@ ov_scouter_server <- function(app_data) {
                 }
                 lineups_ok <- if (length(ltxt)) paste(ltxt, sep = " ") else TRUE
             }
-            ## check courtref
-            courtref_ok <- !is.null(detection_ref1()$court_ref)
-            if (have_second_video && courtref_ok && is.null(detection_ref2()$court_ref)) courtref_ok <- "Use the 'Video setup' button to define the court reference for video 2."
-            ## check video media. Need to know the dv_width and height and the video_width and height. BUT we don't get video width and height with youtube, so don't wait for it
-            video_media_ok <- !is.null(input$dv_width) && !is.null(input$dv_height) && !is.na(input$dv_width) && !is.na(input$dv_height) && input$dv_width > 0 && input$dv_height > 0
-            video_media_ok <- video_media_ok &&
-                (((current_video_src() == 1L && is_youtube_url(app_data$video_src)) || (current_video_src() == 2L && is_youtube_url(app_data$video_src2)))
-                    ||
-                    (!is.null(input$video_width) && !is.null(input$video_height) && !is.na(input$video_width) && !is.na(input$video_height) && input$video_width > 0 && input$video_height > 0))
-##            cat("input$dv_width:", cstr(input$dv_width), "\ninput$dv_height:", cstr(input$dv_height), "\ninput$video_width:", cstr(input$video_width), "\ninput$video_height:", cstr(input$video_height), "\ninput$dv_width:", cstr(input$dv_width), "\ninput$dv_height:", cstr(input$dv_height), "\n")
-
+            courtref_ok <- video_media_ok <- TRUE
+            if (app_data$with_video) {
+                ## check courtref
+                courtref_ok <- !is.null(detection_ref1()$court_ref)
+                if (have_second_video && courtref_ok && is.null(detection_ref2()$court_ref)) courtref_ok <- "Use the 'Video setup' button to define the court reference for video 2."
+                ## check video media. Need to know the dv_width and height and the video_width and height. BUT we don't get video width and height with youtube, so don't wait for it
+                video_media_ok <- !is.null(input$dv_width) && !is.null(input$dv_height) && !is.na(input$dv_width) && !is.na(input$dv_height) && input$dv_width > 0 && input$dv_height > 0
+                video_media_ok <- video_media_ok &&
+                    (((current_video_src() == 1L && is_youtube_url(app_data$video_src)) || (current_video_src() == 2L && is_youtube_url(app_data$video_src2)))
+                        ||
+                        (!is.null(input$video_width) && !is.null(input$video_height) && !is.na(input$video_width) && !is.na(input$video_height) && input$video_width > 0 && input$video_height > 0))
+                ##            cat("input$dv_width:", cstr(input$dv_width), "\ninput$dv_height:", cstr(input$dv_height), "\ninput$video_width:", cstr(input$video_width), "\ninput$video_height:", cstr(input$video_height), "\ninput$dv_width:", cstr(input$dv_width), "\ninput$dv_height:", cstr(input$dv_height), "\n")
+            }
             ok <- teams_ok && isTRUE(lineups_ok) && isTRUE(rosters_ok) && isTRUE(courtref_ok) && video_media_ok
             meta_is_valid(ok)
             output$problem_ui <- renderUI({
@@ -2512,7 +2516,11 @@ ov_scouter_server <- function(app_data) {
         }
 
         output$rally_state <- renderUI({
-            tags$div(id = "rallystate", tags$strong("Rally state: "), rally_state())
+            if (app_data$scout_mode != "type") {
+                tags$div(id = "rallystate", tags$strong("Rally state: "), rally_state())
+            } else {
+                NULL
+            }
         })
 
         ## handle the pre-selection of serve player and type

@@ -85,7 +85,10 @@ uuid <- function(n = 1L) uuid::UUIDgenerate(n = n)
 is_uuid <- function(x) is.character(x) & nchar(x) == 36 & grepl("^[[:digit:]abcdef\\-]+$", x)
 ##all(is_uuid(uuid(n = 1000)))
 
-is_url <- function(z) grepl("^https?://", z, ignore.case = TRUE)
+is_url <- function(z) {
+    if (length(z) < 1) return(FALSE)
+    grepl("^https?://", z, ignore.case = TRUE)
+}
 is_youtube_url <- function(z) grepl("https?://[^/]*youtube\\.com", z, ignore.case = TRUE) || grepl("https?://youtu\\.be/", z, ignore.case = TRUE)
 is_youtube_id <- function(z) {
     if (is.null(z)) {

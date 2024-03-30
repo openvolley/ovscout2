@@ -60,7 +60,8 @@ $(document).on("shiny:sessioninitialized", function() {
         var newchar = mapkey(e);
 	// console.log(" -- maps to key: " + newchar);
         // log each character entered into #scout_in along with their corresponding clock and video times
-        var vt = vidplayer ? vidplayer.currentTime() : "";
+        var vt;
+	if (typeof vidplayer !== "undefined") { vt = vidplayer.currentTime(); } else { vt = ""; }
 	var d = new Date();
 	var dloc = d.getTime() - d.getTimezoneOffset() * 60 * 1000;
 	// time is returned in local time, if we want UTC then use just d.getTime()

@@ -205,23 +205,25 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
             if (!is_url(dvw$meta$video$file) && !file.exists(dvw$meta$video$file)) stop("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
         }
     }
-    if (!with_video) stop("operation without video is not supported yet")
+    if (!with_video && scout_mode != "type") stop("scouting in click mode requires a video")
 
     ## look for the court ref data, if it hasn't been provided
     if (missing(court_ref)) {
         court_ref <- NULL
-        ## if it's an ovs file we might have saved the court ref into it
-        if ("detection_refs" %in% names(dvw) && length(dvw$meta$video$file) > 0 && !is.null(dvw$detection_refs[[dvw$meta$video$file]])) {
-            court_ref <- dvw$detection_refs[[dvw$meta$video$file]]
-        } else if (!is_url(dvw$meta$video$file)) {
-            ## court ref saved into the video file?
-            if (packageVersion("ovideo") >= "0.14.3") court_ref <- tryCatch(suppressWarnings(ovideo::ov_get_video_data(dvw$meta$video$file)), error = function(e) NULL)
-            if (is.null(court_ref)) {
-                crfile <- paste0(fs::path_ext_remove(dvw$meta$video$file), "_video_info.rds")
-                if (file.exists(crfile)) tryCatch(court_ref <- readRDS(crfile), error = function(e) {
-                    warning("found video_info.rds file but could not extract court_ref component", immediate. = TRUE)
-                    NULL
-                })
+        if (with_video) {
+            ## if it's an ovs file we might have saved the court ref into it
+            if ("detection_refs" %in% names(dvw) && length(dvw$meta$video$file) > 0 && !is.null(dvw$detection_refs[[dvw$meta$video$file]])) {
+                court_ref <- dvw$detection_refs[[dvw$meta$video$file]]
+            } else if (!is_url(dvw$meta$video$file)) {
+                ## court ref saved into the video file?
+                if (packageVersion("ovideo") >= "0.14.3") court_ref <- tryCatch(suppressWarnings(ovideo::ov_get_video_data(dvw$meta$video$file)), error = function(e) NULL)
+                if (is.null(court_ref)) {
+                    crfile <- paste0(fs::path_ext_remove(dvw$meta$video$file), "_video_info.rds")
+                    if (file.exists(crfile)) tryCatch(court_ref <- readRDS(crfile), error = function(e) {
+                        warning("found video_info.rds file but could not extract court_ref component", immediate. = TRUE)
+                        NULL
+                    })
+                }
             }
         }
     }
@@ -329,29 +331,31 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     }
 
     ## check - if video URL(s) are remote, are we online?
-    if ((is_remote_url(app_data$video_src) || is_remote_url(app_data$video_src2)) && !curl::has_internet()) {
-        warning("video url(s) look like remote addresses, but you appear to be offline", immediate. = TRUE)
-    }
-    ## TODO check that both videos are consistent URL/file. Though does it matter?
+    if (with_video) {
+        if ((is_remote_url(app_data$video_src) || is_remote_url(app_data$video_src2)) && !curl::has_internet()) {
+            warning("video url(s) look like remote addresses, but you appear to be offline", immediate. = TRUE)
+        }
+        ## TODO check that both videos are consistent URL/file. Though does it matter?
 
-    ## mpeg-dash support
-    if (missing(dash) && (isTRUE(grepl("\\.mpd$", app_data$video_src, ignore.case = TRUE)) || isTRUE(grepl("\\.mpd$", app_data$video_src2, ignore.case = TRUE)))) dash <- TRUE
-    app_data$dash <- isTRUE(dash)
+        ## mpeg-dash support
+        if (missing(dash) && (isTRUE(grepl("\\.mpd$", app_data$video_src, ignore.case = TRUE)) || isTRUE(grepl("\\.mpd$", app_data$video_src2, ignore.case = TRUE)))) dash <- TRUE
+        app_data$dash <- isTRUE(dash)
 
-    ## ball tracking, experimental!
-    app_data$extra_db <- NULL
-    app_data$extra_ball_tracking <- FALSE
-    if (!is_url(app_data$video_src)) {
-        look_for <- paste0(fs::path_ext_remove(app_data$video_src), "_extra.duckdb")
-        if (file.exists(look_for)) {
-            if (!requireNamespace("DBI", quietly = TRUE) || !requireNamespace("duckdb", quietly = TRUE) || !requireNamespace("dbplyr", quietly = TRUE)) {
-                warning("The duckdb, dbplyr, and DBI packages are required in order to use ball tracking outputs", immediate. = TRUE)
-            } else {
-                con <- tryCatch(DBI::dbConnect(duckdb::duckdb(look_for)), error = function(e) NULL)
-                if (!is.null(con)) {
-                    app_data$extra_db <- look_for
-                    app_data$extra_ball_tracking <- tryCatch("ball_track" %in% DBI::dbListTables(con), error = function(e) FALSE)
-                    DBI::dbDisconnect(con, shutdown = TRUE)
+        ## ball tracking, experimental!
+        app_data$extra_db <- NULL
+        app_data$extra_ball_tracking <- FALSE
+        if (!is_url(app_data$video_src)) {
+            look_for <- paste0(fs::path_ext_remove(app_data$video_src), "_extra.duckdb")
+            if (file.exists(look_for)) {
+                if (!requireNamespace("DBI", quietly = TRUE) || !requireNamespace("duckdb", quietly = TRUE) || !requireNamespace("dbplyr", quietly = TRUE)) {
+                    warning("The duckdb, dbplyr, and DBI packages are required in order to use ball tracking outputs", immediate. = TRUE)
+                } else {
+                    con <- tryCatch(DBI::dbConnect(duckdb::duckdb(look_for)), error = function(e) NULL)
+                    if (!is.null(con)) {
+                        app_data$extra_db <- look_for
+                        app_data$extra_ball_tracking <- tryCatch("ball_track" %in% DBI::dbListTables(con), error = function(e) FALSE)
+                        DBI::dbDisconnect(con, shutdown = TRUE)
+                    }
                 }
             }
         }
@@ -366,7 +370,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     app_data$playback_rate <- playback_rate
     app_data$playlist_display_option <- if (!missing(playlist_display_option)) playlist_display_option else 'dv_codes'
     app_data$season_dir <- if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else NULL ## minimal check of the season_dir
-    if (app_data$with_video && !is_url(dvw$meta$video$file)) {
+    if (with_video && !is_url(dvw$meta$video$file)) {
         video_server_port <- get_port(port_range = c(8000L, 12000L), host = host)
         lighttpd_exe <- ov_find_lighttpd()
         if (!is.null(lighttpd_exe)) {
