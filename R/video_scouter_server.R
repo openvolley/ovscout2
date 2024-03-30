@@ -176,6 +176,7 @@ ov_scouter_server <- function(app_data) {
         }
         if (!"serving" %in% names(temp) || is.na(temp$serving)) temp$serving <- "*" ## default to home team serving - maybe allow this as a parm to ov_scouter (maybe TODO)
         temp$current_team <- temp$serving
+        temp$rally_started <- FALSE
         temp$start_x <- temp$start_y <- temp$mid_x <- temp$mid_y <- temp$end_x <- temp$end_y <- NA_real_
         temp$startxy_valid <- temp$midxy_valid <- temp$endxy_valid <- FALSE
         temp$current_time_uuid <- ""
@@ -1162,6 +1163,7 @@ ov_scouter_server <- function(app_data) {
                     ## time might not have resolved yet if it is coming from the asynchronous handler, so add it after next click
                     rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     game_state$current_team <- other(game_state$serving)
+                    game_state$rally_started <- TRUE
                     rally_state("click serve end")
                 } else if (rally_state() == "click serve end") {
                     do_video("pause")
@@ -1746,6 +1748,7 @@ ov_scouter_server <- function(app_data) {
             }
             ## reset for next rally
             game_state$serving <- game_state$current_team <- game_state$point_won_by
+            game_state$rally_started <- FALSE
             rally_codes(empty_rally_codes)
             game_state$start_x <- game_state$start_y <- game_state$end_x <- game_state$end_y <- NA_real_
             game_state$current_time_uuid <- ""

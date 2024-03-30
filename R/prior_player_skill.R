@@ -2,6 +2,8 @@
 
 player_responsibility_fn <- function(system = "SHM3", skill, setter_position, zone, libs, home_visiting, opp_attack_start_zone = NA, serving) {
     system <- match.arg(system, c("SHM3"))
+    if (home_visiting %eq% "*") home_visiting <- "home"
+    if (home_visiting %eq% "a") home_visiting <- "visiting"
     if (system == "SHM3") {
         if (skill == "Reception") {
             loc <- length(libs) > 0 ## libero on court
