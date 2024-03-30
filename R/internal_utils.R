@@ -14,10 +14,10 @@ most_common_value <- function(x, na.rm = FALSE) {
 
 ## leading zeros on numbers, e.g. jersey numbers
 ldz <- function(nn, width = 2) formatC(suppressWarnings(as.integer(nn)), flag = "0", width = width)
-## same but forcing NAs and negative numbers to 0L
+## same but forcing NAs, negative numbers, and numbers > 99 to 0L
 ldz2 <- function(n, width = 2) {
     z <- suppressWarnings(as.integer(n))
-    z[is.na(z) | z < 0] <- 0L
+    z[is.na(z) | z < 0 | z > 99] <- 0L
     formatC(z, flag = "0", width = width)
 }
 
