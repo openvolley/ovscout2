@@ -34,24 +34,18 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                                    "Custom code", "Custom", "cc_cu", 16:20, c(LETTERS, as.character(c(1:9)))                     # 14
                                    )
 
-    # Handle the possibility of space-separated code
-    c_full = c
-    if(str_detect(c_full," ")){
-        c_list = str_split(c_full, " ", simplify = TRUE)
-    } else {
-        c_list = c_full
-    }
+    ## Handle the possibility of space-separated code
+    c_list <- if (str_detect(c, "[[:space:]]")) str_split(c, "[[:space:]]+", simplify = TRUE) else c
 
+    ## zero-pad setter numbers if needed, converting NAs and other illegal numbers to 0
+    home_setter_num <- ldz2(home_setter_num)
+    visiting_setter_num <- ldz2(visiting_setter_num)
 
-    if (stringr::str_length(as.character(home_setter_num)) < 2) home_setter_num <- str_c("0", home_setter_num)
-    if (stringr::str_length(as.character(visiting_setter_num)) < 2) visiting_setter_num <- str_c("0", visiting_setter_num)
-
-    all_codes = NULL
-    for(i_code in 1:length(c_list)){
-        blank_code <- str_c(rep("~", 20))
-        c = c_list[i_code]
-        if(str_detect(c, "~")){
-            int_code = paste0(c, paste0(rep("~", 20 - nchar(c)), collapse=""), collapse = "")
+    all_codes <- NULL
+    blank_code <- str_c(rep("~", 20))
+    for (c in c_list) {
+        if (str_detect(c, "~")) {
+            int_code <- paste0(c, paste0(rep("~", 20 - nchar(c)), collapse = ""), collapse = "")
         } else if (!str_detect(c, "\\.")) {
             ## no compound code
             new_code <- blank_code
@@ -125,9 +119,9 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                         new_code[9] <- "~"## should not have target in attack codes, only set codes (?) ## attack_table$set_type[attack_table$code == tmp]
                         new_code[10] <- attack_table$attacker_position[attack_table$code == tmp]
                     }
-                    if (tmp %in% paste0("K", 0:9)){
-                        new_code[4] <- "E"
-                        }
+                    if (tmp %in% paste0("K", 0:9)) {
+                        new_code[4] <- "E" ## setter call
+                    }
                 }
 
                 ## If no match is found
@@ -140,8 +134,8 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     } else if (i == 5) {
                         tmp <- default_scouting_table$evaluation_code[default_scouting_table$skill == new_code[4]]
                     } else if (i == 11) {
-                        tmp = "~"
-                        if (new_code[4] == "A") tmp <- "H" # Default to hard hit when the skill is attack
+                        tmp <- "~"
+                        if (new_code[4] == "A") tmp <- "H" ## Default to hard hit when the skill is attack
                     } else {
                         tmp <- "~"
                     }
@@ -163,12 +157,17 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                 new_code[10] <- "~"
             }
             if (isTRUE(new_code[4] == "E")) {
-                # Add setter number if missing
-                if(new_code[2] == "~" & new_code[3] == "~" & new_code[1] == '*'){new_code[2] = str_sub(home_setter_num,1,1); new_code[3] = str_sub(home_setter_num,2,2);}
-                if(new_code[2] == "~" & new_code[3] == "~" & new_code[1] == 'a'){new_code[2] = str_sub(visiting_setter_num,1,1); new_code[3] = str_sub(visiting_setter_num,2,2);}
+                ## Add setter number if missing
+                if (new_code[2] == "~" && new_code[3] == "~" && new_code[1] == '*') {
+                    new_code[2] <- str_sub(home_setter_num, 1, 1)
+                    new_code[3] <- str_sub(home_setter_num, 2, 2)
+                }
+                if (new_code[2] == "~" && new_code[3] == "~" && new_code[1] == 'a') {
+                    new_code[2] <- str_sub(visiting_setter_num, 1, 1)
+                    new_code[3] <- str_sub(visiting_setter_num, 2, 2)
+                }
             }
-
-            int_code = paste0(new_code, collapse = "")
+            int_code <- paste0(new_code, collapse = "")
         } else {
             ## Compound code, separate in two codes, before and after the dot.
             new_code_1 <- blank_code

@@ -32,4 +32,13 @@ test_that("code interpretation works correctly", {
     check_code(ov_code_interpret("a37ET-KZB9C2"), "a37ET-KZB~9C2") ## with a custom Kx setting code
     check_code(ov_code_interpret("*02EH+KPF4"), "*02EH+KPF~4") ## Check that a proper code is left unchanged (v1)
     check_code(ov_code_interpret("*05AT+X5~45~H2"), "*05AT+X5~45~H2")  ## Check that a proper code is left unchanged (v2)
+    ## space-separated
+    check_code(ov_code_interpret("*05AT+X5~45~H2 2HK1"), c("*05AT+X5~45~H2", "*02EH+K1"))  ## Check that a proper code is left unchanged (v2)
+    ## setter call without player number
+    check_code(ov_code_interpret("K1"), "*00EH+K1")
+    check_code(ov_code_interpret("aK1"), "a00EH+K1")
+    check_code(ov_code_interpret("*K1", home_setter_num = 14), "*14EH+K1")
+    check_code(ov_code_interpret("*K1", home_setter_num = NA), "*00EH+K1")
+    check_code(ov_code_interpret("*K1", home_setter_num = 123), "*00EH+K1")
+    check_code(ov_code_interpret("*K1", home_setter_num = -1), "*00EH+K1")
 })
