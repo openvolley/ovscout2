@@ -311,6 +311,20 @@ update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target
               game_state = gs)
 }
 
+## wrapper around update_code_trow that will transfer details from the `from` row to the `to` row
+## each of `from` and `to` should be a one-row tibble, as from rally_codes()
+transfer_scout_details <- function(from, to, tempo = TRUE) {
+    if (tempo) {
+        if ((from$skill %eq% "A" && to$skill %eq% "E" && from$team %eq% to$team) ||
+            (from$skill %eq% "S" && to$skill %eq% "R") ||
+            (from$skill %eq% "A" && to$skill %in% c("B", "D") && from$team %neq% to$team)) {
+            ## make e.g. set tempo match attack tempo
+            to$tempo <- from$tempo
+        }
+    }
+    to
+}
+
 ## take a vector of scout codes (character) and return a list. List elements will be NULL for non-skill codes (timeouts, subs, end-of-set, etc) or a one-row x 14 column data frame otherwise, with the 14 code components in columns
 ## roughly similar to datavolley:::parse_code but does not return interpreted columns, nor add player names, etc
 parse_code_minimal <- function(codes) {
