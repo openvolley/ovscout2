@@ -1,3 +1,9 @@
+// https://stackoverflow.com/questions/1125292/how-to-move-the-cursor-to-the-end-of-a-contenteditable-entity
+function setEndOfContenteditable(elem) {
+    let sel = window.getSelection();
+    sel.selectAllChildren(elem);
+    sel.collapseToEnd();
+}
 // https://stackoverflow.com/questions/2940882/need-to-set-cursor-position-to-the-end-of-a-contenteditable-div-issue-with-sele/2943242#2943242
 function insertTextAtCursor(text) {
     var sel, range, textNode;

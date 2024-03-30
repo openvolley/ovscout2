@@ -3,6 +3,14 @@ ov_scouter_server <- function(app_data) {
         debug <- 0L
         cstr <- function(z) capture.output(str(z))
         have_warned_auto_save <- FALSE
+
+        ## function to populate the team character and player number of the serving player in the scout typing entry box
+        populate_server <- function() {
+            cat(str(isolate(reactiveValuesToList(game_state))))
+            srv_code <- isolate(paste0(game_state$serving, if (game_state$serving %eq% "*") ldz2(game_state$home_p1) else ldz2(game_state$visiting_p1)))
+            dojs(paste0("var el = document.getElementById('scout_in'); if (el) { el.textContent = '", srv_code, "'; setEndOfContenteditable(el); el.focus(); }"))
+        }
+
         extra_db_con <- NULL
         if (!is.null(app_data$extra_db)) {
             if (!requireNamespace("DBI", quietly = TRUE) || !requireNamespace("duckdb", quietly = TRUE) || !requireNamespace("dbplyr", quietly = TRUE)) {
@@ -195,6 +203,10 @@ ov_scouter_server <- function(app_data) {
         temp$set_number <- length(nsets) + 1L
         if (!"home_team_end" %in% names(temp)) temp$home_team_end <- "upper" ## home team end defaults to upper
         game_state <- do.call(reactiveValues, temp)
+
+        if (app_data$scout_mode == "type") {
+            populate_server()
+        }
 
         ## court inset showing rotation and team lists
         court_inset <- callModule(mod_courtrot2, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_path = reactive(prefs$ball_path))
@@ -755,6 +767,10 @@ ov_scouter_server <- function(app_data) {
                     } else if (res$end_of_set) {
                         ## handle_manual_code will have called rally_ended if appropriate, which also detects end of set (shows the modal to confirm)
                         ## what else needs to happend? TODO
+                    }
+                    if (code %in% c("*p", "ap")) {
+                        ## end of point, pre-populate the scout box with the server team and number
+                        populate_server()
                     }
                 } else if (grepl("^[a\\*]z", code)) {
                     ## setter position, TODO
