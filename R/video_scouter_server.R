@@ -786,6 +786,14 @@ ov_scouter_server <- function(app_data) {
                         ## end of point, pre-populate the scout box with the server team and number
                         populate_server()
                     }
+                } else if (grepl("^[a\\*]?S$", code)) {
+                    ## set serving team
+                    srv <- if (grepl("^a", code)) "a" else "*"
+                    if (!game_state$serving %eq% srv) {
+                        game_state$serving <- srv
+                        game_state$current_team <- game_state$serving
+                        populate_server()
+                    }
                 } else if (grepl("^[a\\*]z", code)) {
                     ## setter position, TODO
                     ## ^^^
