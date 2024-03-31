@@ -723,6 +723,8 @@ ov_scouter_server <- function(app_data) {
                     handle_manual_code(if (game_state$home_team_end == "upper") "*p" else "ap")
                 } else if (input$scout_shortcut %in% c("assign_point_bottom")) {
                     handle_manual_code(if (game_state$home_team_end == "upper") "ap" else "*p")
+                } else if (input$scout_shortcut %in% c("undo")) {
+                    do_undo()
                 }
             }
         })
@@ -853,13 +855,6 @@ ov_scouter_server <- function(app_data) {
                         }
                     }
                 }
-
-                ## if (grepl("^undo", tolower(code))) {
-                ##     n_to_undo <- as.numeric(sub("undo[[:space:]]*", "", code, ignore.case = TRUE))
-                ##     if (is.na(n_to_undo)) n_to_undo <- 1L
-                ##     x <- undo(x, n = n_to_undo)
-                ##     if (length(rally_codes) >= n_to_undo) rally_codes <- head(rally_codes, -n_to_undo)
-                ## }
             }
         })
 
