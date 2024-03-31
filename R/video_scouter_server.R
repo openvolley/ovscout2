@@ -713,9 +713,16 @@ ov_scouter_server <- function(app_data) {
         ## deal with what's being typed into the scout entry box
         observeEvent(input$scout_shortcut, {
             if (!is.null(input$scout_shortcut)) {
-                if (debug > 1) cat("scout shortcut: ", input$scout_shortcut, "\n")
-                if (input$scout_shortcut %in% c("pause")) {
-                    deal_with_pause(show_modal = TRUE)
+                if (debug > 1) cat("scout shortcut:", input$scout_shortcut, "\n")
+                if (input$scout_shortcut %in% c("pause", "pause_no_popup")) {
+                    deal_with_pause(show_modal = input$scout_shortcut %eq% "pause")
+                } else if (input$scout_shortcut %in% c("video_forward_2", "video_forward_10", "video_rewind_2", "video_rewind_10")) {
+                    by <- as.numeric(sub("[^[:digit:]]+", "", input$scout_shortcut))
+                    do_video(if (grepl("forward", input$scout_shortcut)) "ff" else "rew", by)
+                } else if (input$scout_shortcut %in% c("assign_point_top")) {
+                    handle_manual_code(if (game_state$home_team_end == "upper") "*p" else "ap")
+                } else if (input$scout_shortcut %in% c("assign_point_bottom")) {
+                    handle_manual_code(if (game_state$home_team_end == "upper") "ap" else "*p")
                 }
             }
         })

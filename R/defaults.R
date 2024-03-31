@@ -186,22 +186,24 @@ ov_default_shortcuts <- function(scout_mode = "click") {
         ## NOTE that the actual key should be lower case here (not the modifiers C-, A-, S-, or M-)
         list(hide_popup = c(),
              pause = c("escape"),
-             pause_no_popup = c(),
+             pause_no_popup = c("A-escape"),
              go_to_time = c(),
              edit_code = c(),
-             undo = c("C-a", "C-S-a"),
+             undo = c("C-a"),
              switch_video = c(),
              contact = c(),
              video_rewind_1_30 = c(),
              video_rewind_0.1 = c(),
-             video_rewind_2 = c(),
-             video_rewind_10 = c(),
+             video_rewind_2 = c("C-arrowleft"),
+             video_rewind_10 = c("A-arrowleft"), ## NB C-A-arrows don't work for some reason, even though at least some C-A-otherkeys do
              video_forward_1_30 = c(),
              video_forward_0.1 = c(),
-             video_forward_2 = c(),
-             video_forward_10 = c(),
+             video_forward_2 = c("C-arrowright"),
+             video_forward_10 = c("A-arrowright"),
              video_faster = c(),
-             video_slower = c()
+             video_slower = c(),
+             assign_point_top = "C-arrowup",
+             assign_point_bottom = "C-arrowdown"
              )
     }
 }

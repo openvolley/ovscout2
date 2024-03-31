@@ -69,8 +69,8 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
         if ((length(codes) - length(start_coord)) > 0) start_coord <- c(start_coord, rep(NA_integer_, length(codes) - length(start_coord)))
         if ((length(codes) - length(mid_coord)) > 0) mid_coord <- c(mid_coord, rep(NA_integer_, length(codes) - length(mid_coord)))
         if ((length(codes) - length(end_coord)) > 0) end_coord <- c(end_coord, rep(NA_integer_, length(codes) - length(end_coord)))
-        if ((length(codes) - length(vt)) > 0) vt <- c(vt, rep(tail(vt, 1), length(codes) - length(vt)))
-        if ((length(codes) - length(clock_time)) > 0) clock_time <- c(clock_time, rep(tail(clock_time, 1), length(codes) - length(clock_time)))
+        if ((length(codes) - length(vt)) > 0) vt <- c(vt, rep(if (length(vt) > 0) tail(vt, 1) else NA_integer_, length(codes) - length(vt)))
+        if ((length(codes) - length(clock_time)) > 0) clock_time <- c(clock_time, rep(if (length(clock_time) > 0) tail(clock_time, 1) else as.POSIXct(NA), length(codes) - length(clock_time)))
         if ((length(codes) - length(phase)) > 0) phase <- c(phase, rep(NA_character_, length(codes) - length(phase)))
         if ((length(codes) - length(rcv)) > 0) rcv <- c(rcv, vector("list", length(codes) - length(rcv)))
     }
