@@ -234,7 +234,7 @@ ov_scouter_server <- function(app_data) {
             if (length(poscode)) rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw)))
         })
 
-        teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata)
+        teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata, two_cols = app_data$scout_mode != "type")
         detection_ref1 <- reactiveVal({ if (!is.null(app_data$court_ref)) app_data$court_ref else NULL })
         ## for the court reference modules, pass the video file as well as the URL. Video will be shown, but the metadata can be stored/retrieved from the file
         courtref1 <- callModule(mod_courtref, id = "courtref1", video_file = if (!is_url(app_data$video_src)) app_data$video_src else NULL, video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), detection_ref = detection_ref1, main_video_time_js = "vidplayer.currentTime()", styling = app_data$styling)

@@ -1,3 +1,14 @@
+
+ov_video_ui_element <- function(app_data, yt) {
+    tagList(fluidRow(column(4, uiOutput("rally_state"))),
+            introBox(tags$div(id = "video_holder", style = "position:relative;",
+                              if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc")),
+                              HTML(paste0("<video id=\"main_video\" style=\"width:100%; height:", if (app_data$scout_mode == "type") 50 else 85, "vh;\" class=\"video-js vjs-has-started\" crossorigin=\"anonymous\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"inactivityTimeout\": 0, \"sources\": ", if (yt) paste0("[{ \"type\": \"video/youtube\", \"src\": \"", app_data$video_src, "\"}]") else paste0("[{ \"src\": \"", if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), "\"}]"), " }'>\n",
+                                          "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>"))
+                              ),
+                     tags$canvas(id = "video_overlay_canvas", style = "position:absolute;", height = "400", width = "600"), plotOutput("video_overlay"), data.step = 3, data.intro = "Video of the game to scout."))
+}
+
 ov_scouter_ui <- function(app_data) {
     ## some startup stuff
     running_locally <- !nzchar(Sys.getenv("SHINY_PORT"))
@@ -76,30 +87,32 @@ ov_scouter_ui <- function(app_data) {
                                                    data.step = 7, data.intro = "Set general preferences, and see the keyboard shortcuts.")
                                           )),
                        column(9, style = "padding-right:2px;",
-                              fluidRow(column(8, tags$div(
-                                                      )),
-                                       column(4, ),
-                                       ##column(2, shinyFiles::shinySaveButton("auto_save_file", label = "Auto save", title = "Save file as", filetype = "dvw"), tags$p(style = "font-size: small", "Auto save will automatically save a copy of the file after each rally"))
-                                       ),
-                              fluidRow(column(4, uiOutput("rally_state"))),
-                              if (app_data$with_video)
-                                  introBox(tags$div(id = "video_holder", style = "position:relative;",
-                                                    if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc")),
-                                                    HTML(paste0("<video id=\"main_video\" style=\"width:100%; height:", if (app_data$scout_mode == "type") 50 else 85, "vh;\" class=\"video-js vjs-has-started\" crossorigin=\"anonymous\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"inactivityTimeout\": 0, \"sources\": ", if (yt) paste0("[{ \"type\": \"video/youtube\", \"src\": \"", app_data$video_src, "\"}]") else paste0("[{ \"src\": \"", if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), "\"}]"), " }'>\n",
-                                                                "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>"))
-                                                    ),
-                                           tags$canvas(id = "video_overlay_canvas", style = "position:absolute;", height = "400", width = "600"), plotOutput("video_overlay"), data.step = 3, data.intro = "Video of the game to scout."),
-                              tags$div(style = "height:3.1em;"),
-                              fluidRow(column(12, uiOutput("serve_preselect"))),
+                              if (app_data$scout_mode == "type") {
+                                  if (app_data$with_video) {
+                                      fluidRow(column(8, ov_video_ui_element(app_data, yt)),
+                                               column(4, introBox(mod_courtrot2_ui(id = "courtrot"), data.step = 5, data.intro = "On-court lineups, and set and game scores.")))
+                                  } else {
+                                      introBox(mod_courtrot2_ui(id = "courtrot"), data.step = 5, data.intro = "On-court lineups, and set and game scores.")
+                                  }
+                              } else {
+                                  ## click interface
+                                  tagList(ov_video_ui_element(app_data, yt),
+                                          ## tags$div(style = "height:3.1em;"),
+                                          fluidRow(column(12, uiOutput("serve_preselect"))))
+                              },
                               tags$div(style = "height: 14px;"),
-                              if (app_data$scout_mode == "type") wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")),
-                                                                           tags$div(id = "scout_in", contenteditable = TRUE)),
-                              introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")
+                              if (app_data$scout_mode == "type") {
+                                  fluidRow(column(8, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")),
+                                                               tags$div(id = "scout_in", contenteditable = TRUE))),
+                                           column(4, introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")))
+                              } else {
+                                  introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")
+                              }
                               ),
                        column(2, style = "padding-left:5px; padding-right:5px",
-                              introBox(mod_courtrot2_ui(id = "courtrot"), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
+                              if (app_data$scout_mode != "type") introBox(mod_courtrot2_ui(id = "courtrot"), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
                               uiOutput("problem_ui"),
-                              introBox(mod_playslist_ui("playslist", height = "35vh", styling = app_data$styling), data.step = 6, data.intro = "List of actions. New entries appear here as they are scouted."),
+                              introBox(mod_playslist_ui("playslist", height = if (app_data$scout_mode == "type") "85vh" else "35vh", styling = app_data$styling), data.step = 6, data.intro = "List of actions. New entries appear here as they are scouted."),
                               uiOutput("error_message"))
                        ),
 tags$script("set_vspinner = function() { $('#review_player').addClass('loading'); }; remove_vspinner = function() { $('#review_player').removeClass('loading'); }; $('#video_overlay').click(function(e) { var rect = e.target.getBoundingClientRect(); var cx = e.clientX - rect.left; var cy = e.clientY - rect.top; var vt = -1; try { vt = vidplayer.currentTime(); } catch(err) {}; Shiny.setInputValue('video_click', [cx, cy, rect.width, rect.height, vt, e.shiftKey], {priority: 'event'}) })"),

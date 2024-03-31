@@ -9,20 +9,28 @@ mod_teamslists_ui <- function(id) {
             )
 }
 
-mod_teamslists <- function(input, output, session, rdata) {
+mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE) {
     output$htroster <- renderUI({
         re <- names2roster(rdata$dvw$meta$players_h)
         re1 <- re[seq_len(ceiling(length(re) / 2))]
         htn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]
-        tags$div(tags$strong(htn), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
-                                            do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
+        if (two_cols) {
+            tags$div(tags$strong(htn), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
+                                                do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
+        } else {
+            do.call(tags$div, c(list(tags$strong(htn)), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+        }
     })
     output$vtroster <- renderUI({
         re <- names2roster(rdata$dvw$meta$players_v)
         re1 <- re[seq_len(ceiling(length(re) / 2))]
         vtn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]
-        tags$div(tags$strong(vtn), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
-                                            do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
+        if (two_cols) {
+            tags$div(tags$strong(vtn), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
+                                                do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
+        } else {
+            do.call(tags$div, c(list(tags$strong(vtn)), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+        }
     })
 }
 
