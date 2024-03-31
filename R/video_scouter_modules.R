@@ -519,7 +519,7 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
                 if (nrow(segxy) > 0) {
                     ## court module is plotted flipped if necessary, and coordinates will be oriented to the actual video orientation, so should be OK to plot without flipping
                     ## all coords are recorded relative to video1 orientation, so we don't care which video is showing
-                    plot(segxy$x, segxy$y, type = "l")
+                    lines(segxy$x, segxy$y)
                 }
             }
         })
