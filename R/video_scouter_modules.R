@@ -44,7 +44,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     pseq <- if (beach) 1:2 else 1:6
 
     observe({
-        if (rally_state() %in% c("click or unpause the video to start", "click serve start")) {
+        if (!isTRUE(game_state$rally_started)) {
             js_show2(ns("court_inset_swap"))
             js_show2(ns("switch_serving"))
         } else {
@@ -218,12 +218,12 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             ## point scores
             scxy <- tibble(x = c(-0.5, -0.5), y = c(3.15, 3.85), score = c(px$home_score_start_of_point, px$visiting_score_start_of_point))
             if (!need_to_flip(current_video_src(), game_state$home_team_end)) scxy$x <- scxy$x + 5
-            p <- p + ggplot2::annotate(x = scxy$x, y = scxy$y, label = scxy$score, geom = "label", size = 9, fontface = "bold", vjust = 0.5, na.rm = TRUE)#^^^, hjust = 1)
+            p <- p + ggplot2::annotate(x = scxy$x, y = scxy$y, label = scxy$score, geom = "label", size = 9, fontface = "bold", vjust = 0.5, na.rm = TRUE)
             if (length(ssi) == 2 && !any(is.na(ssi))) {
                 ## set scores
                 ssxy <- tibble(set_score = ssi, x = c(-0.5, -0.5), y = c(2.6, 4.4))
                 if (!need_to_flip(current_video_src(), game_state$home_team_end)) ssxy$x <- ssxy$x + 5
-                p <- p + ggplot2::annotate(x = ssxy$x, y = ssxy$y, label = ssxy$set_score, geom = "label", size = 6, fontface = "bold", vjust = 0.5, na.rm = TRUE)#, hjust = 1)
+                p <- p + ggplot2::annotate(x = ssxy$x, y = ssxy$y, label = ssxy$set_score, geom = "label", size = 6, fontface = "bold", vjust = 0.5, na.rm = TRUE)
             }
         }
         if (need_to_flip(current_video_src(), game_state$home_team_end)) {
@@ -264,6 +264,266 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         })
         p + theme(plot.margin = rep(unit(0, "null"), 4))
     }, height = 950, width = 600, res = 180)
+
+    observeEvent(input$rotate_home, {
+        rotate_teams$home <- 1L
+    })
+    observeEvent(input$rotate_visiting, {
+        rotate_teams$visiting <- 1L
+    })
+
+    observeEvent(input$court_inset_swap, game_state$home_team_end <- other_end(game_state$home_team_end))
+
+    return(list(rt = rotate_teams, click = clickout))
+}
+
+## base plotting instead of ggplot
+mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_codes, rally_state, current_video_src, styling, with_ball_path = function() FALSE) {
+    ns <- session$ns
+    beach <- is_beach(isolate(rdata$dvw))
+    pseq <- if (beach) 1:2 else 1:6
+
+    observe({
+        if (!isTRUE(game_state$rally_started)) {
+            js_show2(ns("court_inset_swap"))
+            js_show2(ns("switch_serving"))
+        } else {
+            ## can't switch serving team once the rally has started
+            js_hide2(ns("court_inset_swap"))
+            js_hide2(ns("switch_serving"))
+        }
+    })
+
+    observeEvent(input$switch_serving, {
+        game_state$serving <- other(game_state$serving)
+        game_state$current_team <- game_state$serving
+    })
+
+    ## do we need to flip the court plot? (noting that we flip it when the video changes, too)
+    need_to_flip <- function(vsrc, home_team_end) {
+        (vsrc < 2 && home_team_end != "lower") || (vsrc > 1 && home_team_end == "lower")
+    }
+
+    rotate_teams <- reactiveValues(home = 0L, visiting = 0L)
+    clickout <- reactiveVal(list(x = NA_real_, y = NA_real_))
+    observeEvent(input$plot_click, {
+        req(input$plot_click)
+        ## input$plot_click gives the click location, but we want to flip this if the court direction has been reversed
+        out <- data.frame(x = input$plot_click$x, y = input$plot_click$y)
+        if (need_to_flip(current_video_src(), game_state$home_team_end)) out <- dv_flip_xy(out)
+        clickout(out)
+    })
+
+    ## the court plot itself
+    ## go to some effort to reduce redraws of the court plot
+    plot_data <- reactive({
+        ## watch these
+        blah <- list(game_state$home_team_end, game_state$serving, game_state$home_score_start_of_point, game_state$visiting_score_start_of_point,
+                     game_state$home_p1, game_state$home_p2, game_state$visiting_p1, game_state$visiting_p2)
+        if (!beach) blah <- c(blah, list(game_state$home_p3, game_state$home_p4, game_state$home_p5, game_state$home_p6, game_state$visiting_p3, game_state$visiting_p4, game_state$visiting_p5, game_state$visiting_p6, game_state$home_setter_position, game_state$visiting_setter_position, game_state$ht_lib1, game_state$ht_lib2, game_state$vt_lib1, game_state$vt_lib2))
+        gs <- isolate(reactiveValuesToList(game_state))
+
+        htrot <- tibble(number = get_players(gs, team = "*", dvw = rdata$dvw))
+        htrot <- dplyr::left_join(htrot, dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
+        htrot$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", htrot$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+        vtrot <- tibble(number = get_players(gs, team = "a", dvw = rdata$dvw))
+        vtrot <- dplyr::left_join(vtrot, dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
+        vtrot$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", vtrot$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+        ht_setter <- get_setter(gs, team = "*")
+        ht_libxy <- vt_libxy <- NULL
+        libs <- get_liberos(gs, team = "*", dvw = rdata$dvw)
+        if (length(libs)) {
+            ht_libxy <- tibble(number = libs) %>%
+                dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
+            ht_libxy$pos <- c(5, 7)[seq_len(nrow(ht_libxy))]
+            ht_libxy$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", ht_libxy$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+            ht_libxy <- cbind(dv_xy(ht_libxy$pos, end = "lower"), ht_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), gs$home_team_end) ~ .data$x - 1,
+                                                                                                     TRUE ~ .data$x + 3))
+        }
+        vt_setter <- get_setter(gs, team = "a")
+        libs <- get_liberos(gs, team = "a", dvw = rdata$dvw)
+        if (length(libs)) {
+            vt_libxy <- tibble(number = libs) %>%
+                dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
+            vt_libxy$pos <- c(1, 9)[seq_len(nrow(vt_libxy))]
+            vt_libxy$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", vt_libxy$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+            vt_libxy <- cbind(dv_xy(vt_libxy$pos, end = "upper"), vt_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), gs$home_team_end) ~ .data$x - 1,
+                                                                                                     TRUE ~ .data$x + 3))
+        }
+        list(htrot = htrot, vtrot = vtrot, ht_setter = ht_setter, vt_setter = vt_setter, ht_libxy = ht_libxy, vt_libxy = vt_libxy, serving = gs$serving, home_score_start_of_point = gs$home_score_start_of_point, visiting_score_start_of_point = gs$visiting_score_start_of_point)
+    })
+    ## keep track of the digest of the plot_data() object so that we can trigger downstream actions when it has actually changed
+    plot_data_digest <- reactiveVal("")
+    last_plot_data_digest <- "xx"
+    observe({
+        dig <- digest::digest(plot_data())
+        plot_data_digest(dig)
+        if (dig != last_plot_data_digest) update_base_plot()
+        last_plot_data_digest <<- dig
+    })
+
+    ss <- reactive({
+        sets_won <- c(0L, 0L) ## sets won by home, visiting teams
+        if (nrow(rdata$dvw$plays2) < 1 || !"code" %in% names(rdata$dvw$plays2)) return(c(0L, 0L))
+        set_end_rows <- grep("^\\*\\*[[:digit:]]set", rdata$dvw$plays2$code)
+        for (si in seq_along(set_end_rows)) {
+            set_plays2 <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == si)
+            temp <- do.call(rbind, stringr::str_match_all(set_plays2$code, "^[a\\*]p([[:digit:]]+):([[:digit:]]+)"))
+            scores <- c(max(as.numeric(temp[, 2]), na.rm = TRUE), max(as.numeric(temp[, 3]), na.rm = TRUE))
+            if (is_beach(rdata$dvw)) {
+                if (max(scores) >= 21 && abs(diff(scores)) >= 2) {
+                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
+                }
+            } else {
+                if ((si < 5 && max(scores) >= 25 && abs(diff(scores)) >= 2) || max(scores) >= 15 && abs(diff(scores)) >= 2) {
+                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
+                }
+            }
+        }
+        sets_won
+    })
+    ss_digest <- reactiveVal("")
+    last_ss_digest <- "xx"
+    observe({
+        dig <- digest::digest(list(ss(), game_state$home_team_end))
+        ss_digest(dig)
+        if (dig != last_ss_digest) update_base_plot()
+        last_ss_digest <<- dig
+    })
+
+    ## generate the plot object of the court with players, this doesn't change within a rally
+    base_plot <- reactiveVal(0L)
+    update_base_plot <- function() { base_plot(isolate(base_plot() + 1L)) }
+    do_base_plot <- function() {
+        cexsc <- 0.2
+        flp <- need_to_flip(current_video_src(), game_state$home_team_end)
+        par(bg = "#26A9BD", mai = c(0, 0, 0, 0))
+        plot(0, 0, type = "n", xlim = c(0.25, 5), ylim = c(0, 7), axes = FALSE, xlab = "", ylab = "", asp = 1, bg = "#26A9BD")
+        ##datavolley::dv_plot_new(x = c(-0.25, 5.5), y = c(-0.25, 7.25), court = "full", margins = c(0, 0, 0, 0))
+        rect(0.5, 0.5, 3.5, 6.5, col = "#D98875")
+        datavolley::dv_court(labels = NULL, show_zones = FALSE, show_zone_lines = TRUE, grid_colour = "white")
+
+        htend <- if (flp) "upper" else "lower"
+        vtend <- if (flp) "lower" else "upper"
+
+        px <- isolate(plot_data()) ## don't redraw on every invalidation of plot_data(), because the actual data might not have changed
+        if (!is.null(px$ht_libxy)) px$ht_libxy$x <- 4
+        if (!is.null(px$vt_libxy)) px$vt_libxy$x <- 4
+        if (flp) {
+            if (!is.null(px$ht_libxy)) px$ht_libxy$y <- 7 - px$ht_libxy$y
+            if (!is.null(px$vt_libxy)) px$vt_libxy$y <- 7 - px$vt_libxy$y
+        }
+        ssi <- isolate(ss())
+        blah <- list(plot_data_digest(), ss_digest()) ## trigger on these
+        htrot <- px$htrot
+        vtrot <- px$vtrot
+        plxy <- cbind(dv_xy(pseq, end = htend), htrot)
+        ## player names and circles
+        ## home team
+        this <- court_circle(cz = pseq, end = htend)
+        for (thisid in pseq) {
+            idx <- this$id == thisid
+            polygon(this$x[idx], this$y[idx], col = styling$h_court_colour, border = styling$h_court_highlight_colour)
+        }
+        if (!beach) {
+            ## setter
+            ht_setter <- px$ht_setter
+            if (!is.null(ht_setter) && sum(ht_setter %eq% plxy$number) == 1) {
+                this <- court_circle(cz = which(ht_setter %eq% plxy$number), end = htend)
+                polygon(this$x, this$y, col = styling$h_court_highlight_colour, border = "black")
+            }
+            ## liberos
+            if (!is.null(px$ht_libxy)) {
+                this <- court_circle(px$ht_libxy[, c("x", "y")])
+                for (thisid in unique(this$id)) {
+                    idx <- this$id == thisid
+                    polygon(this$x[idx], this$y[idx], col = styling$libero_colour, border = "black")
+                    text(px$ht_libxy$x, px$ht_libxy$y, labels = px$ht_libxy$number, cex = 6 * cexsc, font = 2, adj = c(0.5, 0))
+                    text(px$ht_libxy$x, px$ht_libxy$y + if (flp) 0.07 else - 0.07, labels = px$ht_libxy$lastname_wrapped, cex = 3 * cexsc, adj = c(0.5, 1 + flp)) ## lineheight = 1, na.rm = TRUE)
+                }
+            }
+        }
+        text(plxy$x, plxy$y, labels = plxy$number, cex = 6 * cexsc, font = 2, adj = c(0.5, 0))
+        text(plxy$x, plxy$y + if (flp) 0.07 else - 0.07, labels = plxy$lastname_wrapped, cex = 3 * cexsc, adj = c(0.5, 1 + flp))## lineheight = 1
+        text(x = 2, y = 2 + flp * 3, labels = datavolley::home_team(rdata$dvw), cex = 5 * cexsc)
+
+        ## visiting team
+        plxy <- cbind(dv_xy(pseq, end = vtend), vtrot)
+        this <- court_circle(cz = pseq, end = vtend)
+        for (thisid in pseq) {
+            idx <- this$id == thisid
+            polygon(this$x[idx], this$y[idx], col = styling$v_court_colour, border = styling$v_court_highlight_colour)
+        }
+        if (!beach) {
+            ## setter
+            vt_setter <- px$vt_setter
+            if (!is.null(vt_setter) && sum(vt_setter %eq% plxy$number) == 1) {
+                this <- court_circle(cz = which(vt_setter %eq% plxy$number), end = vtend)
+                polygon(this$x, this$y, col = styling$v_court_highlight_colour, border = "black")
+            }
+            ## liberos
+            if (!is.null(px$vt_libxy)) {
+                this <- court_circle(px$vt_libxy[, c("x", "y")])
+                for (thisid in unique(this$id)) {
+                    idx <- this$id == thisid
+                    polygon(this$x[idx], this$y[idx], col = styling$libero_colour, border = "black")
+                    text(px$vt_libxy$x, px$vt_libxy$y, labels = px$vt_libxy$number, cex = 6 * cexsc, font = 2, adj = c(0.5, 0))
+                    text(px$vt_libxy$x, px$vt_libxy$y + if (flp) 0.07 else - 0.07, labels = px$vt_libxy$lastname_wrapped, cex = 3 * cexsc, adj = c(0.5, 1 + flp)) ## lineheight = 1
+                }
+            }
+        }
+        text(plxy$x, plxy$y, labels = plxy$number, cex = 6 * cexsc, font = 2, adj = c(0.5, 0))
+        text(plxy$x, plxy$y + if (flp) 0.07 else - 0.07, labels = plxy$lastname_wrapped, cex = 3 * cexsc, adj = c(0.5, 1 + flp)) ## lineheight = 1
+        text(x = 2, y = 5 - flp * 3, labels = datavolley::visiting_team(rdata$dvw), cex = 5 * cexsc)
+
+        ## add the serving team indicator
+        temp <- court_circle(cz = 1, r = 0.2, end = vtend)
+        temp$y <- temp$y + if (flp) -0.75 else 0.75 ## shift to behind baseline
+        polygon(temp$x, temp$y, col = if (px$serving %eq% "a") "white" else NA, border = "black")
+        temp <- court_circle(cz = 1, r = 0.2, end = htend)
+        temp$y <- temp$y + if (flp) 0.75 else - 0.75 ## shift to behind baseline
+        polygon(temp$x, temp$y, col = if (px$serving %eq% "*") "white" else NA, border = "black")
+
+        ## add the point and set scores on the right side
+        if (!is.null(px$home_score_start_of_point) && !is.null(px$visiting_score_start_of_point)) {
+            ## point scores
+            rect(4.1, 2.3, 4.9, 4.7, col = "white")
+            text(x = c(4.5, 4.5), y = if (flp) rev(c(3.15, 3.85)) else c(3.15, 3.85),
+                 labels = c(px$home_score_start_of_point, px$visiting_score_start_of_point), cex = 9 * cexsc, font = 2)
+            if (length(ssi) == 2 && !any(is.na(ssi))) {
+                ## set scores
+                text(x = c(4.5, 4.5), y = if (flp) rev(c(2.6, 4.4)) else c(2.6, 4.4), labels = ssi, cex = 6 * cexsc, font = 2)
+            }
+        }
+    }
+
+    ## keep track of the digest of the rally_codes() object so that we can trigger the plot update when it has actually changed AND only if we are showing ball coords
+    rally_codes_digest <- reactiveVal("")
+    observe({
+        if (with_ball_path()) rally_codes_digest(digest::digest(rally_codes()))
+    })
+    output$court_inset <- renderPlot({
+        do_base_plot()
+        blah <- rally_codes_digest()
+        isolate({
+            if (nrow(rally_codes()) > 0 && with_ball_path()) {
+                ## plot the current rally actions
+                temp_rally_plays2 <- make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw)
+                temp_rally_plays <- plays2_to_plays(temp_rally_plays2, dvw = rdata$dvw, evaluation_decoder = skill_evaluation_decoder()) ## this is the default evaluation decoder, but it doesn't matter here unless we start e.g. colouring things by evaluation
+                temp_rally_plays <- mutate(temp_rally_plays, rn = dplyr::row_number())
+                segxy <- bind_rows(temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y", rn = "rn"),
+                                   temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "end_coordinate_x", y = "end_coordinate_y", rn = "rn"),
+                                   temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception")) %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y", rn = "rn"),
+                                   temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception") & !is.na(.data$mid_coordinate_x)) %>% dplyr::select(x = "mid_coordinate_x", y = "mid_coordinate_y", rn = "rn") %>% mutate(rn = .data$rn + 0.5)) %>%
+                    na.omit() %>% dplyr::arrange(.data$rn)
+                if (nrow(segxy) > 0) {
+                    ## court module is plotted flipped if necessary, and coordinates will be oriented to the actual video orientation, so should be OK to plot without flipping
+                    ## all coords are recorded relative to video1 orientation, so we don't care which video is showing
+                    plot(segxy$x, segxy$y, type = "l")
+                }
+            }
+        })
+    }, height = 800, width = 600, res = 180)
 
     observeEvent(input$rotate_home, {
         rotate_teams$home <- 1L
