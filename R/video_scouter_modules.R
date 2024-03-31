@@ -177,7 +177,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             }
             ## liberos
             if (!is.null(px$ht_libxy)) {
-                p <- p + geom_polygon(data = court_circle(px$ht_libxy[, c("x", "y")], end = "lower"), aes(group = .data$id), fill = styling$libero_colour, colour = "black", na.rm = TRUE) +
+                p <- p + geom_polygon(data = court_circle(px$ht_libxy[, c("x", "y")]), aes(group = .data$id), fill = styling$libero_colour, colour = "black", na.rm = TRUE) +
                     geom_text(data = px$ht_libxy, aes(.data$x, .data$y, label = .data$number), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
                     geom_text(data = px$ht_libxy, aes(.data$x, .data$y + if (need_to_flip(current_video_src(), game_state$home_team_end)) 0.07 else - 0.07, label = .data$lastname_wrapped), size = 3, vjust = 1, lineheight = 1, na.rm = TRUE)
             }
@@ -196,7 +196,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             }
             ## liberos
             if (!is.null(px$vt_libxy)) {
-                p <- p + geom_polygon(data = court_circle(px$vt_libxy[, c("x", "y")], end = "lower"), aes(group = .data$id), fill = styling$libero_colour, colour = "black", na.rm = TRUE) +
+                p <- p + geom_polygon(data = court_circle(px$vt_libxy[, c("x", "y")]), aes(group = .data$id), fill = styling$libero_colour, colour = "black", na.rm = TRUE) +
                     geom_text(data = px$vt_libxy, aes(.data$x, .data$y, label = .data$number), size = 6, fontface = "bold", vjust = 0, na.rm = TRUE) +
                     geom_text(data = px$vt_libxy, aes(.data$x, .data$y + if (need_to_flip(current_video_src(), game_state$home_team_end)) 0.07 else - 0.07, label = .data$lastname_wrapped), size = 3, vjust = 1, lineheight = 1, na.rm = TRUE)
             }
