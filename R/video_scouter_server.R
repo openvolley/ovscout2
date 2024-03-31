@@ -254,6 +254,7 @@ ov_scouter_server <- function(app_data) {
 
         ## video functions
         do_video <- function(what, ..., id = "main_video") {
+            if (!app_data$with_video) return(NULL)
             getel <- "vidplayer"
             myargs <- list(...)
             if (what == "pause") {
