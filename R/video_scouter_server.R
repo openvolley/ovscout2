@@ -1097,14 +1097,19 @@ ov_scouter_server <- function(app_data) {
             ## TODO MAYBE also propagate the click to elements below the overlay?
         })
         observeEvent(court_inset$click(), {
-            ## when video clicked, get the corresponding video time and trigger the loop
             flash_screen() ## visual indicator that click has registered
-            time_uuid <- uuid()
-            game_state$current_time_uuid <- time_uuid
-            do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@1 or @2)
-            courtxy(court_inset$click())
-            loop_trigger(loop_trigger() + 1L)
-            process_action()
+            if (app_data$scout_mode == "type") {
+                ##cat(str(court_inset$click()))
+                ## TODO
+            } else {
+                ## when court diagram clicked, treat it as if it were a click on the video: get the corresponding video time and trigger the loop
+                time_uuid <- uuid()
+                game_state$current_time_uuid <- time_uuid
+                do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@1 or @2)
+                courtxy(court_inset$click())
+                loop_trigger(loop_trigger() + 1L)
+                process_action()
+            }
         })
         do_contact <- function() {
             ## keyboard entry indicating a contact at this time
@@ -1219,9 +1224,14 @@ ov_scouter_server <- function(app_data) {
             xy
         }
 
+        process_action_type_mode <- function(was_shift_click = FALSE) {
+            ## to be used when scout_mode is "type"
+            NULL
+        }
         accept_fun <- reactiveVal(NULL) ## use this to determine what function should be run when the "Continue" button on a modal is clicked, or the enter key is used to shortcut it
         ## single click the video to register a tag location, or starting ball coordinates
         process_action <- function(was_shift_click = FALSE) {
+            if (app_data$scout_mode == "type") return(process_action_type_mode(was_shift_click = was_shift_click))
             if (loop_trigger() > 0 && rally_state() != "fix required information before scouting can begin") {
                 if (rally_state() == "click or unpause the video to start") {
                     if (meta_is_valid()) {
