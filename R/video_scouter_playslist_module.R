@@ -78,7 +78,9 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
     }
 
     observeEvent(input$clicked, {
-        if (!is.null(input$clicked)) select(input$clicked, scroll = FALSE)
+        if (!is.null(input$clicked)) {
+            if (!is.null(selected_row()) && input$clicked %eq% selected_row()) unselect() else select(input$clicked, scroll = FALSE)
+        }
     })
 
     ## select a row and then optionally scroll to it
@@ -95,6 +97,13 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
         if (is.numeric(i)) {
             dojs(paste0("var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); if (rows.length >= ", i, ") { $('#", ns("tbl"), "').scrollTop(rows[", i - 1L, "].offsetTop - 4 * rows[0].offsetHeight);}"))
         }
+    }
+
+    ## clear selection
+    unselect <- function(scroll_to_end = FALSE) {
+        selected_row(NULL)
+        dojs(paste0("var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); rows.forEach(row => { row.classList.remove('", ns("selected"), "')});"))
+        if (scroll_to_end) scroll_to(nrow(rdata$dvw$plays))
     }
 
     observe({
