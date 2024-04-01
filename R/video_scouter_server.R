@@ -571,7 +571,7 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$controlkey, {
             if (!is.null(input$controlkey)) {
-                ky <- decode_keypress(input$controlkey)$key
+                ky <- decode_keypress(input$controlkey, debug)$key
                 ## PREVIOUSLY we get the ascii code for the base key (i.e. upper-case letter, or number) AND the modifier
                 ## so for "#" we'd get ky == utf8ToInt("3") (which is 51) plus mycmd[3] == "true" (shift)
                 ## NOW for "#" we get ky == "#" plus mycmd[3] == "true" (shift)
@@ -655,7 +655,7 @@ ov_scouter_server <- function(app_data) {
         })
         observeEvent(input$controlkeyup, {
             if (!is.null(input$controlkeyup)) {
-                k <- decode_keypress(input$controlkeyup)
+                k <- decode_keypress(input$controlkeyup, debug)
                 if (debug > 1) cat("control key up: ", capture.output(str(k)), "\n")
                 if (k$key %in% app_data$shortcuts$hide_popup) {
                     ## z
