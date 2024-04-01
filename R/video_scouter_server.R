@@ -569,23 +569,43 @@ ov_scouter_server <- function(app_data) {
             }
         }
 
-        ## input$cmd reflects keypress events
-        ## input$controlkey reflects keydown, use for keys that might not get detected by keypress but do by keydown. This returns a less convenient format, so use keypress for standard alpha/numeric/punct keys
-        observeEvent(input$cmd, {
-            mycmd <- NULL
-            if (!is.null(input$cmd)) {
-                temp <- strsplit(input$cmd, "@")[[1]]
-                ## elements are keyid element_class element_id cursor_position field_length time
-                mycmd <- temp[1]
-                myclass <- temp[2]
-                if (!is.null(myclass) && nzchar(myclass) && myclass %in% c("form-control")) {
-                    ## don't process these - they are e.g. key events in DT filter boxes
-                    mycmd <- NULL
-                }
-            }
-            if (!is.null(mycmd)) {
-                ky <- intToUtf8(as.numeric(mycmd))
-                if (ky %in% app_data$shortcuts$hide_popup) {
+        observeEvent(input$controlkey, {
+            if (!is.null(input$controlkey)) {
+                ky <- decode_keypress(input$controlkey)$key
+                ## PREVIOUSLY we get the ascii code for the base key (i.e. upper-case letter, or number) AND the modifier
+                ## so for "#" we'd get ky == utf8ToInt("3") (which is 51) plus mycmd[3] == "true" (shift)
+                ## NOW for "#" we get ky == "#" plus mycmd[3] == "true" (shift)
+                if (debug > 1) cat("key: ", ky, "\n")
+                if (ky %eq% "Escape") { ##if (ky %eq% 27) {
+                    ## esc
+                    if (isTRUE(scout_modal_active())) {
+                        ## if we have a scouting modal showing, treat this as cancel and rewind
+                        do_cancel_rew()
+                    } else if (courtref_active()) {
+                        ## do nothing
+                    } else if (is.null(editing$active) || !editing$active %in% "teams") {
+                        do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
+                        editing$active <- NULL
+                        removeModal()
+                        if (do_unpause) do_video("play")
+                    }
+                } else if (ky %eq% "Enter") { ##} else if (ky %eq% 13) {
+                    ## enter
+                    ## if editing, treat as update
+                    ## but not for team editing, because pressing enter in the DT fires this too
+                    if (!is.null(editing$active) && !editing$active %eq% "teams") {
+                        ## if this is the code editing modal, we need to focus out of the text entry box first otherwise changes there won't be seen in the corresponding input$xyz variable
+                        if (editing$active %in% c("insert below", "insert above", "edit")) {
+                            ## if the user has pressed enter directly after editing text in the code_entry field (without tabbing out of that, or clicking on the commit button) the input$code_entry variable will not have been updated. So focus out of it first
+                            focus_to_modal_element("edit_commit")
+                        }
+                        do_edit_commit()
+                    } else if (isTRUE(scout_modal_active())) {
+                        ## if we have a scouting modal showing, and a valid accept_fun entry, run that function
+                        if (!is.null(accept_fun())) try(get(accept_fun(), mode = "function")())
+                    }
+                    ## need to stop this propagating to the browser, else it risks e.g. re-firing the most recently used button - done in UI code
+                } else if (ky %in% app_data$shortcuts$hide_popup) {
                     ## temporarily hide the modal, so the video can be seen
                     ## but only for the admin, lineup modal or the ones that pop up during the rally, not the editing modals for teams or rosters
                     if (is.null(editing$active) || editing$active %in% c("admin", "change starting lineup")) hide_popup()
@@ -633,82 +653,14 @@ ov_scouter_server <- function(app_data) {
                 }
             }
         })
-        observeEvent(input$controlkey, {
-            if (!is.null(input$controlkey)) {
-                temp <- strsplit(input$controlkey, "@")[[1]]
-                ## elements are modifiers_and_key element_class element_id cursor_position field_length time
-                mycmd <- temp[1]
-                myclass <- temp[2]
-                myid <- temp[3]
-                if (!is.null(myclass) && nzchar(myclass) && myclass %in% c("form-control")) {
-                    ## don't process these - they are e.g. key events in DT filter boxes
-                    mycmd <- NULL
-                }
-                if (!is.null(mycmd)) {
-                    if (debug > 1) cat("control key: ", mycmd, "\n")
-                    mycmd <- strsplit(mycmd, "|", fixed = TRUE)[[1]] ## e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which
-                    if (length(mycmd) == 5) {
-                        ky <- mycmd[5] ## key pressed, as ASCII code
-                        ## NOTE that we get the ascii code for the base key (i.e. upper-case letter, or number) AND the modifier
-                        ## so for "#" we'd get ky == utf8ToInt("3") (which is 51) plus mycmd[3] == "true" (shift)
-                        if (debug > 1) cat("key: ", ky, "\n")
-                        if (ky %eq% 27) {
-                            ## esc
-                            if (isTRUE(scout_modal_active())) {
-                                ## if we have a scouting modal showing, treat this as cancel and rewind
-                                do_cancel_rew()
-                            } else if (courtref_active()) {
-                                ## do nothing
-                            } else if (is.null(editing$active) || !editing$active %in% "teams") {
-                                do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
-                                editing$active <- NULL
-                                removeModal()
-                                if (do_unpause) do_video("play")
-                            }
-                        } else if (ky %eq% 13) {
-                            ## enter
-                            ## if editing, treat as update
-                            ## but not for team editing, because pressing enter in the DT fires this too
-                            if (!is.null(editing$active) && !editing$active %eq% "teams") {
-                                ## if this is the code editing modal, we need to focus out of the text entry box first otherwise changes there won't be seen in the corresponding input$xyz variable
-                                if (editing$active %in% c("insert below", "insert above", "edit")) {
-                                    ## if the user has pressed enter directly after editing text in the code_entry field (without tabbing out of that, or clicking on the commit button) the input$code_entry variable will not have been updated. So focus out of it first
-                                    focus_to_modal_element("edit_commit")
-                                }
-                                do_edit_commit()
-                            } else if (isTRUE(scout_modal_active())) {
-                                ## if we have a scouting modal showing, and a valid accept_fun entry, run that function
-                                if (!is.null(accept_fun())) try(get(accept_fun(), mode = "function")())
-                            }
-                            ## need to stop this propagating to the browser, else it risks e.g. re-firing the most recently used button - done in UI code
-                        }
-                    }
-                }
-            }
-        })
         observeEvent(input$controlkeyup, {
-            ## keys that might not get detected by keypress but do by keydown?
-            if (!is.null(input$controlkey)) {
-                temp <- strsplit(input$controlkey, "@")[[1]]
-                ## elements are modifiers_and_key element_class element_id cursor_position field_length time
-                mycmd <- temp[1]
-                myclass <- temp[2]
-                myid <- temp[3]
-                if (!is.null(myclass) && nzchar(myclass) && myclass %in% c("form-control")) {
-                    ## don't process these - they are e.g. key events in DT filter boxes
-                    mycmd <- NULL
-                }
-                if (!is.null(mycmd)) {
-                    if (debug > 1) cat("control key up: ", mycmd, "\n")
-                    mycmd <- strsplit(mycmd, "|", fixed = TRUE)[[1]] ## e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which
-                    if (length(mycmd) == 5) {
-                        ky <- mycmd[5]
-                        if (ky %in% utf8ToInt(paste0(app_data$shortcuts$hide_popup, collapse = ""))) {
-                            ## z
-                            ## re-show the modal after temporarily hiding
-                            unhide_popup()
-                        }
-                    }
+            if (!is.null(input$controlkeyup)) {
+                k <- decode_keypress(input$controlkeyup)
+                if (debug > 1) cat("control key up: ", capture.output(str(k)), "\n")
+                if (k$key %in% app_data$shortcuts$hide_popup) {
+                    ## z
+                    ## re-show the modal after temporarily hiding
+                    unhide_popup()
                 }
             }
         })

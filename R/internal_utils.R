@@ -231,3 +231,26 @@ focus_to_element <- function(id, highlight_all = TRUE) {
         dojs(paste0("var el = document.getElementById('", id, "'); el.selectionStart = 0; el.selectionEnd = el.value.length; el.focus();"))
     }
 }
+
+decode_keypress <- function(k) {
+    temp <- strsplit(k, "@")[[1]]
+    ## elements are modifiers_and_key, element_class, element_id, cursor_position, field_length, time
+    mycmd <- temp[1]
+    myclass <- temp[2]
+    myid <- temp[3]
+    if (!is.null(myclass) && nzchar(myclass) && myclass %in% c("form-control")) {
+        ## don't process these - they are e.g. key events in DT filter boxes
+        mycmd <- NULL
+    }
+    if (!is.null(mycmd)) {
+        if (debug > 1) cat("keypress: ", mycmd, " in element #", myid, " of class", myclass, "\n")
+        out <- list(ctrl = FALSE, alt = FALSE, shift = FALSE, meta = FALSE, key = "", charcode = 0L, class = myclass, id = myid)
+        mycmd <- strsplit(mycmd, "|", fixed = TRUE)[[1]] ## ctrlKey | altKey | shiftKey | metaKey | keyname | charcode
+        if (length(mycmd) >= 5) {
+            out <- list(ctrl = mycmd[1], alt = mycmd[2], shift = mycmd[3], meta = mycmd[4], key = mycmd[5], charcode = if (length(mycmd) > 5) mycmd[6] else 0L, class = myclass, id = myid)
+        }
+        out
+    } else {
+        NULL
+    }
+}
