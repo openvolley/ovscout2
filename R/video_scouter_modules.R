@@ -286,7 +286,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
 }
 
 ## base plotting instead of ggplot
-mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_codes, rally_state, current_video_src, styling, with_ball_path = function() FALSE) {
+mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_codes, rally_state, current_video_src, styling, with_ball_path = function() FALSE, current_plays_row = function() NULL) {
     ns <- session$ns
     beach <- is_beach(isolate(rdata$dvw))
     pseq <- if (beach) 1:2 else 1:6
@@ -512,22 +512,44 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
     })
     output$court_inset <- renderPlot({
         do_base_plot()
-        blah <- rally_codes_digest()
+        blah <- list(rally_codes_digest(), current_plays_row()) ## react to
         isolate({
-            if (nrow(rally_codes()) > 0 && with_ball_path()) {
-                ## plot the current rally actions
-                temp_rally_plays2 <- make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw)
+            if (with_ball_path()) {
+                temp_rally_plays2 <- if (is.null(current_plays_row()) || current_plays_row() > nrow(rdata$dvw$plays2)) {
+                                         make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw)
+                                     } else {
+                                         rdata$dvw$plays2
+                                     }
                 temp_rally_plays <- plays2_to_plays(temp_rally_plays2, dvw = rdata$dvw, evaluation_decoder = skill_evaluation_decoder()) ## this is the default evaluation decoder, but it doesn't matter here unless we start e.g. colouring things by evaluation
-                temp_rally_plays <- mutate(temp_rally_plays, rn = dplyr::row_number())
-                segxy <- bind_rows(temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y", rn = "rn"),
-                                   temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "end_coordinate_x", y = "end_coordinate_y", rn = "rn"),
-                                   temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception")) %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y", rn = "rn"),
-                                   temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception") & !is.na(.data$mid_coordinate_x)) %>% dplyr::select(x = "mid_coordinate_x", y = "mid_coordinate_y", rn = "rn") %>% mutate(rn = .data$rn + 0.5)) %>%
-                    na.omit() %>% dplyr::arrange(.data$rn)
-                if (nrow(segxy) > 0) {
-                    ## court module is plotted flipped if necessary, and coordinates will be oriented to the actual video orientation, so should be OK to plot without flipping
-                    ## all coords are recorded relative to video1 orientation, so we don't care which video is showing
-                    lines(segxy$x, segxy$y)
+                ## court module is plotted flipped if necessary, and coordinates will be oriented to the actual video orientation, so should be OK to plot without flipping
+                ## all coords are recorded relative to video1 orientation, so we don't care which video is showing
+                if (!is.null(current_plays_row())) {
+                    ## plot the selected action
+                    temp_rally_plays <- temp_rally_plays[current_plays_row(), ]
+                    segxy <- bind_rows(temp_rally_plays %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y"),
+                                       temp_rally_plays %>% dplyr::select(x = "mid_coordinate_x", y = "mid_coordinate_y"),
+                                       temp_rally_plays %>% dplyr::select(x = "end_coordinate_x", y = "end_coordinate_y")) %>%
+                        na.omit()
+                    if (nrow(segxy) > 0) {
+                        if (nrow(segxy) == 2) {
+                            arrows(segxy$x[1], segxy$y[1], segxy$x[2], segxy$y[2], angle = 15, length = 0.15)
+                        } else if (nrow(segxy) == 3) {
+                            lines(segxy$x[1], segxy$y[1], segxy$x[2], segxy$y[2])
+                            arrows(segxy$x[2], segxy$y[2], segxy$x[3], segxy$y[3], angle = 15, length = 0.15)
+                        }
+                        points(segxy$x[1], segxy$y[1], pch = 21, bg = "white", cex = 2)
+                    }
+                } else if (nrow(rally_codes()) > 0) {
+                    ## plot the current rally actions
+                    temp_rally_plays <- mutate(temp_rally_plays, rn = dplyr::row_number())
+                    segxy <- bind_rows(temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y", rn = "rn"),
+                                       temp_rally_plays %>% dplyr::filter(.data$skill == "Serve") %>% dplyr::select(x = "end_coordinate_x", y = "end_coordinate_y", rn = "rn"),
+                                       temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception")) %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y", rn = "rn"),
+                                       temp_rally_plays %>% dplyr::filter(!.data$skill %in% c("Serve", "Reception") & !is.na(.data$mid_coordinate_x)) %>% dplyr::select(x = "mid_coordinate_x", y = "mid_coordinate_y", rn = "rn") %>% mutate(rn = .data$rn + 0.5)) %>%
+                        na.omit() %>% dplyr::arrange(.data$rn)
+                    if (nrow(segxy) > 0) {
+                        lines(segxy$x, segxy$y)
+                    }
                 }
             }
         })

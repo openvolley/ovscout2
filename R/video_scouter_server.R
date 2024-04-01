@@ -210,8 +210,13 @@ ov_scouter_server <- function(app_data) {
             populate_server()
         }
 
+
+        playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show,
+                                    plays_cols_renames = plays_cols_renames, display_option = reactive(prefs$playlist_display_option))
+
+
         ## court inset showing rotation and team lists
-        court_inset <- callModule(mod_courtrot2_base, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_path = reactive(prefs$ball_path))
+        court_inset <- callModule(mod_courtrot2_base, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_path = reactive(prefs$ball_path), current_plays_row = reactive(playslist_mod$current_row()))
         ## force a team rotation
         rotate_teams <- reactive(court_inset$rt)
         observe({
@@ -245,9 +250,6 @@ ov_scouter_server <- function(app_data) {
             isTRUE(courtref1$active()) || (!is.null(courtref2) && isTRUE(courtref2$active()))
         })
         tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata, styling = app_data$styling, visible = reactive(prefs$scoreboard))
-
-        playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show,
-                                    plays_cols_renames = plays_cols_renames, display_option = reactive(prefs$playlist_display_option))
 
         video_state <- reactiveValues(paused = TRUE, muted = TRUE) ## starts paused and muted
         editing <- reactiveValues(active = NULL)
