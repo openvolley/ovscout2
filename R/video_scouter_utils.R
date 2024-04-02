@@ -209,7 +209,7 @@ is_beach <- function(dvw) isTRUE(grepl("beach", dvw$meta$match$regulation))
 other <- function(tm) { oth <- rep(NA_character_, length(tm)); oth[tm %eq% "*"] <- "a"; oth[tm %eq% "a"] <- "*"; oth }
 ##other <- function(tm) c("a", "*")[as.numeric(factor(tm, levels = c("*", "a")))]
 
-empty_rally_codes <- tibble(team = character(), pnum = character(), skill = character(), tempo = character(), eval = character(), combo = character(), target = character(), sz = character(), ez = character(), esz = character(), x_type = character(), num_p = character(), special = character(), custom = character(), code = character(), t = numeric(), start_x = numeric(), start_y = numeric(), mid_x = numeric(), mid_y = numeric(), end_x = numeric(), end_y = numeric(), rally_state = character(), game_state = list(), current_team = character())
+empty_rally_codes <- tibble(team = character(), pnum = character(), skill = character(), tempo = character(), eval = character(), combo = character(), target = character(), sz = character(), ez = character(), esz = character(), x_type = character(), num_p = character(), special = character(), custom = character(), code = character(), t = numeric(), start_x = numeric(), start_y = numeric(), mid_x = numeric(), mid_y = numeric(), end_x = numeric(), end_y = numeric(), time = as.POSIXct(numeric()), rally_state = character(), game_state = list(), current_team = character())
 
 print_rally_codes <- function(rc) {
     tr <- function(z) tryCatch(round(z, 1), error = function(e) z)
