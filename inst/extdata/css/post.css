@@ -1,0 +1,6 @@
+video.loading { background: black; }
+
+/* stop the overlay from being put underneath the video, otherwise clicks don't get handled properly amongst other things */
+#problem_ui {-webkit-transform:translateZ(15); z-index:15;}
+#video_overlay, #video_overlay_canvas { -webkit-backface-visibility: hidden; -webkit-transform: translateZ(0); }
+#review_overlay, #review_overlay_canvas {position:absolute; top:0; right:0; -webkit-transform:translateZ(9999); z-index:9999;}

@@ -112,9 +112,8 @@ ov_scouter_ui <- function(app_data) {
                               introBox(mod_playslist_ui("playslist", height = if (app_data$scout_mode == "type") "85vh" else "35vh", styling = app_data$styling), data.step = 6, data.intro = "List of actions. New entries appear here as they are scouted."),
                               uiOutput("error_message"))
                        ),
-tags$script("set_vspinner = function() { $('#review_player').addClass('loading'); }; remove_vspinner = function() { $('#review_player').removeClass('loading'); }; $('#video_overlay').click(function(e) { var rect = e.target.getBoundingClientRect(); var cx = e.clientX - rect.left; var cy = e.clientY - rect.top; var vt = -1; try { vt = vidplayer.currentTime(); } catch(err) {}; Shiny.setInputValue('video_click', [cx, cy, rect.width, rect.height, vt, e.shiftKey], {priority: 'event'}) })"),
-tags$style("video.loading { background: black; }"),
-tags$script("review_player_onerror = function(e) { $('#review_player').removeClass('loading'); try { var this_src = btoa(document.getElementById(e.target.id).getAttribute('src')); } catch(err) { var this_src = ''; }; Shiny.setInputValue('video_error', e.target.id + '@' + this_src + '@' + e.target.error.code + '@' + new Date().getTime()); }"),
-tags$script(paste0("revpl = new dvjs_controller('review_player','", if (yt) "youtube" else "local", "',true);  revpl.video_onfinished = function() { revpl.video_controller.current=0; revpl.video_play(); }"))
-)
+              tags$link(href = "css/post.css", rel = "stylesheet"),
+              ## not used? tags$script("review_player_onerror = function(e) { $('#review_player').removeClass('loading'); try { var this_src = btoa(document.getElementById(e.target.id).getAttribute('src')); } catch(err) { var this_src = ''; }; Shiny.setInputValue('video_error', e.target.id + '@' + this_src + '@' + e.target.error.code + '@' + new Date().getTime()); }"),
+              tags$script(paste0("revpl = new dvjs_controller('review_player','", if (yt) "youtube" else "local", "',true);  revpl.video_onfinished = function() { revpl.video_controller.current=0; revpl.video_play(); }"))
+              )
 }

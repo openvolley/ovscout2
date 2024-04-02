@@ -1,8 +1,3 @@
-/* stop chrome putting the overlay underneath the video */
-#problem_ui {-webkit-transform:translateZ(15); z-index:15;}
-#video_overlay, #video_overlay_canvas { -webkit-backface-visibility: hidden; -webkit-transform: translateZ(0); }
-#review_overlay, #review_overlay_canvas {position:absolute; top:0; right:0; -webkit-transform:translateZ(9999); z-index:9999;}
-
 .vjs-control-bar { visibility: visible !important; opacity: 1 !important; bottom: -3.1em !important; background-color: rgba(7, 20, 30, 1) !important; }
 
 .video-js .vjs-big-play-button { display: none; }
