@@ -43,8 +43,8 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
             dat <- setNames(as.data.frame(dat[, plays_cols_to_show, drop = FALSE]), c("Game time", "Set", "Score", "Comment"))
         }
         html <- shiny::renderTable(dat, na = "")()
-        ## inject our pl2_fixhdr class name
-        sub("(class[[:space:]]*=[[:space:]]*['\"][^'\"]*)(['\"])", "\\1 pl2_fixhdr\\2", html)
+        ## inject our pl2_fixhdr class name. Add tabindex to make it focusable, so that key presses fire the keydown event
+        sub("(class[[:space:]]*=[[:space:]]*['\"][^'\"]*)(['\"])", "tabindex=\"0\" \\1 pl2_fixhdr\\2", html)
     }
 
     set_data <- function(dat, selected = "last", scroll = TRUE, display_as = "dv_codes") {
@@ -111,5 +111,5 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
         set_data(rdata$dvw$plays, selected = "last", display_as = display_option())
     })
 
-    list(scroll_playslist = scroll_to, current_row = selected_row, select = select)
+    list(scroll_playslist = scroll_to, current_row = selected_row, select = select, unselect = unselect)
 }

@@ -82,8 +82,8 @@ ov_scouter_server <- function(app_data) {
 
         ## send shortcuts to js
         if (app_data$scout_mode == "type") {
-            if (length(app_data$shortcuts) > 0) dojs(paste0("shortcut_map = ", make_js_keymap(app_data$shortcuts), ";"))
-            if (length(app_data$remapping) > 0) dojs(paste0("key_map = ", make_js_keymap(app_data$remapping), ";"))
+            if (length(app_data$shortcuts) > 0) dojs(paste0("scout_shortcut_map = ", make_js_keymap(app_data$shortcuts), ";"))
+            if (length(app_data$remapping) > 0) dojs(paste0("scout_key_map = ", make_js_keymap(app_data$remapping), ";"))
         }
 
         have_second_video <- !is.null(app_data$video_src2)
@@ -571,7 +571,8 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$controlkey, {
             if (!is.null(input$controlkey)) {
-                ky <- decode_keypress(input$controlkey, debug)$key
+                k <- decode_keypress(input$controlkey, debug)
+                ky <- k$key
                 ## PREVIOUSLY we get the ascii code for the base key (i.e. upper-case letter, or number) AND the modifier
                 ## so for "#" we'd get ky == utf8ToInt("3") (which is 51) plus mycmd[3] == "true" (shift)
                 ## NOW for "#" we get ky == "#" plus mycmd[3] == "true" (shift)
@@ -616,6 +617,9 @@ ov_scouter_server <- function(app_data) {
                         ## Q (uppercase) does just pause, with no admin modal
                         deal_with_pause(show_modal = !ky %in% app_data$shortcuts$pause_no_popup)
                     }
+                } else if (ky %in% c("ArrowUp", "ArrowDown") && grepl("pl2_fixhdr", k$class)) {
+                    ## arrow up/down in playslist table
+                    playslist_mod$select(playslist_mod$current_row() + if (ky == "ArrowUp") -1L else 1L)
                 } else if (is.null(editing$active) && !courtref_active()) {
                     ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
                     if (ky %in% app_data$shortcuts$go_to_time) {
@@ -680,6 +684,9 @@ ov_scouter_server <- function(app_data) {
                     handle_manual_code(if (game_state$home_team_end == "upper") "ap" else "*p")
                 } else if (input$scout_shortcut %in% c("undo")) {
                     do_undo()
+                } else if (input$scout_shortcut %in% c("switch_windows")) {
+                    ## switch to the playslist table
+                    dojs("document.getElementsByClassName('pl2_fixhdr')[0].focus()")
                 }
             }
         })

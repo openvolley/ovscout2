@@ -191,7 +191,7 @@ ov_default_shortcuts <- function(scout_mode = "click") {
              edit_code = c(),
              undo = c("C-a"),
              switch_video = c(),
-             contact = c(),
+             contact = c(), ## not used
              video_rewind_1_30 = c(),
              video_rewind_0.1 = c(),
              video_rewind_2 = c("C-arrowleft"),
@@ -203,12 +203,15 @@ ov_default_shortcuts <- function(scout_mode = "click") {
              video_faster = c(),
              video_slower = c(),
              assign_point_top = "C-arrowup",
-             assign_point_bottom = "C-arrowdown"
+             assign_point_bottom = "C-arrowdown",
+             switch_windows = "tab"
              )
     }
 }
 
 #' Default keyboard remapping for ov_scouter
+#'
+#' These key remappings only apply to input into the scouting bar (when the scouter has been started with `scout_mode = "type"`).
 #'
 #' @param scout_mode string: either "click" for the guided point-and-click scouting interface, or "type" for the typing-based interface. Currently remapping has no effect with "click"
 #' @return A named list

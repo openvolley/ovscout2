@@ -24,15 +24,15 @@ function insertTextAtCursor(text) {
         range.pasteHTML(text);
     }
 };
-var key_map = {
+var scout_key_map = {
     // these are set from the shiny server on startup
     //"false|false|true|false|A": "!"
 };
 function mapkey(ev) {
     var ckey = ev.ctrlKey + "|" + ev.altKey + "|" + ev.shiftKey + "|" + ev.metaKey + "|" + ev.key.toLowerCase();
-    return key_map[ckey];
+    return scout_key_map[ckey];
 };
-var shortcut_map = {
+var scout_shortcut_map = {
     // these are set from the shiny server on startup
 //    "true|false|false|false|a": "undo",
 //    "true|false|false|false|ArrowLeft": "assign_point_left",
@@ -40,7 +40,7 @@ var shortcut_map = {
 };
 function mapshortcut(ev) {
     var ckey = ev.ctrlKey + "|" + ev.altKey + "|" + ev.shiftKey + "|" + ev.metaKey + "|" + ev.key.toLowerCase();
-    return shortcut_map[ckey];
+    return scout_shortcut_map[ckey];
 };
 var scoutin = [];
 var scout_in_el;
