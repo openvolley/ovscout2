@@ -29,7 +29,7 @@ ov_scouter_ui <- function(app_data) {
                         if (dash) tags$script(src = if (running_locally) "js/videojs-dash.min.js" else "//cdnjs.cloudflare.com/ajax/libs/videojs-contrib-dash/5.1.1/videojs-dash.min.js"),
                         if (yt) tags$script(src = "https://cdn.jsdelivr.net/npm/videojs-youtube@2.6.1/dist/Youtube.min.js"), ## for youtube
                         ##key press handling
-                        tags$script(src = "js/keypress.js"),
+                        tags$script(src = "js/ovscout2.js"),
                         if (app_data$scout_mode == "type") tags$script(src = "js/scout_input.js"),
                         if (app_data$with_video) tags$script(HTML(paste0("$(document).on('shiny:sessioninitialized', function() {",
                                resize_observer("review_player", fun = "Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());", debounce = 100, as = "string"),
