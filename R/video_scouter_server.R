@@ -82,8 +82,8 @@ ov_scouter_server <- function(app_data) {
 
         ## send shortcuts to js
         if (app_data$scout_mode == "type") {
-            if (length(app_data$shortcuts) > 0) dojs(paste0("scout_shortcut_map = ", make_js_keymap(app_data$shortcuts), ";"))
-            if (length(app_data$remapping) > 0) dojs(paste0("scout_key_map = ", make_js_keymap(app_data$remapping), ";"))
+            if (length(app_data$shortcuts) > 0) dojs(paste0("sk_shortcut_map = ", make_js_keymap(app_data$shortcuts), ";"))
+            if (length(app_data$remapping) > 0) dojs(paste0("sk_key_map = ", make_js_keymap(app_data$remapping), ";"))
         }
 
         have_second_video <- !is.null(app_data$video_src2)

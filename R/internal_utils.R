@@ -234,7 +234,7 @@ focus_to_element <- function(id, highlight_all = TRUE) {
 
 decode_keypress <- function(k, debug = 0) {
     temp <- strsplit(k, "@")[[1]]
-    ## elements are modifiers_and_key, element_class, element_id, cursor_position, field_length, time
+    ## elements are 1 = modifiers_and_key, 2 = element_class, 3 = element_id, 4 = cursor_position, 5 = field_length, 6 = time
     mycmd <- temp[1]
     myclass <- temp[2]
     myid <- temp[3]
