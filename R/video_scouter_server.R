@@ -594,7 +594,10 @@ ov_scouter_server <- function(app_data) {
                     ## enter
                     ## if editing, treat as update
                     ## but not for team editing, because pressing enter in the DT fires this too
-                    if (!is.null(editing$active) && !editing$active %eq% "teams") {
+                    if (!is.null(editing$active) && editing$active %eq% "rally_review") {
+                        focus_to_modal_element("redit_ok")
+                        apply_rally_review()
+                    } else if (!is.null(editing$active) && !editing$active %eq% "teams") {
                         ## if this is the code editing modal, we need to focus out of the text entry box first otherwise changes there won't be seen in the corresponding input$xyz variable
                         if (editing$active %in% c("insert below", "insert above", "edit")) {
                             ## if the user has pressed enter directly after editing text in the code_entry field (without tabbing out of that, or clicking on the commit button) the input$code_entry variable will not have been updated. So focus out of it first
@@ -736,16 +739,15 @@ ov_scouter_server <- function(app_data) {
                 if (grepl("^(>|\\*T|aT|\\*p|ap|\\*c|ac)", code) || ## timeout, point assignment, sub
                     grepl("^[a\\*]C[[:digit:]]+[:\\.][[:digit:]]+", code) || ## substitution ensuring it can't be an attack combo code
                     (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(game_state$rally_started))) { ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
-                    res <- handle_manual_code(code) ## this automatically handles end-of-rally ap, *p codes
+                    res <- handle_manual_code(code, process_rally_end = FALSE) ## FALSE so that this does not automatically handle end-of-rally ap, *p codes
+                    if (code %in% c("*p", "ap")) {
+                        review_rally()
+                    }
                     if (!res$ok) {
                         ## TODO something
-                    } else if (res$end_of_set) {
+                    } else if (isTRUE(res$end_of_set)) {
                         ## handle_manual_code will have called rally_ended if appropriate, which also detects end of set (shows the modal to confirm)
                         ## what else needs to happend? TODO
-                    }
-                    if (code %in% c("*p", "ap")) {
-                        ## end of point, pre-populate the scout box with the server team and number
-                        populate_server()
                     }
                 } else if (grepl("^[a\\*]?S$", code)) {
                     ## set serving team
@@ -797,19 +799,20 @@ ov_scouter_server <- function(app_data) {
                     newcode <- sub("~+$", "", ov_code_interpret(code, attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num))
                     cat("code after interpretation:", newcode, "\n")
                     ## code can be length > 1 now, because the scout might have entered a compound code
-                    ptemp <- parse_code_minimal(newcode) ## convert to tibble row(s)
+                    ptemp <- parse_code_minimal(newcode) ## convert to a list of tibble row(s)
+                    this_clock_time <- time_but_utc()
+                    this_video_time <- NA_real_
+                    ## use clock and video times from the input$scout_input_times time-logged keypresses if we can
+                    this_skill <- if (length(ptemp) > 0) ptemp[[1]]$skill else NA_character_
+                    this_keypress_times <- keypress_times[[i]][keypress_times[[i]]$key %eq% this_skill, ] ## TODO check case sensitivity on this, if we use e.g. 'a' but remap it to 'A' via the key remapping
+                    if (nrow(this_keypress_times) == 1) {
+                        this_clock_time <- this_keypress_times$time
+                        this_video_time <- this_keypress_times$video_time
+                    }
                     for (temp in ptemp) {
                         if (!is.null(temp)) {
                             ## should not be NULL, that's only for non-skill rows
                             rc <- rally_codes()
-                            this_clock_time <- time_but_utc()
-                            this_video_time <- NA_real_
-                            ## use clock and video times from the input$scout_input_times time-logged keypresses if we can
-                            this_keypress_times <- keypress_times[[i]][keypress_times[[i]]$key %eq% temp$skill, ]
-                            if (nrow(this_keypress_times) == 1) {
-                                this_clock_time <- this_keypress_times$time
-                                this_video_time <- this_keypress_times$video_time
-                            }
                             newrc <- code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, start_zone_valid = TRUE, endxy_valid = TRUE, t = this_video_time, time = this_clock_time, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)
                             ## update the preceding rally_codes row if new info has been provided
                             nrc <- nrow(rc)
@@ -827,6 +830,32 @@ ov_scouter_server <- function(app_data) {
                 }
             }
         })
+
+        review_rally <- function() {
+            ## codes can be reviewed and edited at the end of the rally
+            editing$active <- "rally_review"
+            rctxt <- codes_from_rc_rows(rally_codes())
+            print(rctxt)
+            showModal(vwModalDialog(title = "Review rally codes", footer = NULL, width = 100,
+                                    tags$p(tags$strong("Rally actions")),
+                                    fluidRow(column(6, do.call(tagList, lapply(seq_along(rctxt), function(i) {
+                                        textInput(paste0("rcedit_", i), label = NULL, value = rctxt[i])
+                                    })))),
+                                    tags$br(), tags$hr(),
+                                    fixedRow(column(2, offset = 10, actionButton("redit_ok", "Continue", class = "continue fatradio")))
+                                    ))
+            focus_to_modal_element("rcedit_1")
+        }
+        observeEvent(input$redit_ok, apply_rally_review())
+
+        apply_rally_review <- function() {
+            editing$active <- NULL
+            removeModal()
+            warning("apply edits HERE")
+            end_of_set <- rally_ended()
+            ## end of point, pre-populate the scout box with the server team and number
+            populate_server()
+        }
 
         hide_popup <- function() {
             dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();") ## popup
@@ -1625,7 +1654,6 @@ ov_scouter_server <- function(app_data) {
                 }
             }
         }
-
 
         rally_ended <- function() {
             ## add rally codes to scout object now
@@ -3075,7 +3103,7 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
-        handle_manual_code <- function(code) {
+        handle_manual_code <- function(code, process_rally_end = TRUE) {
             ok <- TRUE
             end_of_set <- FALSE
             if (!is.null(code)) {
@@ -3086,7 +3114,7 @@ ov_scouter_server <- function(app_data) {
                     rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
                 } else if (code %in% c("*p", "ap")) {
                     game_state$point_won_by <- substr(code, 1, 1)
-                    end_of_set <- rally_ended()
+                    end_of_set <- if (process_rally_end) rally_ended() else NA
                 } else if (grepl("^[a\\*][cC]", code)) {
                     ## substitution
                     if (code %in% c("*c", "*C")) {
