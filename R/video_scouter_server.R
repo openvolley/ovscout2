@@ -389,8 +389,9 @@ ov_scouter_server <- function(app_data) {
                             if (!changed1 && changed2) {
                                 newcode <- newcode2
                                 ## if we entered via the text box, then run this through the code parser
-                                ## TODO this can't handle non-skill codes
-                                newcode <- sub("~+$", "", ov_code_interpret(newcode))
+                                home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
+                                visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
+                                newcode <- sub("~+$", "", ov_code_interpret(newcode, attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num))
                                 ## TODO deal with a compound code that returns multiple codes here
                             } else if (!changed1 && !changed2) {
                                 ## neither changed, nothing to do
@@ -852,9 +853,32 @@ ov_scouter_server <- function(app_data) {
             editing$active <- NULL
             removeModal()
             warning("apply edits HERE")
-            end_of_set <- rally_ended()
+            rctxt0 <- codes_from_rc_rows(rally_codes()) ## the codes before review
+            ## run the reviewed codes through the interpreter
+            home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
+            visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
+            rctxt <- lapply(seq_along(rctxt0), function(i) ov_code_interpret(input[[paste0("rcedit_", i)]], attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num))
+            cat("edited codes:\n")
+            cat(str(rctxt))
+            ## may now have more (or less) codes than we started with
+            smth <- bind_rows(lapply(seq_along(rctxt), function(i) {
+                newcode <- rctxt[[i]] ## one or more codes, but some can be empty strings if the review text box was empty
+                newcode <- newcode[nzchar(newcode)]
+                if (length(newcode) < 1) return(NULL)
+                crc <- rally_codes()[i, ][rep(1, length(newcode)), ]
+                temp <- bind_rows(parse_code_minimal(newcode)) ## this might fail?
+                crc <- bind_cols(crc[, setdiff(names(crc), names(temp))], temp)[, names(crc)]
+                crc
+            }))
+            ## make sure details now match from one skill to the next
+            smth <- bind_rows(lapply(seq_len(nrow(smth)), function(i) {
+                if (i < 2) smth[1, ] else transfer_scout_details(from = smth[i - 1, ], to = smth[i, ])
+            }))
+cat(str(smth, max.level = 2))
+            rally_codes(smth) ## update
+            end_of_set <- rally_ended() ## process
             ## end of point, pre-populate the scout box with the server team and number
-            populate_server()
+            if (!end_of_set) populate_server()
         }
 
         hide_popup <- function() {

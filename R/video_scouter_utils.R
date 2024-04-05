@@ -317,8 +317,9 @@ transfer_scout_details <- function(from, to, tempo = TRUE) {
     if (tempo) {
         if ((from$skill %eq% "A" && to$skill %eq% "E" && from$team %eq% to$team) ||
             (from$skill %eq% "S" && to$skill %eq% "R") ||
-            (from$skill %eq% "A" && to$skill %in% c("B", "D") && from$team %neq% to$team)) {
-            ## make e.g. set tempo match attack tempo
+            (from$skill %eq% "A" && to$skill %in% c("B", "D") && from$team %neq% to$team) ||
+            (from$skill %eq% "B" && to$skill %eq% "D" && from$team %eq% to$team)) {
+            ## make e.g. set tempo match attack tempo, dig tempo match attack tempo
             to$tempo <- from$tempo
         }
     }
