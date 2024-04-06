@@ -89,8 +89,8 @@ function sk_handler(e) {
     newchar = sk_mapshortcut(e);
     console.log(" -- maps to scout shortcut: " + newchar);
     if (newchar) {
-	Shiny.setInputValue("scout_shortcut", newchar, { priority: "event" });
-	return false;
+        Shiny.setInputValue("scout_shortcut", newchar, { priority: "event" });
+        return false;
     }
     scoutin.push({ "key":e.key, "time":dloc, "video_time":vt });
     Shiny.setInputValue("scout_input_times", scoutin);
@@ -107,16 +107,23 @@ $(document).on('keydown', function (e) {
     var el = document.activeElement;
     var len = -1;
     if (typeof el.value != 'undefined') { len = el.value.length; };
-    //Shiny.setInputValue('controlkey', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime(), {priority: 'event'});
     var charcode = (e.key.length === 1) ? e.key.charCodeAt(0) : '';
     Shiny.setInputValue('controlkey', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.key + '|' + charcode + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime(), {priority: 'event'});
-    if (e.keyCode == 13) { e.stopPropagation(); e.preventDefault(); }
-    if (el.className.includes("pl2_fixhdr")) {
-	// send this event to the playslist input handler
-	return plk_handler(e);
+    if (e.key === "Enter") { e.stopPropagation(); e.preventDefault(); }
+    if (el.id.includes("scout_in")) {
+        if (e.key === "Enter") {
+            // send the actual text in the box to the Shiny server
+            Shiny.setInputValue("scout_input", scout_in_el.text(), { priority: "event" });
+            scout_in_el.text(""); // clear it
+            scoutin = [];
+            Shiny.setInputValue("scout_input_times", scoutin);
+        }
+    } else if (el.className.includes("pl2_fixhdr")) {
+        // send this event to the playslist input handler
+        return plk_handler(e);
     } else if (el.id.includes("scout_in")) {
-	// send this event to the scout input handler
-	return sk_handler(e);
+        // send this event to the scout input handler
+        return sk_handler(e);
     }
 });
 
@@ -126,16 +133,6 @@ $(document).on('keyup', function (e) {
     if (typeof el.value != 'undefined') { len = el.value.length; };
     var charcode = (e.key.length === 1) ? e.key.charCodeAt(0) : '';
     Shiny.setInputValue('controlkeyup', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.key + '|' + charcode + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime(), {priority: 'event'});
-    //Shiny.setInputValue('controlkeyup', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime(), {priority: 'event'});
-    if (el.id.includes("scout_in")) {
-	if (e.key === "Enter") {
-	    // send the actual text in the box to the Shiny server
-            Shiny.setInputValue("scout_input", scout_in_el.text(), { priority: "event" });
-	    scout_in_el.text(""); // clear it
-	    scoutin = [];
-            Shiny.setInputValue("scout_input_times", scoutin);
-	}
-    }
 });
 
 function dbnc(f, delay) {
