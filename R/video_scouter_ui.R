@@ -30,7 +30,6 @@ ov_scouter_ui <- function(app_data) {
                         if (yt) tags$script(src = "https://cdn.jsdelivr.net/npm/videojs-youtube@2.6.1/dist/Youtube.min.js"), ## for youtube
                         ##key press handling
                         tags$script(src = "js/ovscout2.js"),
-                        if (app_data$scout_mode == "type") tags$script(src = "js/scout_input.js"),
                         if (app_data$with_video) tags$script(HTML(paste0("$(document).on('shiny:sessioninitialized', function() {",
                                resize_observer("review_player", fun = "Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());", debounce = 100, as = "string"),
                                "vidplayer = videojs('main_video'); vidplayer.ready(function() {

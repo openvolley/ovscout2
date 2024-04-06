@@ -117,13 +117,13 @@ $(document).on('keydown', function (e) {
             scout_in_el.text(""); // clear it
             scoutin = [];
             Shiny.setInputValue("scout_input_times", scoutin);
+        } else {
+            // send this event to the scout input handler
+            return sk_handler(e);
         }
     } else if (el.className.includes("pl2_fixhdr")) {
         // send this event to the playslist input handler
         return plk_handler(e);
-    } else if (el.id.includes("scout_in")) {
-        // send this event to the scout input handler
-        return sk_handler(e);
     }
 });
 
