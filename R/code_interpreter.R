@@ -51,7 +51,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
             int_code <- paste0(if (grepl("^[TpcCP]", c)) "*", c)
         } else if (grepl("^[a\\*]\\$\\$&", c)) {
             ## green code, leave as-is
-            int_code <- code
+            int_code <- c
         } else if (str_detect(c, "~")) {
             int_code <- paste0(c, paste0(rep("~", 20 - nchar(c)), collapse = ""), collapse = "")
         } else if (!str_detect(c, "\\.")) {
