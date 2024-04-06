@@ -578,7 +578,7 @@ ov_scouter_server <- function(app_data) {
                 ## so for "#" we'd get ky == utf8ToInt("3") (which is 51) plus mycmd[3] == "true" (shift)
                 ## NOW for "#" we get ky == "#" plus mycmd[3] == "true" (shift)
                 if (debug > 1) cat("key: ", ky, "\n")
-                if (ky %eq% "Escape") { ##if (ky %eq% 27) {
+                if (ky %eq% "Escape") {
                     ## esc
                     if (isTRUE(scout_modal_active())) {
                         ## if we have a scouting modal showing, treat this as cancel and rewind
@@ -590,12 +590,17 @@ ov_scouter_server <- function(app_data) {
                         removeModal()
                         focus_to_scout_bar()
                     } else if (is.null(editing$active) || !editing$active %in% "teams") {
-                        do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
-                        editing$active <- NULL
-                        removeModal()
-                        if (do_unpause) do_video("play")
+                        if (grepl("scout_in", k$id) && "escape" %in% app_data$shortcuts$pause) {
+                            ## wackiness here if we want to use the escape key as a pause shortcut
+                            ## let the scout shortcut code handle it
+                        } else {
+                            do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
+                            editing$active <- NULL
+                            removeModal()
+                            if (do_unpause) do_video("play")
+                        }
                     }
-                } else if (ky %eq% "Enter") { ##} else if (ky %eq% 13) {
+                } else if (ky %eq% "Enter") {
                     ## enter
                     ## if editing, treat as update
                     ## but not for team editing, because pressing enter in the DT fires this too
@@ -668,7 +673,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$controlkeyup, {
             if (!is.null(input$controlkeyup)) {
                 k <- decode_keypress(input$controlkeyup, debug)
-                if (debug > 1) cat("control key up: ", capture.output(str(k)), "\n")
+                if (debug > 1) cat("control key up: ", cstr(k), "\n")
                 if (k$key %in% app_data$shortcuts$hide_popup) {
                     ## z
                     ## re-show the modal after temporarily hiding
@@ -682,7 +687,23 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(input$scout_shortcut)) {
                 if (debug > 1) cat("scout shortcut:", input$scout_shortcut, "\n")
                 if (input$scout_shortcut %in% c("pause", "pause_no_popup")) {
-                    deal_with_pause(show_modal = input$scout_shortcut %eq% "pause")
+                    ## handle pause here rather than in the main keydown code, because by default we want to use the escape key as a pause shortcut
+                    if (!courtref_active()) {
+                        if (!is.null(editing$active) && editing$active %eq% "admin") {
+                            dismiss_admin_modal()
+                        } else {
+                            if (video_state$paused) {
+                                ## we are paused
+                                do_video("play")
+                            } else {
+                                do_video("pause")
+                                if (input$scout_shortcut == "pause") {
+                                    editing$active <- "admin"
+                                    show_admin_modal()
+                                }
+                            }
+                        }
+                    }
                 } else if (input$scout_shortcut %in% c("video_forward_2", "video_forward_10", "video_rewind_2", "video_rewind_10")) {
                     by <- as.numeric(sub("[^[:digit:]]+", "", input$scout_shortcut))
                     do_video(if (grepl("forward", input$scout_shortcut)) "ff" else "rew", by)
@@ -2303,7 +2324,7 @@ ov_scouter_server <- function(app_data) {
                                 tempeval[length(tempeval) - 2] <- aeval
                             }
                         } else {
-                            warning("could not adjust attack evaluation for dig with evaluation: ", capture.output(str(passq)))
+                            warning("could not adjust attack evaluation for dig with evaluation: ", cstr(passq))
                         }
                         rc$eval <- tempeval
                     }
