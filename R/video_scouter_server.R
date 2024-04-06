@@ -8,7 +8,7 @@ ov_scouter_server <- function(app_data) {
         populate_server <- function() {
             cat(str(isolate(reactiveValuesToList(game_state))))
             srv_code <- isolate(paste0(game_state$serving, if (game_state$serving %eq% "*") ldz2(game_state$home_p1) else ldz2(game_state$visiting_p1)))
-            dojs(paste0("var el = document.getElementById('scout_in'); if (el) { el.textContent = '", srv_code, "'; setEndOfContenteditable(el); el.focus(); }"))
+            focus_to_scout_bar(srv_code)
         }
 
         extra_db_con <- NULL
@@ -585,6 +585,10 @@ ov_scouter_server <- function(app_data) {
                         do_cancel_rew()
                     } else if (courtref_active()) {
                         ## do nothing
+                    } else if (!is.null(editing$active) && editing$active %eq% "rally_review") {
+                        editing$active <- NULL
+                        removeModal()
+                        focus_to_scout_bar()
                     } else if (is.null(editing$active) || !editing$active %in% "teams") {
                         do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
                         editing$active <- NULL
@@ -810,16 +814,26 @@ ov_scouter_server <- function(app_data) {
             rctxt <- codes_from_rc_rows(rally_codes())
             print(rctxt)
             showModal(vwModalDialog(title = "Review rally codes", footer = NULL, width = 100,
+                                    tags$p(tags$strong("Tab"), ", ", tags$strong("Shift-Tab"), "to move between code boxes.",
+                                           tags$strong("Enter"), "or", tags$strong("Continue"), "to accept all and start next rally.",
+                                           tags$strong("Esc"), "or", tags$strong("Cancel"), "to cancel the end of rally."),
                                     tags$p(tags$strong("Rally actions")),
                                     fluidRow(column(6, do.call(tagList, lapply(seq_along(rctxt), function(i) {
                                         textInput(paste0("rcedit_", i), label = NULL, value = rctxt[i])
                                     })))),
                                     tags$br(), tags$hr(),
-                                    fixedRow(column(2, offset = 10, actionButton("redit_ok", "Continue", class = "continue fatradio")))
+                                    fixedRow(column(2, actionButton("redit_cancel", "Cancel", class = "cancel fatradio")),
+                                             column(2, offset = 8, actionButton("redit_ok", "Continue", class = "continue fatradio")))
+
                                     ))
             focus_to_modal_element("rcedit_1")
         }
         observeEvent(input$redit_ok, apply_rally_review())
+        observeEvent(input$redit_cancel, {
+            editing$active <- NULL
+            removeModal()
+            focus_to_scout_bar()
+        })
 
         apply_rally_review <- function() {
             editing$active <- NULL
