@@ -2,7 +2,6 @@
 
 export(dv_create)
 export(dv_example_file)
-export(dv_scout_from_console)
 export(dv_set_lineups)
 export(ov_app_styling)
 export(ov_default_attack_table)

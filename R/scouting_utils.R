@@ -92,190 +92,6 @@ dv_set_lineups <- function(x, set_number, lineups, setter_positions, setters) {
     add_to_plays2(x, codes = lineup_codes, set_number = set_number, home_setter_position = setter_positions[1], visiting_setter_position = setter_positions[2], home_lineup = lineups[[1]][1:6], visiting_lineup = lineups[[2]][1:6], scores = c(0L, 0L), serving = NA_character_, home_liberos = ht_libs, visiting_liberos = vt_libs)
 }
 
-#' Enter scout codes from the console
-#'
-#' Probably only useful for testing.
-#'
-#' @param x datavolley: a datavolley object as returned by [dv_create()]
-#' @param prompt string: the prompt to show
-#' @param compound_table tibble: the table of default compound codes
-#' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
-#'
-#' @return A modified version of `x`, with rows added to the plays2 component
-#'
-#' @export
-dv_scout_from_console <- function(x, prompt = "SCOUT> ", compound_table = ov_default_compound_table(), default_scouting_table = ov_default_scouting_table()) {
-    if (is.null(x$plays2) || nrow(x$plays2) < 1) {
-        if (!is.null(x$plays) && nrow(x$plays) > 0) x$plays2 <- plays_to_plays2(x$plays)
-        ## note that this might get the last element of the serving column wrong, to fix
-    }
-    if (nrow(x$plays2) < 1) stop("no plays2 data, do you need to run dv_set_lineup?")
-    message("enter 'p' to assign the point to the home team, 'ap' to the visiting team, 'END' to exit before set has finished")
-    message("  for testing: pzz, apzz to assign point and end the set")
-    if (is.null(x$game_state)) {
-        x$game_state <- tail(x$plays2, 1)
-        if (!"serving" %in% names(x$game_state)) x$game_state$serving <- NA ## adjust this if starting partway through set TODO
-    }
-    while (TRUE) {
-        rally_going <- TRUE
-        rally_codes <- c()
-        while (rally_going) {
-            code <- readline(prompt)
-            if (code == "END") break
-            if (grepl("^undo", tolower(code))) {
-                n_to_undo <- as.numeric(sub("undo[[:space:]]*", "", code, ignore.case = TRUE))
-                if (is.na(n_to_undo)) n_to_undo <- 1L
-                x <- undo(x, n = n_to_undo)
-                if (length(rally_codes) >= n_to_undo) rally_codes <- head(rally_codes, -n_to_undo)
-            } else if (code %in% c("T", "*T", "aT")) {
-                ## timeout
-                if (code == "T") code <- "*T"
-                x <- add_timeout(x = x, team = substr(code, 1, 1))
-            } else if (grepl("^[a\\*]?S$", code)) {
-                x$game_state$serving <- if (grepl("^[S\\*]", code)) "*" else "a"
-            } else if (grepl("^[a\\*]?C", code)) {
-                ## substitution Cout.in or aCout.in
-                if (!grepl("^[a\\*]?C[[:digit:]]+[\\.:][[:digit:]]+", code)) {
-                    message("illegal sub code, ignoring")
-                } else {
-                    if (!grepl("^[a\\*]", code)) code <- paste0("*", code)
-                    temp <- stringr::str_match(code, "C([[:digit:]]+)[\\.:]([[:digit:]]+)")
-                    sub_out <- as.numeric(temp[1, 2])
-                    sub_in <- as.numeric(temp[1, 3])
-                    sub_team <- if (grepl("^[C\\*]", code)) "*" else "a"
-                    x <- add_substitution(x = x, team = sub_team, player_out = sub_out, player_in = sub_in)
-                }
-            } else if (grepl("^[a\\*]?P", code)) {
-                ## change of setter
-                if (!grepl("^[a\\*]?P[[:digit:]]+$", code)) {
-                    message("illegal setter code, ignoring")
-                } else {
-                    new_setter <- as.numeric(sub("^.*P", "", code))
-                    team <- if (grepl("^[P\\*]", code)) "*" else "a"
-                    x <- change_setter(x, team = team, new_setter = new_setter)
-                }
-            } else if (code %in% c("p", "ap", "pzz", "apzz")) {
-                set_ended <- code %in% c("pzz", "apzz")
-                code <- sub("zz", "", code)
-                point_won_by <- if (code == "p") "*" else "a"
-                rally_codes <- unlist(lapply(rally_codes, ov_code_interpret, attack_table = x$meta$attacks, compound_table = compound_table, default_scouting_table = default_scouting_table))
-                x <- add_rally(x, codes = rally_codes, point_won_by = point_won_by)
-                rally_going <- FALSE
-                if (is_end_of_set(x)) {
-                    x <- update_meta(x, set_ended = TRUE) ## update the meta$result section, etc
-                    break
-                }
-            } else {
-                rally_codes <- c(rally_codes, code)
-            }
-        }
-        if (code == "END" || grepl("^\\*\\*[[:digit:]]set", code)) break
-    }
-    ## update match metadata
-    x <- update_meta(x)
-    ## reparse to populate full plays data frame
-    dv_reparse(x)
-}
-
-## functions that manipulate the scouted match data. Currently called by dv_scout_from_console, but intended for use with other (graphical) scouting interfaces as well
-undo <- function(x, n = 1L) {
-    x$plays2 <- head(x$plays2, -n)
-    x$game_state <- tail(x$plays2, 1)
-    x
-}
-
-add_timeout <- function(x, team) {
-    add_non_rally(x, codes = paste0(team, "T"))
-}
-
-add_substitution <- function(x, team, player_out, player_in) {
-    team <- match.arg(team, c("*", "a"))
-    pseq <- seq_len(if (dv_is_beach(x)) 2L else 6L)
-    lup_cols <- if (team == "*") paste0("home_p", pseq) else paste0("visiting_p", pseq)
-    this_lup <- as.numeric(x$game_state[, lup_cols])
-    available_players <- if (team == "*") x$meta$players_h$number else x$meta$players_v$number
-    if (!player_out %in% this_lup) {
-        message("player being subbed out is not on court, ignoring sub")
-    } else if (player_in %in% this_lup) {
-        message("player being subbed in is already on court, ignoring sub")
-    ##} else if (!player_in %in% available_players) {
-    ##    message("player being subbed in is not in player list, ignoring sub")
-    } else {
-        this_lup[this_lup == player_out] <- player_in
-        x$game_state[, lup_cols] <- as.list(this_lup)
-        message(if (team == "*") "home" else "visiting", " team player ", player_in, " in for player ", player_out)
-        x <- add_non_rally(x, codes = paste0(team, "c", ldz(player_out), ":", ldz(player_in)))
-    }
-    x
-}
-
-change_setter <- function(x, team, new_setter) {
-    team <- match.arg(team, c("*", "a"))
-    pseq <- seq_len(if (dv_is_beach(x)) 2L else 6L)
-    lup_cols <- if (team == "*") paste0("home_p", pseq) else paste0("visiting_p", pseq)
-    this_lup <- as.numeric(x$game_state[, lup_cols])
-    if (!new_setter %in% this_lup) {
-        message("new setter ", new_setter, " is not on court, ignoring new setter code")
-    } else {
-        setter_pos <- which(this_lup == new_setter)
-        if (team == "*") x$game_state$home_setter_position <- setter_pos else x$game_state$visiting_setter_position <- setter_pos
-        message(if (team == "*") "home" else "visiting", " team player ", new_setter, " is now the setter on court")
-        x <- add_non_rally(x, codes = paste0(team, "P", ldz(new_setter)))
-    }
-    x
-}
-
-add_non_rally <- function(x, codes) {
-    add_to_plays2(x, codes = codes)
-}
-
-add_rally <- function(x, codes, point_won_by) {
-    is_beach <- dv_is_beach(x)
-    pseq <- seq_len(if (is_beach) 2L else 6L)
-    temp <- na.omit(stringr::str_match(codes, "^([a\\*]?)[[:digit:]]+S")[, 2])
-    if (length(temp) == 1) {
-        if (nzchar(temp)) temp <- "*" ## was NNS, missing the leading *
-        this_serving <- temp
-        if (!is.na(x$game_state$serving) && this_serving != x$game_state$serving) {
-            message("team ", this_serving, " has been scouted as serving, but I think team ", x$game_state$serving, " is serving")
-        }
-    } else {
-        ## no serve in this rally
-        if (!is.na(x$game_state$serving)) {
-            this_serving <- x$game_state$serving
-        } else {
-            stop("don't know who is serving") ## could happen on first point of set and rotation error scouted without serve, to deal with
-        }
-    }
-    ## add the [*a]pXX:YY code at the end of the rally
-    scores_end_of_point <- as.numeric(x$game_state[, c("home_score_start_of_point", "visiting_score_start_of_point")]) + as.integer(c(point_won_by == "*", point_won_by == "a"))
-    pcode <- paste0(point_won_by, "p", sprintf("%02d:%02d", scores_end_of_point[1], scores_end_of_point[2]))
-    ## add green codes if needed
-    codes <- make_auto_codes(c(codes, pcode), x)
-    x <- add_to_plays2(x, codes = codes, serving = this_serving)
-    ## update game_state
-    do_rot <- point_won_by != this_serving
-    x$game_state$serving <- point_won_by
-    if (point_won_by == "*") {
-        x$game_state$home_score_start_of_point <- x$game_state$home_score_start_of_point + 1L
-    } else {
-        x$game_state$visiting_score_start_of_point <- x$game_state$visiting_score_start_of_point + 1L
-    }
-    if (do_rot) {
-        if (point_won_by == "*") {
-            x$game_state$home_setter_position <- rotpos(x$game_state$home_setter_position, n = length(pseq))
-            x$game_state[, paste0("home_p", pseq)] <- as.list(rotvec(as.numeric(x$game_state[, paste0("home_p", pseq)])))
-            poscode <- paste0("*z", x$game_state$home_setter_position)
-        } else {
-            x$game_state$visiting_setter_position <- rotpos(x$game_state$visiting_setter_position, n = length(pseq))
-            x$game_state[, paste0("visiting_p", pseq)] <- as.list(rotvec(as.numeric(x$game_state[, paste0("visiting_p", pseq)])))
-            poscode <- paste0("az", x$game_state$visiting_setter_position)
-        }
-        x <- add_to_plays2(x, codes = poscode)
-    }
-    x
-}
-
 ## update the match metadata:
 ## - played, partial set scores, score, duration, score_home_team, score_visiting_team in meta$result
 ## - sets_won, won_match in meta$teams
@@ -286,7 +102,8 @@ update_meta <- function(x, set_ended = FALSE) {
     if (set_ended) {
         ## only call this as the set ends, i.e. the last row in x$plays2 is the last action of the set
         message("set ", x$game_state$set_number, " ended")
-        x <- add_non_rally(x, codes = paste0("**", x$game_state$set_number, "set"))
+        x <- add_to_plays2(x, codes = paste0("**", x$game_state$set_number, "set"))
+
         ## add row(s) to x$meta$result if needed
         if (nrow(x$meta$result) < x$game_state$set_number) {
             x$meta$result <- bind_rows(x$meta$result, x$meta$result[0, ][rep(1, x$game_state$set_number - nrow(x$meta$result)), ]) ## add all-NA row(s)
@@ -385,16 +202,6 @@ update_meta <- function(x, set_ended = FALSE) {
     x
 }
 
-is_end_of_set <- function(x) {
-    scores <- c(x$game_state$home_score_start_of_point, x$game_state$visiting_score_start_of_point)
-    if (dv_is_beach(x)) {
-        if (max(scores) >= 21 && abs(diff(scores)) >= 2) return(TRUE)
-    } else {
-        if (((max(scores) >= 25 && x$game_state$set_number < 5) || (max(scores) >= 15 && x$game_state$set_number == 5)) && abs(diff(scores)) >= 2) return(TRUE)
-    }
-    FALSE
-}
-
 ## write the scouted match to a file, using the plays2 data instead of the plays
 ## then it is possible to read that file back in, which will populate the full plays data.frame without having to duplicate the code needed to do this
 dv_write2 <- function(x, file, text_encoding = "UTF-8") {
@@ -463,18 +270,6 @@ dv_write2 <- function(x, file, text_encoding = "UTF-8") {
     }
     invisible(file)
 }
-
-dv_reparse <- function(x, text_encoding = "UTF-8") {
-    ## write and re-read, which will populate the full x$plays data.frame
-    tf <- tempfile(fileext = ".dvw")
-    on.exit(unlink(tf))
-    out <- dv_read(dv_write2(x, tf), encoding = "UTF-8")
-    ## repopulate these
-    out$game_state <- x$game_state
-    out$plays2 <- x$plays2
-    out
-}
-
 
 ## ---
 ## support functions, probably not necessary to call these directly
