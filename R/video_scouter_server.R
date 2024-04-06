@@ -686,10 +686,14 @@ ov_scouter_server <- function(app_data) {
                 } else if (input$scout_shortcut %in% c("video_forward_2", "video_forward_10", "video_rewind_2", "video_rewind_10")) {
                     by <- as.numeric(sub("[^[:digit:]]+", "", input$scout_shortcut))
                     do_video(if (grepl("forward", input$scout_shortcut)) "ff" else "rew", by)
-                } else if (input$scout_shortcut %in% c("assign_point_top")) {
-                    handle_manual_code(if (game_state$home_team_end == "upper") "*p" else "ap")
-                } else if (input$scout_shortcut %in% c("assign_point_bottom")) {
-                    handle_manual_code(if (game_state$home_team_end == "upper") "ap" else "*p")
+                } else if (input$scout_shortcut %in% c("assign_point_top", "assign_point_bottom")) {
+                    rally_won_code <- if (input$scout_shortcut == "assign_point_top") {
+                                          if (game_state$home_team_end == "upper") "*p" else "ap"
+                                      } else {
+                                          if (game_state$home_team_end == "upper") "ap" else "*p"
+                                      }
+                    res <- handle_manual_code(rally_won_code, process_rally_end = FALSE) ## FALSE so that this does not automatically handle end-of-rally ap, *p codes
+                    review_rally()
                 } else if (input$scout_shortcut %in% c("undo")) {
                     do_undo()
                 } else if (input$scout_shortcut %in% c("switch_windows")) {
