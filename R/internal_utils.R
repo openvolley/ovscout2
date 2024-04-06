@@ -254,3 +254,13 @@ decode_keypress <- function(k, debug = 0) {
         NULL
     }
 }
+
+## get a variable. Use e.g. inside functions defined outside of the server.R code but which need to read e.g. an input$something value
+getvar <- function (varname, fail = TRUE) {
+    for (pf in seq(1L, sys.nframe() - 1L, by = 1L)) {
+        if (exists(varname, envir = parent.frame(n = pf)))
+            return(get(varname, envir = parent.frame(n = pf)))
+    }
+    if (isTRUE(fail)) stop("variable ", varname, " could not be found")
+    NULL
+}
