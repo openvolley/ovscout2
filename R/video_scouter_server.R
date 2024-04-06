@@ -704,7 +704,7 @@ ov_scouter_server <- function(app_data) {
             ## also get the time stamps
             keypress_times <- get_scout_input_times()
             ## and split on spaces
-            keypress_times <- split(keypress_times, cumsum(keypress_times$key %eq% " "))
+            if (!is.null(keypress_times)) keypress_times <- split(keypress_times, cumsum(keypress_times$key %eq% " "))
             for (i in seq_along(codes)) {
                 code <- codes[i]
                 if (grepl("^[TpczPC]", code)) code <- paste0("*", code)
@@ -777,8 +777,8 @@ ov_scouter_server <- function(app_data) {
                     this_video_time <- NA_real_
                     ## use clock and video times from the input$scout_input_times time-logged keypresses if we can
                     this_skill <- if (length(ptemp) > 0) ptemp[[1]]$skill else NA_character_
-                    this_keypress_times <- keypress_times[[i]][keypress_times[[i]]$key %eq% this_skill, ] ## TODO check case sensitivity on this, if we use e.g. 'a' but remap it to 'A' via the key remapping
-                    if (nrow(this_keypress_times) == 1) {
+                    this_keypress_times <- if (!is.null(keypress_times)) keypress_times[[i]][keypress_times[[i]]$key %eq% this_skill, ] else NULL ## TODO check case sensitivity on this, if we use e.g. 'a' but remap it to 'A' via the key remapping
+                    if (!is.null(this_keypress_times) && nrow(this_keypress_times) == 1) {
                         this_clock_time <- this_keypress_times$time
                         this_video_time <- this_keypress_times$video_time
                     }
@@ -846,7 +846,7 @@ ov_scouter_server <- function(app_data) {
             smth <- bind_rows(lapply(seq_len(nrow(smth)), function(i) {
                 if (i < 2) smth[1, ] else transfer_scout_details(from = smth[i - 1, ], to = smth[i, ])
             }))
-cat(str(smth, max.level = 2))
+## cat(str(smth, max.level = 2))
             rally_codes(smth) ## update
             end_of_set <- rally_ended() ## process
             ## end of point, pre-populate the scout box with the server team and number
