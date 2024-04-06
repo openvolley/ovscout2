@@ -13,5 +13,5 @@ ov_default_key_remapping(scout_mode = "click")
 A named list
 }
 \description{
-Default keyboard remapping for ov_scouter
+These key remappings only apply to input into the scouting bar (when the scouter has been started with \code{scout_mode = "type"}).
 }
