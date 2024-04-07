@@ -110,7 +110,11 @@ $(document).on('keydown', function (e) {
     var charcode = (e.key.length === 1) ? e.key.charCodeAt(0) : '';
     Shiny.setInputValue('controlkey', e.ctrlKey + '|' + e.altKey + '|' + e.shiftKey + '|' + e.metaKey + '|' + e.key + '|' + charcode + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime(), {priority: 'event'});
     if (e.key === "Enter") { e.stopPropagation(); e.preventDefault(); }
-    if (el.id.includes("scout_in")) {
+    // key events in a modal will be in the body element of class modal-open or in the modal itself
+    if (el.className.includes("scedit-modal") || ($("body .scedit-modal").length == 1) ) {
+        // key event into the scedit modal
+        e.stopPropagation(); e.preventDefault();
+    } else if (el.id.includes("scout_in")) {
         if (e.key === "Enter") {
             // send the actual text in the box to the Shiny server
             Shiny.setInputValue("scout_input", scout_in_el.text(), { priority: "event" });
