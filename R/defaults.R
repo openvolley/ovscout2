@@ -182,28 +182,28 @@ ov_default_shortcuts <- function(scout_mode = "click") {
              video_slower = "<"
              )
     } else {
-        ## shortcuts in typing mode can use modifier keys: C-x is ctrl and x, A-x is alt-x, M-x is meta-x, S-x is shift-x
-        ## NOTE that the actual key should be lower case here (not the modifiers C-, A-, S-, or M-)
+        ## shortcuts in typing mode can use modifier keys: Ctrl-x is ctrl and x, ditto Alt-x, Meta-x, Shift-x
+        ## NOTE that the actual key should be lower case here (not the modifiers Ctrl-, Alt-, Shift-, or Meta-)
         list(hide_popup = c(),
              pause = c("escape"),
-             pause_no_popup = c("A-escape"),
+             pause_no_popup = c("Alt-escape"),
              go_to_time = c(),
              edit_code = c(),
-             undo = c("C-a"),
+             undo = c("Ctrl-a"),
              switch_video = c(),
              contact = c(), ## not used
              video_rewind_1_30 = c(),
              video_rewind_0.1 = c(),
-             video_rewind_2 = c("C-arrowleft"),
-             video_rewind_10 = c("A-arrowleft"), ## NB C-A-arrows don't work for some reason, even though at least some C-A-otherkeys do
+             video_rewind_2 = c("Ctrl-arrowleft"),
+             video_rewind_10 = c("Alt-arrowleft"), ## NB C-A-arrows don't work for some reason, even though at least some C-A-otherkeys do
              video_forward_1_30 = c(),
              video_forward_0.1 = c(),
-             video_forward_2 = c("C-arrowright"),
-             video_forward_10 = c("A-arrowright"),
+             video_forward_2 = c("Ctrl-arrowright"),
+             video_forward_10 = c("Alt-arrowright"),
              video_faster = c(),
              video_slower = c(),
-             assign_point_top = "C-arrowup",
-             assign_point_bottom = "C-arrowdown",
+             assign_point_top = "Ctrl-arrowup",
+             assign_point_bottom = "Ctrl-arrowdown",
              switch_windows = "tab"
              )
     }
@@ -224,16 +224,16 @@ ov_default_key_remapping <- function(scout_mode = "click") {
         list()
     } else {
         ## shortcuts in typing mode can use modifier keys: C-x is ctrl and x, A-x is alt-x, M-x is meta-x, S-x is shift-x
-        list(`!` = "S-a")
+        list(`!` = "Shift-a")
     }
 }
 
 shortcut2json <- function(key, to) {
-    paste0("'", tolower(grepl("C-", key, fixed = TRUE)), "|", ## ctrl
-           tolower(grepl("A-", key, fixed = TRUE)), "|", ## alt
-           tolower(grepl("S-", key, fixed = TRUE)), "|", ## shift
-           tolower(grepl("M-", key, fixed = TRUE)), "|", ## meta
-           sub("C-", "", sub("A-", "", sub("S-", "", sub("M-", "", key, fixed = TRUE), fixed = TRUE), fixed = TRUE), fixed = TRUE),
+    paste0("'", tolower(grepl("Ctrl-", key, fixed = TRUE)), "|", ## ctrl
+           tolower(grepl("Alt-", key, fixed = TRUE)), "|", ## alt
+           tolower(grepl("Shift-", key, fixed = TRUE)), "|", ## shift
+           tolower(grepl("Meta-", key, fixed = TRUE)), "|", ## meta
+           sub("Ctrl-", "", sub("Alt-", "", sub("Shift-", "", sub("Meta-", "", key, fixed = TRUE), fixed = TRUE), fixed = TRUE), fixed = TRUE),
            "': '", to, "'")
 }
 
