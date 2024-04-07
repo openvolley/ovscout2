@@ -62,10 +62,11 @@ var2fc <- function(x) {
 ## }
 ##
 ## @export
-vwModalDialog <- function(..., width = 90, modal_halign = "center") {
+vwModalDialog <- function(..., width = 90, modal_halign = "center", class) {
     rgs <- list(...)
     rgs$size <- "l"
     md <- do.call(shiny::modalDialog, rgs)
+    if (!missing(class)) md$attribs <- c(md$attribs, list(class = class))
     ## recursive function to inject style
     rcc <- function(z) {
         if (is.list(z) && "class" %in% names(z)) {
