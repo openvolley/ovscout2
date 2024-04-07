@@ -959,7 +959,8 @@ guess_cover_player_options <- function(game_state, dvw, system, weighted = TRUE)
 ## returns a list of button tags
 ## radio buttons are slightly non-standard, in that it is possible to start with none selected (use selected = NA). Also selecting the already-selected button will cause none to be selected. But you can't have more than one selected at a time
 make_fat_radio_buttons <- function(..., as_radio = "radio") make_fat_buttons(..., as_radio = as_radio) ## "blankable", can de-select the selected button, "radio" must always have one selected
-make_fat_buttons <- function(choices, selected, input_var, extra_class = c(), as_radio = "", ...) {
+make_fat_buttons <- function(choices, selected, input_var, as_radio = "", ...) {
+    ## any extra classes can be passed as class = "whatever" in the ... arguments, this will be added to the classes
     if (length(choices) < 1) return(NULL)
     if (length(names(choices)) < 1) names(choices) <- choices
     cls <- uuid()
@@ -970,7 +971,7 @@ make_fat_buttons <- function(choices, selected, input_var, extra_class = c(), as
     if (!is.na(selected)) selected <- if (selected %in% choices) which(choices == selected) else if (selected %in% names(choices)) which(names(choices) == selected) else if (!is.na(selected)) 1L
     if (length(selected) > 1) selected <- selected[1]
     clickfun <- if (nzchar(as_radio)) paste0(if (as_radio == "blankable") "var wa=$(this).hasClass('active');" else "var wa=false;", " $('.", cls, "').removeClass('active'); if (!wa) { $(this).addClass('active'); };") else "var wa=false;"
-    buts <- lapply(seq_along(choices), function(i) tags$button(id = digest::digest(paste0("but-", input_var, "-", choices[[i]])), class = paste(c("btn", "btn-default", "fatradio", cls, extra_class, if (grepl("(L)", names(choices)[i], fixed = TRUE)) "libero", if ((i %eq% selected) && nzchar(as_radio)) "active"), collapse = " "), HTML(names(choices)[i]), onclick = paste0(clickfun, " if (!wa) { Shiny.setInputValue('", input_var, "', '", choices[[i]], "', {priority: 'event'}) } else { Shiny.setInputValue('", input_var, "', null, {priority: 'event'}) }"), ...))
+    buts <- lapply(seq_along(choices), function(i) tags$button(id = digest::digest(paste0("but-", input_var, "-", choices[[i]])), class = paste(c("btn", "btn-default", "fatradio", cls, if (grepl("(L)", names(choices)[i], fixed = TRUE)) "libero", if ((i %eq% selected) && nzchar(as_radio)) "active"), collapse = " "), HTML(names(choices)[i]), onclick = paste0(clickfun, " if (!wa) { Shiny.setInputValue('", input_var, "', '", choices[[i]], "', {priority: 'event'}) } else { Shiny.setInputValue('", input_var, "', null, {priority: 'event'}) }"), ...))
     ## set the initial value of the associated input variable, or clear it
     dojs(paste0("Shiny.setInputValue(\"", input_var, "\", ", if (!is.na(selected) && nzchar(as_radio)) paste0("\"", choices[[selected]], "\"") else "null", ")"))
     attr(buts, "class") <- cls
