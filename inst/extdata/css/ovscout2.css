@@ -20,3 +20,6 @@ h2, h3, h4 {font-weight: bold;}
 #c3_other_outer.active { background-color:#d5d5d5; }
 
 
+.fatradio, .scedit { height:7vh; }
+.fatradio { width:100%; }
+
