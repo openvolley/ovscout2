@@ -253,6 +253,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     ## same with shortcuts
     scts <- ov_default_shortcuts(scout_mode)
     for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
+    ## previously we allowed multiple shortcut keys per shortcut, but now only one
+    for (nm in names(scts)) { if (length(scts[[nm]]) > 1) scts[[nm]] <- scts[[nm]][1] }
 
     ## attack_table in options overrides the one in the file. Also if we have no attack table, we need one
     if ((did_provide_s_opts && "attack_table" %in% names(scouting_options)) || is.null(dvw$meta$attacks)) dvw$meta$attacks <- opts$attack_table

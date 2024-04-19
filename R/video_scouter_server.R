@@ -578,93 +578,99 @@ ov_scouter_server <- function(app_data) {
                 ## so for "#" we'd get ky == utf8ToInt("3") (which is 51) plus mycmd[3] == "true" (shift)
                 ## NOW for "#" we get ky == "#" plus mycmd[3] == "true" (shift)
                 if (debug > 1) cat("key: ", ky, "\n")
-                if (ky %eq% "Escape") {
-                    ## esc
-                    if (isTRUE(scout_modal_active())) {
-                        ## if we have a scouting modal showing, treat this as cancel and rewind
-                        do_cancel_rew()
-                    } else if (courtref_active()) {
-                        ## do nothing
-                    } else if (!is.null(editing$active) && editing$active %eq% "rally_review") {
-                        editing$active <- NULL
-                        removeModal()
-                        focus_to_scout_bar()
-                    } else if (is.null(editing$active) || !editing$active %in% "teams") {
-                        if (grepl("scout_in", k$id) && "escape" %in% app_data$shortcuts$pause) {
-                            ## wackiness here if we want to use the escape key as a pause shortcut
-                            ## let the scout shortcut code handle it
-                        } else {
-                            do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
+                if ((k$class %eq% "modal-open" || grepl("scedit-modal", k$class)) && !is.null(editing$active) && editing$active %eq% "edit_shortcuts") {
+                    cat("shortcut edit\n")
+                    sc_newvalue(key_as_text(k))
+                    if (!k$key %in% c("Alt", "Shift", "Meta", "Control")) output$scedit_out <- renderUI(tags$code(key_as_text(k)))
+                } else {
+                    if (ky %eq% "Escape") {
+                        ## esc
+                        if (isTRUE(scout_modal_active())) {
+                            ## if we have a scouting modal showing, treat this as cancel and rewind
+                            do_cancel_rew()
+                        } else if (courtref_active()) {
+                            ## do nothing
+                        } else if (!is.null(editing$active) && editing$active %eq% "rally_review") {
                             editing$active <- NULL
                             removeModal()
-                            if (do_unpause) do_video("play")
+                            focus_to_scout_bar()
+                        } else if (is.null(editing$active) || !editing$active %in% "teams") {
+                            if (grepl("scout_in", k$id) && "escape" %in% app_data$shortcuts$pause) {
+                                ## wackiness here if we want to use the escape key as a pause shortcut
+                                ## let the scout shortcut code handle it
+                            } else {
+                                do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
+                                editing$active <- NULL
+                                removeModal()
+                                if (do_unpause) do_video("play")
+                            }
                         }
-                    }
-                } else if (ky %eq% "Enter") {
-                    ## enter
-                    ## if editing, treat as update
-                    ## but not for team editing, because pressing enter in the DT fires this too
-                    if (!is.null(editing$active) && editing$active %eq% "rally_review") {
-                        focus_to_modal_element("redit_ok")
-                        apply_rally_review()
-                    } else if (!is.null(editing$active) && !editing$active %eq% "teams") {
-                        ## if this is the code editing modal, we need to focus out of the text entry box first otherwise changes there won't be seen in the corresponding input$xyz variable
-                        if (editing$active %in% c("insert below", "insert above", "edit")) {
-                            ## if the user has pressed enter directly after editing text in the code_entry field (without tabbing out of that, or clicking on the commit button) the input$code_entry variable will not have been updated. So focus out of it first
-                            focus_to_modal_element("edit_commit")
+                    } else if (ky %eq% "Enter") {
+                        ## enter
+                        ## if editing, treat as update
+                        ## but not for team editing, because pressing enter in the DT fires this too
+                        if (!is.null(editing$active) && editing$active %eq% "rally_review") {
+                            focus_to_modal_element("redit_ok")
+                            apply_rally_review()
+                        } else if (!is.null(editing$active) && !editing$active %eq% "teams") {
+                            ## if this is the code editing modal, we need to focus out of the text entry box first otherwise changes there won't be seen in the corresponding input$xyz variable
+                            if (editing$active %in% c("insert below", "insert above", "edit")) {
+                                ## if the user has pressed enter directly after editing text in the code_entry field (without tabbing out of that, or clicking on the commit button) the input$code_entry variable will not have been updated. So focus out of it first
+                                focus_to_modal_element("edit_commit")
+                            }
+                            do_edit_commit()
+                        } else if (isTRUE(scout_modal_active())) {
+                            ## if we have a scouting modal showing, and a valid accept_fun entry, run that function
+                            if (!is.null(accept_fun())) try(get(accept_fun(), mode = "function")())
                         }
-                        do_edit_commit()
-                    } else if (isTRUE(scout_modal_active())) {
-                        ## if we have a scouting modal showing, and a valid accept_fun entry, run that function
-                        if (!is.null(accept_fun())) try(get(accept_fun(), mode = "function")())
-                    }
-                    ## need to stop this propagating to the browser, else it risks e.g. re-firing the most recently used button - done in UI code
-                } else if (ky %in% app_data$shortcuts$hide_popup) {
-                    ## temporarily hide the modal, so the video can be seen
-                    ## but only for the admin, lineup modal or the ones that pop up during the rally, not the editing modals for teams or rosters
-                    if (is.null(editing$active) || editing$active %in% c("admin", "change starting lineup")) hide_popup()
-                } else if (ky %in% c(app_data$shortcuts$pause, app_data$shortcuts$pause_no_popup)) {
-                    ## only accept this if we are not doing a courtref, not editing, or it's the admin modal being shown
-                    if ((is.null(editing$active) || editing$active %eq% "admin") && !courtref_active()) {
-                        ## video pause/unpause
-                        ## Q (uppercase) does just pause, with no admin modal
-                        deal_with_pause(show_modal = !ky %in% app_data$shortcuts$pause_no_popup)
-                    }
-                } else if (ky %in% c("ArrowUp", "ArrowDown") && grepl("pl2_fixhdr", k$class)) {
-                    ## arrow up/down in playslist table
-                    playslist_mod$select(playslist_mod$current_row() + if (ky == "ArrowUp") -1L else 1L)
-                } else if (is.null(editing$active) && !courtref_active()) {
-                    ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
-                    if (ky %in% app_data$shortcuts$go_to_time) {
-                        ## video go to currently-selected event
-                        ridx <- playslist_mod$current_row()
-                        vt <- if (!is.na(ridx) && !is.na(ridx)) rdata$dvw$plays2$video_time[ridx] else NA
-                        if (!is.null(vt) && !is.na(vt)) {
-                            if (debug > 1) cat("jumping to video time: ", vt, "\n")
-                            do_video("set_time", rebase_time(vt, time_to = current_video_src()))
+                        ## need to stop this propagating to the browser, else it risks e.g. re-firing the most recently used button - done in UI code
+                    } else if (ky %in% app_data$shortcuts$hide_popup) {
+                        ## temporarily hide the modal, so the video can be seen
+                        ## but only for the admin, lineup modal or the ones that pop up during the rally, not the editing modals for teams or rosters
+                        if (is.null(editing$active) || editing$active %in% c("admin", "change starting lineup")) hide_popup()
+                    } else if (ky %in% c(app_data$shortcuts$pause, app_data$shortcuts$pause_no_popup)) {
+                        ## only accept this if we are not doing a courtref, not editing, or it's the admin modal being shown
+                        if ((is.null(editing$active) || editing$active %eq% "admin") && !courtref_active()) {
+                            ## video pause/unpause
+                            ## Q (uppercase) does just pause, with no admin modal
+                            deal_with_pause(show_modal = !ky %in% app_data$shortcuts$pause_no_popup)
                         }
-                    } else if (ky %in% app_data$shortcuts$undo) {
-                        ## undo
-                        do_undo()
-                    } else if (ky %in% app_data$shortcuts$switch_video) {
-                        ## switch video
-                        do_switch_video()
-                    } else if (ky %in% app_data$shortcuts$contact) {
-                        ## player contact with the ball
-                        do_contact()
-                    } else if (ky %in% app_data$shortcuts$edit_code) {
-                        edit_data_row()
-                    } else if (ky %in% app_data$shortcuts$video_faster) {
-                        do_video("playback_rate_faster")
-                    } else if (ky %in% app_data$shortcuts$video_slower) {
-                        do_video("playback_rate_slower")
-                    } else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)", names(app_data$shortcuts))])) {
-                        if (is.null(editing$active)) {
-                            ## video forward/backward nav
-                            ## same as for other ovscout interface, although the fine control is not needed here?
-                            vidcmd <- if (ky %in% unlist(app_data$shortcuts[grepl("^video_rewind", names(app_data$shortcuts))])) "rew" else "ff"
-                            dur <- if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_10", names(app_data$shortcuts))])) 10 else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_0.1", names(app_data$shortcuts))])) 0.1 else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_1_30", names(app_data$shortcuts))])) 1/30 else 2
-                            do_video(vidcmd, dur)
+                    } else if (ky %in% c("ArrowUp", "ArrowDown") && grepl("pl2_fixhdr", k$class)) {
+                        ## arrow up/down in playslist table
+                        playslist_mod$select(playslist_mod$current_row() + if (ky == "ArrowUp") -1L else 1L)
+                    } else if (is.null(editing$active) && !courtref_active()) {
+                        ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
+                        if (ky %in% app_data$shortcuts$go_to_time) {
+                            ## video go to currently-selected event
+                            ridx <- playslist_mod$current_row()
+                            vt <- if (!is.na(ridx) && !is.na(ridx)) rdata$dvw$plays2$video_time[ridx] else NA
+                            if (!is.null(vt) && !is.na(vt)) {
+                                if (debug > 1) cat("jumping to video time: ", vt, "\n")
+                                do_video("set_time", rebase_time(vt, time_to = current_video_src()))
+                            }
+                        } else if (ky %in% app_data$shortcuts$undo) {
+                            ## undo
+                            do_undo()
+                        } else if (ky %in% app_data$shortcuts$switch_video) {
+                            ## switch video
+                            do_switch_video()
+                        } else if (ky %in% app_data$shortcuts$contact) {
+                            ## player contact with the ball
+                            do_contact()
+                        } else if (ky %in% app_data$shortcuts$edit_code) {
+                            edit_data_row()
+                        } else if (ky %in% app_data$shortcuts$video_faster) {
+                            do_video("playback_rate_faster")
+                        } else if (ky %in% app_data$shortcuts$video_slower) {
+                            do_video("playback_rate_slower")
+                        } else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)", names(app_data$shortcuts))])) {
+                            if (is.null(editing$active)) {
+                                ## video forward/backward nav
+                                ## same as for other ovscout interface, although the fine control is not needed here?
+                                vidcmd <- if (ky %in% unlist(app_data$shortcuts[grepl("^video_rewind", names(app_data$shortcuts))])) "rew" else "ff"
+                                dur <- if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_10", names(app_data$shortcuts))])) 10 else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_0.1", names(app_data$shortcuts))])) 0.1 else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_1_30", names(app_data$shortcuts))])) 1/30 else 2
+                                do_video(vidcmd, dur)
+                            }
                         }
                     }
                 }
@@ -3239,27 +3245,63 @@ ov_scouter_server <- function(app_data) {
 ##            cat(str(reactiveValuesToList(game_state)))
 ##        })
 
+
+        sc_to_edit <- reactiveVal(NULL)
+        sc_newvalue <- reactiveVal(NULL)
+        observeEvent(input$scedit, {
+            editing$active <- "edit_shortcuts"
+            ## TODO validate the shortcut?
+            sc_to_edit(input$scedit)
+            showModal(vwModalDialog(title = "Modify Keyboard shortcut", easyClose = FALSE, width = "50%", class = "scedit-modal", footer = NULL,
+                                  tags$h4("Shortcut for:", input$scedit),
+                                  uiOutput("scedit_out"),
+                                  tags$hr(),
+                                  fixedRow(column(2, actionButton("scedit_cancel", "Cancel", class = "cancel fatradio")),
+                                           column(2, offset = 8, actionButton("scedit_save", "Apply and save", class = "continue fatradio")))
+                                  ))
+            output$scedit_out <- renderUI(tags$code(app_data$shortcuts[[input$scedit]]))
+        })
+        observeEvent(input$scedit_cancel, {
+            sc_to_edit(NULL)
+            sc_newvalue(NULL)
+            show_shortcuts()
+        })
+        observeEvent(input$scedit_save, {
+            if (!is.null(sc_to_edit()) && !is.null(sc_newvalue())) {
+                cat("setting app_data$shortcuts$", sc_to_edit(), " to: ", sc_newvalue(), "\n", sep = "")
+                app_data$shortcuts[[sc_to_edit()]] <<- sc_newvalue()
+            }
+            sc_to_edit(NULL)
+            sc_newvalue(NULL)
+            show_shortcuts()
+        })
+
         observeEvent(input$general_help, introjs(session, options = list("nextLabel" = "Next", "prevLabel" = "Previous", "skipLabel" = "Skip")))
-        observeEvent(input$show_shortcuts, {
-            c_or <- function(...) paste0(..., collapse = " or ")
-            content <- list(tags$li(paste0("[", c_or(app_data$shortcuts$pause), "] pause")),
-                            tags$li(paste0("[", c_or(app_data$shortcuts$pause_no_popup), "] pause (without the admin popup)")),
-                            tags$li(paste0("[", c_or(app_data$shortcuts$go_to_time), "] jump the video to the time of the currently-selected event in the plays table")),
-                            tags$li(paste0("[", c_or(app_data$shortcuts$undo), "] undo last rally action")),
-                            tags$li(paste0("[", c_or(app_data$shortcuts$edit_code), "] edit the currently-selected event in the plays table (EXPERIMENTAL)")))
-            if (have_second_video) content <- c(content, list(tags$li(paste0("[", c_or(app_data$shortcuts$switch_video), "] switch video source"))))
+        observeEvent(input$show_shortcuts, show_shortcuts())
+        show_shortcuts <- function() {
+            show_sc <- function(sc, txt) {
+                bb <- sc
+                names(bb) <- if (is.null(app_data$shortcuts[[sc]])) "no shortcut" else app_data$shortcuts[[sc]]
+                tags$span(txt, make_fat_buttons(choices = bb, input_var = "scedit", class = "scedit"))
+            }
+            content <- list(tags$li(show_sc("pause", "pause")),
+                            tags$li(show_sc("pause_no_popup", "pause (without the admin popup)")),
+                            tags$li(show_sc("go_to_time", "jump the video to the time of the currently-selected event in the plays table")),
+                            tags$li(show_sc("undo", "undo last rally action")),
+                            tags$li(show_sc("edit_code", "edit the currently-selected event in the plays table (EXPERIMENTAL)")))
+            if (have_second_video) content <- c(content, list(tags$li(show_sc("switch_video", "switch video source"))))
             content <- list(tags$p(tags$strong("General controls")), do.call(tags$ul, content))
             if (app_data$with_video) {
                 content <- c(content,
                              list(tags$p(tags$strong("Video controls")),
                                   tags$ul(
-                                           tags$li(paste0("[", c_or(app_data$shortcuts$video_forward_2), "] forward 2s, [", c_or(app_data$shortcuts$video_forward_10), "] forward 10s, [", c_or(app_data$shortcuts$video_forward_0.1), "] forwards 0.1s, [", c_or(app_data$shortcuts$video_forward_1_30), "] forwards 1 frame")),
-                                           tags$li(paste0("[", c_or(app_data$shortcuts$video_rewind_2), "] backward 2s, [", c_or(app_data$shortcuts$video_rewind_10), "] backward 10s, [", c_or(app_data$shortcuts$video_rewind_0.1), "] backwards 0.1s, [", c_or(app_data$shortcuts$video_rewind_1_30), "] backwards 1 frame")),
-                                           tags$li(paste0("[", c_or(app_data$shortcuts$pause), "] pause video")),
-                                           tags$li(paste0("[", c_or(app_data$shortcuts$go_to_time), "] go to currently-selected event")),
-                                           tags$li(paste0("[", c_or(app_data$shortcuts$switch_video), "] switch videos (if two available)")),
-                                           tags$li(paste0("[", c_or(app_data$shortcuts$video_faster), "] increase video playback speed")),
-                                           tags$li(paste0("[", c_or(app_data$shortcuts$video_slower), "] decrease video playback speed"))
+                                           tags$li(show_sc("video_forward_2", "forward 2s"), show_sc("video_forward_10", "forward 10s"), show_sc("video_forward_0.1", "forwards 0.1s"), show_sc("video_forward_1_30", "forwards 1 frame")),
+                                           tags$li(show_sc("video_rewind_2", "backward 2s"), show_sc("video_rewind_10", "backward 10s"), show_sc("video_rewind_0.1", "backwards 0.1s"), show_sc("video_rewind_1_30", "backwards 1 frame")),
+                                           tags$li(show_sc("pause", "pause video")),
+                                           tags$li(show_sc("go_to_time", "go to currently-selected event")),
+                                           tags$li(show_sc("switch_video", "switch videos (if two available)")),
+                                           tags$li(show_sc("video_faster", "increase video playback speed")),
+                                           tags$li(show_sc("video_slower", "decrease video playback speed"))
                                        )))
             }
             showModal(
@@ -3286,7 +3328,7 @@ ov_scouter_server <- function(app_data) {
                             ##                tags$strong("Ball coordinates"), tags$ul(tags$li("[left-click the court inset] register the start/mid/end ball positions"),
                             ##                                                         tags$li("[accept ball coordinates] to add coordinates to the currently selected item"))))
                                   ))
-        })
+        }
 
         ## disaster recovery
         shiny::onSessionEnded(function() {

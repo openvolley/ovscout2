@@ -12,6 +12,7 @@ h2, h3, h4 {font-weight: bold;}
 #rallystate { position: absolute; font-size: large; color: yellow; background-color: #0000C080; z-index:20; -webkit-transform:translateZ(20); }
 
 #scout_in { width:80%; border: 1px solid black; border-radius:4px; display:inline-block; vertical-align:middle; }
+#scout_well { font-size:large; }
 
 #headerblock {border-radius:14px; padding:10px; margin-bottom:5px; min-height:120px; color:black; border: 1px solid #000766; background:#000766; background: linear-gradient(90deg, rgba(0,7,102,1) 0%, rgba(255,255,255,1) 65%, rgba(255,255,255,1) 100%);}
 #headerblock h1, #headerblock h2, #headerblock h3, #headerblock h4 {color:#fff;} 
@@ -20,6 +21,6 @@ h2, h3, h4 {font-weight: bold;}
 #c3_other_outer.active { background-color:#d5d5d5; }
 
 
-.fatradio, .scedit { height:7vh; }
-.fatradio { width:100%; }
+.fatradio { height:7vh; width:100%; }
+.scedit { height:auto; width:auto; }
 

@@ -223,8 +223,8 @@ ov_default_key_remapping <- function(scout_mode = "click") {
     if (scout_mode == "click") {
         list()
     } else {
-        ## shortcuts in typing mode can use modifier keys: C-x is ctrl and x, A-x is alt-x, M-x is meta-x, S-x is shift-x
-        list(`!` = "Shift-a")
+        ## remappings can use modifier keys: C-x is ctrl and x, A-x is alt-x, M-x is meta-x, S-x is shift-x
+        list(`;` = "a")
     }
 }
 
