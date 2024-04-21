@@ -241,7 +241,7 @@ make_js_keymap <- function(sc) {
     ## e.g. list(undo = c("C-a")) to "{'true|false|false|false|a': 'undo'}"
     paste0("{",
            paste(unique(unlist(lapply(seq_along(sc), function(i) {
-               if (length(sc[[i]]) > 0) shortcut2json(sc[[i]], to = names(sc)[i])
+               if (length(sc[[i]]) > 0) shortcut2json(names(sc)[i], to = sc[[i]])
            }))), collapse = ", "),
            "}")
 }
