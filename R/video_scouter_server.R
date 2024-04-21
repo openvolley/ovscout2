@@ -6,8 +6,16 @@ ov_scouter_server <- function(app_data) {
 
         ## function to populate the team character and player number of the serving player in the scout typing entry box
         populate_server <- function() {
-            cat(str(isolate(reactiveValuesToList(game_state))))
-            srv_code <- isolate(paste0(game_state$serving, if (game_state$serving %eq% "*") ldz2(game_state$home_p1) else ldz2(game_state$visiting_p1)))
+            isolate({
+                cat(str(reactiveValuesToList(game_state)))
+                srv_code <- if (game_state$serving %eq% "*" && !is.null(game_state$home_p1) && !is.na(game_state$home_p1)) {
+                                paste0("*", ldz2(game_state$home_p1))
+                            } else if (game_state$serving %eq% "a" && !is.null(game_state$visiting_p1) && !is.na(game_state$visiting_p1)) {
+                                paste0("a", ldz2(game_state$visiting_p1))
+                            } else {
+                                ""
+                            }
+            })
             focus_to_scout_bar(srv_code)
         }
 
@@ -190,11 +198,15 @@ ov_scouter_server <- function(app_data) {
         temp$start_x <- temp$start_y <- temp$mid_x <- temp$mid_y <- temp$end_x <- temp$end_y <- NA_real_
         temp$startxy_valid <- temp$midxy_valid <- temp$endxy_valid <- FALSE
         temp$current_time_uuid <- ""
+        for (i in pseq) {
+            if (is.null(temp[[paste0("home_p", i)]])) temp[[paste0("home_p", i)]] <- NA_integer_
+            if (is.null(temp[[paste0("visiting_p", i)]])) temp[[paste0("visiting_p", i)]] <- NA_integer_
+        }
         ## liberos
-        if (!"ht_lib1" %in% names(temp)) temp$ht_lib1 <- NA_character_
-        if (!"ht_lib2" %in% names(temp)) temp$ht_lib2 <- NA_character_
-        if (!"vt_lib1" %in% names(temp)) temp$vt_lib1 <- NA_character_
-        if (!"vt_lib2" %in% names(temp)) temp$vt_lib2 <- NA_character_
+        if (!"ht_lib1" %in% names(temp)) temp$ht_lib1 <- NA_integer_
+        if (!"ht_lib2" %in% names(temp)) temp$ht_lib2 <- NA_integer_
+        if (!"vt_lib1" %in% names(temp)) temp$vt_lib1 <- NA_integer_
+        if (!"vt_lib2" %in% names(temp)) temp$vt_lib2 <- NA_integer_
         ## initial scores
         ## if we haven't played any points yet, these will be NA
         if (nrow(app_data$dvw$plays2) < 1 || !any(grepl("^[a\\*]p[[:digit:]]", app_data$dvw$plays2$code))) {

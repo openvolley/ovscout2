@@ -88,7 +88,7 @@ make_plays2 <- function(rally_codes, game_state, rally_ended = FALSE, dvw) {
                   serving = game_state$serving)
     out <- bind_cols(out, as.data.frame(game_state[paste0("home_p", pseq)]))
     out <- bind_cols(out, as.data.frame(game_state[paste0("visiting_p", pseq)]))
-    for (lib in c(paste0("ht_lib", 1:2), paste0("vt_lib", 1:2))) out[[lib]] <- if (!lib %in% names(game_state)) NA_integer_ else game_state[[lib]]
+    for (lib in c(paste0("ht_lib", 1:2), paste0("vt_lib", 1:2))) out[[lib]] <- if (!lib %in% names(game_state)) NA_integer_ else as.integer(game_state[[lib]])
     out$phase <- phase
     out$rally_codes <- rcv
     out

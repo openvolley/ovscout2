@@ -96,19 +96,19 @@ dv_set_lineups <- function(x, set_number, lineups, setter_positions, setters) {
 ## - played, partial set scores, score, duration, score_home_team, score_visiting_team in meta$result
 ## - sets_won, won_match in meta$teams
 ## - starting positions and substitutions in meta$players_h and meta$players_v
-update_meta <- function(x, set_ended = FALSE) {
+update_meta <- function(x) {## used to have this but was only used in console test scouting ## , set_ended = FALSE) {
     is_beach <- any(grepl("beach", x$meta$match$regulation))
     pseq <- seq_len(if (is_beach) 2L else 6L)
-    if (set_ended) {
-        ## only call this as the set ends, i.e. the last row in x$plays2 is the last action of the set
-        message("set ", x$game_state$set_number, " ended")
-        x <- add_to_plays2(x, codes = paste0("**", x$game_state$set_number, "set"))
+    ## if (set_ended) {
+    ##     ## only call this as the set ends, i.e. the last row in x$plays2 is the last action of the set
+    ##     message("set ", x$game_state$set_number, " ended")
+    ##     x <- add_to_plays2(x, codes = paste0("**", x$game_state$set_number, "set"))
 
-        ## add row(s) to x$meta$result if needed
-        if (nrow(x$meta$result) < x$game_state$set_number) {
-            x$meta$result <- bind_rows(x$meta$result, x$meta$result[0, ][rep(1, x$game_state$set_number - nrow(x$meta$result)), ]) ## add all-NA row(s)
-        }
-    }
+    ##     ## add row(s) to x$meta$result if needed
+    ##     if (nrow(x$meta$result) < x$game_state$set_number) {
+    ##         x$meta$result <- bind_rows(x$meta$result, x$meta$result[0, ][rep(1, x$game_state$set_number - nrow(x$meta$result)), ]) ## add all-NA row(s)
+    ##     }
+    ## }
     if (is.null(x$plays2) || nrow(x$plays2) < 1) return(x)
     ## update all set results, including durations
     set_start_rows <- which(grepl(">LUp", x$plays2$code, ignore.case = TRUE) & (!grepl(">LUp", dplyr::lag(x$plays2$code), ignore.case = TRUE) | seq_along(x$plays2$code) == 1))
@@ -442,9 +442,9 @@ add_to_plays2 <- function(x, codes, video_time, set_number, home_setter_position
     if (missing(set_number)) set_number <- x$game_state$set_number
     if (missing(home_setter_position)) home_setter_position <- x$game_state$home_setter_position
     if (missing(visiting_setter_position)) visiting_setter_position <- x$game_state$visiting_setter_position
-    if (missing(home_lineup)) home_lineup <- as.numeric(x$game_state[, paste0("home_p", pseq)])
-    if (missing(visiting_lineup)) visiting_lineup <- as.numeric(x$game_state[, paste0("visiting_p", pseq)])
-    if (missing(scores)) scores <- as.numeric(x$game_state[, c("home_score_start_of_point", "visiting_score_start_of_point")])
+    if (missing(home_lineup)) home_lineup <- as.numeric(unlist(x$game_state[paste0("home_p", pseq)]))
+    if (missing(visiting_lineup)) visiting_lineup <- as.numeric(unlist(x$game_state[paste0("visiting_p", pseq)]))
+    if (missing(scores)) scores <- as.numeric(unlist(x$game_state[c("home_score_start_of_point", "visiting_score_start_of_point")]))
     if (missing(serving)) serving <- x$game_state$serving
 
     vt <- if (!missing(video_time)) video_time else NA_integer_
