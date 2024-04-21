@@ -115,3 +115,47 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
     }
     list(dvw = dvw, do_reparse = do_reparse)
 }
+
+## preprocess manual lineup input
+lineup_preprocess <- function(code, dvw) {##dvw, ht_nums = NULL, ht_setter = NA_integer_, vt_nums = NULL, vt_setter = NA_integer_) {
+    pnums <- strsplit(sub("^[a\\*]?L[[:space:]]*", "", code), split = "[[:space:],]+")[[1]]
+    spos <- grep("[s\\*]", pnums, ignore.case = TRUE)
+    cat(str(pnums))
+    cat(str(spos))
+    out <- list()
+    beach <- is_beach(dvw)
+    if (length(spos) == 1) {
+        pnums <- as.integer(sub("[s\\*]", "", pnums, ignore.case = TRUE))
+        lup <- list(lineup = if (beach) pnums[1:2] else pnums[1:6],
+                    setter = if (beach) NA_integer_ else pnums[spos],
+                    liberos = if (beach) integer() else as.integer(na.omit(pnums[7:8])))
+        lup_ok <- TRUE
+        if (beach) {
+            if (length(lup$lineup) != 2) {
+                lup_ok <- FALSE
+                warning("lineup should be 2 players, ignoring")
+            }
+        } else {
+            if (length(lup$lineup) != 6) {
+                lup_ok <- FALSE
+                warning("lineup should be 6 players plus optionally libero(s), ignoring")
+            }
+        }
+        lup_ok <- lup_ok && !any(is.na(lup$lineup)) && !any(duplicated(lup$lineup))
+        if (!beach) lup_ok <- lup_ok && !is.na(lup$setter) && lup$setter %in% lup$lineup && !any(lup$liberos %in% lup$lineup)
+        if (!lup_ok) {
+            warning("lineup is invalid, ignoring")
+            cat(str(lup))
+            lup <- NULL
+        }
+        if (substr(code, 1, 1) == "a") {
+            ## 'twas visiting team lineup
+            out$visiting <- lup
+        } else {
+            out$home <- lup
+        }
+    } else {
+        warning("no setter, ignoring")
+    }
+    out
+}

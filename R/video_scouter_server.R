@@ -746,104 +746,134 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$scout_input, {
             codes <- input$scout_input
-            ## split on spaces
-            codes <- strsplit(codes, "[[:space:]]+")[[1]]
-            ## also get the time stamps
-            keypress_times <- get_scout_input_times()
-            ## and split on spaces
-            if (!is.null(keypress_times)) keypress_times <- split(keypress_times, cumsum(keypress_times$key %eq% " "))
-            for (i in seq_along(codes)) {
-                code <- codes[i]
-                if (grepl("^[TpczPC]", code)) code <- paste0("*", code)
-                cat("to process: ", code, "\n")
-                if (grepl("^(>|\\*T|aT|\\*p|ap|\\*c|ac)", code) || ## timeout, point assignment, sub
-                    grepl("^[a\\*]C[[:digit:]]+[:\\.][[:digit:]]+", code) || ## substitution ensuring it can't be an attack combo code
-                    (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(game_state$rally_started))) { ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
-                    res <- handle_manual_code(code, process_rally_end = FALSE) ## FALSE so that this does not automatically handle end-of-rally ap, *p codes
-                    if (code %in% c("*p", "ap")) {
-                        review_rally()
+            cat("code is: "); print(codes)
+            if (grepl("^[a\\*]?L[[:space:]]*", codes)) {
+                lup <- lineup_preprocess(codes, dvw = rdata$dvw) ## list(home = L, visiting = L) where L is a list with elements lineup, liberos, setter
+                ## apply
+                setnum <- if (is.null(game_state$set_number) || is.na(game_state$set_number)) {
+                              ## assume is set 1, probably needs something better
+                              1L
+                          } else {
+                              game_state$set_number
+                          }
+                for (this in c("home", "visiting")) {
+                    this_lup <- lup[[this]]
+                    if (!is.null(this_lup)) {
+                        hv <- if (this == "home") "*" else "a"
+                        ## TODO if (app_data$is_beach), not setter or libero
+                        ## TODO if libero is not specified, default to lineup libero? Unless that person is on court?
+                        for (i in seq_along(this_lup$lineup)) game_state[[paste0(this, "_p", i)]] <- this_lup$lineup[i]
+                        temp_sp <- which(this_lup$lineup == this_lup$setter) ## setter position
+                        ## the liberos go into game_state
+                        game_state[[paste0(substr(this, 1, 1), "t_lib1")]] <- if (length(this_lup$liberos) > 0) this_lup$liberos[1] else NA_integer_
+                        game_state[[paste0(substr(this, 1, 1), "t_lib2")]] <- if (length(this_lup$liberos) > 1) this_lup$liberos[2] else NA_integer_
+                        game_state[[paste0(this, "_setter_position")]] <- temp_sp
+                        rdata$dvw <- set_lineup(rdata$dvw, set_number = setnum, team = hv, lineup = c(this_lup$lineup, na.omit(this_lup$liberos))) ## allocate the starting positions for set setnum in meta$players_h or meta$players_v
+                        lineup_codes <- c(paste0(hv, "P", ldz2(this_lup$setter), ">LUp"), paste0(hv, "z", temp_sp, ">LUp"))
+                        print(lineup_codes)
+                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(rally_codes = lineup_codes, game_state = game_state, dvw = rdata$dvw)))
                     }
-                    if (!res$ok) {
-                        ## TODO something
-                    } else if (isTRUE(res$end_of_set)) {
-                        ## handle_manual_code will have called rally_ended if appropriate, which also detects end of set (shows the modal to confirm)
-                        ## what else needs to happend? TODO
-                    }
-                } else if (grepl("^[a\\*]?S$", code)) {
-                    ## set serving team
-                    srv <- if (grepl("^a", code)) "a" else "*"
-                    if (!game_state$serving %eq% srv) {
-                        game_state$serving <- srv
-                        game_state$current_team <- game_state$serving
-                        populate_server()
-                    }
-                } else if (grepl("^[a\\*]z", code)) {
-                    ## setter position, TODO
-                    ## ^^^
-                } else {
-                    ## deal with code shorthands
-                    home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
-                    visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
-                    ## if the code starts with an attack combo code e.g. "X5" or "aX5", insert the player number
-                    A_tm <- "*"
-                    ac_row <- if (substr(code, 1, 2) %in% rdata$options$attack_table$code) {
-                                  code <- paste0("*", code) ## prepend home team indicator
-                                  rdata$options$attack_table[which(rdata$options$attack_table$code == substr(code, 2, 3)), ]
-                              } else if (substr(code, 1, 3) %in% paste0("*", rdata$options$attack_table$code)) {
-                                  rdata$options$attack_table[which(rdata$options$attack_table$code == substr(code, 2, 3)), ]
-                              } else if (substr(code, 1, 3) %in% paste0("a", rdata$options$attack_table$code)) {
-                                  A_tm <- "a"
-                                  rdata$options$attack_table[which(rdata$options$attack_table$code == substr(code, 2, 3)), ]
-                              } else {
-                                  NULL
-                              }
-                    if (!is.null(ac_row) && nrow(ac_row) == 1) {
-                        ## find the player number that should be hitting this ball
-                        A_tm_rot <- if (A_tm == "*") game_state$home_setter_position else game_state$visiting_setter_position
-                        A_plyr <- NULL
-                        if (ac_row$code %in% c("PP")) {
-                            ## setter
-                            A_plyr <- if (A_tm == "*") home_setter_num else visiting_setter_num
-                        } else if (ac_row$code %in% c("PR", "P2")) {
-                            ## can't infer player number
-                        } else {
-                            A_zone <- if (ac_row$type %in% c("Q", "N")) 3L else ac_row$attacker_position
-                            A_plyr <- player_responsibility_fn(system = rdata$options$team_system, skill = "Attack", setter_position = A_tm_rot, zone = A_zone, libs = NULL, home_visiting = A_tm, serving = game_state$serving %eq% A_tm)
-                            ## A_plyr will be e.g. "home_p4"
-                            cat(str(A_plyr))
-                            A_plyr <- game_state[[A_plyr]]
+                }
+            } else {
+                ## split on spaces
+                codes <- strsplit(codes, "[[:space:]]+")[[1]]
+                ## also get the time stamps
+                keypress_times <- get_scout_input_times()
+                ## and split on spaces
+                if (!is.null(keypress_times)) keypress_times <- split(keypress_times, cumsum(keypress_times$key %eq% " "))
+                for (i in seq_along(codes)) {
+                    code <- codes[i]
+                    if (grepl("^[TpczPC]", code)) code <- paste0("*", code)
+                    cat("to process: ", code, "\n")
+                    if (grepl("^(>|\\*T|aT|\\*p|ap|\\*c|ac)", code) || ## timeout, point assignment, sub
+                        grepl("^[a\\*]C[[:digit:]]+[:\\.][[:digit:]]+", code) || ## substitution ensuring it can't be an attack combo code
+                        (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(game_state$rally_started))) { ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
+                        res <- handle_manual_code(code, process_rally_end = FALSE) ## FALSE so that this does not automatically handle end-of-rally ap, *p codes
+                        if (code %in% c("*p", "ap")) {
+                            review_rally()
                         }
-                        if (!is.null(A_plyr)) code <- paste0(substr(code, 1, 1), ldz2(A_plyr), substr(code, 2, 99))
-                    }
-                    ## add to rally codes
-                    newcode <- sub("~+$", "", ov_code_interpret(code, attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num))
-                    cat("code after interpretation:", newcode, "\n")
-                    ## code can be length > 1 now, because the scout might have entered a compound code
-                    ptemp <- parse_code_minimal(newcode) ## convert to a list of tibble row(s)
-                    this_clock_time <- time_but_utc()
-                    this_video_time <- NA_real_
-                    ## use clock and video times from the input$scout_input_times time-logged keypresses if we can
-                    this_skill <- if (length(ptemp) > 0) ptemp[[1]]$skill else NA_character_
-                    this_keypress_times <- if (!is.null(keypress_times)) keypress_times[[i]][keypress_times[[i]]$key %eq% this_skill, ] else NULL ## TODO check case sensitivity on this, if we use e.g. 'a' but remap it to 'A' via the key remapping
-                    if (!is.null(this_keypress_times) && nrow(this_keypress_times) == 1) {
-                        this_clock_time <- this_keypress_times$time
-                        this_video_time <- this_keypress_times$video_time
-                    }
-                    for (temp in ptemp) {
-                        if (!is.null(temp)) {
-                            ## should not be NULL, that's only for non-skill rows
-                            rc <- rally_codes()
-                            newrc <- code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, start_zone_valid = TRUE, endxy_valid = TRUE, t = this_video_time, time = this_clock_time, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)
-                            ## update the preceding rally_codes row if new info has been provided
-                            nrc <- nrow(rc)
-                            if (nrc > 0) {
-                                rc[nrc, ] <- transfer_scout_details(from = newrc, to = rc[nrc, ])
+                        if (!res$ok) {
+                            ## TODO something
+                        } else if (isTRUE(res$end_of_set)) {
+                            ## handle_manual_code will have called rally_ended if appropriate, which also detects end of set (shows the modal to confirm)
+                            ## what else needs to happend? TODO
+                        }
+                    } else if (grepl("^[a\\*]?S$", code)) {
+                        ## set serving team
+                        srv <- if (grepl("^a", code)) "a" else "*"
+                        if (!game_state$serving %eq% srv) {
+                            game_state$serving <- srv
+                            game_state$current_team <- game_state$serving
+                            populate_server()
+                        }
+                    } else if (grepl("^[a\\*]z", code)) {
+                        ## setter position, TODO
+                        ## ^^^
+                    } else {
+                        ## deal with code shorthands
+                        home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
+                        visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
+                        ## if the code starts with an attack combo code e.g. "X5" or "aX5", insert the player number
+                        A_tm <- "*"
+                        ac_row <- if (substr(code, 1, 2) %in% rdata$options$attack_table$code) {
+                                      code <- paste0("*", code) ## prepend home team indicator
+                                      rdata$options$attack_table[which(rdata$options$attack_table$code == substr(code, 2, 3)), ]
+                                  } else if (substr(code, 1, 3) %in% paste0("*", rdata$options$attack_table$code)) {
+                                      rdata$options$attack_table[which(rdata$options$attack_table$code == substr(code, 2, 3)), ]
+                                  } else if (substr(code, 1, 3) %in% paste0("a", rdata$options$attack_table$code)) {
+                                      A_tm <- "a"
+                                      rdata$options$attack_table[which(rdata$options$attack_table$code == substr(code, 2, 3)), ]
+                                  } else {
+                                      NULL
+                                  }
+                        if (!is.null(ac_row) && nrow(ac_row) == 1) {
+                            ## find the player number that should be hitting this ball
+                            A_tm_rot <- if (A_tm == "*") game_state$home_setter_position else game_state$visiting_setter_position
+                            A_plyr <- NULL
+                            if (ac_row$code %in% c("PP")) {
+                                ## setter
+                                A_plyr <- if (A_tm == "*") home_setter_num else visiting_setter_num
+                            } else if (ac_row$code %in% c("PR", "P2")) {
+                                ## can't infer player number
+                            } else {
+                                A_zone <- if (ac_row$type %in% c("Q", "N")) 3L else ac_row$attacker_position
+                                A_plyr <- player_responsibility_fn(system = rdata$options$team_system, skill = "Attack", setter_position = A_tm_rot, zone = A_zone, libs = NULL, home_visiting = A_tm, serving = game_state$serving %eq% A_tm)
+                                ## A_plyr will be e.g. "home_p4"
+                                cat(str(A_plyr))
+                                A_plyr <- game_state[[A_plyr]]
                             }
-                            rally_codes(bind_rows(rc, newrc)) ## start_x = NA_real_, start_y = NA_real_
-                            ## update game state esp game_state$rally_started, game_state$serving and game_state$current_team TODO ^^^
-                            if (temp$skill %eq% "S") {
-                                game_state$rally_started <- TRUE
-                                game_state$serving <- temp$team
+                            if (!is.null(A_plyr)) code <- paste0(substr(code, 1, 1), ldz2(A_plyr), substr(code, 2, 99))
+                        }
+                        ## add to rally codes
+                        newcode <- sub("~+$", "", ov_code_interpret(code, attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num))
+                        cat("code after interpretation:", newcode, "\n")
+                        ## code can be length > 1 now, because the scout might have entered a compound code
+                        ptemp <- parse_code_minimal(newcode) ## convert to a list of tibble row(s)
+                        this_clock_time <- time_but_utc()
+                        this_video_time <- NA_real_
+                        ## use clock and video times from the input$scout_input_times time-logged keypresses if we can
+                        this_skill <- if (length(ptemp) > 0) ptemp[[1]]$skill else NA_character_
+                        this_keypress_times <- if (!is.null(keypress_times)) keypress_times[[i]][keypress_times[[i]]$key %eq% this_skill, ] else NULL ## TODO check case sensitivity on this, if we use e.g. 'a' but remap it to 'A' via the key remapping
+                        if (!is.null(this_keypress_times) && nrow(this_keypress_times) == 1) {
+                            this_clock_time <- this_keypress_times$time
+                            this_video_time <- this_keypress_times$video_time
+                        }
+                        for (temp in ptemp) {
+                            if (!is.null(temp)) {
+                                ## should not be NULL, that's only for non-skill rows
+                                rc <- rally_codes()
+                                newrc <- code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, start_zone_valid = TRUE, endxy_valid = TRUE, t = this_video_time, time = this_clock_time, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)
+                                ## update the preceding rally_codes row if new info has been provided
+                                nrc <- nrow(rc)
+                                if (nrc > 0) {
+                                    rc[nrc, ] <- transfer_scout_details(from = newrc, to = rc[nrc, ])
+                                }
+                                rally_codes(bind_rows(rc, newrc)) ## start_x = NA_real_, start_y = NA_real_
+                                ## update game state esp game_state$rally_started, game_state$serving and game_state$current_team TODO ^^^
+                                if (temp$skill %eq% "S") {
+                                    game_state$rally_started <- TRUE
+                                    game_state$serving <- temp$team
+                                }
                             }
                         }
                     }
