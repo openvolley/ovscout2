@@ -11,7 +11,7 @@ h2, h3, h4 {font-weight: bold;}
 .iconbut { font-size: 150%; }
 #rallystate { position: absolute; font-size: large; color: yellow; background-color: #0000C080; z-index:20; -webkit-transform:translateZ(20); }
 
-#scout_in { width:80%; border: 1px solid black; border-radius:4px; display:inline-block; vertical-align:middle; }
+#scout_in { width:80%; border: 1px solid black; border-radius:4px; display:inline-block; vertical-align:middle; height:48px; font-size: x-large; line-height:48px; }
 #scout_well { font-size:large; }
 
 #headerblock {border-radius:14px; padding:10px; margin-bottom:5px; min-height:120px; color:black; border: 1px solid #000766; background:#000766; background: linear-gradient(90deg, rgba(0,7,102,1) 0%, rgba(255,255,255,1) 65%, rgba(255,255,255,1) 100%);}
@@ -28,4 +28,4 @@ h2, h3, h4 {font-weight: bold;}
 .leftbut {
     color:#fff; background-color:#337ab7; border-color:#2e6da4; width:120px;
 }
-.leftbut:hover { background-color:#75caeb; }
+.leftbut:hover, .leftbut:active { background-color:#75caeb; }

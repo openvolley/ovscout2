@@ -36,7 +36,7 @@ mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE) {
 
 mod_courtrot2_ui <- function(id, styling) {
     ns <- NS(id)
-    tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;} .crhbut { background-color:", styling$h_court_colour, "; margin-top:2px; } .crhbut:hover { background-color:", styling$h_court_light_colour, "; } .crvbut { background-color:", styling$v_court_colour, "; margin-top:2px; } .crvbut:hover { background-color:", styling$v_court_light_colour, "; }"))),
+    tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;} .crhbut { background-color:", styling$h_court_colour, "; margin-top:2px; } .crhbut:hover, .crhbut:active { background-color:", styling$h_court_light_colour, "; } .crvbut { background-color:", styling$v_court_colour, "; margin-top:2px; } .crvbut:hover, .crvbut:active { background-color:", styling$v_court_light_colour, "; }"))),
             tags$div(style = "border-radius: 4px; padding: 4px;",
                      fluidRow(
                      column(1,
