@@ -2,7 +2,7 @@
 mod_teamslists_ui <- function(id) {
     ns <- NS(id)
     tagList(tags$head(tags$style("#hroster {padding-left: 0px; padding-right: 0px; background-color: #bfefff; padding: 12px;} #vroster {padding-left: 0px; padding-right: 0px; background-color: #bcee68; padding: 12px;}")),
-            tags$div(style = "border-radius: 4px; padding: 4px",
+            tags$div(style = "border-radius: 15px; padding: 4px",
                      fluidRow(column(6, id = "hroster", uiOutput(ns("htroster"))),
                               column(6, id = "vroster", uiOutput(ns("vtroster"))))
                      )
@@ -18,7 +18,7 @@ mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE) {
             tags$div(tags$strong(htn), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
                                                 do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
         } else {
-            do.call(tags$div, c(list(tags$strong(htn)), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+            do.call(tags$div, c(list(tags$strong(paste('*',htn)), tags$br(), tags$hr()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
         }
     })
     output$vtroster <- renderUI({
@@ -29,7 +29,7 @@ mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE) {
             tags$div(tags$strong(vtn), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
                                                 do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
         } else {
-            do.call(tags$div, c(list(tags$strong(vtn)), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+            do.call(tags$div, c(list(tags$strong(paste('a',vtn)), tags$br(), tags$hr()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
         }
     })
 }
@@ -38,11 +38,19 @@ mod_courtrot2_ui <- function(id) {
     ns <- NS(id)
     tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;}"))),
             tags$div(style = "border-radius: 4px; padding: 4px;",
-                     plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:48vh;"),
-                     fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")))),
-                              column(3, actionButton(ns("switch_serving"), HTML("Switch<br />serving team"))),
-                              column(2, actionButton(ns("court_inset_swap"), label = tags$span(style = "font-size:150%;", "\u21f5"), class = "iconbut")), ## flip court diagram
-                              column(2, offset = 1, actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")))))
+                     fluidRow(
+                     column(2,
+                            actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")), style = "background-color: #bfefff; margin-top: 5px;"),
+                            actionButton(ns("switch_serving"), HTML("Switch<br />serving team"), width = "100%"),
+                            actionButton(ns("court_inset_swap"), label = tags$span(style = "font-size:150%;", "\u21f5"), class = "iconbut", width = "100%"),
+                            actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")), style = "background-color: #bcee68; margin-top: 24vh;")
+                            ),
+                     column(10, plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:48vh;"))
+                     #fluidRow(column(2, actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")), style = "background-color: #bfefff;")),
+                     #         column(3, actionButton(ns("switch_serving"), HTML("Switch<br />serving team"))),
+                     #         column(2, actionButton(ns("court_inset_swap"), label = tags$span(style = "font-size:150%;", "\u21f5"), class = "iconbut")), ## flip court diagram
+                     #         column(2, offset = 1, actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")), style = "background-color: #bcee68;"))
+                              )
                      ))
 }
 
@@ -569,7 +577,7 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
 
 mod_match_data_edit_ui <- function(id) {
     ns <- NS(id)
-    actionButton(ns("edit_match_data_button"), "Edit match data", icon = icon("volleyball-ball"))
+    actionButton(ns("edit_match_data_button"), "Edit match data", icon = icon("volleyball-ball"), width = '100%')
 }
 
 mod_match_data_edit <- function(input, output, session, rdata, editing, styling) {
@@ -611,7 +619,7 @@ mod_match_data_edit <- function(input, output, session, rdata, editing, styling)
 
 mod_lineup_edit_ui <- function(id) {
     ns <- NS(id)
-    actionButton(ns("edit_lineup_button"), "Edit lineups", icon = icon("arrows-alt-h"))
+    actionButton(ns("edit_lineup_button"), "Edit lineups", icon = icon("arrows-alt-h"), width = '100%')
 }
 
 mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, video_state, styling) {
@@ -675,7 +683,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                      shiny:::shinyInputLabel(inputId, label), tags$input(id = inputId, type = "text", class = "form-control", value = value, placeholder = placeholder, tabindex = tabindex))
         }
         ## border helpers, make a kind-of-court diagram with the cell borders
-        brd_l <- "border-left:2px solid black;"; brd_r <- "border-right:2px solid black;"; brd_t <- "border-top:2px solid black;"; brd_b <- "border-bottom:6px solid black;";
+        brd_l <- "border-left:2px solid black;"; brd_r <- "border-right:2px solid black;"; brd_t <- "border-top:2px solid black;"; brd_b <- "border-bottom:8px solid black;";
         showModal(
             vwModalDialog(
                 title = "Edit starting line up", size = "l", footer = tags$div(uiOutput(ns("edit_lineup_commit_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", class = "cancel")),
@@ -803,7 +811,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
 
 mod_team_select_ui <- function(id){
     ns <- NS(id)
-    actionButton(ns("select_teams_button"), "Select teams", icon = icon("users"))
+    actionButton(ns("select_teams_button"), "Select teams", icon = icon("users"), width = '100%')
 }
 
 mod_team_select <- function(input, output, session, rdata, editing, app_data) {
@@ -909,7 +917,7 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
 
 mod_team_edit_ui <- function(id) {
     ns <- NS(id)
-    actionButton(ns("edit_teams_button"), "Edit teams", icon = icon("users"))
+    actionButton(ns("edit_teams_button"), "Edit teams", icon = icon("users"), width = '100%')
 }
 
 mod_team_edit <- function(input, output, session, rdata, editing, styling) {

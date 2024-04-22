@@ -4,7 +4,7 @@ mod_courtref_ui <- function(id, yt = FALSE, video_url, button_label = "Court ref
     ns <- NS(id)
     jsns <- ns4js(ns)
     show_frame_image <- is.null(video_url) ## extract a frame and show that, otherwise show the actual video
-    tagList(actionButton(ns("do_scref"), button_label),
+    tagList(actionButton(ns("do_scref"), button_label, width = '100%'),
             tags$div(id = ns("crholder"), style = "position:absolute; width:65vw; left:0; top:38px; z-index:9990; display:none;",
                      if (!show_frame_image) HTML(paste0("<video id=\"", ns("cr_player"), "\" style=\"width:100%; height:70vh;\" class=\"video-js vjs-has-started\" crossorigin=\"anonymous\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"loop\": true, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": [{", if (yt) " \"type\": \"video/youtube\", ", "\"src\": \"", video_url, "\"}] }'>\n",
                                                         "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>")),
