@@ -107,15 +107,13 @@ ov_scouter_ui <- function(app_data) {
                               tags$div(style = "height: 14px;"),
                               if (app_data$scout_mode == "type") {
                                   if (app_data$with_video) {
-                                      fluidRow(column(8, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")),
-                                                              tags$div(id = "scout_in", contenteditable = TRUE, style = "height:48px; font-size: x-large;line-height:48px;"))),
+                                      fluidRow(column(8, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")), tags$input(id = "scout_in", type = "text"))),
                                                column(4, introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")))
                                   } else {
                                   fluidRow(
                                       column(2),
                                       column(1, actionButton("pt_home", "(*) Pt", width = "100%", style = "background-color: #bfefff; height: 72px;") ),
-                                      column(5, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")),
-                                                               tags$div(id = "scout_in", contenteditable = TRUE,  style = "height:40px; font-size: x-large;line-height:40px;"))),
+                                      column(5, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")), tags$input(id = "scout_in", type = "text"))),
                                       column(1, actionButton("pt_away", "(a) Pt", width = "100%", style = "background-color: #bcee68; height:72px;") ),
                                       column(1, actionButton("undoType", "Undo", width = "100%", style = "background-color: orange; height:72px;")),
                                       column(2))

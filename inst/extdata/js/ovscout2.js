@@ -15,40 +15,22 @@ $(document).on("shiny:sessioninitialized", function() {
     });
 });
 
-// keypress handling - 'keypress' is deprecated, use keydown instead
-//$(document).on('keypress', function (e) {
-//    var el = document.activeElement;
-//    var len = -1;
-//    if (typeof el.value != 'undefined') { len = el.value.length; };
-//    Shiny.setInputValue('cmd', e.which + '@' + el.className + '@' + el.id + '@' + el.selectionStart + '@' + len + '@' + new Date().getTime(), {priority: 'event'});
-//});
-
-// https://stackoverflow.com/questions/1125292/how-to-move-the-cursor-to-the-end-of-a-contenteditable-entity
-function setEndOfContenteditable(elem) {
-    let sel = window.getSelection();
-    sel.selectAllChildren(elem);
-    sel.collapseToEnd();
-}
-// https://stackoverflow.com/questions/2940882/need-to-set-cursor-position-to-the-end-of-a-contenteditable-div-issue-with-sele/2943242#2943242
+// https://stackoverflow.com/questions/7404366/how-do-i-insert-some-text-where-the-cursor-is
 function insertTextAtCursor(text) {
-    var sel, range, textNode;
-    if (window.getSelection) {
-        sel = window.getSelection();
-        if (sel.getRangeAt && sel.rangeCount) {
-            range = sel.getRangeAt(0);
-            range.deleteContents();
-            textNode = document.createTextNode(text);
-            range.insertNode(textNode);
-            range.setStart(textNode, textNode.length); // move cursor to the end of the newly inserted text node
-            range.setEnd(textNode, textNode.length);
-            sel.removeAllRanges();
-            sel.addRange(range);
-        }
-    } else if (document.selection && document.selection.createRange) {
-        range = document.selection.createRange();
-        range.pasteHTML(text);
+    var el = document.getElementById("scout_in");
+    var val = el.value, endIndex, range, doc = el.ownerDocument;
+    if (typeof el.selectionStart == "number" && typeof el.selectionEnd == "number") {
+        endIndex = el.selectionEnd;
+        el.value = val.slice(0, endIndex) + text + val.slice(endIndex);
+        el.selectionStart = el.selectionEnd = endIndex + text.length;
+    } else if (doc.selection != "undefined" && doc.selection.createRange) {
+        el.focus();
+        range = doc.selection.createRange();
+        range.collapse(false);
+        range.text = text;
+        range.select();
     }
-};
+}
 
 // scouting key remapping, to make input from one key give different text in the input box
 var sk_key_map = {}; // set from the shiny server on startup
@@ -117,8 +99,8 @@ $(document).on('keydown', function (e) {
     } else if (el.id.includes("scout_in")) {
         if (e.key === "Enter") {
             // send the actual text in the box to the Shiny server
-            Shiny.setInputValue("scout_input", scout_in_el.text(), { priority: "event" });
-            scout_in_el.text(""); // clear it
+            Shiny.setInputValue("scout_input", scout_in_el.val(), { priority: "event" });
+            scout_in_el.val(""); // clear it
             scoutin = [];
             Shiny.setInputValue("scout_input_times", scoutin);
         } else {

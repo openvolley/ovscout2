@@ -234,7 +234,7 @@ focus_to_element <- function(id, highlight_all = TRUE) {
 }
 
 focus_to_scout_bar <- function(srv_code) {
-    dojs(paste0("var el = document.getElementById('scout_in'); if (el) { ", if (!missing(srv_code)) paste0("el.textContent = '", srv_code, "'; "), "setEndOfContenteditable(el); el.focus(); }"))
+    dojs(paste0("var el = document.getElementById('scout_in'); if (el) { ", if (!missing(srv_code)) paste0("el.value = '", srv_code, "'; "), "el.selectionStart = el.selectionEnd = el.value.length; el.focus(); }"))
 }
 
 decode_keypress <- function(k, debug = 0) {
