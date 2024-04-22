@@ -224,7 +224,8 @@ ov_default_key_remapping <- function(scout_mode = "click") {
         list()
     } else {
         ## remappings can use modifier keys: C-x is ctrl and x, A-x is alt-x, M-x is meta-x, S-x is shift-x
-        list(`;` = "a")
+        ## list entries are `to = "from"`
+        list(a = ";")
     }
 }
 
@@ -238,10 +239,10 @@ shortcut2json <- function(key, to) {
 }
 
 make_js_keymap <- function(sc) {
-    ## e.g. list(undo = c("C-a")) to "{'true|false|false|false|a': 'undo'}"
+    ## e.g. list(undo = c("Ctrl-a")) to "{'true|false|false|false|a': 'undo'}"
     paste0("{",
            paste(unique(unlist(lapply(seq_along(sc), function(i) {
-               if (length(sc[[i]]) > 0) shortcut2json(names(sc)[i], to = sc[[i]])
+               if (length(sc[[i]]) > 0) shortcut2json(sc[[i]], to = names(sc)[i])
            }))), collapse = ", "),
            "}")
 }
