@@ -742,6 +742,23 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
+        observeEvent(input$undoType, {
+            do_undo()
+        })
+
+
+        observeEvent(input$pt_home, {
+            rally_won_code <- "*p"
+            res <- handle_manual_code(rally_won_code, process_rally_end = FALSE)
+            review_rally()
+        })
+
+        observeEvent(input$pt_away, {
+            rally_won_code <- "ap"
+            res <- handle_manual_code(rally_won_code, process_rally_end = FALSE)
+            review_rally()
+        })
+
         observeEvent(input$scout_input_times, print(get_scout_input_times()))
 
         observeEvent(input$scout_input, {
@@ -3091,7 +3108,7 @@ ov_scouter_server <- function(app_data) {
         save_file_basename <- reactive({
             if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename) && nchar(rdata$dvw$meta$filename)) {
                 fs::path_ext_remove(basename(rdata$dvw$meta$filename))
-            } else if (!is.null(app_data$video_src) && nchar(app_data$video_src) && !is_url(app_data$video_src)) {
+            } else if (app_data$with_video && !is.null(app_data$video_src) && nchar(app_data$video_src) && !is_url(app_data$video_src)) {
                 basename(fs::path_ext_remove(app_data$video_src))
             } else {
                 "myfile"
