@@ -34,24 +34,23 @@ mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE) {
     })
 }
 
-mod_courtrot2_ui <- function(id) {
+mod_courtrot2_ui <- function(id, styling) {
     ns <- NS(id)
-    tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;}"))),
+    tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;} .crhbut { background-color:", styling$h_court_colour, "; margin-top:2px; } .crhbut:hover { background-color:", styling$h_court_light_colour, "; } .crvbut { background-color:", styling$v_court_colour, "; margin-top:2px; } .crvbut:hover { background-color:", styling$v_court_light_colour, "; }"))),
             tags$div(style = "border-radius: 4px; padding: 4px;",
                      fluidRow(
                      column(1,
-                            actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")), style = "background-color: #bfefff; margin-top: 2px;"),
-                            actionButton(ns("p1pt_home"), tags$span("Home", tags$br(), icon("plus")), style = "background-color: #bfefff; margin-top: 2px;"),
-                            actionButton(ns("timeout_home"), tags$span("Home", tags$br(), icon("t")), style = "background-color: #bfefff; margin-top: 2px;"),
-                            actionButton(ns("substitution_home"), tags$span("Home", tags$br(), icon("right-left")), style = "background-color: #bfefff; margin-top: 2px;")
+                            actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")), class = "crhbut"),
+                            actionButton(ns("p1pt_home"), tags$span("Home", tags$br(), icon("plus")), class = "crhbut"),
+                            actionButton(ns("timeout_home"), tags$span("Home", tags$br(), icon("t")), class = "crhbut"),
+                            actionButton(ns("substitution_home"), tags$span("Home", tags$br(), icon("right-left")), class = "crhbut")
                          ),
                      column(10, plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:48vh;")),
-
                      column(1,
-                            actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")), style = "background-color: #bcee68; margin-top: 2px;"),
-                            actionButton(ns("p1pt_visiting"), tags$span("Visiting", tags$br(), icon("plus")), style = "background-color: #bcee68; margin-top: 2px;"),
-                            actionButton(ns("tomeout_visiting"), tags$span("Visiting", tags$br(), icon("t")), style = "background-color: #bcee68; margin-top: 2px;"),
-                            actionButton(ns("substitution_visiting"), tags$span("Visiting", tags$br(), icon("right-left")), style = "background-color: #bcee68;  margin-top: 2px;")
+                            actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")), class = "crvbut"),
+                            actionButton(ns("p1pt_visiting"), tags$span("Visiting", tags$br(), icon("plus")), class = "crvbut"),
+                            actionButton(ns("tomeout_visiting"), tags$span("Visiting", tags$br(), icon("t")), class = "crvbut"),
+                            actionButton(ns("substitution_visiting"), tags$span("Visiting", tags$br(), icon("right-left")), class = "crvbut")
                      ),
                      ),
                      fluidRow(
@@ -584,7 +583,7 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
 
 mod_match_data_edit_ui <- function(id) {
     ns <- NS(id)
-    actionButton(ns("edit_match_data_button"), "Edit match data", icon = icon("volleyball-ball"), style="color: #fff; background-color: #337ab7; border-color: #2e6da4; width:120px;")
+    actionButton(ns("edit_match_data_button"), "Edit match data", icon = icon("volleyball-ball"), class = "leftbut")
 }
 
 mod_match_data_edit <- function(input, output, session, rdata, editing, styling) {
@@ -626,7 +625,7 @@ mod_match_data_edit <- function(input, output, session, rdata, editing, styling)
 
 mod_lineup_edit_ui <- function(id) {
     ns <- NS(id)
-    actionButton(ns("edit_lineup_button"), "Edit lineups", icon = icon("arrows-alt-h"), style="color: #fff; background-color: #337ab7; border-color: #2e6da4; width:120px;")
+    actionButton(ns("edit_lineup_button"), "Edit lineups", icon = icon("arrows-alt-h"), class = "leftbut")
 }
 
 mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, video_state, styling) {
@@ -818,7 +817,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
 
 mod_team_select_ui <- function(id){
     ns <- NS(id)
-    actionButton(ns("select_teams_button"), "Select teams", icon = icon("users"), style="color: #fff; background-color: #337ab7; border-color: #2e6da4; width:120px;")
+    actionButton(ns("select_teams_button"), "Select teams", icon = icon("users"), class = "leftbut")
 }
 
 mod_team_select <- function(input, output, session, rdata, editing, app_data) {
@@ -924,7 +923,7 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
 
 mod_team_edit_ui <- function(id) {
     ns <- NS(id)
-    actionButton(ns("edit_teams_button"), "Edit teams", icon = icon("users"), style="color: #fff; background-color: #337ab7; border-color: #2e6da4; width:120px;")
+    actionButton(ns("edit_teams_button"), "Edit teams", icon = icon("users"), class = "leftbut")
 }
 
 mod_team_edit <- function(input, output, session, rdata, editing, styling) {

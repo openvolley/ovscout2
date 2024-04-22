@@ -496,9 +496,11 @@ ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, def
 #' @export
 ov_app_styling <- function() {
     list(h_court_colour = "#BFEFFF", ## lightblue1
-         h_court_highlight_colour = "#43AFD3",
+         h_court_highlight_colour = "#43AFD3", ## dark highlight
+         h_court_light_colour = "#DBF6FF", ## light highlight
          v_court_colour = "#BCEE68", ## darkolivegreen2
-         v_court_highlight_colour = "#5D8022",
+         v_court_highlight_colour = "#5D8022", ## dark highlight
+         v_court_light_colour = "#DAFE8A", ## light highlight
          court_lines_colour = "#0000CC",
          continue_colour = "#10C424", continue_light_colour = "#60FC71",
          cancel_colour = "#D41024", cancel_light_colour = "#DF5463",

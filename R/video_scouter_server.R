@@ -532,8 +532,8 @@ ov_scouter_server <- function(app_data) {
                              tags$ul(
                                       if (!isTRUE(courtref_ok)) tags$li(if (is.character(courtref_ok)) courtref_ok else paste0("Use the '", if (have_second_video) "Video setup" else "Court reference", "' button to define the court reference.")),
                                       if (!teams_ok) tags$li("Use the 'Select teams' button to choose from existing teams, or 'Edit teams' to enter new ones."),
-                                      if (!isTRUE(rosters_ok)) tags$li(if (is.character(rosters_ok)) paste0(rosters_ok, " "), "Use the 'Edit teams' button to enter or adjust the team rosters."),
-                                      if (!isTRUE(lineups_ok)) tags$li(if (is.character(lineups_ok)) paste0(lineups_ok, " "), paste0("Use the 'Edit lineups' to enter or adjust the starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), ".")),
+                                      if (!isTRUE(rosters_ok)) tags$li(if (is.character(rosters_ok)) paste0(rosters_ok, " ", collapse = ", "), "Use the 'Edit teams' button to enter or adjust the team rosters."),
+                                      if (!isTRUE(lineups_ok)) tags$li(if (is.character(lineups_ok)) paste0(lineups_ok, " ", collapse = ", "), paste0("Use the 'Edit lineups' to enter or adjust the starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), ".")),
                                       if (!video_media_ok) tags$li("Wait for the video media information to be loaded.")
                                   ),
                              tags$hr(),

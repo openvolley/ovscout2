@@ -76,25 +76,25 @@ ov_scouter_ui <- function(app_data) {
                                               if (!is.null(app_data$video_src2)) actionButton("switch_video", "Switch video"),
                                               data.step = 2, data.intro = "Click on these buttons if you want to edit the court reference, starting lineups, rosters, or match metadata. The court reference defines where the court is located in the video image."),
                                           tags$hr(),
-                                          if (!is.null(app_data$dvw$plays2)) tags$div(downloadButton("save_rds_button", "Save file", style="color: #fff; background-color: #337ab7; border-color: #2e6da4; width:120px;"),
-                                                                                      downloadButton("save_dvw_button", "Export to dvw", style="color: #fff; background-color: #337ab7; border-color: #2e6da4; width:120px;"),
+                                          if (!is.null(app_data$dvw$plays2)) tags$div(downloadButton("save_rds_button", "Save file", class = "leftbut"),
+                                                                                      downloadButton("save_dvw_button", "Export to dvw", class = "leftbut"),
                                                                                       uiOutput("reports_ui")),
                                           tags$hr(),
-                                          introBox(actionButton("general_help", label = "General Help", icon = icon("question"), style="color: #fff; background-color: #337ab7; border-color: #2e6da4; width:120px;"),
-                                                   tags$button(class = "btn btn-default", "User manual", onclick = "window.open('https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html', '_blank')", style="color: #fff; background-color: #337ab7; border-color: #2e6da4; width:120px;"),
-                                                   actionButton("preferences", "Preferences", style="color: #fff; background-color: #337ab7; border-color: #2e6da4; width:120px;"),
-                                                   actionButton("show_shortcuts", tags$span(icon("keyboard"), HTML("Keyboard<br />shortcuts")), style="color: #fff; background-color: #337ab7; border-color: #2e6da4; width:120px;"),
+                                          introBox(actionButton("general_help", label = "General Help", icon = icon("question"), class = "leftbut"),
+                                                   tags$button(class = "btn btn-default leftbut", "User manual", onclick = "window.open('https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html', '_blank')"),
+                                                   actionButton("preferences", "Preferences", class = "leftbut"),
+                                                   actionButton("show_shortcuts", tags$span(icon("keyboard"), HTML("Keyboard<br />shortcuts")), class = "leftbut"),
                                                    data.step = 7, data.intro = "Set general preferences, and see the keyboard shortcuts.")
                                           )),
                        column(9, style = "padding-right:2px;",
                               if (app_data$scout_mode == "type") {
                                   if (app_data$with_video) {
                                       fluidRow(column(8, ov_video_ui_element(app_data, yt)),
-                                               column(4, introBox(mod_courtrot2_ui(id = "courtrot"), data.step = 5, data.intro = "On-court lineups, and set and game scores.")))
+                                               column(4, introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores.")))
                                   } else {
                                       fluidRow(
                                           column(2),
-                                          column(5, introBox(mod_courtrot2_ui(id = "courtrot"), data.step = 5, data.intro = "On-court lineups, and set and game scores.")),
+                                          column(5, introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores.")),
                                           column(3, offset = 1, introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")),
                                           column(1))
                                   }
@@ -125,7 +125,7 @@ ov_scouter_ui <- function(app_data) {
                               }
                               ),
                        column(2, style = "padding-left:5px; padding-right:5px",
-                              if (app_data$scout_mode != "type") introBox(mod_courtrot2_ui(id = "courtrot"), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
+                              if (app_data$scout_mode != "type") introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
                               uiOutput("problem_ui"),
                               introBox(mod_playslist_ui("playslist", height = if (app_data$scout_mode == "type") "85vh" else "35vh", styling = app_data$styling), data.step = 6, data.intro = "List of actions. New entries appear here as they are scouted."),
                               uiOutput("error_message"))
