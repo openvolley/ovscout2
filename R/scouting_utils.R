@@ -577,12 +577,13 @@ disambig_names <- function(last, first) {
     last
 }
 
-names2roster <- function(pm) {
+names2roster <- function(pm, join = TRUE) {
     pm <- dplyr::arrange(pm, .data$number)
     pm$lastname <- disambig_names(pm$lastname, pm$firstname)
     lc <- paste(ifelse(grepl("L", pm$special_role), "L", ""), ifelse(grepl("C", pm$special_role), "C", ""), sep = ",")
     lc <- sub("^,", "", sub(",$", "", lc))
     lc[nzchar(lc)] <- paste0(" (", lc[nzchar(lc)], ")")
     pm$lastname <- paste0(pm$lastname, lc)
-    str_trim(paste0(pm$number, " ", pm$lastname))
+    if(join) ret = str_trim(paste0(pm$number, " ", pm$lastname)) else ret = pm[,c("number", "lastname")]
+    ret
 }

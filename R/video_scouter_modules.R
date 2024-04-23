@@ -12,25 +12,25 @@ mod_teamslists_ui <- function(id) {
 
 mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE) {
     output$htroster <- renderUI({
-        re <- names2roster(rdata$dvw$meta$players_h)
+        re <- names2roster(rdata$dvw$meta$players_h, join = FALSE)
         re1 <- re[seq_len(ceiling(length(re) / 2))]
         htn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]
         if (two_cols) {
             tags$div(tags$strong(htn), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
                                                 do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
         } else {
-            do.call(tags$div, c(list(tags$strong(paste('*',htn)), tags$hr()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+            do.call(tags$table, c(style="width:100%; font-weight:normal;", list(tags$strong(paste('*',htn)), tags$hr()), lapply(1:nrow(re), function(z) tagList(tags$tr(tags$th(re[z,1]), tags$th(re[z,2]))))))
         }
     })
     output$vtroster <- renderUI({
-        re <- names2roster(rdata$dvw$meta$players_v)
+        re <- names2roster(rdata$dvw$meta$players_v, join = FALSE)
         re1 <- re[seq_len(ceiling(length(re) / 2))]
         vtn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]
         if (two_cols) {
             tags$div(tags$strong(vtn), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
                                                 do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
         } else {
-            do.call(tags$div, c(list(tags$strong(paste('a',vtn)), tags$br(), tags$hr()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+            do.call(tags$table, c(style="width:100%;", list(tags$strong(paste('*',vtn)), tags$hr()), lapply(1:nrow(re), function(z) tagList(tags$tr(tags$th(re[z,1]), tags$th(re[z,2]))))))
         }
     })
 }
