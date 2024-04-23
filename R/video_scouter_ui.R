@@ -49,13 +49,13 @@ ov_scouter_ui <- function(app_data) {
                        plotOutputWithAttribs("review_overlay", width = "100%", height = "100%", click = "rv_click", hover = shiny::hoverOpts("rv_hover", delay = 50, delayType = "throttle"), onmouseup = "Shiny.setInputValue('did_rv_mouseup', new Date().getTime());", onmousedown = "Shiny.setInputValue('did_rv_mousedown', new Date().getTime());")),
               fluidRow(column(1, tags$div(id = "bsbar",
                                           if (app_data$with_video) {
-                                              introBox(actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward")),
-                                                       actionButton("video_rew_2", label = "Back 2s", icon = icon("step-backward")),
-                                                       actionButton("video_pause", label = "Pause", icon = icon("pause-circle")),
-                                                       actionButton("video_ff_2", label = "Forward 2s", icon = icon("step-forward")),
-                                                       actionButton("video_ff_10", label = "Forward 10s", icon = icon("step-forward")),
+                                              introBox(actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward"), class = "leftbut"),
+                                                       actionButton("video_rew_2", label = "Back 2s", icon = icon("step-backward"), class = "leftbut"),
+                                                       actionButton("video_pause", label = "Pause", icon = icon("pause-circle"), class = "leftbut"),
+                                                       actionButton("video_ff_2", label = "Forward 2s", icon = icon("step-forward"), class = "leftbut"),
+                                                       actionButton("video_ff_10", label = "Forward 10s", icon = icon("step-forward"), class = "leftbut"),
                                                        tags$div(class = "bareslider", sliderInput("video_volume", label = "Volume", min = 0, max = 1, value = 0, width = "100%", ticks = FALSE), style = "width:100%"),
-                                                       actionButton("video_toggle_mute", label = "Unmute", icon = icon("volume-mute")),
+                                                       actionButton("video_toggle_mute", label = "Unmute", icon = icon("volume-mute"), class = "leftbut"),
                                                        sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1), data.step = 4, data.intro = "Video controls. Also can be controlled by keyboard shortcuts.")
                                           },
                                           introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
@@ -64,7 +64,7 @@ ov_scouter_ui <- function(app_data) {
                                                   tags$div(style = "display:inline-block;",
                                                            mod_courtref_ui(id = "courtref1", yt = isTRUE(is_youtube_url(app_data$video_src)), video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src))),
                                                            mod_courtref_ui(id = "courtref2", yt = is_youtube_url(app_data$video_src2), video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), button_label = HTML("Court reference<br />(video 2)")),
-                                                           actionButton("v2_offset", "Video 2 time offset"))
+                                                           actionButton("v2_offset", "Video 2 time offset"), class = "leftbut")
                                               } else {
                                                   mod_courtref_ui(id = "courtref1", yt = isTRUE(is_youtube_url(app_data$video_src)), video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)))
                                               }
@@ -73,7 +73,7 @@ ov_scouter_ui <- function(app_data) {
                                               mod_team_select_ui(id = "team_selector"),
                                               mod_team_edit_ui(id = "team_editor"),
                                               mod_lineup_edit_ui(id = "lineup_editor"),
-                                              if (!is.null(app_data$video_src2)) actionButton("switch_video", "Switch video"),
+                                              if (!is.null(app_data$video_src2)) actionButton("switch_video", "Switch video", class = "leftbut"),
                                               data.step = 2, data.intro = "Click on these buttons if you want to edit the court reference, starting lineups, rosters, or match metadata. The court reference defines where the court is located in the video image."),
                                           tags$hr(),
                                           if (!is.null(app_data$dvw$plays2)) tags$div(downloadButton("save_rds_button", "Save file", class = "leftbut"),
@@ -89,8 +89,8 @@ ov_scouter_ui <- function(app_data) {
                        column(9, style = "padding-right:2px;",
                               if (app_data$scout_mode == "type") {
                                   if (app_data$with_video) {
-                                      fluidRow(column(8, ov_video_ui_element(app_data, yt)),
-                                               column(4, introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores.")))
+                                      fluidRow(column(7, ov_video_ui_element(app_data, yt)),
+                                               column(5, introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores.")))
                                   } else {
                                       fluidRow(
                                           column(2),
@@ -107,7 +107,11 @@ ov_scouter_ui <- function(app_data) {
                               tags$div(style = "height: 14px;"),
                               if (app_data$scout_mode == "type") {
                                   if (app_data$with_video) {
-                                      fluidRow(column(8, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")), tags$input(id = "scout_in", type = "text"))),
+                                      fluidRow(
+                                          column(1, actionButton("pt_home", "(*) Pt", width = "100%", style = "background-color: #bfefff; height: 72px;") ),
+                                          column(5, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")), tags$input(id = "scout_in", type = "text"))),
+                                          column(1, actionButton("pt_away", "(a) Pt", width = "100%", style = "background-color: #bcee68; height:72px;") ),
+                                          column(1, actionButton("undoType", "Undo", width = "100%", style = "background-color: orange; height:72px;")),
                                                column(4, introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")))
                                   } else {
                                   fluidRow(

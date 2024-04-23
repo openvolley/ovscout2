@@ -1,7 +1,8 @@
 ## TODO: special_role column has been hidden, todo add a column of checkbox inputs allowing the captain to be specified?
 mod_teamslists_ui <- function(id) {
     ns <- NS(id)
-    tagList(tags$head(tags$style("#hroster {padding-left: 0px; padding-right: 0px; background-color: #bfefff; padding: 12px;} #vroster {padding-left: 0px; padding-right: 0px; background-color: #bcee68; padding: 12px;}")),
+    tagList(tags$head(tags$style("#hroster {padding-left: 0px; padding-right: 0px; background-color: #bfefff; padding: 12px; border: 3px solid white; border-radius:6px;}
+                                 #vroster {padding-left: 0px; padding-right: 0px; background-color: #bcee68; padding: 12px; border: 3px solid white; border-radius:6px;}")),
             tags$div(style = "border-radius: 15px; padding: 4px",
                      fluidRow(column(6, id = "hroster", uiOutput(ns("htroster"))),
                               column(6, id = "vroster", uiOutput(ns("vtroster"))))
@@ -18,7 +19,7 @@ mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE) {
             tags$div(tags$strong(htn), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
                                                 do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
         } else {
-            do.call(tags$div, c(list(tags$strong(paste('*',htn)), tags$br(), tags$hr()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
+            do.call(tags$div, c(list(tags$strong(paste('*',htn)), tags$hr()), lapply(re, function(z) tagList(tags$span(z), tags$br()))))
         }
     })
     output$vtroster <- renderUI({
@@ -39,14 +40,14 @@ mod_courtrot2_ui <- function(id, styling) {
     tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;} .crhbut { background-color:", styling$h_court_colour, "; margin-top:2px; } .crhbut:hover, .crhbut:active { background-color:", styling$h_court_light_colour, "; } .crvbut { background-color:", styling$v_court_colour, "; margin-top:2px; } .crvbut:hover, .crvbut:active { background-color:", styling$v_court_light_colour, "; }"))),
             tags$div(style = "border-radius: 4px; padding: 4px;",
                      fluidRow(
-                     column(1,
+                     column(2,
                             actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")), class = "crhbut"),
                             actionButton(ns("p1pt_home"), tags$span("Home", tags$br(), icon("plus")), class = "crhbut"),
                             actionButton(ns("timeout_home"), tags$span("Home", tags$br(), icon("t")), class = "crhbut"),
                             actionButton(ns("substitution_home"), tags$span("Home", tags$br(), icon("right-left")), class = "crhbut")
                          ),
-                     column(10, plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:48vh;")),
-                     column(1,
+                     column(8, plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:46vh; width:36vh;")),
+                     column(2,
                             actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")), class = "crvbut"),
                             actionButton(ns("p1pt_visiting"), tags$span("Visiting", tags$br(), icon("plus")), class = "crvbut"),
                             actionButton(ns("tomeout_visiting"), tags$span("Visiting", tags$br(), icon("t")), class = "crvbut"),
@@ -293,6 +294,13 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     observeEvent(input$rotate_visiting, {
         rotate_teams$visiting <- 1L
     })
+    # observeEvent(input$timeout_home, {
+    #     code <- "*T"
+    #     browser()
+    #     res <- handle_manual_code(code, process_rally_end = FALSE)
+    # })
+
+
 
     observeEvent(input$court_inset_swap, game_state$home_team_end <- other_end(game_state$home_team_end))
 
@@ -575,6 +583,10 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
     observeEvent(input$rotate_visiting, {
         rotate_teams$visiting <- 1L
     })
+
+    # observeEvent(input$timeout_home, {
+    #     code <- "*T"
+    # })
 
     observeEvent(input$court_inset_swap, game_state$home_team_end <- other_end(game_state$home_team_end))
 

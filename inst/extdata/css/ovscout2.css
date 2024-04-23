@@ -15,7 +15,7 @@ h2, h3, h4 {font-weight: bold;}
 #scout_well { font-size:large; }
 
 #headerblock {border-radius:14px; padding:10px; margin-bottom:5px; min-height:120px; color:black; border: 1px solid #000766; background:#000766; background: linear-gradient(90deg, rgba(0,7,102,1) 0%, rgba(255,255,255,1) 65%, rgba(255,255,255,1) 100%);}
-#headerblock h1, #headerblock h2, #headerblock h3, #headerblock h4 {color:#fff;} 
+#headerblock h1, #headerblock h2, #headerblock h3, #headerblock h4 {color:#fff;}
 
 #c3_other_outer { height:7vh; border-width:1px; padding-left:2px; padding-right:2px; border-radius:4px; background-color:white; }
 #c3_other_outer.active { background-color:#d5d5d5; }
@@ -29,3 +29,7 @@ h2, h3, h4 {font-weight: bold;}
     color:#fff; background-color:#337ab7; border-color:#2e6da4; width:120px;
 }
 .leftbut:hover, .leftbut:active { background-color:#75caeb; }
+
+#reports {
+    color:#fff; background-color:#337ab7; border-color:#2e6da4; width:120px;
+}
