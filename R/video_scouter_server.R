@@ -746,17 +746,28 @@ ov_scouter_server <- function(app_data) {
             do_undo()
         })
 
+        # observeEvent(input$timeout_home, {
+        #     code <- "*T"
+        #     res <- handle_manual_code(code, process_rally_end = FALSE)
+        #     browser()
+        # })
+        #
+        # observeEvent(input$timeout_visiting, {
+        #     code <- "aT"
+        #     res <- handle_manual_code(code, process_rally_end = FALSE)
+        # })
 
         observeEvent(input$pt_home, {
             rally_won_code <- "*p"
             res <- handle_manual_code(rally_won_code, process_rally_end = FALSE)
-            review_rally()
+            apply_rally_review() #review_rally()
         })
 
         observeEvent(input$pt_away, {
             rally_won_code <- "ap"
             res <- handle_manual_code(rally_won_code, process_rally_end = FALSE)
-            review_rally()
+            # review_rally()
+            apply_rally_review()
         })
 
         observeEvent(input$scout_input_times, print(get_scout_input_times()))
@@ -3421,7 +3432,7 @@ ov_scouter_server <- function(app_data) {
         ## reports
         output$reports_ui <- renderUI({
             if (ov_pandoc_ok() && nrow(rdata$dvw$plays2) > 0) {
-                shinyWidgets::dropdown(inputId = "reports", label = "Reports", actionButton("mr_generate", "Match report"))
+                shinyWidgets::dropdown(inputId = "reports", label = "Reports", actionButton("mr_generate", "Match report", class = "leftbut"))
             } else {
                 NULL
             }
