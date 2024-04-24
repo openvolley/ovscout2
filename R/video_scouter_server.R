@@ -234,12 +234,14 @@ ov_scouter_server <- function(app_data) {
         ## note that these should only be available to the user if there is not a rally in progress
         observeEvent(court_inset$rotate_home(), do_rotate("home"))
         observeEvent(court_inset$timeout_home(), handle_manual_code("*T"))
-        observeEvent(court_inset$pt_home(), handle_manual_code("*p"))
+        observeEvent(court_inset$p1pt_home(), adjust_scores(home_team_by = 1L)) ## was previously: handle_manual_code("*p"))
+        observeEvent(court_inset$m1pt_home(), adjust_scores(home_team_by = -1L))
         observeEvent(court_inset$substitution_home(), show_substitution_pane("*c"))
         ## visiting team buttons
         observeEvent(court_inset$rotate_visiting(), do_rotate("visiting"))
         observeEvent(court_inset$timeout_visiting(), handle_manual_code("aT"))
-        observeEvent(court_inset$pt_visiting(), handle_manual_code("ap"))
+        observeEvent(court_inset$p1pt_visiting(), adjust_scores(visiting_team_by = 1L))
+        observeEvent(court_inset$m1pt_visiting(), adjust_scores(visiting_team_by = -1L))
         observeEvent(court_inset$substitution_visiting(), show_substitution_pane("ac"))
 
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata, two_cols = app_data$scout_mode != "type")
@@ -737,26 +739,13 @@ ov_scouter_server <- function(app_data) {
             do_undo()
         })
 
-        # observeEvent(input$timeout_home, {
-        #     code <- "*T"
-        #     res <- handle_manual_code(code, process_rally_end = FALSE)
-        #     browser()
-        # })
-        #
-        # observeEvent(input$timeout_visiting, {
-        #     code <- "aT"
-        #     res <- handle_manual_code(code, process_rally_end = FALSE)
-        # })
-
         observeEvent(input$pt_home, {
-            rally_won_code <- "*p"
-            res <- handle_manual_code(rally_won_code, process_rally_end = FALSE)
+            res <- handle_manual_code("*p", process_rally_end = FALSE)
             apply_rally_review() #review_rally()
         })
 
         observeEvent(input$pt_away, {
-            rally_won_code <- "ap"
-            res <- handle_manual_code(rally_won_code, process_rally_end = FALSE)
+            res <- handle_manual_code("ap", process_rally_end = FALSE)
             # review_rally()
             apply_rally_review()
         })
@@ -930,7 +919,6 @@ ov_scouter_server <- function(app_data) {
         apply_rally_review <- function() {
             editing$active <- NULL
             removeModal()
-            warning("apply edits HERE")
             rctxt0 <- codes_from_rc_rows(rally_codes()) ## the codes before review
             ## run the reviewed codes through the interpreter
             home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
@@ -3446,6 +3434,16 @@ ov_scouter_server <- function(app_data) {
             for (i in pseq) game_state[[paste0(tm, "_p", i)]] <- temp[i]
             poscode <- paste0(hv, "z", game_state[[paste0(tm, "_setter_position")]])
             rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw)))
+        }
+
+        adjust_scores <- function(home_team_by = 0L, visiting_team_by = 0L) {
+            scores <- c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point)
+            if ((isTRUE(home_team_by < 0 && scores[1] >= -home_team_by)) || (isTRUE(home_team_by > 0))) {
+                game_state$home_score_start_of_point <- scores[1] + home_team_by
+            }
+            if ((isTRUE(visiting_team_by < 0 && scores[2] >= -visiting_team_by)) || (isTRUE(visiting_team_by > 0))) {
+                game_state$visiting_score_start_of_point <- scores[2] + visiting_team_by
+            }
         }
     }
 }
