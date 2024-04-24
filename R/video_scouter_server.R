@@ -2678,28 +2678,26 @@ ov_scouter_server <- function(app_data) {
             vt_other <- setdiff(na.omit(rdata$dvw$meta$players_v$number), vt_on)
             vt_other <- setdiff(vt_other, get_liberos(game_state, team = "a", dvw = rdata$dvw))
             vt_can_sub <- length(vt_other) > 0
-
+            rip <- isTRUE(game_state$rally_started) ## rally in progress
             showModal(vwModalDialog(title = "Miscellaneous", footer = NULL, width = 100,
                                     tags$p(tags$strong("Match actions")),
                                     fluidRow(column(2, actionButton("undo", "Undo last rally action", class = "undo fatradio")),
                                              column(2, actionButton("enter_code", "Enter scout code", class = "fatradio"), tags$span(style = "font-size:small;", "Only non-skill codes are supported")),
                                              column(2, actionButton("end_of_set_confirm", "End of set", class = "fatradio"))),
                                     tags$br(), tags$br(),
-                                    if (!isTRUE(game_state$rally_started)) {
-                                        ## these buttons should not be available mid-rally
-                                        tags$div(fluidRow(column(6, tags$strong(datavolley::home_team(rdata$dvw), "(home)")),
-                                                          column(6, tags$strong(datavolley::visiting_team(rdata$dvw), "(visiting)"))),
-                                                 fluidRow(column(2, make_fat_buttons(choices = c("Won current rally" = "*p"), input_var = "manual_code")),
-                                                          column(2, make_fat_buttons(choices = c(Timeout = "*T"), input_var = "manual_code")),
-                                                          column(2, if (ht_can_sub) make_fat_buttons(choices = c(Substitution = "*c"), input_var = "substitution")),
-                                                          column(2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "manual_code")),
-                                                          column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "manual_code")),
-                                                          column(2, if (vt_can_sub) make_fat_buttons(choices = c(Substitution = "ac"), input_var = "substitution"))),
-                                                 tags$br(),
-                                                 fluidRow(column(2, make_fat_buttons(choices = c("Change setter" = "*P"), input_var = "change_setter")),
-                                                          column(2, offset = 4, make_fat_buttons(choices = c("Change setter" = "aP"), input_var = "change_setter"))),
-                                                 tags$br())
-                                    },
+                                    ## NB if (!rip) - applied to buttons that should not be available mid-rally
+                                    fluidRow(column(6, tags$strong(datavolley::home_team(rdata$dvw), "(home)")),
+                                             column(6, tags$strong(datavolley::visiting_team(rdata$dvw), "(visiting)"))),
+                                    fluidRow(column(2, make_fat_buttons(choices = c("Won current rally" = "*p"), input_var = "manual_code")),
+                                             column(2, if (!rip) make_fat_buttons(choices = c(Timeout = "*T"), input_var = "manual_code")),
+                                             column(2, if (ht_can_sub && !rip) make_fat_buttons(choices = c(Substitution = "*c"), input_var = "substitution")),
+                                             column(2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "manual_code")),
+                                             column(2, if (!rip) make_fat_buttons(choices = c(Timeout = "aT"), input_var = "manual_code")),
+                                             column(2, if (vt_can_sub && !rip) make_fat_buttons(choices = c(Substitution = "ac"), input_var = "substitution"))),
+                                    if (!rip) tags$br(),
+                                    if (!rip) fluidRow(column(2, make_fat_buttons(choices = c("Change setter" = "*P"), input_var = "change_setter")),
+                                                       column(2, offset = 4, make_fat_buttons(choices = c("Change setter" = "aP"), input_var = "change_setter"))),
+                                    tags$br(),
                                     tags$hr(),
                                     fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Return to scouting", class = "continue fatradio")))
                                     ))
