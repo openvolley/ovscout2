@@ -117,15 +117,18 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
 }
 
 ## preprocess manual lineup input
-lineup_preprocess <- function(code, dvw) {##dvw, ht_nums = NULL, ht_setter = NA_integer_, vt_nums = NULL, vt_setter = NA_integer_) {
+## take code of the form:
+## L 1 2 3 4 5s 6 7 8
+## where L is "L", "*L", or "aL", jersey numbers are space or comma separated, and the "S" or "s" or "P" or "p" designates the setter
+lineup_preprocess <- function(code, dvw) {
     pnums <- strsplit(sub("^[a\\*]?L[[:space:]]*", "", code), split = "[[:space:],]+")[[1]]
-    spos <- grep("[s\\*]", pnums, ignore.case = TRUE)
+    spos <- grep("[sp]", pnums, ignore.case = TRUE)
     cat(str(pnums))
     cat(str(spos))
     out <- list()
     beach <- is_beach(dvw)
     if (length(spos) == 1) {
-        pnums <- as.integer(sub("[s\\*]", "", pnums, ignore.case = TRUE))
+        pnums <- as.integer(sub("[sp]", "", pnums, ignore.case = TRUE))
         lup <- list(lineup = if (beach) pnums[1:2] else pnums[1:6],
                     setter = if (beach) NA_integer_ else pnums[spos],
                     liberos = if (beach) integer() else as.integer(na.omit(pnums[7:8])))

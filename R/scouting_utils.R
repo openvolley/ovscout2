@@ -584,6 +584,5 @@ names2roster <- function(pm, join = TRUE) {
     lc <- sub("^,", "", sub(",$", "", lc))
     lc[nzchar(lc)] <- paste0(" (", lc[nzchar(lc)], ")")
     pm$lastname <- paste0(pm$lastname, lc)
-    if(join) ret = str_trim(paste0(pm$number, " ", pm$lastname)) else ret = pm[,c("number", "lastname")]
-    ret
+    if (join) str_trim(paste(pm$number, pm$lastname)) else pm[, c("number", "lastname")]
 }
