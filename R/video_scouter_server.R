@@ -234,7 +234,7 @@ ov_scouter_server <- function(app_data) {
         ## note that these should only be available to the user if there is not a rally in progress
         observeEvent(court_inset$rotate_home(), do_rotate("home"))
         observeEvent(court_inset$timeout_home(), handle_manual_code("*T"))
-        observeEvent(court_inset$p1pt_home(), adjust_scores(home_team_by = 1L)) ## was previously: handle_manual_code("*p"))
+        observeEvent(court_inset$p1pt_home(), adjust_scores(home_team_by = 1L))
         observeEvent(court_inset$m1pt_home(), adjust_scores(home_team_by = -1L))
         observeEvent(court_inset$substitution_home(), show_substitution_pane("*c"))
         ## visiting team buttons
@@ -719,13 +719,15 @@ ov_scouter_server <- function(app_data) {
                     by <- as.numeric(sub("[^[:digit:]]+", "", input$scout_shortcut))
                     do_video(if (grepl("forward", input$scout_shortcut)) "ff" else "rew", by)
                 } else if (input$scout_shortcut %in% c("assign_point_top", "assign_point_bottom")) {
+                    ## any code remaining in the scout bar should be applied before actually ending the rally and assigning the point
                     rally_won_code <- if (input$scout_shortcut == "assign_point_top") {
                                           if (game_state$home_team_end == "upper") "*p" else "ap"
                                       } else {
                                           if (game_state$home_team_end == "upper") "ap" else "*p"
                                       }
-                    res <- handle_manual_code(rally_won_code, process_rally_end = FALSE) ## FALSE so that this does not automatically handle end-of-rally ap, *p codes
-                    review_rally()
+                    ## add this to the end of whatever is in the scout bar (which might be empty) and process the lot
+                    dojs(paste0("Shiny.setInputValue('scout_input_leftovers', scout_in_el.val() + ' ", rally_won_code, "', { priority: 'event' });"))
+                    ## and then things are handled in the observeEvent(input$scout_input_leftovers, { ... }) block below
                 } else if (input$scout_shortcut %in% c("undo")) {
                     do_undo()
                 } else if (input$scout_shortcut %in% c("switch_windows")) {
@@ -735,19 +737,27 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
-        observeEvent(input$undoType, {
-            do_undo()
+        observeEvent(input$scout_input_leftovers, {
+            ## we've assigned the point (either by scout bar shortcut or button)
+            ## input$scout_input_leftovers contains whatever was in the scout bar plus the appropriate point assignment code
+            handle_scout_codes(input$scout_input_leftovers)
         })
 
+        ## handle the buttons around the scout bar
+        observeEvent(input$undoType, do_undo())
+
         observeEvent(input$pt_home, {
-            res <- handle_manual_code("*p", process_rally_end = FALSE)
-            apply_rally_review() #review_rally()
+            ##res <- handle_manual_code("*p", process_rally_end = FALSE)
+            ##apply_rally_review() #review_rally()
+            ## add this to the end of whatever is in the scout bar (which might be empty) and process the lot
+            dojs(paste0("Shiny.setInputValue('scout_input_leftovers', scout_in_el.val() + ' *p', { priority: 'event' });"))
         })
 
         observeEvent(input$pt_away, {
-            res <- handle_manual_code("ap", process_rally_end = FALSE)
-            # review_rally()
-            apply_rally_review()
+            ##res <- handle_manual_code("ap", process_rally_end = FALSE)
+            ##apply_rally_review() # review_rally()
+            ## add this to the end of whatever is in the scout bar (which might be empty) and process the lot
+            dojs(paste0("Shiny.setInputValue('scout_input_leftovers', scout_in_el.val() + ' ap', { priority: 'event' });"))
         })
 
         observeEvent(input$scout_input_times, print(get_scout_input_times()))
