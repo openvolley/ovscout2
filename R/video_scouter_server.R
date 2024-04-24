@@ -229,27 +229,18 @@ ov_scouter_server <- function(app_data) {
 
         ## court inset showing rotation and team lists
         court_inset <- callModule(mod_courtrot2_base, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_path = reactive(prefs$ball_path), current_plays_row = reactive(playslist_mod$current_row()))
-        ## force a team rotation
-        rotate_teams <- reactive(court_inset$rt)
-        observe({
-            rtn <- rotate_teams()
-            poscode <- c()
-            if (rtn$home > 0) {
-                game_state$home_setter_position <- rotpos(game_state$home_setter_position, n = length(pseq))
-                temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]))
-                for (i in pseq) game_state[[paste0("home_p", i)]] <- temp[i]
-                poscode <- c(poscode, paste0("*z", game_state$home_setter_position))
-                rtn$home <- 0L
-            }
-            if (rtn$visiting > 0) {
-                game_state$visiting_setter_position <- rotpos(game_state$visiting_setter_position, n = length(pseq))
-                temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
-                for (i in pseq) game_state[[paste0("visiting_p", i)]] <- temp[i]
-                poscode <- c(poscode, paste0("az", game_state$visiting_setter_position))
-                rtn$visiting <- 0L
-            }
-            if (length(poscode)) rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw)))
-        })
+
+        ## handle court module home team buttons
+        ## note that these should only be available to the user if there is not a rally in progress
+        observeEvent(court_inset$rotate_home(), do_rotate("home"))
+        observeEvent(court_inset$timeout_home(), handle_manual_code("*T"))
+        observeEvent(court_inset$pt_home(), handle_manual_code("*p"))
+        observeEvent(court_inset$substitution_home(), show_substitution_pane("*c"))
+        ## visiting team buttons
+        observeEvent(court_inset$rotate_visiting(), do_rotate("visiting"))
+        observeEvent(court_inset$timeout_visiting(), handle_manual_code("aT"))
+        observeEvent(court_inset$pt_visiting(), handle_manual_code("ap"))
+        observeEvent(court_inset$substitution_visiting(), show_substitution_pane("ac"))
 
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata, two_cols = app_data$scout_mode != "type")
         detection_ref1 <- reactiveVal({ if (!is.null(app_data$court_ref)) app_data$court_ref else NULL })
@@ -2693,19 +2684,21 @@ ov_scouter_server <- function(app_data) {
                                              column(2, actionButton("enter_code", "Enter scout code", class = "fatradio"), tags$span(style = "font-size:small;", "Only non-skill codes are supported")),
                                              column(2, actionButton("end_of_set_confirm", "End of set", class = "fatradio"))),
                                     tags$br(), tags$br(),
-                                    ## TODO consider if all of these buttons should be available mid-rally or not (e.g. timeouts)
-                                    fluidRow(column(6, tags$strong(datavolley::home_team(rdata$dvw), "(home)")),
-                                             column(6, tags$strong(datavolley::visiting_team(rdata$dvw), "(visiting)"))),
-                                    fluidRow(column(2, make_fat_buttons(choices = c("Won current rally" = "*p"), input_var = "manual_code")),
-                                             column(2, make_fat_buttons(choices = c(Timeout = "*T"), input_var = "manual_code")),
-                                             column(2, if (ht_can_sub) make_fat_buttons(choices = c(Substitution = "*c"), input_var = "substitution")),
-                                             column(2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "manual_code")),
-                                             column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "manual_code")),
-                                             column(2, if (vt_can_sub) make_fat_buttons(choices = c(Substitution = "ac"), input_var = "substitution"))),
-                                    tags$br(),
-                                    fluidRow(column(2, make_fat_buttons(choices = c("Change setter" = "*P"), input_var = "change_setter")),
-                                             column(2, offset = 4, make_fat_buttons(choices = c("Change setter" = "aP"), input_var = "change_setter"))),
-                                    tags$br(),
+                                    if (!isTRUE(game_state$rally_started)) {
+                                        ## these buttons should not be available mid-rally
+                                        tags$div(fluidRow(column(6, tags$strong(datavolley::home_team(rdata$dvw), "(home)")),
+                                                          column(6, tags$strong(datavolley::visiting_team(rdata$dvw), "(visiting)"))),
+                                                 fluidRow(column(2, make_fat_buttons(choices = c("Won current rally" = "*p"), input_var = "manual_code")),
+                                                          column(2, make_fat_buttons(choices = c(Timeout = "*T"), input_var = "manual_code")),
+                                                          column(2, if (ht_can_sub) make_fat_buttons(choices = c(Substitution = "*c"), input_var = "substitution")),
+                                                          column(2, make_fat_buttons(choices = c("Won current rally" = "ap"), input_var = "manual_code")),
+                                                          column(2, make_fat_buttons(choices = c(Timeout = "aT"), input_var = "manual_code")),
+                                                          column(2, if (vt_can_sub) make_fat_buttons(choices = c(Substitution = "ac"), input_var = "substitution"))),
+                                                 tags$br(),
+                                                 fluidRow(column(2, make_fat_buttons(choices = c("Change setter" = "*P"), input_var = "change_setter")),
+                                                          column(2, offset = 4, make_fat_buttons(choices = c("Change setter" = "aP"), input_var = "change_setter"))),
+                                                 tags$br())
+                                    },
                                     tags$hr(),
                                     fixedRow(column(2, offset = 10, actionButton("admin_dismiss", "Return to scouting", class = "continue fatradio")))
                                     ))
@@ -2746,44 +2739,46 @@ ov_scouter_server <- function(app_data) {
         })
 
         observeEvent(input$substitution, {
-            if (!is.null(input$substitution)) {
-                ht_sub <- vt_sub <- FALSE
-                if (input$substitution %eq% "*c") {
-                    ## home player sub buttons
-                    ht_on <- sort(get_players(game_state, team = "*", dvw = rdata$dvw))
-                    names(ht_on) <- player_nums_to(ht_on, team = "*", dvw = rdata$dvw)
-                    ht_other <- setdiff(na.omit(rdata$dvw$meta$players_h$number), ht_on)
-                    ht_other <- sort(setdiff(ht_other, get_liberos(game_state, team = "*", dvw = rdata$dvw)))
-                    names(ht_other) <- player_nums_to(ht_other, team = "*", dvw = rdata$dvw)
-                    ht_sub_out <- make_fat_radio_buttons(choices = ht_on, selected = NA, input_var = "ht_sub_out")
-                    ht_sub_in <- make_fat_radio_buttons(choices = ht_other, selected = NA, input_var = "ht_sub_in")
-                    ht_sub <- TRUE
-                } else {
-                    ## visiting player sub buttons
-                    vt_on <- sort(get_players(game_state, team = "a", dvw = rdata$dvw))
-                    names(vt_on) <- player_nums_to(vt_on, team = "a", dvw = rdata$dvw)
-                    vt_other <- setdiff(na.omit(rdata$dvw$meta$players_v$number), vt_on)
-                    vt_other <- sort(setdiff(vt_other, get_liberos(game_state, team = "a", dvw = rdata$dvw)))
-                    names(vt_other) <- player_nums_to(vt_other, team = "a", dvw = rdata$dvw)
-                    vt_sub_out <- make_fat_radio_buttons(choices = vt_on, selected = NA, input_var = "vt_sub_out")
-                    vt_sub_in <- make_fat_radio_buttons(choices = vt_other, selected = NA, input_var = "vt_sub_in")
-                    vt_sub <- TRUE
-                }
-                showModal(vwModalDialog(title = paste0("Substitution: ", if (ht_sub) paste0(datavolley::home_team(rdata$dvw), " (home)") else paste0(datavolley::visiting_team(rdata$dvw), " (visiting)")), footer = NULL, width = 100,
-                                        if (ht_sub) tags$div(tags$p(tags$strong("Player out")),
-                                                             do.call(fixedRow, lapply(ht_sub_out, function(but) column(2, but))),
-                                                             tags$p(tags$strong("Player in")),
-                                                             do.call(fixedRow, lapply(ht_sub_in, function(but) column(if (length(ht_other) <= 6) 2 else 1, but)))),
-                                        if (vt_sub) tags$div(tags$p(tags$strong("Player out")),
-                                                             do.call(fixedRow, lapply(vt_sub_out, function(but) column(2, but))),
-                                                             tags$p(tags$strong("Player in")),
-                                                             do.call(fixedRow, lapply(vt_sub_in, function(but) column(if (length(vt_other) <= 6) 2 else 1, but)))),
-                                        tags$hr(),
-                                        fixedRow(column(2, offset = 8, make_fat_buttons(choices = c("Make substitution" = if (ht_sub) "*c" else "ac"), input_var = "manual_code", class = "continue")),
-                                                 column(2, actionButton("admin_dismiss", "Cancel", class = "cancel fatradio")))
-                                        ))
-            }
+            if (!is.null(input$substitution)) show_substitution_pane()
         })
+        show_substitution_pane <- function(sub_code) {
+            if (missing(sub_code)) sub_code <- isolate(input$substitution)
+            ht_sub <- vt_sub <- FALSE
+            if (sub_code %eq% "*c") {
+                ## home player sub buttons
+                ht_on <- sort(get_players(game_state, team = "*", dvw = rdata$dvw))
+                names(ht_on) <- player_nums_to(ht_on, team = "*", dvw = rdata$dvw)
+                ht_other <- setdiff(na.omit(rdata$dvw$meta$players_h$number), ht_on)
+                ht_other <- sort(setdiff(ht_other, get_liberos(game_state, team = "*", dvw = rdata$dvw)))
+                names(ht_other) <- player_nums_to(ht_other, team = "*", dvw = rdata$dvw)
+                ht_sub_out <- make_fat_radio_buttons(choices = ht_on, selected = NA, input_var = "ht_sub_out")
+                ht_sub_in <- make_fat_radio_buttons(choices = ht_other, selected = NA, input_var = "ht_sub_in")
+                ht_sub <- TRUE
+            } else {
+                ## visiting player sub buttons
+                vt_on <- sort(get_players(game_state, team = "a", dvw = rdata$dvw))
+                names(vt_on) <- player_nums_to(vt_on, team = "a", dvw = rdata$dvw)
+                vt_other <- setdiff(na.omit(rdata$dvw$meta$players_v$number), vt_on)
+                vt_other <- sort(setdiff(vt_other, get_liberos(game_state, team = "a", dvw = rdata$dvw)))
+                names(vt_other) <- player_nums_to(vt_other, team = "a", dvw = rdata$dvw)
+                vt_sub_out <- make_fat_radio_buttons(choices = vt_on, selected = NA, input_var = "vt_sub_out")
+                vt_sub_in <- make_fat_radio_buttons(choices = vt_other, selected = NA, input_var = "vt_sub_in")
+                vt_sub <- TRUE
+            }
+            showModal(vwModalDialog(title = paste0("Substitution: ", if (ht_sub) paste0(datavolley::home_team(rdata$dvw), " (home)") else paste0(datavolley::visiting_team(rdata$dvw), " (visiting)")), footer = NULL, width = 100,
+                                    if (ht_sub) tags$div(tags$p(tags$strong("Player out")),
+                                                         do.call(fixedRow, lapply(ht_sub_out, function(but) column(2, but))),
+                                                         tags$p(tags$strong("Player in")),
+                                                         do.call(fixedRow, lapply(ht_sub_in, function(but) column(if (length(ht_other) <= 6) 2 else 1, but)))),
+                                    if (vt_sub) tags$div(tags$p(tags$strong("Player out")),
+                                                         do.call(fixedRow, lapply(vt_sub_out, function(but) column(2, but))),
+                                                         tags$p(tags$strong("Player in")),
+                                                         do.call(fixedRow, lapply(vt_sub_in, function(but) column(if (length(vt_other) <= 6) 2 else 1, but)))),
+                                    tags$hr(),
+                                    fixedRow(column(2, offset = 8, make_fat_buttons(choices = c("Make substitution" = if (ht_sub) "*c" else "ac"), input_var = "manual_code", class = "continue")),
+                                             column(2, actionButton("admin_dismiss", "Cancel", class = "cancel fatradio")))
+                                    ))
+        }
 
         review_pane_active <- reactiveVal(FALSE)
         show_review_pane <- function() {
@@ -3441,5 +3436,16 @@ ov_scouter_server <- function(app_data) {
             editing$active <- "match report"
             ov2_generate_match_report(dvw = rdata$dvw, app_data = app_data)
         })
+
+        ## other auxiliary functions
+        do_rotate <- function(tm = "home") {
+            tm <- match.arg(tm, c("home", "visiting"))
+            hv <- if (tm == "home") "*" else "a"
+            game_state[[paste0(tm, "_setter_position")]] <- rotpos(game_state[[paste0(tm, "_setter_position")]], n = length(pseq))
+            temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0(tm, "_p", pseq)]))
+            for (i in pseq) game_state[[paste0(tm, "_p", i)]] <- temp[i]
+            poscode <- paste0(hv, "z", game_state[[paste0(tm, "_setter_position")]])
+            rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw)))
+        }
     }
 }

@@ -50,7 +50,7 @@ mod_courtrot2_ui <- function(id, styling) {
                      column(2,
                             actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")), class = "crvbut"),
                             actionButton(ns("p1pt_visiting"), tags$span("Visiting", tags$br(), icon("plus")), class = "crvbut"),
-                            actionButton(ns("tomeout_visiting"), tags$span("Visiting", tags$br(), icon("t")), class = "crvbut"),
+                            actionButton(ns("timeout_visiting"), tags$span("Visiting", tags$br(), icon("t")), class = "crvbut"),
                             actionButton(ns("substitution_visiting"), tags$span("Visiting", tags$br(), icon("right-left")), class = "crvbut")
                      ),
                      ),
@@ -66,14 +66,12 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
     beach <- is_beach(isolate(rdata$dvw))
     pseq <- if (beach) 1:2 else 1:6
 
+    ## can't switch serving team etc once the rally has started
     observe({
         if (!isTRUE(game_state$rally_started)) {
-            js_show2(ns("court_inset_swap"))
-            js_show2(ns("switch_serving"))
+            for (el in c("court_inset_swap", "switch_serving", "rotate_home", "p1pt_home", "timeout_home", "substitution_home", "rotate_visiting", "p1pt_visiting", "timeout_visiting", "substitution_visiting")) js_show2(ns(el))
         } else {
-            ## can't switch serving team once the rally has started
-            js_hide2(ns("court_inset_swap"))
-            js_hide2(ns("switch_serving"))
+            for (el in c("court_inset_swap", "switch_serving", "rotate_home", "p1pt_home", "timeout_home", "substitution_home", "rotate_visiting", "p1pt_visiting", "timeout_visiting", "substitution_visiting")) js_hide2(ns(el))
         }
     })
 
@@ -87,7 +85,6 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         (vsrc < 2 && home_team_end != "lower") || (vsrc > 1 && home_team_end == "lower")
     }
 
-    rotate_teams <- reactiveValues(home = 0L, visiting = 0L)
     clickout <- reactiveVal(list(x = NA_real_, y = NA_real_))
     observeEvent(input$plot_click, {
         req(input$plot_click)
@@ -288,23 +285,13 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         p + theme(plot.margin = rep(unit(0, "null"), 4))
     }, height = 950, width = 600, res = 180)
 
-    observeEvent(input$rotate_home, {
-        rotate_teams$home <- 1L
-    })
-    observeEvent(input$rotate_visiting, {
-        rotate_teams$visiting <- 1L
-    })
-    # observeEvent(input$timeout_home, {
-    #     code <- "*T"
-    #     browser()
-    #     res <- handle_manual_code(code, process_rally_end = FALSE)
-    # })
-
-
-
     observeEvent(input$court_inset_swap, game_state$home_team_end <- other_end(game_state$home_team_end))
 
-    return(list(rt = rotate_teams, click = clickout))
+    return(list(click = clickout,
+                rotate_home = reactive(input$rotate_home), pt_home = reactive(input$p1pt_home),
+                timeout_home = reactive(input$timeout_home), substitution_home = reactive(input$substitution_home),
+                rotate_visiting = reactive(input$rotate_visiting), pt_visiting = reactive(input$p1pt_visiting),
+                timeout_visiting = reactive(input$timeout_visiting), substitution_visiting = reactive(input$substitution_visiting)))
 }
 
 ## base plotting instead of ggplot
@@ -313,14 +300,12 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
     beach <- is_beach(isolate(rdata$dvw))
     pseq <- if (beach) 1:2 else 1:6
 
+    ## can't switch serving team etc once the rally has started
     observe({
         if (!isTRUE(game_state$rally_started)) {
-            js_show2(ns("court_inset_swap"))
-            js_show2(ns("switch_serving"))
+            for (el in c("court_inset_swap", "switch_serving", "rotate_home", "p1pt_home", "timeout_home", "substitution_home", "rotate_visiting", "p1pt_visiting", "timeout_visiting", "substitution_visiting")) js_show2(ns(el))
         } else {
-            ## can't switch serving team once the rally has started
-            js_hide2(ns("court_inset_swap"))
-            js_hide2(ns("switch_serving"))
+            for (el in c("court_inset_swap", "switch_serving", "rotate_home", "p1pt_home", "timeout_home", "substitution_home", "rotate_visiting", "p1pt_visiting", "timeout_visiting", "substitution_visiting")) js_hide2(ns(el))
         }
     })
 
@@ -334,7 +319,6 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
         (vsrc < 2 && home_team_end != "lower") || (vsrc > 1 && home_team_end == "lower")
     }
 
-    rotate_teams <- reactiveValues(home = 0L, visiting = 0L)
     clickout <- reactiveVal(list(x = NA_real_, y = NA_real_))
     observeEvent(input$plot_click, {
         req(input$plot_click)
@@ -577,20 +561,13 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
         })
     }, height = 800, width = 600, res = 180)
 
-    observeEvent(input$rotate_home, {
-        rotate_teams$home <- 1L
-    })
-    observeEvent(input$rotate_visiting, {
-        rotate_teams$visiting <- 1L
-    })
-
-    # observeEvent(input$timeout_home, {
-    #     code <- "*T"
-    # })
-
     observeEvent(input$court_inset_swap, game_state$home_team_end <- other_end(game_state$home_team_end))
 
-    return(list(rt = rotate_teams, click = clickout))
+    return(list(click = clickout,
+                rotate_home = reactive(input$rotate_home), pt_home = reactive(input$p1pt_home),
+                timeout_home = reactive(input$timeout_home), substitution_home = reactive(input$substitution_home),
+                rotate_visiting = reactive(input$rotate_visiting), pt_visiting = reactive(input$p1pt_visiting),
+                timeout_visiting = reactive(input$timeout_visiting), substitution_visiting = reactive(input$substitution_visiting)))
 }
 
 mod_match_data_edit_ui <- function(id) {
