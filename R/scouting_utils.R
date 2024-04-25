@@ -89,7 +89,30 @@ dv_set_lineups <- function(x, set_number, lineups, setter_positions, setters) {
     ## insert the start-of-set codes and lineups in the plays data
     ## e.g. "*P04>LUp"          "*z3>LUp"
     lineup_codes <- c(sprintf("*P%02d>LUp", setters[1]), paste0("*z", setter_positions[1], ">LUp"), sprintf("aP%02d>LUp", setters[2]), paste0("az", setter_positions[2], ">LUp"))
-    add_to_plays2(x, codes = lineup_codes, set_number = set_number, home_setter_position = setter_positions[1], visiting_setter_position = setter_positions[2], home_lineup = lineups[[1]][1:6], visiting_lineup = lineups[[2]][1:6], scores = c(0L, 0L), serving = NA_character_, home_liberos = ht_libs, visiting_liberos = vt_libs)
+    ## add rows to x$plays2
+    pseq <- seq_len(if (is_beach) 2L else 6L)
+    home_lineup <- lineups[[1]][pseq]
+    visiting_lineup <- lineups[[2]][pseq]
+    p2x <- tibble(code = as.character(lineup_codes), ## col 1
+                  point_phase = NA_character_, ## col 2
+                  attack_phase = NA_character_, ## col 3
+                  ##                  X4 = NA, ## col 4
+                  start_coordinate = NA_integer_, mid_coordinate = NA_integer_, end_coordinate = NA_integer_, ## cols 5-7
+                  time = time_but_utc(), ## col 8
+                  set_number = set_number, home_setter_position = setter_positions[1], visiting_setter_position = setter_positions[2], ## cols 9-11, NB these 3 not used directly in dv_read
+                  video_file_number = NA, video_time = NA_integer_, ## cols 12-13
+                  ##                X14 = NA, ## col 14
+                  home_score_start_of_point = 0L,
+                  visiting_score_start_of_point = 0L,
+                  serving = NA_character_)
+    p2x <- bind_cols(p2x, setNames(as.data.frame(as.list(home_lineup)), paste0("home_p", 1:6))) ## cols 15-20
+    p2x <- bind_cols(p2x, setNames(as.data.frame(as.list(visiting_lineup)), paste0("visiting_p", 1:6))) ## cols 21-26
+    p2x$ht_lib1 <- ht_libs[1]
+    p2x$ht_lib2 <- ht_libs[2]
+    p2x$vt_lib1 <- vt_libs[1]
+    p2x$vt_lib2 <- vt_libs[2]
+    x$plays2 <- bind_rows(x$plays2, p2x)
+    x
 }
 
 ## update the match metadata:
@@ -99,16 +122,6 @@ dv_set_lineups <- function(x, set_number, lineups, setter_positions, setters) {
 update_meta <- function(x) {## used to have this but was only used in console test scouting ## , set_ended = FALSE) {
     is_beach <- any(grepl("beach", x$meta$match$regulation))
     pseq <- seq_len(if (is_beach) 2L else 6L)
-    ## if (set_ended) {
-    ##     ## only call this as the set ends, i.e. the last row in x$plays2 is the last action of the set
-    ##     message("set ", x$game_state$set_number, " ended")
-    ##     x <- add_to_plays2(x, codes = paste0("**", x$game_state$set_number, "set"))
-
-    ##     ## add row(s) to x$meta$result if needed
-    ##     if (nrow(x$meta$result) < x$game_state$set_number) {
-    ##         x$meta$result <- bind_rows(x$meta$result, x$meta$result[0, ][rep(1, x$game_state$set_number - nrow(x$meta$result)), ]) ## add all-NA row(s)
-    ##     }
-    ## }
     if (is.null(x$plays2) || nrow(x$plays2) < 1) return(x)
     ## update all set results, including durations
     set_start_rows <- which(grepl(">LUp", x$plays2$code, ignore.case = TRUE) & (!grepl(">LUp", dplyr::lag(x$plays2$code), ignore.case = TRUE) | seq_along(x$plays2$code) == 1))
@@ -434,43 +447,6 @@ make_players <- function(players, which = "home") {
     temp
 }
 make_player_id <- function(lastname, firstname) toupper(paste0(substr(lastname, 1, 3), "-", substr(firstname, 1, 3)))
-
-## add rows to x$plays2
-## if any of the set_number, home_setter_position, or following params are provided, they override what is provided in x$game_state. If all are provided, don't need to provide x
-add_to_plays2 <- function(x, codes, video_time, set_number, home_setter_position, visiting_setter_position, home_lineup, visiting_lineup, scores = c(0L, 0L), serving = NA_character_, home_liberos = c(NA_integer_, NA_integer_), visiting_liberos = c(NA_integer_, NA_integer_)) {
-    pseq <- seq_len(if (dv_is_beach(x)) 2L else 6L)
-    if (missing(set_number)) set_number <- x$game_state$set_number
-    if (missing(home_setter_position)) home_setter_position <- x$game_state$home_setter_position
-    if (missing(visiting_setter_position)) visiting_setter_position <- x$game_state$visiting_setter_position
-    if (missing(home_lineup)) home_lineup <- as.numeric(unlist(x$game_state[paste0("home_p", pseq)]))
-    if (missing(visiting_lineup)) visiting_lineup <- as.numeric(unlist(x$game_state[paste0("visiting_p", pseq)]))
-    if (missing(scores)) scores <- as.numeric(unlist(x$game_state[c("home_score_start_of_point", "visiting_score_start_of_point")]))
-    if (missing(serving)) serving <- x$game_state$serving
-
-    vt <- if (!missing(video_time)) video_time else NA_integer_
-    out <- tibble(code = as.character(codes), ## col 1
-                  point_phase = NA_character_, ## col 2
-                  attack_phase = NA_character_, ## col 3
-##                  X4 = NA, ## col 4
-                  start_coordinate = NA_integer_, mid_coordinate = NA_integer_, end_coordinate = NA_integer_, ## cols 5-7
-                  time = time_but_utc(), ## col 8
-                  set_number = set_number, home_setter_position = home_setter_position, visiting_setter_position = visiting_setter_position, ## cols 9-11, NB these 3 not used directly in dv_read
-                  video_file_number = NA, video_time = vt, ## cols 12-13
-  ##                X14 = NA, ## col 14
-                  home_score_start_of_point = scores[1],
-                  visiting_score_start_of_point = scores[2],
-                  serving = serving)
-    assert_that(length(home_lineup) == 6)
-    assert_that(length(visiting_lineup) == 6)
-    out <- bind_cols(out, setNames(as.data.frame(as.list(home_lineup)), paste0("home_p", 1:6))) ## cols 15-20
-    out <- bind_cols(out, setNames(as.data.frame(as.list(visiting_lineup)), paste0("visiting_p", 1:6))) ## cols 21-26
-    out$ht_lib1 <- home_liberos[1]
-    out$ht_lib2 <- home_liberos[2]
-    out$vt_lib1 <- visiting_liberos[1]
-    out$vt_lib2 <- visiting_liberos[2]
-    x$plays2 <- bind_rows(x$plays2, out)
-    x
-}
 
 ## generate the auto-codes necessary to make a complete rally
 ## @param code character: vector of scouted codes, only those relating to skill executions along with the "*p" or "ap" code at the end
