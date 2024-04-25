@@ -883,18 +883,26 @@ ov_scouter_server <- function(app_data) {
                     this_lup <- lup[[this]]
                     if (!is.null(this_lup)) {
                         hv <- if (this == "home") "*" else "a"
-                        ## TODO if (app_data$is_beach), not setter or libero
                         ## TODO if libero is not specified, default to lineup libero? Unless that person is on court?
                         for (i in seq_along(this_lup$lineup)) game_state[[paste0(this, "_p", i)]] <- this_lup$lineup[i]
-                        temp_sp <- which(this_lup$lineup == this_lup$setter) ## setter position
-                        ## the liberos go into game_state
-                        game_state[[paste0(substr(this, 1, 1), "t_lib1")]] <- if (length(this_lup$liberos) > 0) this_lup$liberos[1] else NA_integer_
-                        game_state[[paste0(substr(this, 1, 1), "t_lib2")]] <- if (length(this_lup$liberos) > 1) this_lup$liberos[2] else NA_integer_
-                        game_state[[paste0(this, "_setter_position")]] <- temp_sp
+                        if (!app_data$is_beach) { ## if beach, not setter or liberos
+                            temp_sp <- which(this_lup$lineup == this_lup$setter) ## setter position
+                            ## the liberos go into game_state
+                            ## if the lineup did not specify liberos, but we have them on the roster, use them
+                            if (length(this_lup$liberos) < 1) {
+                                temp_libs <- get_liberos(game_state = game_state, team = hv, dvw = rdata$dvw) ## liberos from roster
+                                this_lup$liberos <- head(sort(setdiff(temp_libs, this_lup$lineup)), 2)
+                            }
+                            game_state[[paste0(substr(this, 1, 1), "t_lib1")]] <- if (length(this_lup$liberos) > 0) this_lup$liberos[1] else NA_integer_
+                            game_state[[paste0(substr(this, 1, 1), "t_lib2")]] <- if (length(this_lup$liberos) > 1) this_lup$liberos[2] else NA_integer_
+                            game_state[[paste0(this, "_setter_position")]] <- temp_sp
+                        }
                         rdata$dvw <- set_lineup(rdata$dvw, set_number = setnum, team = hv, lineup = c(this_lup$lineup, na.omit(this_lup$liberos))) ## allocate the starting positions for set setnum in meta$players_h or meta$players_v
-                        lineup_codes <- c(paste0(hv, "P", ldz2(this_lup$setter), ">LUp"), paste0(hv, "z", temp_sp, ">LUp"))
-                        print(lineup_codes)
-                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(rally_codes = lineup_codes, game_state = game_state, dvw = rdata$dvw)))
+                        if (!app_data$is_beach) {
+                            lineup_codes <- c(paste0(hv, "P", ldz2(this_lup$setter), ">LUp"), paste0(hv, "z", temp_sp, ">LUp"))
+                            print(lineup_codes)
+                            rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(rally_codes = lineup_codes, game_state = game_state, dvw = rdata$dvw)))
+                        }
                     }
                 }
             } else {

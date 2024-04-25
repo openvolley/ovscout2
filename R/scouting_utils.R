@@ -297,6 +297,8 @@ set_lineup <- function(x, set_number, team, lineup) {
         assert_that(length(lineup) == 2)
     } else {
         assert_that(length(lineup) %in% c(6, 7, 8))
+        ## make sure that players in the first six aren't listed as liberos
+        lineup <- c(lineup[1:6], na.omit(setdiff(lineup[7:8], lineup[1:6])))
     }
     players <- if (team == "*") x$meta$players_h else x$meta$players_v
     ## update the starting positions of these players
