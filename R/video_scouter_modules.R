@@ -113,8 +113,8 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         vtrot$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", vtrot$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
         ht_setter <- get_setter(gs, team = "*")
         ht_libxy <- vt_libxy <- NULL
-        libs <- get_liberos(gs, team = "*", dvw = rdata$dvw)
-        if (length(libs)) {
+        libs <- na.omit(c(game_state$ht_lib1, game_state$ht_lib2))
+        if (length(libs) > 0) {
             ht_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             ht_libxy$pos <- c(5, 7)[seq_len(nrow(ht_libxy))]
@@ -123,8 +123,8 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
                                                                                                      TRUE ~ .data$x + 3))
         }
         vt_setter <- get_setter(gs, team = "a")
-        libs <- get_liberos(gs, team = "a", dvw = rdata$dvw)
-        if (length(libs)) {
+        libs <- na.omit(c(game_state$vt_lib1, game_state$vt_lib2))
+        if (length(libs) > 0) {
             vt_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             vt_libxy$pos <- c(1, 9)[seq_len(nrow(vt_libxy))]
@@ -347,8 +347,8 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
         vtrot$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", vtrot$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
         ht_setter <- get_setter(gs, team = "*")
         ht_libxy <- vt_libxy <- NULL
-        libs <- get_liberos(gs, team = "*", dvw = rdata$dvw)
-        if (length(libs)) {
+        libs <- na.omit(c(game_state$ht_lib1, game_state$ht_lib2))
+        if (length(libs) > 0) {
             ht_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             ht_libxy$pos <- c(5, 7)[seq_len(nrow(ht_libxy))]
@@ -357,8 +357,8 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
                                                                                                      TRUE ~ .data$x + 3))
         }
         vt_setter <- get_setter(gs, team = "a")
-        libs <- get_liberos(gs, team = "a", dvw = rdata$dvw)
-        if (length(libs)) {
+        libs <- na.omit(c(game_state$vt_lib1, game_state$vt_lib2))
+        if (length(libs) > 0) {
             vt_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             vt_libxy$pos <- c(1, 9)[seq_len(nrow(vt_libxy))]
