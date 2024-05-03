@@ -1134,3 +1134,22 @@ was_mouse_drag <- function(start, dragtime = 500) {
 check_hit_type <- function(htype) {
     if (length(htype) != 1 || !htype %in% c("H", "T", "P")) "H" else htype
 }
+
+hide_popup <- function(is_review_pane_active) {
+    dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();") ## popup
+    if (is_review_pane_active) js_hide2("review_pane") ## review pane
+}
+unhide_popup <- function(is_review_pane_active) {
+    dojs("$('#shiny-modal-wrapper').show(); $('.modal-backdrop').show();")
+    if (is_review_pane_active) js_show2("review_pane")
+}
+
+get_video_source_type <- function(src, base_url) {
+    type <- "local"
+    if (is_youtube_url(src)) {
+        type <- "youtube"
+    } else if (!is_url(src)) {
+        src <- file.path(base_url, basename(src))
+    }
+    list(src = src, type = type)
+}

@@ -114,15 +114,6 @@ ov_scouter_server <- function(app_data) {
                 }
             }
         })
-        get_src_type <- function(src) {
-            type <- "local"
-            if (is_youtube_url(src)) {
-                type <- "youtube"
-            } else if (!is_url(src)) {
-                src <- file.path(app_data$video_server_base_url, basename(src))
-            }
-            list(src = src, type = type)
-        }
         observeEvent(input$switch_video, {
             do_switch_video()
         })
@@ -136,7 +127,7 @@ ov_scouter_server <- function(app_data) {
                     new_src <- app_data$video_src2
                     offs <- rdata$dvw$video2_offset
                 }
-                new_src <- get_src_type(new_src)
+                new_src <- get_video_source_type(new_src, base_url = app_data$video_server_base_url)
                 myjs <- paste0("var ct=vidplayer.currentTime(); ct=ct", if (offs >= 0) "+", offs, "; if (ct >= 0) { vidplayer.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); vidplayer.currentTime(ct);", if (!video_state$paused) "vidplayer.play();", "Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight()); }")
                 dojs(myjs)
             }
@@ -145,7 +136,7 @@ ov_scouter_server <- function(app_data) {
         ## TODO, this would be better with side-by-side videos, but couldn't get that working reliably
         ## maybe side-by-side still frames would be even better (though difficult to do with remote videos)
         observeEvent(input$v2_offset, {
-            prevsrc <- get_src_type(if (preview_video_src() == 1L) app_data$video_src else app_data$video_src2)
+            prevsrc <- get_video_source_type(if (preview_video_src() == 1L) app_data$video_src else app_data$video_src2, base_url = app_data$video_server_base_url)
             editing$active <- "video offset"
             showModal(vwModalDialog(title = "Video setup", footer = NULL, width = 100,
                                     uiOutput("preview_header"),
@@ -179,7 +170,7 @@ ov_scouter_server <- function(app_data) {
                 new_src <- app_data$video_src2
                 offs <- rdata$dvw$video2_offset
             }
-            new_src <- get_src_type(new_src)
+            new_src <- get_video_source_type(new_src, base_url = app_data$video_server_base_url)
             myjs <- paste0("var ct=videojs('video_preview').currentTime(); ct=ct", if (offs >= 0) "+", offs, "; if (ct >= 0) { videojs('video_preview').src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); videojs('video_preview').currentTime(ct); videojs('video_preview').play(); }")
             dojs(myjs)
         })
@@ -638,7 +629,7 @@ ov_scouter_server <- function(app_data) {
                     } else if (ky %in% app_data$shortcuts$hide_popup) {
                         ## temporarily hide the modal, so the video can be seen
                         ## but only for the admin, lineup modal or the ones that pop up during the rally, not the editing modals for teams or rosters
-                        if (is.null(editing$active) || editing$active %in% c("admin", "change starting lineup")) hide_popup()
+                        if (is.null(editing$active) || editing$active %in% c("admin", "change starting lineup")) hide_popup(review_pane_active())
                     } else if (ky %in% c(app_data$shortcuts$pause, app_data$shortcuts$pause_no_popup)) {
                         ## only accept this if we are not doing a courtref, not editing, or it's the admin modal being shown
                         if ((is.null(editing$active) || editing$active %eq% "admin") && !courtref_active()) {
@@ -694,7 +685,7 @@ ov_scouter_server <- function(app_data) {
                 if (k$key %in% app_data$shortcuts$hide_popup) {
                     ## z
                     ## re-show the modal after temporarily hiding
-                    unhide_popup()
+                    unhide_popup(review_pane_active())
                 }
             }
         })
@@ -766,13 +757,13 @@ ov_scouter_server <- function(app_data) {
             dojs(paste0("Shiny.setInputValue('scout_input_leftovers', scout_in_el.val() + ' ap', { priority: 'event' });"))
         })
 
-        observeEvent(input$scout_input_times, print(get_scout_input_times()))
+##        observeEvent(input$scout_input_times, isolate(print(get_scout_input_times(input))))
 
         handle_scout_codes <- function(codes) {
             ## split on spaces
             codes <- strsplit(codes, "[[:space:]]+")[[1]]
             ## also get the time stamps
-            keypress_times <- get_scout_input_times()
+            keypress_times <- get_scout_input_times(input$scout_input_times)
             ## and split on spaces
             if (!is.null(keypress_times)) keypress_times <- split(keypress_times, cumsum(keypress_times$key %eq% " "))
             for (i in seq_along(codes)) {
@@ -919,23 +910,9 @@ ov_scouter_server <- function(app_data) {
         review_rally <- function() {
             ## codes can be reviewed and edited at the end of the rally
             editing$active <- "rally_review"
-            rctxt <- codes_from_rc_rows(rally_codes())
-            print(rctxt)
-            showModal(vwModalDialog(title = "Review rally codes", footer = NULL, width = 100,
-                                    tags$p(tags$strong("Tab"), ", ", tags$strong("Shift-Tab"), "to move between code boxes.",
-                                           tags$strong("Enter"), "or", tags$strong("Continue"), "to accept all and start next rally.",
-                                           tags$strong("Esc"), "or", tags$strong("Cancel"), "to cancel the end of rally."),
-                                    tags$p(tags$strong("Rally actions")),
-                                    fluidRow(column(6, do.call(tagList, lapply(seq_along(rctxt), function(i) {
-                                        textInput(paste0("rcedit_", i), label = NULL, value = rctxt[i])
-                                    })))),
-                                    tags$br(), tags$hr(),
-                                    fixedRow(column(2, actionButton("redit_cancel", "Cancel", class = "cancel fatradio")),
-                                             column(2, offset = 8, actionButton("redit_ok", "Continue", class = "continue fatradio")))
-
-                                    ))
-            focus_to_modal_element("rcedit_1")
+            review_rally_modal(rally_codes())
         }
+
         observeEvent(input$redit_ok, apply_rally_review())
         observeEvent(input$redit_cancel, {
             editing$active <- NULL
@@ -967,20 +944,11 @@ ov_scouter_server <- function(app_data) {
             smth <- bind_rows(lapply(seq_len(nrow(smth)), function(i) {
                 if (i < 2) smth[1, ] else transfer_scout_details(from = smth[i - 1, ], to = smth[i, ])
             }))
-## cat(str(smth, max.level = 2))
+            ## cat(str(smth, max.level = 2))
             rally_codes(smth) ## update
             end_of_set <- rally_ended() ## process
             ## end of point, pre-populate the scout box with the server team and number
             if (!end_of_set) populate_server()
-        }
-
-        hide_popup <- function() {
-            dojs("$('#shiny-modal-wrapper').hide(); $('.modal-backdrop').hide();") ## popup
-            if (review_pane_active()) js_hide2("review_pane") ## review pane
-        }
-        unhide_popup <- function() {
-            dojs("$('#shiny-modal-wrapper').show(); $('.modal-backdrop').show();")
-            if (review_pane_active()) js_show2("review_pane")
         }
 
         ## options
@@ -2797,7 +2765,7 @@ ov_scouter_server <- function(app_data) {
         show_review_pane <- function() {
             ## use the current video time from the main video
             ## construct the playlist js by hand, because we need to inject the current video time
-            revsrc <- get_src_type(if (current_video_src() == 1L) app_data$video_src else app_data$video_src2)
+            revsrc <- get_video_source_type(if (current_video_src() == 1L) app_data$video_src else app_data$video_src2, base_url = app_data$video_server_base_url)
             pbrate <- if (!is.null(input$playback_rate) && input$playback_rate > 0) input$playback_rate * 1.4 else 1.4
             dojs(paste0("var start_t=vidplayer.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", revsrc$src, "','start_time':start_t,'duration':4,'type':'", revsrc$type, "'}], 'review_player', '", revsrc$type, "', true); revpl.set_playback_rate(", pbrate, ");"))
             js_show2("review_pane")
