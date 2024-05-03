@@ -85,8 +85,15 @@ function plk_handler(e) {
     if (e.keyCode == 9) { var el = document.getElementById('scout_in'); if (el) { el.focus(); e.stopPropagation(); e.preventDefault(); } }
 }
 
+var pause_on_type = true;
+var pause_on_type_timer;
 $(document).on('keydown', function (e) {
     var el = document.activeElement;
+    if (pause_on_type) {
+        vidplayer.pause();
+        clearTimeout(pause_on_type_timer);
+        pause_on_type_timer = setTimeout(function() { vidplayer.play(); }, 500);
+    }
     var len = -1;
     if (typeof el.value != 'undefined') { len = el.value.length; };
     var charcode = (e.key.length === 1) ? e.key.charCodeAt(0) : '';

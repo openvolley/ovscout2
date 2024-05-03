@@ -92,6 +92,12 @@ ov_scouter_server <- function(app_data) {
         if (app_data$scout_mode == "type") {
             if (length(app_data$shortcuts) > 0) dojs(paste0("sk_shortcut_map = ", make_js_keymap(app_data$shortcuts), ";"))
             if (length(app_data$remapping) > 0) dojs(paste0("sk_key_map = ", make_js_keymap(app_data$remapping), ";"))
+            ## configure auto-pause of video when typing TODO, make this an option
+            if (app_data$with_video) {
+                dojs("pause_on_type = true;")
+            } else {
+                dojs("pause_on_type = false;")
+            }
         }
 
         have_second_video <- !is.null(app_data$video_src2)
