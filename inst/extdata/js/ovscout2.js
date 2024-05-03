@@ -85,15 +85,10 @@ function plk_handler(e) {
     if (e.keyCode == 9) { var el = document.getElementById('scout_in'); if (el) { el.focus(); e.stopPropagation(); e.preventDefault(); } }
 }
 
-var pause_on_type = true;
+var pause_on_type = false;
 var pause_on_type_timer;
 $(document).on('keydown', function (e) {
     var el = document.activeElement;
-    if (pause_on_type) {
-        vidplayer.pause();
-        clearTimeout(pause_on_type_timer);
-        pause_on_type_timer = setTimeout(function() { vidplayer.play(); }, 500);
-    }
     var len = -1;
     if (typeof el.value != 'undefined') { len = el.value.length; };
     var charcode = (e.key.length === 1) ? e.key.charCodeAt(0) : '';
@@ -104,6 +99,11 @@ $(document).on('keydown', function (e) {
         // key event into the scedit modal
         e.stopPropagation(); e.preventDefault();
     } else if (el.id.includes("scout_in")) {
+        if (pause_on_type) {
+            vidplayer.pause();
+            clearTimeout(pause_on_type_timer);
+            pause_on_type_timer = setTimeout(function() { vidplayer.play(); }, 500);
+        }
         if (e.key === "Enter") {
             // send the actual text in the box to the Shiny server
             Shiny.setInputValue("scout_input", scout_in_el.val(), { priority: "event" });

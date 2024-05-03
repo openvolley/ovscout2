@@ -88,16 +88,13 @@ ov_scouter_server <- function(app_data) {
         ## TODO add button to change scout mode from click (guided) to typing
         ## when changing mode, change the #main_video height css to 85vh (click) or 50vh (typing)
 
-        ## send shortcuts to js
+        ## set up for typing mode
+        app_data$pause_on_type <- TRUE ## auto-pause of video when typing TODO, make this an option
+        app_data$pause_on_type <- app_data$pause_on_type && app_data$with_video
         if (app_data$scout_mode == "type") {
+            ## send shortcuts to js
             if (length(app_data$shortcuts) > 0) dojs(paste0("sk_shortcut_map = ", make_js_keymap(app_data$shortcuts), ";"))
             if (length(app_data$remapping) > 0) dojs(paste0("sk_key_map = ", make_js_keymap(app_data$remapping), ";"))
-            ## configure auto-pause of video when typing TODO, make this an option
-            if (app_data$with_video) {
-                dojs("pause_on_type = true;")
-            } else {
-                dojs("pause_on_type = false;")
-            }
         }
 
         have_second_video <- !is.null(app_data$video_src2)
@@ -128,7 +125,7 @@ ov_scouter_server <- function(app_data) {
                     offs <- rdata$dvw$video2_offset
                 }
                 new_src <- get_video_source_type(new_src, base_url = app_data$video_server_base_url)
-                myjs <- paste0("var ct=vidplayer.currentTime(); ct=ct", if (offs >= 0) "+", offs, "; if (ct >= 0) { vidplayer.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); vidplayer.currentTime(ct);", if (!video_state$paused) "vidplayer.play();", "Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight()); }")
+                myjs <- paste0("var ct=vidplayer.currentTime(); ct=ct", if (offs >= 0) "+", offs, "; if (ct >= 0) { vidplayer.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); vidplayer.currentTime(ct);", if (!video_state$paused) "vidplayer.play();", if (app_data$pause_on_type) "pause_on_type = true;", "Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight()); }")
                 dojs(myjs)
             }
         }
@@ -266,13 +263,13 @@ ov_scouter_server <- function(app_data) {
                 video_state$paused <- TRUE
                 NULL
             } else if (what == "play") {
-                dojs(paste0(getel, ".play();"))
+                dojs(paste0(getel, ".play();", if (app_data$pause_on_type) "pause_on_type = true;"))
                 video_state$paused <- FALSE
                 if (rally_state() == "click or unpause the video to start") rally_state("click serve start")
             } else if (what == "toggle_pause") {
                 ## careful using this, because there are situations where we don't want to allow unpausing - see deal_with_pause()
                 if (video_state$paused) {
-                    dojs(paste0(getel, ".play();"))
+                    dojs(paste0(getel, ".play();", if (app_data$pause_on_type) "pause_on_type = true;"))
                     video_state$paused <- FALSE
                     if (rally_state() == "click or unpause the video to start") rally_state("click serve start")
                 } else {
