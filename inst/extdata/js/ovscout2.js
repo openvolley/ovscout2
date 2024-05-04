@@ -113,7 +113,7 @@ $(document).on('keydown', function (e) {
             // send this event to the scout input handler
             return sk_handler(e);
         }
-    } else if (el.className.includes("pl2_fixhdr")) {
+    } else if (el.id.includes("playslist-tbl-i")) {
         // send this event to the playslist input handler
         return plk_handler(e);
     }
