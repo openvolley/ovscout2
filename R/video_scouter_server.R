@@ -677,12 +677,12 @@ ov_scouter_server <- function(app_data) {
                         if (grepl("scout_in", k$id)) {
                             ## tab from scout bar, go to playslist table
                             ## currently handled in switch_windows shortcut below, TODO rationalize this
-                        } else {
+                        } else if (grepl("playslist-tbl-i", k$id)) {
                             ## go to scout bar
                             dojs("$('#scout_in').focus();")
                             playslist_mod$redraw_select("last") ## change redraw behaviour (keep the last row selected, including when new row added)
                             playslist_mod$select_last() ## select last row
-                        }
+                        } ## otherwise tabs currently handled by default browser behaviour
                     } else if (is.null(editing$active) && !courtref_active()) {
                         ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
                         if (ky %in% app_data$shortcuts$go_to_time) {
