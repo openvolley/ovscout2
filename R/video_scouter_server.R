@@ -349,7 +349,19 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$edit_commit, {
             do_edit_commit()
         })
-
+        observeEvent(input$code_entries, {
+            req(input$code_entries)
+            ##cat("ces:", capture.output(str(input$code_entries)), "\n")
+            nc2 <- input$code_entries$text
+            nc1 <- paste(lapply(seq_len(nrow(code_bits_tbl)), function(bi) {
+                val <- input$code_entries[[code_bits_tbl$bit[bi]]]
+                if (is.null(val)) val <- ""
+                wid <- code_bits_tbl$width[bi]
+                if (nchar(val) < wid) val <- str_pad(val, wid, side = "right", pad = "~")
+                val
+            }), collapse = "")
+            do_edit_commit(nc1, nc2)
+        })
         get_current_rally_code <- function() {
             tryCatch({
                 ridx <- playslist_mod$current_row()
@@ -362,21 +374,25 @@ ov_scouter_server <- function(app_data) {
             }, error = function(e) NULL)
         }
 
-        do_edit_commit <- function() {
+        do_edit_commit <- function(newcode1, newcode2) {
             if (!is.null(editing$active)) {
                 dismiss_modal <- TRUE
                 if (editing$active %in% c("edit", "insert above", "insert below")) {
                     ## user has changed EITHER input$code_entry or used the code_entry_guide
                     ## infer code from code_entry_guide elements
-                    newcode1 <- lapply(seq_len(nrow(code_bits_tbl)), function(bi) {
-                        val <- input[[paste0("code_entry_", code_bits_tbl$bit[bi])]]
-                        if (is.null(val)) val <- ""
-                        wid <- code_bits_tbl$width[bi]
-                        if (nchar(val) < wid) val <- str_pad(val, wid, side = "right", pad = "~")
-                        val
-                    })
-                    newcode1 <- sub("~+$", "", paste(newcode1, collapse = ""))## trim trailing ~'s
-                    newcode2 <- input$code_entry
+                    if (missing(newcode1)) {
+                        newcode1 <- lapply(seq_len(nrow(code_bits_tbl)), function(bi) {
+                            val <- input[[paste0("code_entry_", code_bits_tbl$bit[bi])]]
+                            if (is.null(val)) val <- ""
+                            wid <- code_bits_tbl$width[bi]
+                            if (nchar(val) < wid) val <- str_pad(val, wid, side = "right", pad = "~")
+                            val
+                        })
+                        newcode1 <- paste(newcode1, collapse = "")
+                    }
+                    if (missing(newcode2) || is.null(newcode2)) newcode2 <- input$code_entry
+                    newcode1 <- sub("~+$", "", newcode1) ## trim trailing ~'s
+                    newcode2 <- sub("~+$", "", newcode2)
                     if (editing$active %eq% "edit") {
                         crc <- get_current_rally_code() ## this is from rally_codes BUT this won't have the actual scout code unless it was a non-skill code, hrumph
                         ridx <- playslist_mod$current_row()
@@ -612,12 +628,29 @@ ov_scouter_server <- function(app_data) {
                             focus_to_modal_element("redit_ok")
                             apply_rally_review()
                         } else if (!is.null(editing$active) && !editing$active %eq% "teams") {
+                            ## if editing, treat as update
+                            ## but not for team editing, because pressing enter in the DT fires this too
                             ## if this is the code editing modal, we need to focus out of the text entry box first otherwise changes there won't be seen in the corresponding input$xyz variable
                             if (editing$active %in% c("insert below", "insert above", "edit")) {
-                                ## if the user has pressed enter directly after editing text in the code_entry field (without tabbing out of that, or clicking on the commit button) the input$code_entry variable will not have been updated. So focus out of it first
-                                focus_to_modal_element("edit_commit")
+                                ## if the user has pressed enter quickly after editing text in the code_entry field (without tabbing out of that, or clicking on the commit button) the input$code_entry variable will not have been updated
+                                ## workaround: manually collect all the inputs and send them in a different input variable, and then
+                                ##   trigger do_edit_commit on that (yuck)
+                                dojs("Shiny.setInputValue('code_entries', {'text': $('#code_entry').val(),
+                                                                           'team': $('#code_entry_team').val(),
+                                                                           'number': $('#code_entry_number').val(),
+                                                                           'skill': $('#code_entry_skill').val(),
+                                                                           'type': $('#code_entry_type').val(),
+                                                                           'eval': $('#code_entry_eval').val(),
+                                                                           'combo': $('#code_entry_combo').val(),
+                                                                           'target': $('#code_entry_target').val(),
+                                                                           'start_zone': $('#code_entry_start_zone').val(),
+                                                                           'end_zone': $('#code_entry_end_zone').val(),
+                                                                           'end_subzone': $('#code_entry_end_subzone').val(),
+                                                                           'skill_type': $('#code_entry_skill_type').val(),
+                                                                           'num_players': $('#code_entry_num_players').val(),
+                                                                           'special': $('#code_entry_special').val(),
+                                                                           'custom': $('#code_entry_custom').val() });")
                             }
-                            do_edit_commit()
                         } else if (isTRUE(scout_modal_active())) {
                             ## if we have a scouting modal showing, and a valid accept_fun entry, run that function
                             if (!is.null(accept_fun())) try(get(accept_fun(), mode = "function")())
