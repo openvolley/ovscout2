@@ -5,7 +5,7 @@ mod_playslist_ui <- function(id, height = "40vh", styling) {
                            ".pl2-tc {height:", height, "; overflow:hidden} .pl2-tc-inner { overflow-x:hidden; overflow-y:auto; height:100% }",
                            ".", ns("selected"), " {background-color:", if (!missing(styling) && !is.null(styling$playslist_highlight_colour)) styling$playslist_highlight_colour else "orange", ";}"))),
         tags$div(class = "pl2-tc", tags$div(class = "pl2-tc-inner", id = ns("tbl"), uiOutput(ns("pl")))),
-        tags$script(HTML(paste0("document.querySelector('#", ns("tbl"), "').addEventListener('click', function(event) { Shiny.setInputValue('", ns("clicked"), "', event.target.parentNode.rowIndex, {priority: 'event'}) });"))) ## click listener
+        tags$script(HTML(paste0("document.querySelector('#", ns("tbl"), "').addEventListener('click', function(event) { Shiny.setInputValue('", ns("clicked"), "', event.target.parentNode.rowIndex, { priority: 'event' }) });"))) ## click listener
     )
 }
 
@@ -43,8 +43,8 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
             dat <- setNames(as.data.frame(dat[, plays_cols_to_show, drop = FALSE]), c("Game time", "Set", "Score", "Comment"))
         }
         html <- shiny::renderTable(dat, na = "")()
-        ## inject our pl2_fixhdr class name. Add tabindex to make it focusable, so that key presses fire the keydown event
-        sub("(class[[:space:]]*=[[:space:]]*['\"][^'\"]*)(['\"])", "tabindex=\"0\" \\1 pl2_fixhdr\\2", html)
+        ## inject our pl2_fixhdr class name and an id for the table element itself. Add tabindex to make it focusable, so that key presses fire the keydown event
+        sub("(class[[:space:]]*=[[:space:]]*['\"][^'\"]*)(['\"])", paste0("id=\"", ns("tbl-i"), "\" tabindex=\"0\" \\1 pl2_fixhdr\\2"), html)
     }
 
     set_data <- function(dat, selected = "last", scroll = TRUE, display_as = "dv_codes") {
@@ -66,10 +66,17 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
             } else {
                 selected_row(NULL)
             }
+            ## if the playstable had focus before we (re-)render it, then we need to assign it focus afterwards
+            ##   (when we re-render, we are replacing the DOM element and so the new DOM element will not retain focus, because it's a new element)
+            ## check if we have focus
+            dojs(paste0(jsns("has_focus"), " = document.activeElement.id === '", ns("tbl-i"), "'"))
+            ## then re-assign focus if we did
+            html <- paste0(html, paste0("<script>if (", jsns("has_focus"), ") { $('#", ns("tbl-i"), "').focus(); }</script>"))
             output$pl <- renderUI(shiny::HTML(html))
             if (!is.null(selected) && scroll) {
                 initfun <- paste0("var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); $('#", ns("tbl"), "').scrollTop(rows[", selected - 1L, "].offsetTop - 4 * rows[0].offsetHeight);")
                 js_with_retry(initfun, need_n_rows = selected)
+                ## might be able to move that to an inline script in the HTML render expression above? TODO check
             }
         } else {
             selected_row(NULL)
@@ -91,6 +98,10 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
             if (scroll) scroll_to(i)
         }
     }
+    select_last <- function(scroll = TRUE) {
+        ## helper function to scroll to last row
+        select(nrow(rdata$dvw$plays), scroll = scroll)
+    }
 
     scroll_to <- function(i) {
         ## i is zero based in js, but 1-based when passed in
@@ -106,10 +117,11 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
         if (scroll_to_end) scroll_to(nrow(rdata$dvw$plays))
     }
 
+    redraw_select <- reactiveVal("last")
     observe({
         ## set data initially, and replace it whenever dvw$plays changes
-        set_data(rdata$dvw$plays, selected = "last", display_as = display_option())
+        set_data(rdata$dvw$plays, selected = isolate(redraw_select()), display_as = display_option())
     })
 
-    list(scroll_playslist = scroll_to, current_row = selected_row, select = select, unselect = unselect)
+    list(scroll_playslist = scroll_to, current_row = selected_row, select = select, select_last = select_last, unselect = unselect, redraw_select = redraw_select)
 }
