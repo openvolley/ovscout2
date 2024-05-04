@@ -237,6 +237,8 @@ focus_to_scout_bar <- function(srv_code) {
     dojs(paste0("var el = document.getElementById('scout_in'); if (el) { ", if (!missing(srv_code)) paste0("el.value = '", srv_code, "'; "), "el.selectionStart = el.selectionEnd = el.value.length; el.focus(); }"))
 }
 
+focus_to_playslist <- function() dojs("$('#playslist-tbl-i').focus();")
+
 decode_keypress <- function(k, debug = 0) {
     temp <- strsplit(k, "@")[[1]]
     ## elements are 1 = modifiers_and_key, 2 = element_class, 3 = element_id, 4 = cursor_position, 5 = field_length, 6 = time

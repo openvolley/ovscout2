@@ -415,6 +415,7 @@ ov_scouter_server <- function(app_data) {
                                 newcode <- newcode1
                             }
                             if (!is.null(newcode)) {
+                                if (app_data$scout_mode == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
                                 crc$code <- newcode
                                 ## so we have a new code, but the (changed) information in that won't be in the other columns of crc yet
                                 ## if ridx is greater than the length of plays2 rows, then put this in rally_codes()
@@ -622,10 +623,12 @@ ov_scouter_server <- function(app_data) {
                         }
                     } else if (ky %eq% "Enter") {
                         ## enter
-                        ## if editing, treat as update
-                        ## but not for team editing, because pressing enter in the DT fires this too
-                        if (!is.null(editing$active) && editing$active %eq% "rally_review") {
-                            focus_to_modal_element("redit_ok")
+                        if (grepl("playslist-tbl-i", k$id)) {
+                            ## enter key in plays list, edit that action
+                            edit_data_row()
+                        } else if (!is.null(editing$active) && editing$active %eq% "rally_review") {
+                            ## TODO we might have another race condition here where the text input does not update in the shiny server in time TODO CHECK
+                            focus_to_modal_element("redit_ok", highlight_all = FALSE)
                             apply_rally_review()
                         } else if (!is.null(editing$active) && !editing$active %eq% "teams") {
                             ## if editing, treat as update
@@ -667,16 +670,18 @@ ov_scouter_server <- function(app_data) {
                             ## Q (uppercase) does just pause, with no admin modal
                             deal_with_pause(show_modal = !ky %in% app_data$shortcuts$pause_no_popup)
                         }
-                    } else if (ky %in% c("ArrowUp", "ArrowDown") && grepl("pl2_fixhdr", k$class)) {
+                    } else if (ky %in% c("ArrowUp", "ArrowDown") && grepl("playslist-tbl-i", k$id)) {
                         ## arrow up/down in playslist table
                         playslist_mod$select(playslist_mod$current_row() + if (ky == "ArrowUp") -1L else 1L)
                     } else if (ky %eq% "Tab") {
-                        if (grepl("pl2_fixhdr", k$class)) {
+                        if (grepl("scout_in", k$id)) {
                             ## tab from scout bar, go to playslist table
                             ## currently handled in switch_windows shortcut below, TODO rationalize this
                         } else {
                             ## go to scout bar
-                            dojs("var el = document.getElementById('scout_in'); if (el) { el.focus(); }")
+                            dojs("$('#scout_in').focus();")
+                            playslist_mod$redraw_select("last") ## change redraw behaviour (keep the last row selected, including when new row added)
+                            playslist_mod$select_last() ## select last row
                         }
                     } else if (is.null(editing$active) && !courtref_active()) {
                         ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
@@ -767,7 +772,8 @@ ov_scouter_server <- function(app_data) {
                     do_undo()
                 } else if (input$scout_shortcut %in% c("switch_windows")) {
                     ## switch to the playslist table
-                    dojs("document.getElementsByClassName('pl2_fixhdr')[0].focus()")
+                    focus_to_playslist()
+                    playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
                 }
             }
         })
