@@ -79,10 +79,9 @@ function sk_handler(e) {
 }
 
 function plk_handler(e) {
-    // arrow up/down in plays table is handled in the server code
-    if ((e.keyCode == 38 || e.keyCode == 40)) { e.stopPropagation(); e.preventDefault(); }
-    // tab switches focus to scout input bar. TODO make this a configurable shortcut
-    if (e.keyCode == 9) { var el = document.getElementById('scout_in'); if (el) { el.focus(); e.stopPropagation(); e.preventDefault(); } }
+    // arrow up/down 38/40 in plays table is handled in the server code
+    // tab in playstable switches focus to scout input bar. Also now handled in server code. TODO make this a configurable shortcut
+    if ((e.keyCode == 38 || e.keyCode == 40 || e.keyCode == 9)) { e.stopPropagation(); e.preventDefault(); }
 }
 
 var pause_on_type = false;

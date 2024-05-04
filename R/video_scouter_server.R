@@ -670,6 +670,14 @@ ov_scouter_server <- function(app_data) {
                     } else if (ky %in% c("ArrowUp", "ArrowDown") && grepl("pl2_fixhdr", k$class)) {
                         ## arrow up/down in playslist table
                         playslist_mod$select(playslist_mod$current_row() + if (ky == "ArrowUp") -1L else 1L)
+                    } else if (ky %eq% "Tab") {
+                        if (grepl("pl2_fixhdr", k$class)) {
+                            ## tab from scout bar, go to playslist table
+                            ## currently handled in switch_windows shortcut below, TODO rationalize this
+                        } else {
+                            ## go to scout bar
+                            dojs("var el = document.getElementById('scout_in'); if (el) { el.focus(); }")
+                        }
                     } else if (is.null(editing$active) && !courtref_active()) {
                         ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
                         if (ky %in% app_data$shortcuts$go_to_time) {
