@@ -45,6 +45,21 @@ build_code_entry_guide <- function(mode, thisrow) {
     })))
 }
 
+show_manual_code_modal <- function(op, ridx, dvw, entry_guide = TRUE) {
+    op <- match.arg(op, c("insert below", "insert above", "edit"))
+    if (op != "edit" || (!is.null(ridx) && !is.na(ridx))) {
+        showModal(modalDialog(title = if (grepl("insert", op)) paste0("Insert new code ", sub("insert ", "", op), " current row") else "Edit code",
+                              size = "l",
+                              footer = tags$div(actionButton("edit_commit", label = paste0(if (grepl("insert", op)) "Insert" else "Update", " code (or press Enter)")), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
+                              if (entry_guide) paste0(if (op == "edit") "Edit" else "Enter", " the code either in the top text box or in the individual boxes (but not both)"),
+                              textInput("code_entry", label = "Code:", value = if (op == "edit") dvw$plays$code[ridx] else ""), ## was previously plays2
+                              if (entry_guide) "or",
+                              if (entry_guide) build_code_entry_guide(sub(" .*", "", op), thisrow = if (op == "edit") dvw$plays[ridx, ] else NULL)
+                              ))
+        focus_to_modal_element("code_entry")
+    }
+}
+
 paste0_noNA <- function(...) do.call(paste0, Filter(Negate(is.na), list(...)))
 special_helper <- function(skill, evaln) {
     htext <- NA_character_

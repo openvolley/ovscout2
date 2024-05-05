@@ -3055,7 +3055,7 @@ ov_scouter_server <- function(app_data) {
                 ##if (where == "above" && ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
                 ## otherwise (if inserting below) use the current row (ridx) as the template
                 editing$active <- paste0("insert ", where)
-                show_manual_code_modal(editing$active)
+                show_manual_code_modal(editing$active, dvw = rdata$dvw)
             }
         }
 
@@ -3099,24 +3099,7 @@ ov_scouter_server <- function(app_data) {
 
         edit_data_row <- function() {
             editing$active <- "edit"
-            show_manual_code_modal(editing$active)
-        }
-
-        show_manual_code_modal <- function(op, entry_guide = FALSE) {
-            op <- match.arg(op, c("insert below", "insert above", "edit"))
-            if (op == "edit") {
-                ridx <- playslist_mod$current_row()
-                entry_guide <- TRUE
-            } else {
-                ridx <- 1L ## dummy value, ignored
-            }
-            if (!is.null(ridx) && !is.na(ridx)) {
-                showModal(modalDialog(title = if (grepl("insert", op)) paste0("Insert new code ", sub("insert ", "", op), " current row") else "Edit code", size = "l", footer = tags$div(actionButton("edit_commit", label = paste0(if (grepl("insert", op)) "Insert" else "Update", " code (or press Enter)")), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
-                                      if (entry_guide) paste0(if (op == "edit") "Edit" else "Enter", " the code either in the top text box or in the individual boxes (but not both)"),
-                                      textInput("code_entry", label = "Code:", value = if (op == "edit") rdata$dvw$plays2$code[ridx] else ""), if (entry_guide) "or", if (entry_guide) build_code_entry_guide(sub(" .*", "", op), thisrow = rdata$dvw$plays[ridx, ])
-                                      ))
-                focus_to_modal_element("code_entry")
-            }
+            show_manual_code_modal(editing$active, ridx = playslist_mod$current_row(), dvw = rdata$dvw)
         }
 
         ## the helpers that are defined as functions in code_bits_tbl are dynamic, they depend on skill/evaluation
