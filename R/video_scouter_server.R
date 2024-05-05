@@ -586,6 +586,7 @@ ov_scouter_server <- function(app_data) {
             }
         }
 
+        ## handling of keyboard events outside of the scout entry bar
         observeEvent(input$controlkey, {
             if (!is.null(input$controlkey)) {
                 k <- decode_keypress(input$controlkey, debug)
@@ -597,7 +598,24 @@ ov_scouter_server <- function(app_data) {
                 if ((k$class %eq% "modal-open" || grepl("scedit-modal", k$class)) && !is.null(editing$active) && editing$active %eq% "edit_shortcuts") {
                     cat("shortcut edit\n")
                     sc_newvalue(key_as_text(k))
-                    if (!k$key %in% c("Alt", "Shift", "Meta", "Control")) output$scedit_out <- renderUI(tags$code(key_as_text(k)))
+                    if (!ky %in% c("Alt", "Shift", "Meta", "Control")) output$scedit_out <- renderUI(tags$code(key_as_text(k)))
+                } else if (grepl("playslist-tbl-i", k$id)) {
+                    ## key pressed in playslist table
+                    if (tolower(ky) %in% app_data$playstable_shortcuts$edit_code) {
+                        edit_data_row()
+                    } else if (tolower(ky) %in% app_data$playstable_shortcuts$delete_code) {
+                        delete_data_row()
+                    } else if (tolower(ky) %in% app_data$playstable_shortcuts$insert_code) {
+                        insert_data_row("above")
+                    } else if (tolower(ky) %in% c(app_data$playstable_shortcuts$up, app_data$playstable_shortcuts$down)) {
+                        ## navigate up/down in playslist table
+                        playslist_mod$select(playslist_mod$current_row() + if (tolower(ky) == app_data$playstable_shortcuts$up) -1L else 1L)
+                    } else if (tolower(ky) %eq% app_data$playstable_shortcuts$switch_windows) {
+                        ## go to scout bar
+                        dojs("$('#scout_in').focus();")
+                        playslist_mod$redraw_select("last") ## change redraw behaviour (keep the last row selected, including when new row added)
+                        playslist_mod$select_last() ## select last row
+                    }
                 } else {
                     if (ky %eq% "Escape") {
                         ## esc
@@ -615,18 +633,17 @@ ov_scouter_server <- function(app_data) {
                                 ## wackiness here if we want to use the escape key as a pause shortcut
                                 ## let the scout shortcut code handle it
                             } else {
-                                do_unpause <- !is.null(editing$active) && editing$active %eq% "admin"
+                                do_unpause <- !is.null(editing$active) && editing$active %eq% "admin" && app_data$with_video
+                                do_focus_to_playslist <- !is.null(editing$active) && editing$active %eq% "delete"
                                 editing$active <- NULL
                                 removeModal()
                                 if (do_unpause) do_video("play")
+                                if (do_focus_to_playslist) focus_to_playslist()
                             }
                         }
                     } else if (ky %eq% "Enter") {
                         ## enter
-                        if (grepl("playslist-tbl-i", k$id)) {
-                            ## enter key in plays list, edit that action
-                            edit_data_row()
-                        } else if (!is.null(editing$active) && editing$active %eq% "rally_review") {
+                        if (!is.null(editing$active) && editing$active %eq% "rally_review") {
                             ## TODO we might have another race condition here where the text input does not update in the shiny server in time TODO CHECK
                             focus_to_modal_element("redit_ok", highlight_all = FALSE)
                             apply_rally_review()
@@ -653,6 +670,8 @@ ov_scouter_server <- function(app_data) {
                                                                            'num_players': $('#code_entry_num_players').val(),
                                                                            'special': $('#code_entry_special').val(),
                                                                            'custom': $('#code_entry_custom').val() });")
+                            } else if (editing$active %eq% "delete") {
+                                do_delete_code()
                             }
                         } else if (isTRUE(scout_modal_active())) {
                             ## if we have a scouting modal showing, and a valid accept_fun entry, run that function
@@ -670,18 +689,10 @@ ov_scouter_server <- function(app_data) {
                             ## Q (uppercase) does just pause, with no admin modal
                             deal_with_pause(show_modal = !ky %in% app_data$shortcuts$pause_no_popup)
                         }
-                    } else if (ky %in% c("ArrowUp", "ArrowDown") && grepl("playslist-tbl-i", k$id)) {
-                        ## arrow up/down in playslist table
-                        playslist_mod$select(playslist_mod$current_row() + if (ky == "ArrowUp") -1L else 1L)
                     } else if (ky %eq% "Tab") {
                         if (grepl("scout_in", k$id)) {
                             ## tab from scout bar, go to playslist table
                             ## currently handled in switch_windows shortcut below, TODO rationalize this
-                        } else if (grepl("playslist-tbl-i", k$id)) {
-                            ## go to scout bar
-                            dojs("$('#scout_in').focus();")
-                            playslist_mod$redraw_select("last") ## change redraw behaviour (keep the last row selected, including when new row added)
-                            playslist_mod$select_last() ## select last row
                         } ## otherwise tabs currently handled by default browser behaviour
                     } else if (is.null(editing$active) && !courtref_active()) {
                         ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
@@ -702,8 +713,6 @@ ov_scouter_server <- function(app_data) {
                         } else if (ky %in% app_data$shortcuts$contact) {
                             ## player contact with the ball
                             do_contact()
-                        } else if (ky %in% app_data$shortcuts$edit_code) {
-                            edit_data_row()
                         } else if (ky %in% app_data$shortcuts$video_faster) {
                             do_video("playback_rate_faster")
                         } else if (ky %in% app_data$shortcuts$video_slower) {
@@ -3060,7 +3069,7 @@ ov_scouter_server <- function(app_data) {
             }
         }
 
-        ## for manual/direct code entry
+        ## for manual/direct code entry, this is triggered by the button on the admin modal
         observeEvent(input$enter_code, {
            insert_data_row("below")
         })
@@ -3075,6 +3084,44 @@ ov_scouter_server <- function(app_data) {
                 ## otherwise (if inserting below) use the current row (ridx) as the template
                 editing$active <- paste0("insert ", where)
                 show_manual_code_modal(editing$active)
+            }
+        }
+
+        delete_data_row <- function() {
+            editing$active <- "delete"
+            show_delete_code_modal()
+        }
+
+        show_delete_code_modal <- function() {
+            ridx <- playslist_mod$current_row()
+            if (!is.null(ridx) && !is.na(ridx)) {
+                showModal(modalDialog(title = "Delete current row", size = "l", footer = tags$div(actionButton("delete_commit", label = "Delete code (or press Enter)"), actionButton("cancel_back_to_playslist", label = "Cancel (or press Esc)")),
+                          tags$p(tags$strong("To delete:"), rdata$dvw$plays2$code[ridx])))
+                focus_to_modal_element("delete_commit")
+            }
+        }
+        observeEvent(input$cancel_back_to_playslist, {
+            editing$active <- NULL
+            removeModal()
+            if (app_data$scout_mode == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
+        })
+
+        observeEvent(input$delete_commit, do_delete_code())
+        do_delete_code <- function(ridx) {
+            if (!is.null(editing$active)) {
+                if (missing(ridx)) ridx <- playslist_mod$current_row()
+                if (!is.null(ridx) && !is.na(ridx)) {
+                    if (app_data$scout_mode == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
+                    if (ridx <= nrow(rdata$dvw$plays2)) {
+                        rdata$dvw$plays2 <- rdata$dvw$plays2[-ridx, ]
+                    } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
+                        rc <- rally_codes()
+                        rc <- rc[setdiff(seq_len(nrow(rc)), ridx - nrow(rdata$dvw$plays2)), ]
+                        rally_codes(rc)
+                    }
+                }
+                editing$active <- NULL
+                removeModal()
             }
         }
 

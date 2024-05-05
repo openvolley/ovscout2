@@ -185,21 +185,20 @@ ov_default_shortcuts <- function(scout_mode = "click") {
         ## shortcuts in typing mode can use modifier keys: Ctrl-x is ctrl and x, ditto Alt-x, Meta-x, Shift-x
         ## NOTE that the actual key should be lower case here (not the modifiers Ctrl-, Alt-, Shift-, or Meta-)
         list(hide_popup = c(),
-             pause = c("escape"),
-             pause_no_popup = c("Alt-escape"),
+             pause = "escape",
+             pause_no_popup = "Alt-escape",
              go_to_time = c(),
-             edit_code = c(),
-             undo = c("Ctrl-a"),
+             undo = "Ctrl-a",
              switch_video = c(),
              contact = c(), ## not used
              video_rewind_1_30 = c(),
              video_rewind_0.1 = c(),
-             video_rewind_2 = c("Ctrl-arrowleft"),
-             video_rewind_10 = c("Alt-arrowleft"), ## NB C-A-arrows don't work for some reason, even though at least some C-A-otherkeys do
+             video_rewind_2 = "Ctrl-arrowleft",
+             video_rewind_10 = "Alt-arrowleft", ## NB C-A-arrows don't work for some reason, even though at least some C-A-otherkeys do
              video_forward_1_30 = c(),
              video_forward_0.1 = c(),
-             video_forward_2 = c("Ctrl-arrowright"),
-             video_forward_10 = c("Alt-arrowright"),
+             video_forward_2 = "Ctrl-arrowright",
+             video_forward_10 = "Alt-arrowright",
              video_faster = c(),
              video_slower = c(),
              assign_point_top = "Ctrl-arrowup",
@@ -207,6 +206,21 @@ ov_default_shortcuts <- function(scout_mode = "click") {
              switch_windows = "tab"
              )
     }
+}
+
+#' @rdname ov_default_shortcuts
+#' @export
+ov_default_playstable_shortcuts <- function(scout_mode = "click") {
+    ## currently same default shortcuts regardless of scout mode
+    ## shortcuts here can use modifier keys: Ctrl-x is ctrl and x, ditto Alt-x, Meta-x, Shift-x
+    ## NOTE that the actual key should be lower case here (not the modifiers Ctrl-, Alt-, Shift-, or Meta-)
+    list(edit_code = "enter",
+         delete_code = "delete",
+         insert_code = "insert",
+         up = "arrowup",
+         down = "arrowdown",
+         switch_windows = "tab"
+         )
 }
 
 #' Default keyboard remapping for ov_scouter

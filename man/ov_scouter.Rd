@@ -19,6 +19,7 @@ ov_scouter(
   scouting_options = ov_scouting_options(),
   app_styling = ov_app_styling(),
   shortcuts = ov_default_shortcuts(scout_mode),
+  playstable_shortcuts = ov_default_playstable_shortcuts(scout_mode),
   key_remapping = ov_default_key_remapping(scout_mode),
   scout_name = "",
   show_courtref = FALSE,
@@ -57,6 +58,8 @@ ov_scouter(
 \item{app_styling}{list: named list of styling options, as returned by \code{\link[=ov_app_styling]{ov_app_styling()}}}
 
 \item{shortcuts}{list: named list of keyboard shortcuts, as returned by \code{\link[=ov_default_shortcuts]{ov_default_shortcuts()}}}
+
+\item{playstable_shortcuts}{list: named list of keyboard shortcuts that apply when in the plays table, as returned by \code{\link[=ov_default_playstable_shortcuts]{ov_default_playstable_shortcuts()}}}
 
 \item{key_remapping}{list: a named list of key remappings, with entries as per \code{\link[=ov_default_key_remapping]{ov_default_key_remapping()}}}
 
