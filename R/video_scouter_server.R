@@ -334,6 +334,7 @@ ov_scouter_server <- function(app_data) {
         lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, video_state = video_state, styling = app_data$styling)
 
         observeEvent(input$edit_cancel, {
+            do_focus_to_playslist <- !is.null(editing$active) && editing$active %eq% "edit" && app_data$scout_mode == "type" ## if cancelled editing a code, return to playslist
             if (!is.null(editing$active) && editing$active %in% "teams") {
                 team_edit_mod$htdata_edit(NULL)
                 team_edit_mod$vtdata_edit(NULL)
@@ -344,6 +345,7 @@ ov_scouter_server <- function(app_data) {
             }
             editing$active <- NULL
             removeModal()
+            if (do_focus_to_playslist) focus_to_playslist()
         })
 
         observeEvent(input$edit_commit, {
@@ -634,7 +636,7 @@ ov_scouter_server <- function(app_data) {
                                 ## let the scout shortcut code handle it
                             } else {
                                 do_unpause <- !is.null(editing$active) && editing$active %eq% "admin" && app_data$with_video
-                                do_focus_to_playslist <- !is.null(editing$active) && editing$active %eq% "delete"
+                                do_focus_to_playslist <- !is.null(editing$active) && editing$active %in% c("delete", "edit") && app_data$scout_mode == "type"
                                 editing$active <- NULL
                                 removeModal()
                                 if (do_unpause) do_video("play")
@@ -3130,14 +3132,13 @@ ov_scouter_server <- function(app_data) {
             show_manual_code_modal(editing$active)
         }
 
-        ## op "edit" will also need the row number passed to build_code_entry, not yet implemented
         show_manual_code_modal <- function(op, entry_guide = FALSE) {
             op <- match.arg(op, c("insert below", "insert above", "edit"))
             if (op == "edit") {
                 ridx <- playslist_mod$current_row()
                 entry_guide <- TRUE
             } else {
-                ridx <- 1L
+                ridx <- 1L ## dummy value, ignored
             }
             if (!is.null(ridx) && !is.na(ridx)) {
                 showModal(modalDialog(title = if (grepl("insert", op)) paste0("Insert new code ", sub("insert ", "", op), " current row") else "Edit code", size = "l", footer = tags$div(actionButton("edit_commit", label = paste0(if (grepl("insert", op)) "Insert" else "Update", " code (or press Enter)")), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
@@ -3148,28 +3149,6 @@ ov_scouter_server <- function(app_data) {
             }
         }
 
-        build_code_entry_guide <- function(mode, thisrow) {
-            mode <- match.arg(mode, c("edit", "insert"))
-            bitstbl <- code_bits_tbl
-            if (mode %eq% "edit" && is_skill(thisrow$skill)) {
-                ## only with skill, not timeout/sub/etc
-                thiscode <- thisrow$code
-                bitstbl$value <- vapply(seq_len(nrow(bitstbl)), function(z) substr(thiscode, bitstbl$start[z], bitstbl$end[z]), FUN.VALUE = "", USE.NAMES = FALSE)
-            } else {
-                bitstbl$value <- ""
-            }
-            bitstbl$value <- gsub("~", "", bitstbl$value)
-            cbitInput <- function (bitname, value = "", width = 2, helper = "") {
-                tags$div(style = paste0("display:inline-block; vertical-align:top;"), tags$input(id = paste0("code_entry_", bitname), type = "text", value = value, size = width, maxlength = width, class = "input-small"),
-                         ##HTML(paste0("<input id=\"code_entry_", bitname, "\" type=\"text\" value=\"", value, "\" size=\"", width, "\" maxlength=\"", width, "\" class=\"input-small\"", if (bitname == "end_zone") " autofocus=\"autofocus\"", " />")),
-                         tags$div(class = "code_entry_guide", helper))
-            }
-            tags$div(style = "padding: 8px;", do.call(shiny::fixedRow, lapply(seq_len(nrow(bitstbl)), function(z) {
-                this_skill <- bitstbl$value[bitstbl$bit %eq% "skill"]
-                this_ev <- bitstbl$value[bitstbl$bit %eq% "eval"]
-                cbitInput(bitstbl$bit[z], value = bitstbl$value[z], width = bitstbl$width[z], helper = if (is.function(bitstbl$helper[[z]])) uiOutput(paste0("code_entry_helper_", bitstbl$bit[z], "_ui")) else HTML(bitstbl$helper[[z]]))
-            })))
-        }
         ## the helpers that are defined as functions in code_bits_tbl are dynamic, they depend on skill/evaluation
         ## ADD HANDLERS HERE
         output$code_entry_helper_skill_type_ui <- renderUI({
@@ -3426,8 +3405,7 @@ ov_scouter_server <- function(app_data) {
             content <- list(tags$li(show_sc("pause", "pause")),
                             tags$li(show_sc("pause_no_popup", "pause (without the admin popup)")),
                             tags$li(show_sc("go_to_time", "jump the video to the time of the currently-selected event in the plays table")),
-                            tags$li(show_sc("undo", "undo last rally action")),
-                            tags$li(show_sc("edit_code", "edit the currently-selected event in the plays table (EXPERIMENTAL)")))
+                            tags$li(show_sc("undo", "undo last rally action")))
             if (have_second_video) content <- c(content, list(tags$li(show_sc("switch_video", "switch video source"))))
             content <- list(tags$p(tags$strong("General controls")), do.call(tags$ul, content))
             if (app_data$with_video) {

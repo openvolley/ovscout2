@@ -21,6 +21,30 @@ code_bits_tbl <- dplyr::tribble(~bit, ~width,
 ## --- = <br /><hr />
 gsubf <- function(...) gsub(..., fixed = TRUE)
 mu2html <- function(z) gsubf("[", "<span class=\"clet\">", gsubf("]", "</span>", gsubf("{", "<strong>", gsubf("}", "</strong>", gsubf("|", "<br />", gsubf("(", "<em>", gsubf(")", "</em>", gsubf("---", "<br /><hr />", z))))))))
+
+build_code_entry_guide <- function(mode, thisrow) {
+    mode <- match.arg(mode, c("edit", "insert"))
+    bitstbl <- code_bits_tbl
+    if (mode %eq% "edit" && is_skill(thisrow$skill)) {
+        ## only with skill, not timeout/sub/etc
+        thiscode <- thisrow$code
+        bitstbl$value <- vapply(seq_len(nrow(bitstbl)), function(z) substr(thiscode, bitstbl$start[z], bitstbl$end[z]), FUN.VALUE = "", USE.NAMES = FALSE)
+    } else {
+        bitstbl$value <- ""
+    }
+    bitstbl$value <- gsub("~", "", bitstbl$value)
+    cbitInput <- function (bitname, value = "", width = 2, helper = "") {
+        tags$div(style = paste0("display:inline-block; vertical-align:top;"), tags$input(id = paste0("code_entry_", bitname), type = "text", value = value, size = width, maxlength = width, class = "input-small"),
+                 ##HTML(paste0("<input id=\"code_entry_", bitname, "\" type=\"text\" value=\"", value, "\" size=\"", width, "\" maxlength=\"", width, "\" class=\"input-small\"", if (bitname == "end_zone") " autofocus=\"autofocus\"", " />")),
+                 tags$div(class = "code_entry_guide", helper))
+    }
+    tags$div(style = "padding: 8px;", do.call(shiny::fixedRow, lapply(seq_len(nrow(bitstbl)), function(z) {
+        this_skill <- bitstbl$value[bitstbl$bit %eq% "skill"]
+        this_ev <- bitstbl$value[bitstbl$bit %eq% "eval"]
+        cbitInput(bitstbl$bit[z], value = bitstbl$value[z], width = bitstbl$width[z], helper = if (is.function(bitstbl$helper[[z]])) uiOutput(paste0("code_entry_helper_", bitstbl$bit[z], "_ui")) else HTML(bitstbl$helper[[z]]))
+    })))
+}
+
 paste0_noNA <- function(...) do.call(paste0, Filter(Negate(is.na), list(...)))
 special_helper <- function(skill, evaln) {
     htext <- NA_character_
