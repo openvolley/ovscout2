@@ -435,6 +435,7 @@ ov_scouter_server <- function(app_data) {
                                     rc[ridx - nrow(rdata$dvw$plays2), ] <- crc
                                     rally_codes(rc)
                                     ## TODO check that this works, because the code in rally_codes should be used but just need to check
+                                    ## TODO transfer details
                                 }
                             }
                         }
@@ -836,7 +837,7 @@ ov_scouter_server <- function(app_data) {
                         ## TODO something
                     } else if (isTRUE(res$end_of_set)) {
                         ## handle_manual_code will have called rally_ended if appropriate, which also detects end of set (shows the modal to confirm)
-                        ## what else needs to happend? TODO
+                        ## what else needs to happen? TODO
                     }
                 } else if (grepl("^[a\\*]?S$", code)) {
                     ## set serving team
@@ -850,40 +851,9 @@ ov_scouter_server <- function(app_data) {
                     ## setter position, TODO
                     ## ^^^
                 } else {
-                    ## deal with code shorthands
                     home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
                     visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
-                    ## if the code starts with an attack combo code e.g. "X5" or "aX5", insert the player number
-                    A_tm <- "*"
-                    ac_row <- if (substr(code, 1, 2) %in% rdata$options$attack_table$code) {
-                                  code <- paste0("*", code) ## prepend home team indicator
-                                  rdata$options$attack_table[which(rdata$options$attack_table$code == substr(code, 2, 3)), ]
-                              } else if (substr(code, 1, 3) %in% paste0("*", rdata$options$attack_table$code)) {
-                                  rdata$options$attack_table[which(rdata$options$attack_table$code == substr(code, 2, 3)), ]
-                              } else if (substr(code, 1, 3) %in% paste0("a", rdata$options$attack_table$code)) {
-                                  A_tm <- "a"
-                                  rdata$options$attack_table[which(rdata$options$attack_table$code == substr(code, 2, 3)), ]
-                              } else {
-                                  NULL
-                              }
-                    if (!is.null(ac_row) && nrow(ac_row) == 1) {
-                        ## find the player number that should be hitting this ball
-                        A_tm_rot <- if (A_tm == "*") game_state$home_setter_position else game_state$visiting_setter_position
-                        A_plyr <- NULL
-                        if (ac_row$code %in% c("PP")) {
-                            ## setter
-                            A_plyr <- if (A_tm == "*") home_setter_num else visiting_setter_num
-                        } else if (ac_row$code %in% c("PR", "P2")) {
-                            ## can't infer player number
-                        } else {
-                            A_zone <- if (ac_row$type %in% c("Q", "N")) 3L else ac_row$attacker_position
-                            A_plyr <- player_responsibility_fn(system = rdata$options$team_system, skill = "Attack", setter_position = A_tm_rot, zone = A_zone, libs = NULL, home_visiting = A_tm, serving = game_state$serving %eq% A_tm)
-                            ## A_plyr will be e.g. "home_p4"
-                            cat(str(A_plyr))
-                            A_plyr <- game_state[[A_plyr]]
-                        }
-                        if (!is.null(A_plyr)) code <- paste0(substr(code, 1, 1), ldz2(A_plyr), substr(code, 2, 99))
-                    }
+                    code <- augment_code_attack_details(code, game_state = game_state, opts = rdata$options) ## deal with code shorthands
                     ## add to rally codes
                     newcode <- sub("~+$", "", ov_code_interpret(code, attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num))
                     cat("code after interpretation:", newcode, "\n")

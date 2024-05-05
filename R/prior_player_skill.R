@@ -204,3 +204,42 @@ attack_player_prior_by_code <- function(system = "SHM3", setter_position, set_ty
         stop("unrecognized system: ", system)
     }
 }
+
+
+## given a scouted code that starts with just an attack code (optionally with * or a, e.g. aX5 or *V6), infer the start zone and player number
+## opts is rdata$options
+augment_code_attack_details <- function(code, game_state, opts) {
+    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
+    home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
+    visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
+    ## if the code starts with an attack combo code e.g. "X5" or "aX5", insert the player number
+    A_tm <- "*"
+    ac_row <- if (substr(code, 1, 2) %in% opts$attack_table$code) {
+                  code <- paste0("*", code) ## prepend home team indicator
+                  opts$attack_table[which(opts$attack_table$code == substr(code, 2, 3)), ]
+              } else if (substr(code, 1, 3) %in% paste0("*", opts$attack_table$code)) {
+                  opts$attack_table[which(opts$attack_table$code == substr(code, 2, 3)), ]
+              } else if (substr(code, 1, 3) %in% paste0("a", opts$attack_table$code)) {
+                  A_tm <- "a"
+                  opts$attack_table[which(opts$attack_table$code == substr(code, 2, 3)), ]
+              } else {
+                  NULL
+              }
+    if (!is.null(ac_row) && nrow(ac_row) == 1) {
+        ## find the player number that should be hitting this ball
+        A_tm_rot <- if (A_tm == "*") game_state$home_setter_position else game_state$visiting_setter_position
+        A_plyr <- NULL
+        if (ac_row$code %in% c("PP")) {
+            ## setter
+            A_plyr <- if (A_tm == "*") home_setter_num else visiting_setter_num
+        } else if (ac_row$code %in% c("PR", "P2")) {
+            ## can't infer player number
+        } else {
+            A_zone <- if (ac_row$type %in% c("Q", "N")) 3L else ac_row$attacker_position
+            A_plyr <- player_responsibility_fn(system = opts$team_system, skill = "Attack", setter_position = A_tm_rot, zone = A_zone, libs = NULL, home_visiting = A_tm, serving = game_state$serving %eq% A_tm) ## A_plyr will be e.g. "home_p4"
+            A_plyr <- game_state[[A_plyr]]
+        }
+        if (!is.null(A_plyr)) code <- paste0(substr(code, 1, 1), ldz2(A_plyr), substr(code, 2, 99))
+    }
+    code
+}
