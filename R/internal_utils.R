@@ -250,7 +250,7 @@ decode_keypress <- function(k, debug = 0) {
         mycmd <- NULL
     }
     if (!is.null(mycmd)) {
-        if (debug > 1) cat("keypress: ", mycmd, " in element #", myid, " of class", myclass, "\n")
+        if (debug > 2) cat("keypress: ", mycmd, " in element #", myid, " of class", myclass, "\n")
         out <- list(ctrl = FALSE, alt = FALSE, shift = FALSE, meta = FALSE, key = "", charcode = 0L, class = myclass, id = myid)
         mycmd <- strsplit(mycmd, "|", fixed = TRUE)[[1]] ## ctrlKey | altKey | shiftKey | metaKey | keyname | charcode
         if (length(mycmd) >= 5) {

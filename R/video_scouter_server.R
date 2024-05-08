@@ -395,10 +395,10 @@ ov_scouter_server <- function(app_data) {
                     if (missing(newcode2) || is.null(newcode2)) newcode2 <- input$code_entry
                     newcode1 <- sub("~+$", "", newcode1) ## trim trailing ~'s
                     newcode2 <- sub("~+$", "", newcode2)
-                    if (editing$active %eq% "edit") {
+                    ridx <- playslist_mod$current_row()
+                    if (editing$active %eq% "edit" && !is.null(ridx) && !is.na(ridx)) {
                         crc <- get_current_rally_code() ## this is from rally_codes BUT this won't have the actual scout code unless it was a non-skill code, hrumph
-                        ridx <- playslist_mod$current_row()
-                        if (!is.null(crc) && !is.null(ridx) && !is.na(ridx)) {
+                        if (!is.null(crc)) {
                             old_code <- if (is.null(crc$code) || is.na(crc$code)) rdata$dvw$plays2$code[ridx] else crc$code
                             ## user has changed EITHER input$code_entry or used the code_entry_guide
                             changed1 <- (!newcode1 %eq% old_code) && nzchar(newcode1)
@@ -439,21 +439,89 @@ ov_scouter_server <- function(app_data) {
                                 }
                             }
                         }
-                    } else {
-                        newcode <- if (nzchar(newcode1)) newcode1 else newcode2
-                        if (grepl("^[a\\*]?[[:digit:]][[:digit:]][SREABDF]", newcode)) {
-                            ## this is a skill code
-                            ## we are ignoring these, at least for now
-                            ##newcode <- sub("~+$", "", ov_code_interpret(input$code_entry))
-                            warning("ignoring skill code: ", newcode)
-                            newcode <- NULL
+                    } else if (editing$active %in% c("insert above", "insert below") && !is.null(ridx) && !is.na(ridx)) {
+                        ## inserting new code above or below
+                        ## note that we are either inserting into the plays2 dataframe, or into rally_codes (the current rally). The playslist shows both (latter appended to former)
+                        if (editing$active == "insert above") {
+                            insert_ridx <- ridx
+                        } else {
+                            insert_ridx <- ridx + 1L ## this can be one greater than the current row count of plays2 plus rally_codes, in which case it will be appended to rally_codes
                         }
-                        if (editing$active %eq% "insert below" && !is.null(newcode)) {
-                            res <- handle_manual_code(newcode)
-                            ## the manual code could have been *p or ap, in which case the rally has ended
-                            if (res$end_of_set) dismiss_modal <- FALSE
-                        } else if (editing$active %in% c("insert above")) {
-                            ## not handled yet
+                        ## we will insert the new row at row insert_ridx. Anything on or after that row in the existing plays2 or rally_codes gets shifted down
+                        if (debug) cat("  selected row:", ridx, "\n  inserting at:", insert_ridx, "\n")
+                        ## and take details from the row immediately prior to where we are inserting
+                        ## since we are inserting a code, the current game_state is not necessarily valid. Retrieve the game state from the row prior to where we are inserting
+                        details_from_idx <- max(1L, insert_ridx - 1L)
+                        if (details_from_idx <= nrow(rdata$dvw$plays2)) {
+                            if (debug) cat("  details being taken from plays2, row:", details_from_idx, "\n")
+                            details_from <- rdata$dvw$plays2[details_from_idx, ]
+                            gs <- details_from$rally_codes[[1]]$game_state[[1]]
+                            ## NOTE though that if we are inserting at the start of a rally, the details_from row might have a NULL game_state because it's a non-skill row like a lineup code
+                            ## TODO fix, use another row if necessary
+                        } else {
+                            rcidx <- details_from_idx - nrow(rdata$dvw$plays2)
+                            details_from <- rally_codes()[rcidx, ]
+                            gs <- details_from$game_state[[1]]
+                            if (debug) cat("  details being taken from rally_codes, row:", rcidx, "\n")
+                        }
+                        cat("details from:", str(details_from), "\n")
+
+                        code <- if (nzchar(newcode1)) newcode1 else newcode2
+                        if (grepl("^[TpczPCS]", code)) code <- paste0("*", code)
+                        cat("to process: ", code, "\n")
+                        if (app_data$scout_mode == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
+                        if (grepl("^(\\*p|ap|\\*c|ac|\\*z|az|\\*S|aS)", code) || ## timeout, sub, setter position, assign serving team
+                            grepl("^[a\\*]C[[:digit:]]+[:\\.][[:digit:]]+", code) || ## substitution ensuring it can't be an attack combo code
+                            (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(gs$rally_started))) { ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
+                            ## can't handle these as edits, at least not yet
+                            ## TODO warn
+                        } else if (grepl("^(>|\\*T|aT)", code)) { ## timeout, comment
+                            newrow <- make_plays2(code, game_state = gs, rally_ended = FALSE, dvw = rdata$dvw)
+                            cat("gs:", str(gs), "\n")
+                            cat("newrow:", str(newrow), "\n")
+                            if (insert_ridx <= nrow(rdata$dvw$plays2)) {
+                                ## TODO transfer other details, time
+                                cat(nrow(rdata$dvw$plays2), "\n")
+                                rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
+                                                                  newrow,
+                                                                  rdata$dvw$plays2[insert_ridx:nrow(rdata$dvw$plays2), ]))
+                                cat(nrow(rdata$dvw$plays2), "\n")
+                            } else {
+                                ## can't insert into rally_codes, that only holds skill rows!
+                                warning("can't insert into current rally")
+                            }
+                        } else {
+                            code <- augment_code_attack_details(code, game_state = game_state, opts = rdata$options) ## deal with code shorthands
+                            home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
+                            visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
+                            newcode <- sub("~+$", "", ov_code_interpret(code, attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num))
+                            cat("code after interpretation:", newcode, "\n")
+                            ## code can be length > 1 now, because code might have been a compound code
+                            ptemp <- parse_code_minimal(newcode) ## convert to a list of tibble row(s)
+                            this_clock_time <- details_from$time
+                            this_video_time <- details_from$video_time
+                            rs <- details_from$rally_codes[[1]]$rally_state ## TODO CHECK
+                            cat("adding with rally_state:", cstr(rs), "\n")
+                                ## this has to be added to plays2 OR rally codes, depending on the insertion point
+                                ## remember that the playstable is showing plays2 with rally_codes converted to plays2 format and appended
+                                ## in either case, convert to rally_codes format first
+                            newrc <- bind_rows(lapply(ptemp, function(temp) {
+                                if (!is.null(temp)) {
+                                    ## should not be NULL, that's only for non-skill rows
+                                    code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, start_zone_valid = TRUE, endxy_valid = TRUE, t = this_video_time, time = this_clock_time, rally_state = rs, game_state = gs, default_scouting_table = rdata$options$default_scouting_table)
+                                }
+                            }))
+                            ## TODO update the preceding rally_codes row if new info has been provided here
+                            if (insert_ridx <= nrow(rdata$dvw$plays2)) {
+                                rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
+                                                                  make_plays2(newrc, game_state = gs, rally_ended = FALSE, dvw = rdata$dvw),
+                                                                  rdata$dvw$plays2[insert_ridx:nrow(rdata$dvw$plays2), ]))
+                            } else {
+                                rc <- rally_codes()
+                                rcidx <- nrow(rdata$dvw$plays2) - insert_ridx
+                                newrc <- bind_rows(rc[seq_len(rcidx - 1L), ], newrc, rc[rcidx:nrow(rc), ])
+                                rally_codes(newrc)
+                            }
                         }
                     }
                 } else {
@@ -597,7 +665,6 @@ ov_scouter_server <- function(app_data) {
                 ## PREVIOUSLY we get the ascii code for the base key (i.e. upper-case letter, or number) AND the modifier
                 ## so for "#" we'd get ky == utf8ToInt("3") (which is 51) plus mycmd[3] == "true" (shift)
                 ## NOW for "#" we get ky == "#" plus mycmd[3] == "true" (shift)
-                if (debug > 1) cat("key: ", ky, "\n")
                 if ((k$class %eq% "modal-open" || grepl("scedit-modal", k$class)) && !is.null(editing$active) && editing$active %eq% "edit_shortcuts") {
                     cat("shortcut edit\n")
                     sc_newvalue(key_as_text(k))
@@ -736,7 +803,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$controlkeyup, {
             if (!is.null(input$controlkeyup)) {
                 k <- decode_keypress(input$controlkeyup, debug)
-                if (debug > 1) cat("control key up: ", cstr(k), "\n")
+                if (debug > 2) cat("control key up: ", cstr(k), "\n")
                 if (k$key %in% app_data$shortcuts$hide_popup) {
                     ## z
                     ## re-show the modal after temporarily hiding
@@ -748,7 +815,7 @@ ov_scouter_server <- function(app_data) {
         ## deal with what's being typed into the scout entry box
         observeEvent(input$scout_shortcut, {
             if (!is.null(input$scout_shortcut)) {
-                if (debug > 1) cat("scout shortcut:", input$scout_shortcut, "\n")
+                if (debug > 2) cat("scout shortcut:", input$scout_shortcut, "\n")
                 if (input$scout_shortcut %in% c("pause", "pause_no_popup")) {
                     ## handle pause here rather than in the main keydown code, because by default we want to use the escape key as a pause shortcut
                     if (!courtref_active()) {
@@ -813,7 +880,7 @@ ov_scouter_server <- function(app_data) {
             dojs(paste0("Shiny.setInputValue('scout_input_leftovers', scout_in_el.val() + ' ap', { priority: 'event' });"))
         })
 
-##        observeEvent(input$scout_input_times, isolate(print(get_scout_input_times(input))))
+##        observeEvent(input$scout_input_times, print(get_scout_input_times(input)))
 
         handle_scout_codes <- function(codes) {
             ## split on spaces
@@ -3219,10 +3286,8 @@ ov_scouter_server <- function(app_data) {
             ok <- TRUE
             end_of_set <- FALSE
             if (!is.null(code)) {
-                if (grepl("^>", code)) {
-                    ## comment, or perhaps >LUp
-                    rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
-                } else if (code %in% c("*T", "aT")) {
+                if (grepl("^>", code) || code %in% c("*T", "aT")) {
+                    ## comment, or perhaps >LUp, or timeout
                     rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(code, game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
                 } else if (code %in% c("*p", "ap")) {
                     game_state$point_won_by <- substr(code, 1, 1)
