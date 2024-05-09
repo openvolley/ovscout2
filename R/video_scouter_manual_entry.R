@@ -36,7 +36,7 @@ build_code_entry_guide <- function(mode, thisrow) {
     cbitInput <- function (bitname, value = "", width = 2, helper = "") {
         tags$div(style = paste0("display:inline-block; vertical-align:top;"), tags$input(id = paste0("code_entry_", bitname), type = "text", value = value, size = width, maxlength = width, class = "input-small"),
                  ##HTML(paste0("<input id=\"code_entry_", bitname, "\" type=\"text\" value=\"", value, "\" size=\"", width, "\" maxlength=\"", width, "\" class=\"input-small\"", if (bitname == "end_zone") " autofocus=\"autofocus\"", " />")),
-                 tags$div(class = "code_entry_guide", helper))
+                 tags$div(class = c("code_entry_guide", if (bitname == "number") "code_entry_20w"), helper))
     }
     tags$div(style = "padding: 8px;", do.call(shiny::fixedRow, lapply(seq_len(nrow(bitstbl)), function(z) {
         this_skill <- bitstbl$value[bitstbl$bit %eq% "skill"]
@@ -48,8 +48,7 @@ build_code_entry_guide <- function(mode, thisrow) {
 show_manual_code_modal <- function(op, ridx, dvw, entry_guide = TRUE) {
     op <- match.arg(op, c("insert below", "insert above", "edit"))
     if (op != "edit" || (!is.null(ridx) && !is.na(ridx))) {
-        showModal(modalDialog(title = if (grepl("insert", op)) paste0("Insert new code ", sub("insert ", "", op), " current row") else "Edit code",
-                              size = "l",
+        showModal(vwModalDialog(title = if (grepl("insert", op)) paste0("Insert new code ", sub("insert ", "", op), " current row") else "Edit code",
                               footer = tags$div(actionButton("edit_commit", label = paste0(if (grepl("insert", op)) "Insert" else "Update", " code (or press Enter)")), actionButton("edit_cancel", label = "Cancel (or press Esc)")),
                               if (entry_guide) paste0(if (op == "edit") "Edit" else "Enter", " the code either in the top text box or in the individual boxes (but not both)"),
                               textInput("code_entry", label = "Code:", value = if (op == "edit") dvw$plays$code[ridx] else ""), ## was previously plays2
@@ -103,8 +102,23 @@ end_zone_helper <- function(skill, evaln, dvw) {
         mu2html("{End zone}---[1..9]")
     }
 }
-code_bits_tbl$helper <- c(mu2html("{Team}---[*]&nbsp;H|[a]&nbsp;V"), ## team
-                          mu2html("{Plyr|num}"), ## number
+
+## team helper that shows team names
+team_helper <- function(dvw) {
+    mu2html(paste0("{Team}---[*]&nbsp;", home_team(dvw), "|[a]&nbsp;", visiting_team(dvw)))
+}
+
+## player number helper that shows player numbers and names depending on the team chosen
+number_helper <- function(team, dvw) {
+    out <- "{Plyr|num}"
+    if (is.null(team) || !team %in% c("*", "a")) return(mu2html(out))
+    p <- dvw$meta[[if (team == "*") "players_h" else "players_v"]]
+    p <- p[order(p$number), ]
+    mu2html(paste(c(out, vapply(seq_len(nrow(p)), function(i) paste0("[", p$number[i], "] ", paste(strwrap(p$name[i], 16), collapse = "<br />&nbsp;&nbsp;&nbsp;")), FUN.VALUE = "")), collapse = "|"))
+}
+
+code_bits_tbl$helper <- c(team_helper, ## team
+                          number_helper, ## number
                           mu2html("{Skill}---[S]rv|[R]ec|[A]ttk|[B]lk|[D]ig|s[E]t|[F]reeb"), ## skill
                           mu2html("{Tempo}---[H]igh|[M]ed|[Q]uick|[T]ense|s[U]per|[N] fast|[O]ther"), ## type
                           mu2html("{Eval}---[#|+|!|-|/|=]"), ## eval

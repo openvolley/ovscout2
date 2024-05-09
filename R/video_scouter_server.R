@@ -3170,7 +3170,13 @@ ov_scouter_server <- function(app_data) {
         }
 
         ## the helpers that are defined as functions in code_bits_tbl are dynamic, they depend on skill/evaluation
-        ## ADD HANDLERS HERE
+        ## add UI outputs corresponding to the helper functions here as needed
+        output$code_entry_helper_team_ui <- renderUI({
+            HTML(team_helper(rdata$dvw))
+        })
+        output$code_entry_helper_number_ui <- renderUI({
+            HTML(number_helper(input$code_entry_team, rdata$dvw))
+        })
         output$code_entry_helper_skill_type_ui <- renderUI({
             HTML(skill_type_helper(input$code_entry_skill, input$code_entry_eval))
         })
