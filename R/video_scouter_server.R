@@ -884,7 +884,7 @@ ov_scouter_server <- function(app_data) {
 
         handle_scout_codes <- function(codes) {
             ## split on spaces
-            codes <- strsplit(codes, "[[:space:]]+")[[1]]
+            codes <- strsplit(str_trim(codes), "[[:space:]]+")[[1]]
             ## also get the time stamps
             keypress_times <- get_scout_input_times(input$scout_input_times)
             ## and split on spaces
