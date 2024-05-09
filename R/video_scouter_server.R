@@ -930,7 +930,7 @@ ov_scouter_server <- function(app_data) {
                     this_video_time <- NA_real_
                     ## use clock and video times from the input$scout_input_times time-logged keypresses if we can
                     this_skill <- if (length(ptemp) > 0) ptemp[[1]]$skill else NA_character_
-                    this_keypress_times <- if (!is.null(keypress_times)) keypress_times[[i]][keypress_times[[i]]$key %eq% this_skill, ] else NULL ## TODO check case sensitivity on this, if we use e.g. 'a' but remap it to 'A' via the key remapping
+                    this_keypress_times <- if (!is.null(keypress_times)) keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% tolower(this_skill), ] else NULL ## TODO check case sensitivity on this, if we use e.g. 'a' but remap it to 'A' via the key remapping
                     if (!is.null(this_keypress_times) && nrow(this_keypress_times) == 1) {
                         this_clock_time <- this_keypress_times$time
                         this_video_time <- this_keypress_times$video_time
