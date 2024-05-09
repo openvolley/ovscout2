@@ -208,20 +208,22 @@ attack_player_prior_by_code <- function(system = "SHM3", setter_position, set_ty
 
 ## given a scouted code that starts with just an attack code (optionally with * or a, e.g. aX5 or *V6), infer the start zone and player number
 ## opts is rdata$options
-augment_code_attack_details <- function(code, game_state, opts) {
+augment_code_attack_details <- function(code, game_state, opts, ignore_case = TRUE) {
     if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
+    cf <- if (ignore_case) tolower else I
     home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
     visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
+    atk_c <- cf(opts$attack_table$code) ## attack codes, lower case if ignoring case
     ## if the code starts with an attack combo code e.g. "X5" or "aX5", insert the player number
     A_tm <- "*"
-    ac_row <- if (substr(code, 1, 2) %in% opts$attack_table$code) {
+    ac_row <- if (cf(substr(code, 1, 2)) %in% atk_c) {
                   code <- paste0("*", code) ## prepend home team indicator
-                  opts$attack_table[which(opts$attack_table$code == substr(code, 2, 3)), ]
-              } else if (substr(code, 1, 3) %in% paste0("*", opts$attack_table$code)) {
-                  opts$attack_table[which(opts$attack_table$code == substr(code, 2, 3)), ]
-              } else if (substr(code, 1, 3) %in% paste0("a", opts$attack_table$code)) {
+                  opts$attack_table[which(atk_c == cf(substr(code, 2, 3))), ]
+              } else if (cf(substr(code, 1, 3)) %in% paste0("*", atk_c)) {
+                  opts$attack_table[which(atk_c == cf(substr(code, 2, 3))), ]
+              } else if (cf(substr(code, 1, 3)) %in% paste0("a", atk_c)) {
                   A_tm <- "a"
-                  opts$attack_table[which(opts$attack_table$code == substr(code, 2, 3)), ]
+                  opts$attack_table[which(atk_c == cf(substr(code, 2, 3))), ]
               } else {
                   NULL
               }
@@ -239,7 +241,8 @@ augment_code_attack_details <- function(code, game_state, opts) {
             A_plyr <- player_responsibility_fn(system = opts$team_system, skill = "Attack", setter_position = A_tm_rot, zone = A_zone, libs = NULL, home_visiting = A_tm, serving = game_state$serving %eq% A_tm) ## A_plyr will be e.g. "home_p4"
             A_plyr <- game_state[[A_plyr]]
         }
-        if (!is.null(A_plyr)) code <- paste0(substr(code, 1, 1), ldz2(A_plyr), substr(code, 2, 99))
+        ## ensure attack combo part of code is upper case
+        if (!is.null(A_plyr)) code <- paste0(substr(code, 1, 1), ldz2(A_plyr), toupper(substr(code, 2, 3)), substr(code, 4, 99))
     }
     code
 }
