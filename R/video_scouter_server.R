@@ -454,10 +454,10 @@ ov_scouter_server <- function(app_data) {
                         details_from_idx <- max(1L, insert_ridx - 1L)
                         if (details_from_idx <= nrow(rdata$dvw$plays2)) {
                             if (debug) cat("  details being taken from plays2, row:", details_from_idx, "\n")
-                            details_from <- rdata$dvw$plays2[details_from_idx, ]
-                            gs <- details_from$rally_codes[[1]]$game_state[[1]]
+                            details_from <- rdata$dvw$plays2[details_from_idx, ]$rally_codes[[1]]
+                            gs <- details_from$game_state[[1]]
                             ## NOTE though that if we are inserting at the start of a rally, the details_from row might have a NULL game_state because it's a non-skill row like a lineup code
-                            ## TODO fix, use another row if necessary
+                            if (is.null(gs)) gs <- rdata$dvw$plays2[insert_ridx, ]$rally_codes[[1]]$game_state[[1]] ## TODO fix properly
                         } else {
                             rcidx <- details_from_idx - nrow(rdata$dvw$plays2)
                             details_from <- rally_codes()[rcidx, ]
@@ -465,6 +465,9 @@ ov_scouter_server <- function(app_data) {
                             if (debug) cat("  details being taken from rally_codes, row:", rcidx, "\n")
                         }
                         cat("details from:", str(details_from), "\n")
+                        insert_clock_time <- details_from$time ## TODO check, previously plays2 had clock time but rally_codes generally did not
+                        insert_video_time <- details_from$t
+                        insert_rs <- details_from$rally_state ## TODO CHECK
 
                         code <- if (nzchar(newcode1)) newcode1 else newcode2
                         if (grepl("^[TpczPCS]", code)) code <- paste0("*", code)
@@ -498,17 +501,13 @@ ov_scouter_server <- function(app_data) {
                             cat("code after interpretation:", newcode, "\n")
                             ## code can be length > 1 now, because code might have been a compound code
                             ptemp <- parse_code_minimal(newcode) ## convert to a list of tibble row(s)
-                            this_clock_time <- details_from$time
-                            this_video_time <- details_from$video_time
-                            rs <- details_from$rally_codes[[1]]$rally_state ## TODO CHECK
-                            cat("adding with rally_state:", cstr(rs), "\n")
                                 ## this has to be added to plays2 OR rally codes, depending on the insertion point
                                 ## remember that the playstable is showing plays2 with rally_codes converted to plays2 format and appended
                                 ## in either case, convert to rally_codes format first
                             newrc <- bind_rows(lapply(ptemp, function(temp) {
                                 if (!is.null(temp)) {
                                     ## should not be NULL, that's only for non-skill rows
-                                    code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, start_zone_valid = TRUE, endxy_valid = TRUE, t = this_video_time, time = this_clock_time, rally_state = rs, game_state = gs, default_scouting_table = rdata$options$default_scouting_table)
+                                    code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, start_zone_valid = TRUE, endxy_valid = TRUE, t = insert_video_time, time = insert_clock_time, rally_state = insert_rs, game_state = gs, default_scouting_table = rdata$options$default_scouting_table)
                                 }
                             }))
                             ## TODO update the preceding rally_codes row if new info has been provided here
