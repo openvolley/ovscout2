@@ -14,7 +14,7 @@
 #' @param auto_save_dir string: optional path to a directory where the dvw will be saved automatically after each rally
 # TODO @param pantry_id string: optional ID for <https://getpantry.cloud>. The dvw will be saved automatically to your pantry after each rally. Your `pantry_id` can also be specified as the `PANTRY_ID` environment variable (i.e. use `Sys.setenv(PANTRY_ID = "xyz")` before launching `ov_scouter()`)
 #' @param scout_mode string: either "click" for the guided point-and-click scouting interface, or "type" for the typing-based interface
-#' @param pause_on_type logical: if `TRUE` and using `scout_mode = "type"`, pause the video briefly on each key press in the scouting bar
+#' @param pause_on_type numeric: if greater than 0 and using `scout_mode = "type"`, pause the video for this many milliseconds after each key press in the scouting bar
 #' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
 #' @param ball_path logical: if `TRUE`, show the ball path on the court inset diagram. Note that this will slow the app down slightly
 #' @param playlist_display_option string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)
@@ -39,10 +39,12 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scout_mode = "click", pause_on_type = TRUE, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), shortcuts = ov_default_shortcuts(scout_mode), playstable_shortcuts = ov_default_playstable_shortcuts(scout_mode), key_remapping = ov_default_key_remapping(scout_mode), scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scout_mode = "click", pause_on_type = 500, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), shortcuts = ov_default_shortcuts(scout_mode), playstable_shortcuts = ov_default_playstable_shortcuts(scout_mode), key_remapping = ov_default_key_remapping(scout_mode), scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     assert_that(is.string(scout_name))
     assert_that(is.flag(show_courtref), !is.na(show_courtref))
+    if (identical(pause_on_type, FALSE)) pause_on_type <- 0L
+    assert_that(is.numeric(pause_on_type))
 
     ## user data directory
     ## are we running under shiny server, shiny (locally) or shiny (docker)?
@@ -61,7 +63,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     saved_opts <- if (file.exists(opts_file)) readRDS(opts_file) else list()
     #### if we didn't provide options explicitly, use saved ones (if any) as priority
     if (missing(scoreboard) && "scoreboard" %in% names(saved_opts)) scoreboard <- saved_opts$scoreboard
-    if (missing(pause_on_type) && "pause_on_type" %in% names(saved_opts)) pause_on_type <- saved_opts$pause_on_type
+    if (missing(pause_on_type) && "pause_on_type" %in% names(saved_opts) && !is.null(saved_opts$pause_on_type) && !is.na(as.integer(saved_opts$pause_on_type))) pause_on_type <- as.integer(saved_opts$pause_on_type)
     if (missing(ball_path) && "ball_path" %in% names(saved_opts)) ball_path <- saved_opts$ball_path
     if (missing(review_pane) && "review_pane" %in% names(saved_opts)) review_pane <- saved_opts$review_pane
     if (missing(playlist_display_option) && "playlist_display_option" %in% names(saved_opts)) playlist_display_option <- saved_opts$playlist_display_option
@@ -383,7 +385,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     app_data$play_overlap <- 0.5 ## amount (in seconds) to rewind before restarting the video, after pausing to enter data
     app_data$evaluation_decoder <- skill_evaluation_decoder() ## to expose as a parameter, perhaps
     app_data$scoreboard <- isTRUE(scoreboard)
-    app_data$pause_on_type <- isTRUE(pause_on_type)
+    app_data$pause_on_type <- as.integer(pause_on_type)
     app_data$ball_path <- isTRUE(ball_path)
     app_data$review_pane <- isTRUE(review_pane)
     app_data$playback_rate <- playback_rate

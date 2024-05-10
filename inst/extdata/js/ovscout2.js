@@ -84,7 +84,7 @@ function plk_handler(e) {
     if ((e.keyCode == 38 || e.keyCode == 40 || e.keyCode == 9)) { e.stopPropagation(); e.preventDefault(); }
 }
 
-var pause_on_type = false;
+var pause_on_type = 0; // no pause
 var pause_on_type_timer;
 $(document).on('keydown', function (e) {
     var el = document.activeElement;
@@ -100,10 +100,10 @@ $(document).on('keydown', function (e) {
 //    } else if ($("body.modal-open").length == 1) {
 //        // some other modal is open
     } else if (el.id.includes("scout_in")) {
-        if (pause_on_type) {
+        if (pause_on_type > 0) {
             vidplayer.pause();
             clearTimeout(pause_on_type_timer);
-            pause_on_type_timer = setTimeout(function() { if (pause_on_type) { vidplayer.play(); }}, 500);
+            pause_on_type_timer = setTimeout(function() { if (pause_on_type > 0) { vidplayer.play(); }}, pause_on_type);
         }
         if (e.key === "Enter") {
             // send the actual text in the box to the Shiny server

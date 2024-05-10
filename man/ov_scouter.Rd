@@ -11,7 +11,7 @@ ov_scouter(
   season_dir,
   auto_save_dir,
   scout_mode = "click",
-  pause_on_type = TRUE,
+  pause_on_type = 500,
   scoreboard = TRUE,
   ball_path = FALSE,
   playlist_display_option = "dv_codes",
@@ -44,7 +44,7 @@ ov_scouter(
 
 \item{scout_mode}{string: either "click" for the guided point-and-click scouting interface, or "type" for the typing-based interface}
 
-\item{pause_on_type}{logical: if \code{TRUE} and using \code{scout_mode = "type"}, pause the video briefly on each key press in the scouting bar}
+\item{pause_on_type}{numeric: if greater than 0 and using \code{scout_mode = "type"}, pause the video for this many milliseconds after each key press in the scouting bar}
 
 \item{scoreboard}{logical: if \code{TRUE}, show a scoreboard in the top-right of the video pane}
 

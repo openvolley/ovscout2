@@ -90,7 +90,7 @@ ov_scouter_server <- function(app_data) {
 
         ## set up for typing mode
         ## we can modify app_data$pause_on_type here without affecting the prefs reactive, so that it can be disabled if we aren't using video in this session but still retain it as a preference
-        app_data$pause_on_type <- app_data$pause_on_type && app_data$with_video
+        if (!app_data$with_video) app_data$pause_on_type <- 0L
         if (app_data$scout_mode == "type") {
             ## send shortcuts to js
             if (length(app_data$shortcuts) > 0) dojs(paste0("sk_shortcut_map = ", make_js_keymap(app_data$shortcuts), ";"))
@@ -125,7 +125,7 @@ ov_scouter_server <- function(app_data) {
                     offs <- rdata$dvw$video2_offset
                 }
                 new_src <- get_video_source_type(new_src, base_url = app_data$video_server_base_url)
-                myjs <- paste0("var ct=vidplayer.currentTime(); ct=ct", if (offs >= 0) "+", offs, "; if (ct >= 0) { vidplayer.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); vidplayer.currentTime(ct);", if (!video_state$paused) "vidplayer.play();", if (app_data$pause_on_type) "pause_on_type = true;", "Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight()); }")
+                myjs <- paste0("var ct=vidplayer.currentTime(); ct=ct", if (offs >= 0) "+", offs, "; if (ct >= 0) { vidplayer.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); vidplayer.currentTime(ct);", if (!video_state$paused) "vidplayer.play(); pause_on_type = ", app_data$pause_on_type, "; Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight()); }")
                 dojs(myjs)
             }
         }
@@ -258,22 +258,22 @@ ov_scouter_server <- function(app_data) {
             getel <- "vidplayer"
             myargs <- list(...)
             if (what == "pause") {
-                dojs(paste0(getel, ".pause();", if (app_data$pause_on_type) "pause_on_type = false;")) ## disable, otherwise it will unpause the video after a keypress
+                dojs(paste0(getel, ".pause(); pause_on_type = 0;")) ## disable, otherwise it will unpause the video after a keypress
                 video_state$paused <- TRUE
                 if (rally_state() == "click serve start") rally_state("click or unpause the video to start")
                 NULL
             } else if (what == "play") {
-                dojs(paste0(getel, ".play();", if (app_data$pause_on_type) "pause_on_type = true;")) ## re-enable, it would have been disabled while the modal was showing
+                dojs(paste0(getel, ".play(); pause_on_type = ", app_data$pause_on_type, ";")) ## re-enable, it would have been disabled while the modal was showing
                 video_state$paused <- FALSE
                 if (rally_state() == "click or unpause the video to start") rally_state("click serve start")
             } else if (what == "toggle_pause") {
                 ## careful using this, because there are situations where we don't want to allow unpausing - see deal_with_pause()
                 if (video_state$paused) {
-                    dojs(paste0(getel, ".play();", if (app_data$pause_on_type) "pause_on_type = true;"))
+                    dojs(paste0(getel, ".play(); pause_on_type = 0;"))
                     video_state$paused <- FALSE
                     if (rally_state() == "click or unpause the video to start") rally_state("click serve start")
                 } else {
-                    dojs(paste0(getel, ".pause();", if (app_data$pause_on_type) "pause_on_type = false;"))
+                    dojs(paste0(getel, ".pause(); pause_on_type = ", app_data$pause_on_type, ";"))
                     video_state$paused <- TRUE
                 }
                 NULL
@@ -1091,23 +1091,24 @@ ov_scouter_server <- function(app_data) {
         }
 
         ## options
-        ## TODO add pause_on_type (and are there other prefs?)
+        ## TODO are there other prefs to add?
         observeEvent(input$preferences, {
             editing$active <- "preferences"
             showModal(vwModalDialog(title = "Preferences", footer = NULL, width = 100,
                                     tabsetPanel(id = "prefs_tabs",
-                                                tabPanel("App preferences",
+                                                tabPanel(tags$strong("App preferences"),
                                                          tags$hr(), tags$br(),
                                                          fluidRow(column(3, checkboxInput("prefs_show_courtref", "Show court reference?", value = prefs$show_courtref)),
                                                                   column(3, textInput("prefs_scout", label = "Default scout name:", placeholder = "Your name", value = prefs$scout_name)),
-                                                                  column(3, checkboxInput("prefs_scoreboard", "Show scoreboard in the top-right of the video pane?", value = prefs$scoreboard))),
+                                                                  column(3, checkboxInput("prefs_scoreboard", "Show scoreboard in the top-right of the video pane?", value = prefs$scoreboard)),
+                                                                  column(3, numericInput("prefs_pause_on_type", tags$span(title = HTML("Pauses the video for this many milliseconds after each keypress in the scouting bar (typing mode only). Set to zero for no pause after keypress."), "Pause video after each keypress (milliseconds):", icon("question-circle")), value = prefs$pause_on_type, min = 0, step = 100))),
                                                          tags$br(),
                                                          fluidRow(column(3, checkboxInput("prefs_ball_path", "Show the ball path on the court inset diagram?", value = prefs$ball_path)),
                                                                   column(3, selectInput("prefs_playlist_display_option", "Plays table style", choices = c("Scouted codes" = "dv_codes", "Commentary style" = "commentary"), selected = prefs$playlist_display_option)),
                                                                   column(3, checkboxInput("prefs_review_pane", "Show review pane (video loop) in popups?", value = prefs$review_pane)))
                                                          ),
-                                                tabPanel("Scouting options",
-                                                         tags$hr(), tags$br(), tags$p("Warning: changing scouting options once a match is already partially-scouted could lead to inconsistent files."),
+                                                tabPanel(tags$strong("Click scouting conventions"),
+                                                         tags$hr(), tags$br(), tags$p("These conventions apply when scouting in \"click\" mode (not typing mode). Warning: changing scouting conventions once a match is already partially-scouted could lead to inconsistent files."),
                                                          tags$hr(),
                                                          fluidRow(column(3, selectInput("scopts_end_convention", tags$span(title = HTML("Is the end coordinate of an attack or serve the actual end location (where the ball was played or contacted the floor), or the intended one. The actual might differ from the intended if there is a block touch or the ball hit the net. If 'intended', and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing)."), "End convention:", icon("question-circle")), choices = c(Intended = "intended", Actual = "actual"), selected = rdata$options$end_convention)),
                                                                   column(3, checkboxInput("scopts_nblockers", tags$span(title = HTML("Record the number of blockers on each attack?"), "Record the number of blockers?", icon("question-circle")), value = rdata$options$nblockers)),
@@ -1136,9 +1137,23 @@ ov_scouter_server <- function(app_data) {
             removeModal()
         })
         observeEvent(input$prefs_save, {
-            thisprefs <- list(scout_name = if (is.null(input$prefs_scout) || is.na(input$prefs_scout)) "" else input$prefs_scout, show_courtref = isTRUE(input$prefs_show_courtref), scoreboard = isTRUE(input$prefs_scoreboard), pause_on_type = isTRUE(input$prefs_pause_on_type), ball_path = isTRUE(input$prefs_ball_path), playlist_display_option = input$prefs_playlist_display_option, review_pane = input$prefs_review_pane)
+            thisprefs <- list(scout_name = if (is.null(input$prefs_scout) || is.na(input$prefs_scout)) "" else input$prefs_scout,
+                              show_courtref = isTRUE(input$prefs_show_courtref),
+                              scoreboard = isTRUE(input$prefs_scoreboard),
+                              pause_on_type = if (is.null(input$prefs_pause_on_type) || is.na(as.integer(input$prefs_pause_on_type))) 0 else as.integer(input$prefs_pause_on_type),
+                              ball_path = isTRUE(input$prefs_ball_path),
+                              playlist_display_option = input$prefs_playlist_display_option,
+                              review_pane = input$prefs_review_pane)
             if (!is.null(input$playback_rate)) thisprefs$playback_rate <- input$playback_rate ## add playback rate here, but it's set directly by the slider not by this popup
-            this_opts <- list(end_convention = input$scopts_end_convention, nblockers = input$scopts_nblockers, default_nblockers = as.numeric(input$scopts_default_nblockers), transition_sets = input$scopts_transition_sets, attacks_by = input$scopts_attacks_by, team_system = input$scopts_team_system, setter_dump_code = if (nzchar(input$scopts_setter_dump_code)) input$scopts_setter_dump_code else ov_scouting_options()$setter_dump_code, second_ball_attack_code = if (nzchar(input$scopts_second_ball_attack_code)) input$scopts_second_ball_attack_code else ov_scouting_options()$second_ball_attack_code, overpass_attack_code = if (nzchar(input$scopts_overpass_attack_code)) input$scopts_overpass_attack_code else ov_scouting_options()$overpass_attack_code)
+            this_opts <- list(end_convention = input$scopts_end_convention,
+                              nblockers = input$scopts_nblockers,
+                              default_nblockers = as.numeric(input$scopts_default_nblockers),
+                              transition_sets = input$scopts_transition_sets,
+                              attacks_by = input$scopts_attacks_by,
+                              team_system = input$scopts_team_system,
+                              setter_dump_code = if (nzchar(input$scopts_setter_dump_code)) input$scopts_setter_dump_code else ov_scouting_options()$setter_dump_code,
+                              second_ball_attack_code = if (nzchar(input$scopts_second_ball_attack_code)) input$scopts_second_ball_attack_code else ov_scouting_options()$second_ball_attack_code,
+                              overpass_attack_code = if (nzchar(input$scopts_overpass_attack_code)) input$scopts_overpass_attack_code else ov_scouting_options()$overpass_attack_code)
 
             ## save prefs
             tryCatch(saveRDS(thisprefs, app_data$options_file), error = function(e) warning("could not save preferences to file"))
