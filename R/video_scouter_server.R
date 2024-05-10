@@ -408,7 +408,6 @@ ov_scouter_server <- function(app_data) {
                                 home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
                                 visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
                                 newcode <- sub("~+$", "", ov_code_interpret(newcode, attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num))
-                                ## TODO deal with a compound code that returns multiple codes here
                             } else if (!changed1 && !changed2) {
                                 ## neither changed, nothing to do
                                 newcode <- NULL
@@ -422,7 +421,7 @@ ov_scouter_server <- function(app_data) {
                                 ## if ridx is greater than the length of plays2 rows, then put this in rally_codes()
                                 if (ridx <= nrow(rdata$dvw$plays2)) {
                                     ## need to update crc$rally_codes with the info held in newcode
-                                    temp <- parse_code_minimal(newcode)[[1]]
+                                    temp <- parse_code_minimal(newcode)[[1]] ## TODO deal with a compound code that returns multiple codes here
                                     if (!is.null(temp)) {
                                         ## should not be NULL, that's only for non-skill rows
                                         crc <- bind_cols(crc[, setdiff(names(crc), names(temp))], temp)[, names(crc)]
@@ -1460,8 +1459,14 @@ ov_scouter_server <- function(app_data) {
                         guess_was_err <- "=N"
                     }
                     ## we pre-select either the passer, or the error type, depending on whether we thought it was an error or not
-                    serve_outcome_initial_buttons <- make_fat_radio_buttons(choices = c("Serve error" = "=", "Reception error (serve ace)" = "S#", "Reception in play" = "R~"), input_var = "serve_initial_outcome", selected = if (!is.na(guess_was_err)) "=" else "R~")
-                    serve_error_type_buttons <- make_fat_radio_buttons(choices = c("In net" = "=N", "Foot fault/referee call" = "=Z", "Out long" = "=O", "Out left" = "=L", "Out right" = "=R"), selected = if (!is.na(guess_was_err)) guess_was_err else NA, input_var = "serve_error_type", as_radio = "blankable")
+                    serve_outcome_initial_buttons <- make_fat_radio_buttons(
+                        choices = c("Serve error" = "=", "Reception error (serve ace)" = "S#", "Reception in play" = "R~"),
+                        input_var = "serve_initial_outcome",
+                        selected = if (!is.na(guess_was_err)) "=" else "R~")
+                    serve_error_type_buttons <- make_fat_radio_buttons(
+                        choices = c("In net" = "=N", "Foot fault/referee call" = "=Z", "Out long" = "=O", "Out left" = "=L", "Out right" = "=R"),
+                        selected = if (!is.na(guess_was_err)) guess_was_err else NA,
+                        input_var = "serve_error_type", as_radio = "blankable")
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "pass_player")
                     accept_fun("do_assign_serve_outcome")
                     show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = scout_modal_width, modal_halign = "left",
@@ -1618,7 +1623,9 @@ ov_scouter_server <- function(app_data) {
                     }
                     c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aF", "Opp. dig error" = "aF=", "Opp. overpass attack" = "aPR")), input_var = "c3")
                     fatradio_class_uuids$c3 <- attr(c3_buttons, "class")
-                    hit_type_buttons <- make_fat_radio_buttons(choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"), input_var = "hit_type")
+                    hit_type_buttons <- make_fat_radio_buttons(
+                        choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"),
+                        input_var = "hit_type")
                     fatradio_class_uuids$hit_type <- attr(hit_type_buttons, "class")
                     ap <- sort(attack_pl_opts$choices)
                     names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
@@ -1628,7 +1635,12 @@ ov_scouter_server <- function(app_data) {
                     ap <- c(ap, setNames(libs, player_nums_to(libs, team = game_state$current_team, dvw = rdata$dvw)))
                     attacker_buttons <- make_fat_radio_buttons(choices = ap, selected = attack_pl_opts$selected, input_var = "c3_player")
                     ## do we want to support "hole" block?
-                    if (isTRUE(rdata$options$nblockers)) nblocker_buttons <- make_fat_radio_buttons(choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3, "Hole block" = 4), selected = if (!is.null(rdata$options$default_nblockers) && !is.na(rdata$options$default_nblockers)) rdata$options$default_nblockers, input_var = "nblockers")
+                    if (isTRUE(rdata$options$nblockers)) {
+                        nblocker_buttons <- make_fat_radio_buttons(
+                            choices = c("No block" = 0, "Single block" = 1, "Double block" = 2, "Triple block" = 3, "Hole block" = 4),
+                            selected = if (!is.null(rdata$options$default_nblockers) && !is.na(rdata$options$default_nblockers)) rdata$options$default_nblockers,
+                            input_var = "nblockers")
+                    }
                     ## attack error, blocked, replay will be scouted on next entry
                     ## TODO other special codes ?
                     opp <- c(sort(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw)), sort(get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw)))
@@ -1676,12 +1688,20 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(rbind(overlay_points(), sxy)) ## show start and end
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
-                    c1_buttons <- make_fat_radio_buttons(choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (play continues)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"), selected = "D", input_var = "c1") ## defaults to dig
+                    c1_buttons <- make_fat_radio_buttons(
+                        choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (play continues)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"),
+                        ## default blocked for reattack if the ball did not cross the net, otherwise dig
+                        selected = if ((game_state$start_y < 3.5) %eq% (game_state$end_y < 3.5)) "A!" else "D",
+                        input_var = "c1")
                     ## allow the possibility to change the hit type
                     htype <- check_hit_type(input$hit_type) ## the currently-selected hit type, default to "H" if not assigned
-                    hit_type_buttons <- make_fat_radio_buttons(choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"), selected = htype, input_var = "hit_type")
+                    hit_type_buttons <- make_fat_radio_buttons(
+                        choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"),
+                        selected = htype, input_var = "hit_type")
                     fatradio_class_uuids$hit_type <- attr(hit_type_buttons, "class")
-                    ae_buttons <- make_fat_radio_buttons(choices = c("Out long" = "O", "Out side" = "S", "In net" = "N", "Net contact" = "I", Antenna = "A", "Other/referee call" = "Z"), selected = NA, input_var = "attack_error_type")
+                    ae_buttons <- make_fat_radio_buttons(
+                        choices = c("Out long" = "O", "Out side" = "S", "In net" = "N", "Net contact" = "I", Antenna = "A", "Other/referee call" = "Z"),
+                        selected = NA, input_var = "attack_error_type")
                     ## blocking players
                     blockp <- get_players(game_state, team = game_state$current_team, dvw = rdata$dvw)
                     ## note that block fault could be a backrow player, so need to show all 6 for this
@@ -1799,7 +1819,9 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(rbind(overlay_points(), sxy)) ## show start and end
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
-                    f1_buttons <- make_fat_radio_buttons(choices = c("Freeball over error" = "F=", "Freeball dig" = "FD", "Freeball dig error" = "FD=", "Opp. overpass attack" = "aPR"), selected = "FD", input_var = "f1")
+                    f1_buttons <- make_fat_radio_buttons(
+                        choices = c("Freeball over error" = "F=", "Freeball dig" = "FD", "Freeball dig error" = "FD=", "Opp. overpass attack" = "aPR"),
+                        selected = "FD", input_var = "f1")
                     ## Identify defending players
                     dig_pl_opts <- guess_freeball_dig_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     digp <- dig_pl_opts$choices
@@ -2006,7 +2028,8 @@ ov_scouter_server <- function(app_data) {
             game_state$serving <- game_state$current_team <- game_state$point_won_by
             game_state$rally_started <- FALSE
             rally_codes(empty_rally_codes)
-            game_state$start_x <- game_state$start_y <- game_state$end_x <- game_state$end_y <- NA_real_
+            game_state$start_x <- game_state$start_y <- game_state$mid_x <- game_state$mid_y <- game_state$end_x <- game_state$end_y <- NA_real_
+            temp$startxy_valid <- temp$midxy_valid <- temp$endxy_valid <- FALSE
             game_state$current_time_uuid <- ""
             game_state$point_won_by <- NA_character_
             if (!is.null(app_data$auto_save_dir)) {
@@ -2052,7 +2075,7 @@ ov_scouter_server <- function(app_data) {
             game_state$set_number <- game_state$set_number + 1L ## should be incremented in this plays2 line
             rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number - 1L, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
             game_state$home_score_start_of_point <- game_state$visiting_score_start_of_point <- 0L
-            game_state$home_team_end <- other_end(game_state$home_team_end) ## TODO deal with 5th set
+            game_state$home_team_end <- other_end(game_state$home_team_end) ## for 5th set, the user can change this if needed via the gui
             if ((!app_data$is_beach && game_state$set_number < 5) || (app_data$is_beach && game_state$set_number < 3)) {
                 ## serving team is the one that did not serve first in the previous set
                 temp <- rdata$dvw$plays2[rdata$dvw$plays2$set_number %eq% (game_state$set_number - 1L), ]
