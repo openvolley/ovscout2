@@ -258,11 +258,12 @@ ov_scouter_server <- function(app_data) {
             getel <- "vidplayer"
             myargs <- list(...)
             if (what == "pause") {
-                dojs(paste0(getel, ".pause();"))
+                dojs(paste0(getel, ".pause();", if (app_data$pause_on_type) "pause_on_type = false;")) ## disable, otherwise it will unpause the video after a keypress
                 video_state$paused <- TRUE
+                if (rally_state() == "click serve start") rally_state("click or unpause the video to start")
                 NULL
             } else if (what == "play") {
-                dojs(paste0(getel, ".play();", if (app_data$pause_on_type) "pause_on_type = true;"))
+                dojs(paste0(getel, ".play();", if (app_data$pause_on_type) "pause_on_type = true;")) ## re-enable, it would have been disabled while the modal was showing
                 video_state$paused <- FALSE
                 if (rally_state() == "click or unpause the video to start") rally_state("click serve start")
             } else if (what == "toggle_pause") {
@@ -272,7 +273,7 @@ ov_scouter_server <- function(app_data) {
                     video_state$paused <- FALSE
                     if (rally_state() == "click or unpause the video to start") rally_state("click serve start")
                 } else {
-                    dojs(paste0(getel, ".pause();"))
+                    dojs(paste0(getel, ".pause();", if (app_data$pause_on_type) "pause_on_type = false;"))
                     video_state$paused <- TRUE
                 }
                 NULL
@@ -537,7 +538,6 @@ ov_scouter_server <- function(app_data) {
                 }
                 editing$active <- NULL
                 if (dismiss_modal) removeModal()
-                ##deal_with_pause() ## no need to unpause after any of these actions?
             }
         }
 
@@ -693,9 +693,7 @@ ov_scouter_server <- function(app_data) {
                         } else if (courtref_active()) {
                             ## do nothing
                         } else if (!is.null(editing$active) && editing$active %eq% "rally_review") {
-                            editing$active <- NULL
-                            removeModal()
-                            focus_to_scout_bar()
+                            do_cancel_rally_review()
                         } else if (is.null(editing$active) || !editing$active %in% "teams") {
                             if (grepl("scout_in", k$id) && "escape" %in% app_data$shortcuts$pause) {
                                 ## wackiness here if we want to use the escape key as a pause shortcut
@@ -1000,16 +998,18 @@ ov_scouter_server <- function(app_data) {
         review_rally <- function() {
             ## codes can be reviewed and edited at the end of the rally
             editing$active <- "rally_review"
+            if (app_data$with_video) do_video("pause")
             review_rally_modal(rally_codes())
         }
 
         observeEvent(input$redit_ok, apply_rally_review())
-        observeEvent(input$redit_cancel, {
+        observeEvent(input$redit_cancel, do_cancel_rally_review)
+        do_cancel_rally_review <- function() {
             editing$active <- NULL
             removeModal()
+            if (app_data$with_video) do_video("play")
             focus_to_scout_bar()
-        })
-
+        }
         apply_rally_review <- function() {
             editing$active <- NULL
             removeModal()
@@ -1038,7 +1038,10 @@ ov_scouter_server <- function(app_data) {
             rally_codes(smth) ## update
             end_of_set <- rally_ended() ## process
             ## end of point, pre-populate the scout box with the server team and number
-            if (!end_of_set) populate_server()
+            if (!end_of_set) {
+                populate_server()
+                if (app_data$with_video) do_video("play")
+            }
         }
 
         ## options

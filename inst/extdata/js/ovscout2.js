@@ -103,7 +103,7 @@ $(document).on('keydown', function (e) {
         if (pause_on_type) {
             vidplayer.pause();
             clearTimeout(pause_on_type_timer);
-            pause_on_type_timer = setTimeout(function() { vidplayer.play(); }, 500);
+            pause_on_type_timer = setTimeout(function() { if (pause_on_type) { vidplayer.play(); }}, 500);
         }
         if (e.key === "Enter") {
             // send the actual text in the box to the Shiny server
