@@ -937,16 +937,62 @@ ov_scouter_server <- function(app_data) {
                             rc <- rally_codes()
                             newrc <- code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, start_zone_valid = TRUE, endxy_valid = TRUE, t = this_video_time, time = this_clock_time, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)
                             ## update the preceding rally_codes row if new info has been provided
+                            prev_touch <- NULL
                             nrc <- nrow(rc)
                             if (nrc > 0) {
                                 rc[nrc, ] <- transfer_scout_details(from = newrc, to = rc[nrc, ])
+                                prev_touch <- rc[nrc, ]
                             }
                             rally_codes(bind_rows(rc, newrc)) ## start_x = NA_real_, start_y = NA_real_
-                            ## update game state esp game_state$rally_started, game_state$serving and game_state$current_team TODO ^^^
+                            ## update game state and other things
+                            ## we also update rally_state here (even though in scout_mode = "type" we don't use them) because having them set will ease things if the scout switches from typing to clicking
+                            if (temp$skill %in% c("S", "R", "E", "A", "B", "D", "F")) game_state$rally_started <- TRUE ## technically only need to check serve here, but since the scout can enter arbitrary things we will just blanket all of them
                             if (temp$skill %eq% "S") {
-                                game_state$rally_started <- TRUE
                                 game_state$serving <- temp$team
-                            }
+                                game_state$current_team <- other(temp$team)
+                                rally_state("click serve end")
+                            } else if (temp$skill %eq% "R") {
+                                ## if R/ then current team is the serving team, otherwise it's the receiving team
+                                if (temp$eval %eq% "/") {
+                                    game_state$current_team <- game_state$serving
+                                    rally_state("click freeball end point") ## we would treat next contact as a freeball dig if we were click-scouting
+                                } else {
+                                    game_state$current_team <- other(game_state$serving)
+                                    rally_state("click second contact")
+                                }
+                            } else if (temp$skill %eq% "E") {
+                                rally_state("click third contact")
+                            } else if (temp$skill %eq% "A") {
+                                rally_state("click attack end point")
+                                if (!temp$eval %eq% "!") {
+                                    ## next touch will be by other team
+                                    game_state$current_team <- other(game_state$current_team)
+                                    ## this is a bit out of whack with the click-scouting flow, because in that we would already have clicked the attack end point before assigning the ! outcome. Needs testing TODO
+                                }
+                            } else if (temp$skill %eq% "B") {
+                                rally_state("click attack end point")
+                                if (!temp$eval %eq% "!") {
+                                    ## blocked back to the attacking team. With some scouts B- would also indicate this
+                                    game_state$current_team <- other(game_state$current_team)
+                                }
+                            } else if (temp$skill %eq% "D") {
+                                if (!temp$eval %eq% "/") {
+                                    rally_state("click freeball end point")
+                                    game_state$current_team <- other(game_state$current_team)
+                                } else if (isTRUE(rdata$options$transition_sets)) {
+                                    rally_state("click second contact")
+                                } else {
+                                    rally_state("click third contact")
+                                }
+                            } else if (temp$skill %eq% "F") {
+                                ## freeball. If the opposing team made the preceding touch then it's a freeball dig
+                                try({
+                                    if (!is.null(prev_touch) && isTRUE(prev_touch$team != temp$team)) {
+                                        ## this was a freeball dig
+                                        game_state$current_team <- other(game_state$current_team)
+                                    }
+                                })
+                            } ## game_state$current_team will remain as it is unless changed above
                         }
                     }
                 }
