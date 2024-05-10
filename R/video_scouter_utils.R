@@ -137,6 +137,23 @@ rp2 <- function(p2) {
     }
 }
 
+sanitize_game_state <- function(gs) {
+    if (is.null(gs)) return(gs)
+    ## if we are inserting a new row and using a game_state vector from another row, strip out values that are not transferable
+    ## (but assume that the fundamentals haven't changed: team lineups, scores, and similar
+    gs$start_x <- gs$start_y <- gs$mid_x <- gs$mid_y <- gs$end_x <- gs$end_y <- NA_real_
+    gs$startxy_valid <- gs$midxy_valid <- gs$endxy_valid <- FALSE
+    gs$current_time_uuid <- ""
+    gs$end_t <- gs$start_t <- NA_real_
+    gs$code <- character()
+    ## not sure yet about
+    ##gs$current_team
+    ##gs$serving
+    ##gs$rally_started <- FALSE
+    #gs$point_won_by <- NA_character_
+    gs
+}
+
 game_state_make_substitution <- function(game_state, team, player_out, player_in, dvw) {
     team <- match.arg(team, c("*", "a"))
     pseq <- seq_len(if (dv_is_beach(dvw)) 2L else 6L)

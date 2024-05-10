@@ -454,17 +454,18 @@ ov_scouter_server <- function(app_data) {
                         if (details_from_idx <= nrow(rdata$dvw$plays2)) {
                             if (debug) cat("  details being taken from plays2, row:", details_from_idx, "\n")
                             details_from <- rdata$dvw$plays2[details_from_idx, ]$rally_codes[[1]]
-                            gs <- details_from$game_state[[1]]
+                            gs <- sanitize_game_state(details_from$game_state[[1]])
                             ## NOTE though that if we are inserting at the start of a rally, the details_from row might have a NULL game_state because it's a non-skill row like a lineup code
-                            if (is.null(gs)) gs <- rdata$dvw$plays2[insert_ridx, ]$rally_codes[[1]]$game_state[[1]] ## TODO fix properly
+                            if (is.null(gs)) gs <- sanitize_game_state(rdata$dvw$plays2[insert_ridx, ]$rally_codes[[1]]$game_state[[1]]) ## TODO fix properly. Perhaps define a fallback empty gs?
                         } else {
                             rcidx <- details_from_idx - nrow(rdata$dvw$plays2)
                             details_from <- rally_codes()[rcidx, ]
-                            gs <- details_from$game_state[[1]]
+                            gs <- sanitize_game_state(details_from$game_state[[1]])
                             if (debug) cat("  details being taken from rally_codes, row:", rcidx, "\n")
                         }
                         cat("details from:", str(details_from), "\n")
-                        insert_clock_time <- details_from$time ## TODO check, previously plays2 had clock time but rally_codes generally did not
+                        insert_clock_time <- details_from$time ## TODO check, in previous versions plays2 had clock time but rally_codes generally did not
+                        if (is.null(insert_clock_time)) insert_clock_time <- as.POSIXct(NA) ## fallback if time is completely missing
                         insert_video_time <- details_from$t
                         insert_rs <- details_from$rally_state ## TODO CHECK
 
