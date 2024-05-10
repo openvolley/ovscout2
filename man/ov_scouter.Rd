@@ -11,6 +11,7 @@ ov_scouter(
   season_dir,
   auto_save_dir,
   scout_mode = "click",
+  pause_on_type = TRUE,
   scoreboard = TRUE,
   ball_path = FALSE,
   playlist_display_option = "dv_codes",
@@ -43,6 +44,8 @@ ov_scouter(
 
 \item{scout_mode}{string: either "click" for the guided point-and-click scouting interface, or "type" for the typing-based interface}
 
+\item{pause_on_type}{logical: if \code{TRUE} and using \code{scout_mode = "type"}, pause the video briefly on each key press in the scouting bar}
+
 \item{scoreboard}{logical: if \code{TRUE}, show a scoreboard in the top-right of the video pane}
 
 \item{ball_path}{logical: if \code{TRUE}, show the ball path on the court inset diagram. Note that this will slow the app down slightly}
@@ -69,7 +72,7 @@ ov_scouter(
 
 \item{dash}{logical: support live MPEG DASH streams? If not specified, will default to \code{TRUE} if \code{video_file} is a \verb{*.mpd} stream. Note that DASH support is fragile at best. HLS streams are automatically supported and likely to be more reliable}
 
-\item{host}{string: the IP address of this machine. Only required if you intend to connect to the app from a different machine (in which case use \code{ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)}, where www.xxx.yyy.zzz is the IP address of this machine, i.e. the machine running the app)}
+\item{host}{string: the IP address of this machine. Only required if you intend to run the app on this machine but connect to it from a different machine (in which case use \code{ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)} on the other machine, where www.xxx.yyy.zzz is the IP address of this machine, i.e. the machine running the app)}
 
 \item{launch_browser}{logical: if \code{TRUE}, launch the app in the system's default web browser (passed to \code{\link[shiny:runApp]{shiny::runApp()}}'s \code{launch.browser} parameter)}
 

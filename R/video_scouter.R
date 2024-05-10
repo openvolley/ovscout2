@@ -14,6 +14,7 @@
 #' @param auto_save_dir string: optional path to a directory where the dvw will be saved automatically after each rally
 # TODO @param pantry_id string: optional ID for <https://getpantry.cloud>. The dvw will be saved automatically to your pantry after each rally. Your `pantry_id` can also be specified as the `PANTRY_ID` environment variable (i.e. use `Sys.setenv(PANTRY_ID = "xyz")` before launching `ov_scouter()`)
 #' @param scout_mode string: either "click" for the guided point-and-click scouting interface, or "type" for the typing-based interface
+#' @param pause_on_type logical: if `TRUE` and using `scout_mode = "type"`, pause the video briefly on each key press in the scouting bar
 #' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
 #' @param ball_path logical: if `TRUE`, show the ball path on the court inset diagram. Note that this will slow the app down slightly
 #' @param playlist_display_option string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)
@@ -27,7 +28,7 @@
 #' @param scout_name string: the name of the scout (your name)
 #' @param show_courtref logical: if `TRUE`, show the court reference lines overlaid on the video
 #' @param dash logical: support live MPEG DASH streams? If not specified, will default to `TRUE` if `video_file` is a `*.mpd` stream. Note that DASH support is fragile at best. HLS streams are automatically supported and likely to be more reliable
-#' @param host string: the IP address of this machine. Only required if you intend to connect to the app from a different machine (in which case use `ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)`, where www.xxx.yyy.zzz is the IP address of this machine, i.e. the machine running the app)
+#' @param host string: the IP address of this machine. Only required if you intend to run the app on this machine but connect to it from a different machine (in which case use `ov_scouter(..., host = "www.xxx.yyy.zzz", launch_browser = FALSE)` on the other machine, where www.xxx.yyy.zzz is the IP address of this machine, i.e. the machine running the app)
 #' @param launch_browser logical: if `TRUE`, launch the app in the system's default web browser (passed to [shiny::runApp()]'s `launch.browser` parameter)
 #' @param prompt_for_files logical: if `dvw` was not specified, prompt the user to select the dvw file
 #' @param ... : extra parameters passed to [datavolley::dv_read()] (if `dvw` is a provided as a string) and/or to the shiny server and UI functions
@@ -38,7 +39,7 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scout_mode = "click", scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), shortcuts = ov_default_shortcuts(scout_mode), playstable_shortcuts = ov_default_playstable_shortcuts(scout_mode), key_remapping = ov_default_key_remapping(scout_mode), scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scout_mode = "click", pause_on_type = TRUE, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), shortcuts = ov_default_shortcuts(scout_mode), playstable_shortcuts = ov_default_playstable_shortcuts(scout_mode), key_remapping = ov_default_key_remapping(scout_mode), scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     assert_that(is.string(scout_name))
     assert_that(is.flag(show_courtref), !is.na(show_courtref))
@@ -60,6 +61,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     saved_opts <- if (file.exists(opts_file)) readRDS(opts_file) else list()
     #### if we didn't provide options explicitly, use saved ones (if any) as priority
     if (missing(scoreboard) && "scoreboard" %in% names(saved_opts)) scoreboard <- saved_opts$scoreboard
+    if (missing(pause_on_type) && "pause_on_type" %in% names(saved_opts)) pause_on_type <- saved_opts$pause_on_type
     if (missing(ball_path) && "ball_path" %in% names(saved_opts)) ball_path <- saved_opts$ball_path
     if (missing(review_pane) && "review_pane" %in% names(saved_opts)) review_pane <- saved_opts$review_pane
     if (missing(playlist_display_option) && "playlist_display_option" %in% names(saved_opts)) playlist_display_option <- saved_opts$playlist_display_option
@@ -67,7 +69,6 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     if (missing(show_courtref) && "show_courtref" %in% names(saved_opts)) show_courtref <- saved_opts$show_courtref
     if (missing(playback_rate) && "playback_rate" %in% names(saved_opts)) playback_rate <- saved_opts$playback_rate
 
-    if (!missing(dvw) && identical(dvw, "demo")) return(ov_scouter_demo(scoreboard = isTRUE(scoreboard), ball_path = isTRUE(ball_path), review_pane = isTRUE(review_pane), playback_rate = playback_rate, scouting_options = scouting_options, launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     assert_that(playlist_display_option %in% c("dv_codes", "commentary"))
@@ -90,6 +91,16 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
             qrc <- qrcode::qr_code(paste0("http://", host, ":", port))
             plot(qrc) ## or print, but console-based image might not be recognized by qr scanner
         }
+    }
+
+    ## if demo, call ov_scouter_demo to set up the teams and video file
+    if (!missing(dvw) && identical(dvw, "demo")) {
+        return(ov_scouter_demo(auto_save_dir = auto_save_dir, scout_mode = scout_mode, pause_on_type = pause_on_type,
+                               scoreboard = isTRUE(scoreboard), ball_path = isTRUE(ball_path), playlist_display_option = playlist_display_option,
+                               review_pane = isTRUE(review_pane), playback_rate = playback_rate, scouting_options = scouting_options,
+                               app_styling = app_styling, shortcuts = shortcuts, playstable_shortcuts = playstable_shortcuts,
+                               key_remapping = key_remapping, scout_name = scout_name, show_courtref = show_courtref,
+                               launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     }
 
     dv_read_args <- dots[names(dots) %in% names(formals(datavolley::dv_read))] ## passed to dv_read
@@ -372,6 +383,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     app_data$play_overlap <- 0.5 ## amount (in seconds) to rewind before restarting the video, after pausing to enter data
     app_data$evaluation_decoder <- skill_evaluation_decoder() ## to expose as a parameter, perhaps
     app_data$scoreboard <- isTRUE(scoreboard)
+    app_data$pause_on_type <- isTRUE(pause_on_type)
     app_data$ball_path <- isTRUE(ball_path)
     app_data$review_pane <- isTRUE(review_pane)
     app_data$playback_rate <- playback_rate

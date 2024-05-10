@@ -97,6 +97,8 @@ $(document).on('keydown', function (e) {
     if (el.className.includes("scedit-modal") || ($("body .scedit-modal").length == 1) ) {
         // key event into the scedit modal
         e.stopPropagation(); e.preventDefault();
+//    } else if ($("body.modal-open").length == 1) {
+//        // some other modal is open
     } else if (el.id.includes("scout_in")) {
         if (pause_on_type) {
             vidplayer.pause();
