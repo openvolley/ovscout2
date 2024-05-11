@@ -12,7 +12,6 @@
 # @param court_ref2 data.frame or string: data.frame with the court reference for `video_file2` (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this. Note that `court_ref2` must be defined in the same orientation as `court_ref` - for example, the corner of the court considered to be "far left" must be the same physical court corner in both court references
 #' @param season_dir string: optional path to a directory with other dvw/ovs files from this season
 #' @param auto_save_dir string: optional path to a directory where the dvw will be saved automatically after each rally
-# TODO @param pantry_id string: optional ID for <https://getpantry.cloud>. The dvw will be saved automatically to your pantry after each rally. Your `pantry_id` can also be specified as the `PANTRY_ID` environment variable (i.e. use `Sys.setenv(PANTRY_ID = "xyz")` before launching `ov_scouter()`)
 #' @param scout_mode string: either "click" for the guided point-and-click scouting interface, or "type" for the typing-based interface
 #' @param pause_on_type numeric: if greater than 0 and using `scout_mode = "type"`, pause the video for this many milliseconds after each key press in the scouting bar
 #' @param scoreboard logical: if `TRUE`, show a scoreboard in the top-right of the video pane
