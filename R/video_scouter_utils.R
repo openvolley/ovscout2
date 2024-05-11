@@ -1170,3 +1170,23 @@ get_video_source_type <- function(src, base_url) {
     }
     list(src = src, type = type)
 }
+
+save_to_rds <- function(rdata, app_data, courtref1, courtref2) {
+    rds_ok <- FALSE
+    if (app_data$run_env %eq% "shiny_local") {
+        ## this only makes sense if running locally, not deployed on a server
+        tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".rds")
+        try({
+            temp <- rdata$dvw
+            temp$scouting_options <- isolate(rdata$options)
+            ## save court refs
+            dr <- list()
+            if (!is.null(courtref1$court_ref)) dr[[app_data$video_src]] <- courtref1
+            if (!is.null(courtref2$court_ref) && "video_src2" %in% names(app_data) && !is.na(app_data$video_src2) && nzchar(app_data$video_src2)) dr[[app_data$video_src2]] <- courtref2
+            temp$detection_refs <- dr
+            saveRDS(temp, file = tf)
+            rds_ok <- file.exists(tf) && file.size(tf) > 0
+        }, silent = TRUE)
+    }
+    rds_ok
+}

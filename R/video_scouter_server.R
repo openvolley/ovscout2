@@ -3206,24 +3206,7 @@ ov_scouter_server <- function(app_data) {
                     ## so might not be able to do this
                     dv_write2(update_meta(rp2(rdata$dvw)), file = file)
                 }, error = function(e) {
-                    rds_ok <- FALSE
-                    if (app_data$run_env %eq% "shiny_local") {
-                        ## this only makes sense if running locally, not deployed on a server
-                        tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".rds")
-                        try({
-                            temp <- rdata$dvw
-                            temp$scouting_options <- isolate(rdata$options)
-                            ## save court refs
-                            dr <- list()
-                            isolate({
-                                if (!is.null(detection_ref1()$court_ref)) dr[[app_data$video_src]] <- detection_ref1()
-                                if (!is.null(detection_ref2()$court_ref) && "video_src2" %in% names(app_data) && !is.na(app_data$video_src2) && nzchar(app_data$video_src2)) dr[[app_data$video_src2]] <- detection_ref2()
-                            })
-                            temp$detection_refs <- dr
-                            saveRDS(temp, file = tf)
-                            rds_ok <- file.exists(tf) && file.size(tf) > 0
-                        }, silent = TRUE)
-                    }
+                    isolate(rds_ok <- save_to_rds(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2()))
                     show_save_error_modal(msg = conditionMessage(e), rds_ok = rds_ok, tempfile_name = tf)
                     NULL
                 })
@@ -3249,24 +3232,7 @@ ov_scouter_server <- function(app_data) {
                     out$detection_refs <- dr
                     saveRDS(out, file)
                 }, error = function(e) {
-                    rds_ok <- FALSE
-                    if (app_data$run_env %eq% "shiny_local") {
-                        ## this only makes sense if running locally, not deployed on a server
-                        tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".rds")
-                        try({
-                            out <- rdata$dvw
-                            out$scouting_options <- isolate(rdata$options)
-                            ## save court refs
-                            dr <- list()
-                            isolate({
-                                if (!is.null(detection_ref1()$court_ref)) dr[[app_data$video_src]] <- detection_ref1()
-                                if (!is.null(detection_ref2()$court_ref) && "video_src2" %in% names(app_data) && !is.na(app_data$video_src2) && nzchar(app_data$video_src2)) dr[[app_data$video_src2]] <- detection_ref2()
-                            })
-                            out$detection_refs <- dr
-                            saveRDS(out, file = tf)
-                            rds_ok <- file.exists(tf) && file.size(tf) > 0
-                        }, silent = TRUE)
-                    }
+                    isolate(rds_ok <- save_to_rds(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2()))
                     show_save_error_modal(msg = conditionMessage(e), rds_ok = rds_ok, tempfile_name = tf)
                     NULL
                 })
@@ -3418,6 +3384,7 @@ ov_scouter_server <- function(app_data) {
         ## disaster recovery
         shiny::onSessionEnded(function() {
             tryCatch({
+                ## TODO use save_to_rds function
                 dvw <- isolate(rdata$dvw)
                 dvw$plays <- NULL ## don't save this
                 dvw$game_state <- isolate(reactiveValuesToList(game_state))
