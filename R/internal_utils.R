@@ -263,7 +263,7 @@ decode_keypress <- function(k, debug = 0) {
 }
 
 ## takes a decoded keypress object from the preceding function
-key_as_text <- function(k) paste0(if (k$ctrl) "Ctrl-", if (k$alt) "Alt-", if (k$shift) "Shift-", if (k$meta) "Meta-", k$key)
+key_as_text <- function(k) paste0(if (k$ctrl) "Ctrl-", if (k$alt) "Alt-", if (k$shift) "Shift-", if (k$meta) "Meta-", tolower(k$key))
 
 
 ## get a variable. Use e.g. inside functions defined outside of the server.R code but which need to read e.g. an input$something value

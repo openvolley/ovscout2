@@ -19,7 +19,8 @@
 #' @param playlist_display_option string: what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)
 #' @param review_pane logical: if `TRUE`, entry popups will be accompanied by a small video pane that shows a loop of the video of the action in question
 #' @param playback_rate numeric: starting playback rate of the video (1.0 is normal speed, higher is faster)
-#' @param shortcuts list: named list of keyboard shortcuts, as returned by [ov_default_shortcuts()]
+#' @param click_shortcuts list: named list of keyboard shortcuts, as returned by [ov_default_click_shortcuts()]
+#' @param type_shortcuts list: named list of keyboard shortcuts, as returned by [ov_default_type_shortcuts()]
 #' @param playstable_shortcuts list: named list of keyboard shortcuts that apply when in the plays table, as returned by [ov_default_playstable_shortcuts()]
 #' @param key_remapping list: a named list of key remappings, with entries as per [ov_default_key_remapping()]
 #' @param scouting_options list: a named list with entries as per [ov_scouting_options()]. See Details, below
@@ -38,7 +39,15 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scout_mode = "click", pause_on_type = 500, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), shortcuts = ov_default_shortcuts(scout_mode), playstable_shortcuts = ov_default_playstable_shortcuts(scout_mode), key_remapping = ov_default_key_remapping(scout_mode), scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scout_mode = "click", pause_on_type = 500, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), click_shortcuts = ov_default_click_shortcuts(), type_shortcuts = ov_default_type_shortcuts(), playstable_shortcuts = ov_default_playstable_shortcuts(scout_mode), key_remapping = ov_default_key_remapping(scout_mode), scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+
+    dots <- list(...)
+
+    ## backwards compatibility, treat shortcuts parm as click_shortcuts
+    if ("shortcuts" %in% names(dots) && missing(click_shortcuts)) {
+        click_shortcuts <- dots$shortcuts
+        dots$shortcuts <- NULL
+    }
 
     assert_that(is.string(scout_name))
     assert_that(is.flag(show_courtref), !is.na(show_courtref))
@@ -83,7 +92,6 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     assert_that(playlist_display_option %in% c("dv_codes", "commentary"))
-    dots <- list(...)
     scout_mode <- tolower(scout_mode)
     scout_mode <- match.arg(scout_mode, c("click", "type"))
     port <- NA
@@ -109,7 +117,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         return(ov_scouter_demo(auto_save_dir = auto_save_dir, scout_mode = scout_mode, pause_on_type = pause_on_type,
                                scoreboard = isTRUE(scoreboard), ball_path = isTRUE(ball_path), playlist_display_option = playlist_display_option,
                                review_pane = isTRUE(review_pane), playback_rate = playback_rate, scouting_options = scouting_options,
-                               app_styling = app_styling, shortcuts = shortcuts, playstable_shortcuts = playstable_shortcuts,
+                               app_styling = app_styling, click_shortcuts = click_shortcuts, type_shortcuts = type_shortcuts, playstable_shortcuts = playstable_shortcuts,
                                key_remapping = key_remapping, scout_name = scout_name, show_courtref = show_courtref,
                                launch_browser = launch_browser, prompt_for_files = prompt_for_files, ...))
     }
@@ -275,11 +283,18 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
     }
     ## same with shortcuts
-    scts <- ov_default_shortcuts(scout_mode)
-    for (nm in names(shortcuts)) scts[[nm]] <- shortcuts[[nm]]
+    
+    ## TODO populate shortcuts from saved_opts$click_shortcuts etc
+    
+    ## shortcuts for click mode
+    click_scts <- ov_default_click_shortcuts()
+    for (nm in names(click_shortcuts)) click_scts[[nm]] <- click_shortcuts[[nm]]
     ## previously we allowed multiple shortcut keys per shortcut, but now only one
-    for (nm in names(scts)) { if (length(scts[[nm]]) > 1) scts[[nm]] <- scts[[nm]][1] }
-
+    for (nm in names(click_scts)) { if (length(click_scts[[nm]]) > 1) click_scts[[nm]] <- click_scts[[nm]][1] }
+    ## shortcuts for typing mode
+    type_scts <- ov_default_type_shortcuts()
+    for (nm in names(type_shortcuts)) type_scts[[nm]] <- type_shortcuts[[nm]]
+    ## playstable shortcuts
     pt_scts <- ov_default_playstable_shortcuts(scout_mode)
     for (nm in names(playstable_shortcuts)) pt_scts[[nm]] <- playstable_shortcuts[[nm]]
 
@@ -287,7 +302,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     if ((did_provide_s_opts && "attack_table" %in% names(scouting_options)) || is.null(dvw$meta$attacks)) dvw$meta$attacks <- opts$attack_table
 
     ## finally the shiny app
-    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = with_video, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, shortcuts = scts, playstable_shortcuts = pt_scts, remapping = key_remapping, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout_name = scout_name, show_courtref = show_courtref, scout_mode = scout_mode)
+    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = with_video, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, click_shortcuts = click_scts, type_shortcuts = type_scts, playstable_shortcuts = pt_scts, remapping = key_remapping, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout_name = scout_name, show_courtref = show_courtref, scout_mode = scout_mode)
     if ("video_file2" %in% names(other_args)) {
         video_file2 <- other_args$video_file2
         other_args$video_file2 <- NULL

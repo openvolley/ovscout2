@@ -154,10 +154,17 @@ ov_default_scouting_table <- function() {
 
 #' Default keyboard shortcuts for ov_scouter
 #'
-#' @param scout_mode string: either "click" for the guided point-and-click scouting interface, or "type" for the typing-based interface
+#' `ov_default_click_shortcuts` apply when `using scout_mode = "click"`, and `ov_default_type_shortcuts` apply when `using scout_mode = "type"`
+#'
 #' @return A named list
 #'
 #' @export
+ov_default_click_shortcuts <- function() ov_default_shortcuts(scout_mode = "click")
+
+#' @export
+#' @rdname ov_default_click_shortcuts
+ov_default_type_shortcuts <- function() ov_default_shortcuts(scout_mode = "type")
+
 ov_default_shortcuts <- function(scout_mode = "click") {
     scout_mode <- tolower(scout_mode)
     scout_mode <- match.arg(scout_mode, c("click", "type"))
@@ -165,7 +172,7 @@ ov_default_shortcuts <- function(scout_mode = "click") {
         list(hide_popup = c("z", "Z"),
              pause = c("q", "0"),
              pause_no_popup = c("Q"),
-             go_to_time = c("g", "G", "#"),
+             ##go_to_time = c("g", "G", "#"), ## moved to playstable_shortcuts
              undo = c("u", "U"),
              switch_video = c("s"),
              contact = c("w"), ## TODO reconsider this
@@ -186,7 +193,7 @@ ov_default_shortcuts <- function(scout_mode = "click") {
         list(hide_popup = c(),
              pause = "escape",
              pause_no_popup = "Alt-escape",
-             go_to_time = c(),
+             ##go_to_time = c(), ## moved to playstable_shortcuts
              undo = "Ctrl-a",
              switch_video = c(),
              contact = c(), ## not used
@@ -207,7 +214,7 @@ ov_default_shortcuts <- function(scout_mode = "click") {
     }
 }
 
-#' @rdname ov_default_shortcuts
+#' @rdname ov_default_click_shortcuts
 #' @export
 ov_default_playstable_shortcuts <- function(scout_mode = "click") {
     ## currently same default shortcuts regardless of scout mode
@@ -218,7 +225,8 @@ ov_default_playstable_shortcuts <- function(scout_mode = "click") {
          insert_code = "insert",
          up = "arrowup",
          down = "arrowdown",
-         switch_windows = "tab"
+         switch_windows = "tab",
+         go_to_time = "g"
          )
 }
 

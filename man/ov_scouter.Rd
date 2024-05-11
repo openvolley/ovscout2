@@ -19,7 +19,8 @@ ov_scouter(
   playback_rate = 1,
   scouting_options = ov_scouting_options(),
   app_styling = ov_app_styling(),
-  shortcuts = ov_default_shortcuts(scout_mode),
+  click_shortcuts = ov_default_click_shortcuts(),
+  type_shortcuts = ov_default_type_shortcuts(),
   playstable_shortcuts = ov_default_playstable_shortcuts(scout_mode),
   key_remapping = ov_default_key_remapping(scout_mode),
   scout_name = "",
@@ -60,7 +61,9 @@ ov_scouter(
 
 \item{app_styling}{list: named list of styling options, as returned by \code{\link[=ov_app_styling]{ov_app_styling()}}}
 
-\item{shortcuts}{list: named list of keyboard shortcuts, as returned by \code{\link[=ov_default_shortcuts]{ov_default_shortcuts()}}}
+\item{click_shortcuts}{list: named list of keyboard shortcuts, as returned by \code{\link[=ov_default_click_shortcuts]{ov_default_click_shortcuts()}}}
+
+\item{type_shortcuts}{list: named list of keyboard shortcuts, as returned by \code{\link[=ov_default_type_shortcuts]{ov_default_type_shortcuts()}}}
 
 \item{playstable_shortcuts}{list: named list of keyboard shortcuts that apply when in the plays table, as returned by \code{\link[=ov_default_playstable_shortcuts]{ov_default_playstable_shortcuts()}}}
 
