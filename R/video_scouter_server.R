@@ -1157,14 +1157,14 @@ ov_scouter_server <- function(app_data) {
                               overpass_attack_code = if (nzchar(input$scopts_overpass_attack_code)) input$scopts_overpass_attack_code else ov_scouting_options()$overpass_attack_code)
 
             ## save prefs
-            tryCatch(saveRDS(thisprefs, app_data$options_file), error = function(e) warning("could not save preferences to file"))
+            tryCatch(saveRDS(list(app_prefs = thisprefs), app_data$options_file), error = function(e) warning("could not save preferences to file"))
             ## transfer to active prefs object
             for (nm in names(thisprefs)) prefs[[nm]] <- thisprefs[[nm]]
             ## apply any that require immediate action
             if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- prefs$scout_name
 
             ## apply scouting opts
-            ## NOTE these are not saved, just applied TODO?
+            ## NOTE these are not saved, just applied - TODO?
             for (nm in names(this_opts)) rdata$options[[nm]] <- this_opts[[nm]]
 
             editing$active <- NULL

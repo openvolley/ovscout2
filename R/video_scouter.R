@@ -58,17 +58,27 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 
     ## do we have any saved preferences?
     ## these are app preferences, not scouting options
-    opts_file <- file.path(user_dir, "options.rds")
+    opts_file <- file.path(user_dir, "preferences.rds") ## nb changed from "options.rds" in earlier versions: options.rds just had app preferences, but preferences.rds now holds app preferences and shortcuts
     saved_opts <- if (file.exists(opts_file)) readRDS(opts_file) else list()
-    #### if we didn't provide options explicitly, use saved ones (if any) as priority
-    if (missing(scoreboard) && "scoreboard" %in% names(saved_opts)) scoreboard <- saved_opts$scoreboard
-    if (missing(pause_on_type) && "pause_on_type" %in% names(saved_opts) && !is.null(saved_opts$pause_on_type) && !is.na(as.integer(saved_opts$pause_on_type))) pause_on_type <- as.integer(saved_opts$pause_on_type)
-    if (missing(ball_path) && "ball_path" %in% names(saved_opts)) ball_path <- saved_opts$ball_path
-    if (missing(review_pane) && "review_pane" %in% names(saved_opts)) review_pane <- saved_opts$review_pane
-    if (missing(playlist_display_option) && "playlist_display_option" %in% names(saved_opts)) playlist_display_option <- saved_opts$playlist_display_option
-    if (missing(scout_name) && "scout_name" %in% names(saved_opts)) scout_name <- saved_opts$scout_name
-    if (missing(show_courtref) && "show_courtref" %in% names(saved_opts)) show_courtref <- saved_opts$show_courtref
-    if (missing(playback_rate) && "playback_rate" %in% names(saved_opts)) playback_rate <- saved_opts$playback_rate
+    ## fallback
+    if (length(saved_opts) < 1) {
+        temp <- file.path(user_dir, "options.rds") ## old file
+        if (file.exists(temp)) {
+            ## read and transfer to new format, and save
+            temp <- readRDS(temp)
+            saved_opts <- list(app_prefs = temp)
+            try(saveRDS(saved_opts, opts_file))
+        }
+    }
+    ## if we didn't provide options explicitly, use saved ones (if any) as priority
+    if (missing(scoreboard) && "scoreboard" %in% names(saved_opts$app_prefs)) scoreboard <- saved_opts$app_prefs$scoreboard
+    if (missing(pause_on_type) && "pause_on_type" %in% names(saved_opts$app_prefs) && !is.null(saved_opts$app_prefs$pause_on_type) && !is.na(as.integer(saved_opts$app_prefs$pause_on_type))) pause_on_type <- as.integer(saved_opts$app_prefs$pause_on_type)
+    if (missing(ball_path) && "ball_path" %in% names(saved_opts$app_prefs)) ball_path <- saved_opts$app_prefs$ball_path
+    if (missing(review_pane) && "review_pane" %in% names(saved_opts$app_prefs)) review_pane <- saved_opts$app_prefs$review_pane
+    if (missing(playlist_display_option) && "playlist_display_option" %in% names(saved_opts$app_prefs)) playlist_display_option <- saved_opts$app_prefs$playlist_display_option
+    if (missing(scout_name) && "scout_name" %in% names(saved_opts$app_prefs)) scout_name <- saved_opts$app_prefs$scout_name
+    if (missing(show_courtref) && "show_courtref" %in% names(saved_opts$app_prefs)) show_courtref <- saved_opts$app_prefs$show_courtref
+    if (missing(playback_rate) && "playback_rate" %in% names(saved_opts$app_prefs)) playback_rate <- saved_opts$app_prefs$playback_rate
 
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
