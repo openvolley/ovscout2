@@ -127,7 +127,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                         new_code[9] <- "~"## should not have target in attack codes, only set codes (?) ## attack_table$set_type[attack_table$code == tmp]
                         new_code[10] <- attack_table$attacker_position[attack_table$code == tmp]
                     }
-                    if (tmp %in% c(paste0("K", 0:9), "KM", "KP", "KE", "KC")) {
+                    if (tmp %in% paste0("K", c(0:9, toupper(letters)))) {
                         new_code[4] <- "E" ## setter call
                     }
                 }
