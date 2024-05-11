@@ -34,6 +34,11 @@ show_admin_modal <- function(game_state, dvw) {
                             ))
 }
 
+show_save_error_modal <- function(msg, rds_ok, tempfile_name) {
+    showModal(modalDialog(title = "Save error",
+                          tags$div(class = "alert alert-danger", "Sorry, the save failed. The error message was:", tags$br(), tags$pre(msg), tags$br(), if (rds_ok) paste0("The edited datavolley object has been saved to ", tempfile_name, "."))))
+}
+
 show_change_setter_modal <- function(code, game_state, dvw) {
     ht <- vt <- FALSE
     if (code %eq% "*P") {
@@ -148,4 +153,77 @@ show_prefcuts_modal <- function(prefs, opts) {
        fixedRow(column(2, actionButton("just_cancel", "Cancel", class = "cancel fatradio")),
                 column(2, offset = 8, actionButton("prefs_save", "Apply and save", class = "continue fatradio")))
        ))
+}
+
+show_shortcuts <- function(app_data) {
+    show_sc <- function(sc, txt, sctype = "CL") {
+        ## sctype is CL for click mode, TY for typing mode, PL for playslist shortcuts
+        bb <- paste0(sctype, sc) ## the prefix is a horrible hack so that we can distinguish playslist shortcuts from general ones in the edit handler
+        sc_list <- if (sctype == "PL") app_data$playstable_shortcuts else if (sctype == "TY") app_data$type_shortcuts else app_data$click_shortcuts
+        names(bb) <- if (is.null(sc_list[[sc]])) "no shortcut" else sc_list[[sc]]
+        tags$span(txt, make_fat_buttons(choices = bb, input_var = "scedit", class = "scedit"))
+    }
+    showModal(
+        vwModalDialog(title = "Keyboard shortcuts", easyClose = FALSE,
+            fluidRow(column(4, ## click_shortcuts
+                            tags$p(tags$strong("'Click' mode shortcuts"), tags$br(), "These apply when using 'click' scout mode."),
+                            tags$ul(tags$li(show_sc("pause", "pause")),
+                                    tags$li(show_sc("pause_no_popup", "pause (without the admin popup)")),
+                                    tags$li(show_sc("hide_popup", "hide admin popup while key held down")),
+                                    tags$li(show_sc("undo", "undo last rally action"))),
+                            tags$p("Video controls in 'click' mode"),
+                            tags$ul(tags$li(show_sc("video_forward_2", "forward 2s"), show_sc("video_forward_10", "forward 10s"), tags$br(),
+                                            show_sc("video_forward_0.1", "forwards 0.1s"), show_sc("video_forward_1_30", "forwards 1 frame")),
+                                    tags$li(show_sc("video_rewind_2", "backward 2s"), show_sc("video_rewind_10", "backward 10s"), tags$br(),
+                                            show_sc("video_rewind_0.1", "backwards 0.1s"), show_sc("video_rewind_1_30", "backwards 1 frame")),
+                                    tags$li(show_sc("pause", "pause video")),
+                                    ##tags$li(show_sc("go_to_time", "go to currently-selected event")), ##^^^ TODO shouldn't this be in PL shortcuts?
+                                    tags$li(show_sc("switch_video", "switch videos (if two available)")),
+                                    tags$li(show_sc("video_faster", "increase video playback speed")),
+                                    tags$li(show_sc("video_slower", "decrease video playback speed")),
+                                    tags$li(show_sc("switch_video", "switch video source (if using two videos)")))),
+                     column(4, ## type_shortcuts
+                            tags$p(tags$strong("'Type' mode shortcuts"), tags$br(), "These apply when the cursor is in the scouting input bar when using typing scout mode."),
+                            tags$ul(tags$li(show_sc("pause", "pause", sctype = "TY")),
+                                    tags$li(show_sc("pause_no_popup", "pause (without the admin popup)", sctype = "TY")),
+                                    tags$li(show_sc("undo", "undo last rally action", sctype = "TY")),
+                                    tags$li(show_sc("switch_windows", "switch to plays list (typing mode only)", sctype = "TY"))),
+                            tags$p("Video controls in 'type' mode"),
+                            tags$ul(tags$li(show_sc("video_forward_2", "forward 2s", sctype = "TY"),
+                                            show_sc("video_forward_10", "forward 10s", sctype = "TY"), tags$br(),
+                                            show_sc("video_forward_0.1", "forwards 0.1s", sctype = "TY"),
+                                            show_sc("video_forward_1_30", "forwards 1 frame", sctype = "TY")),
+                                    tags$li(show_sc("video_rewind_2", "backward 2s", sctype = "TY"),
+                                            show_sc("video_rewind_10", "backward 10s", sctype = "TY"), tags$br(),
+                                            show_sc("video_rewind_0.1", "backwards 0.1s", sctype = "TY"),
+                                            show_sc("video_rewind_1_30", "backwards 1 frame", sctype = "TY")),
+                                    tags$li(show_sc("pause", "pause video", sctype = "TY")),
+                                    ##tags$li(show_sc("go_to_time", "go to currently-selected event", sctype = "TY")), ##^^^ TODO shouldn't this be in PL shortcuts?
+                                    tags$li(show_sc("switch_video", "switch videos (if two available)", sctype = "TY")),
+                                    tags$li(show_sc("video_faster", "increase video playback speed", sctype = "TY")),
+                                    tags$li(show_sc("video_slower", "decrease video playback speed", sctype = "TY")),
+                                    tags$li(show_sc("switch_video", "switch video source (if using two videos)", sctype = "TY")))),
+                     column(4, ## plays list shortcuts, applies to both scouting modes
+                            tags$p(tags$strong("Plays list controls"), tags$br("These apply when in the plays list, regardless of scouting mode (click or type).")),
+                            tags$ul(tags$li(show_sc("up", "move to previous skill row", sctype = "PL")),
+                                    tags$li(show_sc("down", "move to next skill row", sctype = "PL")),
+                                    tags$li(show_sc("edit_code", "edit selected code", sctype = "PL")),
+                                    tags$li(show_sc("delete_code", "delete selected code", sctype = "PL")),
+                                    tags$li(show_sc("insert_code", "insert new code above selected row", sctype = "PL")),
+                                    tags$li(show_sc("switch_windows", "switch to scouting bar input (typing mode only)", sctype = "PL"))##,
+                                    ## TODO seek video to time of currently selected event
+                                    )))
+            ## none of these are relevant yet
+            ##fluidRow(column(6, tags$strong("Keyboard controls"),
+            ##         tags$ul(tags$li("[r or 5] sync selected event video time"),
+            ##                 tags$li("[F1] home team rotate +1"),
+            ##                 tags$li("[F2] insert setting codes before every attack"),
+            ##                 tags$li("[F4] delete all setting codes (except errors)"),
+            ##                 tags$li("[F6] insert digging codes after every attack"),
+            ##                 tags$li("[F8] delete all digging codes"),
+            ##                 tags$li("[F10] visiting team rotate +1"),
+            ##                 )),
+            ##                tags$strong("Ball coordinates"), tags$ul(tags$li("[left-click the court inset] register the start/mid/end ball positions"),
+            ##                                                         tags$li("[accept ball coordinates] to add coordinates to the currently selected item"))))
+            ))
 }
