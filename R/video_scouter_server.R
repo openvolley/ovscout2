@@ -678,7 +678,7 @@ ov_scouter_server <- function(app_data) {
                     } else if (tolower(ky) %in% c(app_data$playstable_shortcuts$up, app_data$playstable_shortcuts$down)) {
                         ## navigate up/down in playslist table
                         playslist_mod$select(playslist_mod$current_row() + if (tolower(ky) == app_data$playstable_shortcuts$up) -1L else 1L)
-                    } else if (tolower(ky) %eq% app_data$playstable_shortcuts$switch_windows) {
+                    } else if (tolower(ky) %eq% app_data$playstable_shortcuts$switch_windows && app_data$scout_mode == "type") {
                         ## go to scout bar
                         dojs("$('#scout_in').focus();")
                         playslist_mod$redraw_select("last") ## change redraw behaviour (keep the last row selected, including when new row added)
@@ -1091,7 +1091,8 @@ ov_scouter_server <- function(app_data) {
         }
 
         ## options
-        ## TODO are there other prefs to add?
+        ## TODO other prefs to add: scout_mode, season_dir, auto_save_dir
+        ## not playback_rate, that's set directly by the slider but saved along with the other prefs anyway
         observeEvent(input$preferences, {
             editing$active <- "preferences"
             showModal(vwModalDialog(title = "Preferences", footer = NULL, width = 100,
@@ -1104,7 +1105,7 @@ ov_scouter_server <- function(app_data) {
                                                                   column(3, numericInput("prefs_pause_on_type", tags$span(title = HTML("Pauses the video for this many milliseconds after each keypress in the scouting bar (typing mode only). Set to zero for no pause after keypress."), "Pause video after each keypress (milliseconds):", icon("question-circle")), value = prefs$pause_on_type, min = 0, step = 100))),
                                                          tags$br(),
                                                          fluidRow(column(3, checkboxInput("prefs_ball_path", "Show the ball path on the court inset diagram?", value = prefs$ball_path)),
-                                                                  column(3, selectInput("prefs_playlist_display_option", "Plays table style", choices = c("Scouted codes" = "dv_codes", "Commentary style" = "commentary"), selected = prefs$playlist_display_option)),
+                                                                  column(3, selectInput("prefs_playlist_display_option", "Plays list style", choices = c("Scouted codes" = "dv_codes", "Commentary style" = "commentary"), selected = prefs$playlist_display_option)),
                                                                   column(3, checkboxInput("prefs_review_pane", "Show review pane (video loop) in popups?", value = prefs$review_pane)))
                                                          ),
                                                 tabPanel(tags$strong("Click scouting conventions"),
@@ -1163,6 +1164,7 @@ ov_scouter_server <- function(app_data) {
             if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- prefs$scout_name
 
             ## apply scouting opts
+            ## NOTE these are not saved, just applied TODO?
             for (nm in names(this_opts)) rdata$options[[nm]] <- this_opts[[nm]]
 
             editing$active <- NULL
@@ -3480,14 +3482,22 @@ ov_scouter_server <- function(app_data) {
             editing$active <- "edit_shortcuts"
             ## TODO validate the shortcut?
             sc_to_edit(input$scedit)
+            ## playslist or general shortcut?
+            sctype <- if (grepl("^PL", input$scedit)) "PL" else ""
+            this_sc <- sub("^PL", "", input$scedit)
             showModal(vwModalDialog(title = "Modify Keyboard shortcut", easyClose = FALSE, width = "50%", class = "scedit-modal", footer = NULL,
-                                  tags$h4("Shortcut for:", input$scedit),
+                                  tags$h4("Shortcut for:", this_sc, if (sctype == "PL") " (in plays list)"),
                                   uiOutput("scedit_out"),
                                   tags$hr(),
                                   fixedRow(column(2, actionButton("scedit_cancel", "Cancel", class = "cancel fatradio")),
                                            column(2, offset = 8, actionButton("scedit_save", "Apply and save", class = "continue fatradio")))
                                   ))
-            output$scedit_out <- renderUI(tags$code(app_data$shortcuts[[input$scedit]]))
+            output$scedit_out <- renderUI({
+                this_sc <- sub("^PL", "", input$scedit)
+                sctype <- if (grepl("^PL", input$scedit)) "PL" else ""
+                cat("out this_sc is:", cstr(this_sc), "\n")
+                tags$code(app_data[[if (sctype == "PL") "playstable_shortcuts" else "shortcuts"]][[this_sc]])
+            })
         })
         observeEvent(input$scedit_cancel, {
             sc_to_edit(NULL)
@@ -3496,8 +3506,10 @@ ov_scouter_server <- function(app_data) {
         })
         observeEvent(input$scedit_save, {
             if (!is.null(sc_to_edit()) && !is.null(sc_newvalue())) {
-                cat("setting app_data$shortcuts$", sc_to_edit(), " to: ", sc_newvalue(), "\n", sep = "")
-                app_data$shortcuts[[sc_to_edit()]] <<- sc_newvalue()
+                this_sc <- sub("^PL", "", sc_to_edit())
+                this_sclist <- if (grepl("^PL", sc_to_edit())) "playstable_shortcuts" else "shortcuts"
+                cat("setting app_data$", this_sclist, "$", this_sc, " to: ", sc_newvalue(), "\n", sep = "")
+                app_data[[this_sclist]][[this_sc]] <<- sc_newvalue()
             }
             sc_to_edit(NULL)
             sc_newvalue(NULL)
@@ -3507,42 +3519,48 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$general_help, introjs(session, options = list("nextLabel" = "Next", "prevLabel" = "Previous", "skipLabel" = "Skip")))
         observeEvent(input$show_shortcuts, show_shortcuts())
         show_shortcuts <- function() {
-            show_sc <- function(sc, txt) {
-                bb <- sc
-                names(bb) <- if (is.null(app_data$shortcuts[[sc]])) "no shortcut" else app_data$shortcuts[[sc]]
+            show_sc <- function(sc, txt, sctype = "") {
+                bb <- paste0(sctype, sc) ## the prefix is a horrible hack so that we can distinguish playslist shortcuts from general ones in the edit handler
+                sc_list <- if (sctype == "PL") app_data$playstable_shortcuts else app_data$shortcuts
+                names(bb) <- if (is.null(sc_list[[sc]])) "no shortcut" else sc_list[[sc]]
                 tags$span(txt, make_fat_buttons(choices = bb, input_var = "scedit", class = "scedit"))
             }
-            content <- list(tags$li(show_sc("pause", "pause")),
-                            tags$li(show_sc("pause_no_popup", "pause (without the admin popup)")),
-                            tags$li(show_sc("go_to_time", "jump the video to the time of the currently-selected event in the plays table")),
-                            tags$li(show_sc("undo", "undo last rally action")))
-            if (have_second_video) content <- c(content, list(tags$li(show_sc("switch_video", "switch video source"))))
-            content <- list(tags$p(tags$strong("General controls")), do.call(tags$ul, content))
-            if (app_data$with_video) {
-                content <- c(content,
-                             list(tags$p(tags$strong("Video controls")),
-                                  tags$ul(
-                                           tags$li(show_sc("video_forward_2", "forward 2s"), show_sc("video_forward_10", "forward 10s"), show_sc("video_forward_0.1", "forwards 0.1s"), show_sc("video_forward_1_30", "forwards 1 frame")),
-                                           tags$li(show_sc("video_rewind_2", "backward 2s"), show_sc("video_rewind_10", "backward 10s"), show_sc("video_rewind_0.1", "backwards 0.1s"), show_sc("video_rewind_1_30", "backwards 1 frame")),
-                                           tags$li(show_sc("pause", "pause video")),
-                                           tags$li(show_sc("go_to_time", "go to currently-selected event")),
-                                           tags$li(show_sc("switch_video", "switch videos (if two available)")),
-                                           tags$li(show_sc("video_faster", "increase video playback speed")),
-                                           tags$li(show_sc("video_slower", "decrease video playback speed"))
-                                       )))
-            }
+            is_type_mode <- app_data$scout_mode %eq% "type"
+            content <- list(fluidRow(column(6, if (is_type_mode) tags$p(tags$strong("Scout bar controls"), tags$br("These apply when the cursor is in the scouting input bar.")) else tags$p(tags$strong("General controls")),
+                                            tags$ul(tags$li(show_sc("pause", "pause")),
+                                                    tags$li(show_sc("pause_no_popup", "pause (without the admin popup)")),
+                                                    if (!is_type_mode) tags$li(show_sc("hide_popup", "hide admin popup while key held down")),
+                                                    if (!is_type_mode) tags$li(show_sc("go_to_time", "jump the video to the time of the currently-selected event in the plays list")),
+                                                    tags$li(show_sc("undo", "undo last rally action")),
+                                                    if (is_type_mode) tags$li(show_sc("switch_windows", "switch to plays list (typing mode only)")),
+                                                    tags$li(show_sc("switch_video", "switch video source (if using two videos)")))),
+                                     column(6, ## plays list shortcuts, applies to both scouting modes
+                                            tags$p(tags$strong("Plays list controls"), tags$br("These apply when in the plays list.")),
+                                            tags$ul(tags$li(show_sc("up", "move to previous skill row", sctype = "PL")),
+                                                    tags$li(show_sc("down", "move to next skill row", sctype = "PL")),
+                                                    tags$li(show_sc("edit_code", "edit selected code", sctype = "PL")),
+                                                    tags$li(show_sc("delete_code", "delete selected code", sctype = "PL")),
+                                                    tags$li(show_sc("insert_code", "insert new code above selected row", sctype = "PL")),
+                                                    tags$li(show_sc("switch_windows", "switch to scouting bar input (typing mode only)", sctype = "PL"))##,
+                                                    ## TODO seek video to time of currently selected event
+                                                    ))),
+                            tags$hr(),
+                            fluidRow(column(6, tags$p(tags$strong("Video controls")),
+                                            tags$ul(tags$li(show_sc("video_forward_2", "forward 2s"), show_sc("video_forward_10", "forward 10s"), tags$br(), show_sc("video_forward_0.1", "forwards 0.1s"), show_sc("video_forward_1_30", "forwards 1 frame")),
+                                                    tags$li(show_sc("video_rewind_2", "backward 2s"), show_sc("video_rewind_10", "backward 10s"), tags$br(), show_sc("video_rewind_0.1", "backwards 0.1s"), show_sc("video_rewind_1_30", "backwards 1 frame")),
+                                                    tags$li(show_sc("pause", "pause video")),
+                                                    tags$li(show_sc("go_to_time", "go to currently-selected event")))),
+                                     column(6, tags$br(),
+                                            tags$ul(tags$li(show_sc("switch_video", "switch videos (if two available)")),
+                                                    tags$li(show_sc("video_faster", "increase video playback speed")),
+                                                    tags$li(show_sc("video_slower", "decrease video playback speed"))
+                                                    ))))
             showModal(
-                modalDialog(title = "Keyboard shortcuts", easyClose = TRUE, size = "l",
+                vwModalDialog(title = "Keyboard shortcuts", easyClose = TRUE,
                             do.call(tagList, content)
                             ## none of these are relevant yet
                             ##fluidRow(column(6, tags$strong("Keyboard controls"),
                             ##         tags$ul(tags$li("[r or 5] sync selected event video time"),
-                            ##                 tags$li("[i or 8] move to previous skill row"),
-                            ##                 tags$li("[k or 2] move to next skill row"),
-                            ##                 tags$li("[e or E] edit current code"),
-                            ##                 tags$li("[del] delete current code"),
-                            ##                 tags$li("[ins] insert new code above current"),
-                            ##                 tags$li("[Shift-ins] insert new code below current"),
                             ##                 tags$li("[F1] home team rotate +1"),
                             ##                 tags$li("[F2] insert setting codes before every attack"),
                             ##                 tags$li("[F4] delete all setting codes (except errors)"),
@@ -3550,12 +3568,12 @@ ov_scouter_server <- function(app_data) {
                             ##                 tags$li("[F8] delete all digging codes"),
                             ##                 tags$li("[F10] visiting team rotate +1"),
                             ##                 )),
-                            ##         column(6, if (app_data$with_video) tagList(tags$strong("Tagging"), tags$ul(tags$li("[left-click the court inset then press 't'] add a tag with the clicked court location. Alternatively, the location can be entered by left-clicking the video, if the court reference data has been provided"),
-                            ##                                                   tags$li("[T] open the tag manager (download or clear tag data)"))),
                             ##                tags$strong("Ball coordinates"), tags$ul(tags$li("[left-click the court inset] register the start/mid/end ball positions"),
                             ##                                                         tags$li("[accept ball coordinates] to add coordinates to the currently selected item"))))
-                                  ))
+                            ))
         }
+
+        ## TODO @param key_remapping list: a named list of key remappings, with entries as per [ov_default_key_remapping()]
 
         ## disaster recovery
         shiny::onSessionEnded(function() {
