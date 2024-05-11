@@ -929,8 +929,35 @@ ov_scouter_server <- function(app_data) {
                     this_clock_time <- time_but_utc()
                     this_video_time <- NA_real_
                     ## use clock and video times from the input$scout_input_times time-logged keypresses if we can
-                    this_skill <- if (length(ptemp) > 0) ptemp[[1]]$skill else NA_character_
-                    this_keypress_times <- if (!is.null(keypress_times)) keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% tolower(this_skill), ] else NULL ## TODO check case sensitivity on this, if we use e.g. 'a' but remap it to 'A' via the key remapping
+                    this_keypress_times <- NULL ## default
+                    if (!is.null(keypress_times)) {
+                        ## TODO check case sensitivity on this, if we use e.g. 'a' but remap it to 'A' via the key remapping
+                        this_skill <- if (length(ptemp) > 0) ptemp[[1]]$skill else NA_character_ ## for compound codes, we use the first one
+                        if (this_skill %eq% "E") {
+                            ## set skill, so need to look for either the "E" key or "K" key for a setter call
+                            if (any(tolower(keypress_times[[i]]$key) %eq% "e")) {
+                                this_keypress_times <- keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% "e", ]
+                            } else if (any(tolower(keypress_times[[i]]$key) %eq% "k")) {
+                                ## setter call
+                                this_keypress_times <- keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% "k", ]
+                            }
+                        } else if (this_skill %eq% "A") {
+                            ## look for either the "A" key or combo code
+                            cmb_idx <- NULL
+                            if (is.data.frame(rdata$options$attack_table) && nrow(rdata$options$attack_table) > 0) {
+                                temp <- na.omit(stringr::str_locate(tolower(paste0(keypress_times[[i]]$key, collapse = "")), tolower(rdata$options$attack_table$code))[, 1])
+                                if (length(temp) > 0) cmb_idx <- temp[1]
+                            }
+                            if (any(tolower(keypress_times[[i]]$key) %eq% "a")) {
+                                this_keypress_times <- keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% "a", ]
+                            } else if (length(cmb_idx) == 1) {
+                                ## attack combo code
+                                this_keypress_times <- keypress_times[[i]][cmb_idx, ]
+                            }
+                        } else {
+                            this_keypress_times <- keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% tolower(this_skill), ]
+                        }
+                    }
                     if (!is.null(this_keypress_times) && nrow(this_keypress_times) == 1) {
                         this_clock_time <- this_keypress_times$time
                         this_video_time <- this_keypress_times$video_time
