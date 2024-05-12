@@ -34,9 +34,9 @@ show_admin_modal <- function(game_state, dvw) {
                             ))
 }
 
-show_save_error_modal <- function(msg, rds_ok, tempfile_name) {
+show_save_error_modal <- function(msg, ovs_ok, tempfile_name) {
     showModal(modalDialog(title = "Save error",
-                          tags$div(class = "alert alert-danger", "Sorry, the save failed. The error message was:", tags$br(), tags$pre(msg), tags$br(), if (rds_ok) paste0("The edited datavolley object has been saved to ", tempfile_name, "."))))
+                          tags$div(class = "alert alert-danger", "Sorry, the save failed. The error message was:", tags$br(), tags$pre(msg), tags$br(), if (ovs_ok) paste0("The edited datavolley object has been saved to ", tempfile_name, "."))))
 }
 
 show_change_setter_modal <- function(code, game_state, dvw) {

@@ -3191,57 +3191,6 @@ ov_scouter_server <- function(app_data) {
             HTML(end_zone_helper(input$code_entry_skill, input$code_entry_eval, dvw = rdata$dvw))
         })
 
-        save_file_basename <- reactive({
-            if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename) && nchar(rdata$dvw$meta$filename)) {
-                fs::path_ext_remove(basename(rdata$dvw$meta$filename))
-            } else if (app_data$with_video && !is.null(app_data$video_src) && nchar(app_data$video_src) && !is_url(app_data$video_src)) {
-                basename(fs::path_ext_remove(app_data$video_src))
-            } else {
-                "myfile"
-            }
-        })
-
-        output$save_dvw_button <- downloadHandler(
-            filename = function() paste0(save_file_basename(), ".dvw"),
-            content = function(file) {
-                tryCatch({
-                    ## TODO flush any rally codes to plays2 - but note that then we won't have the right rally_state when we restart
-                    ## so might not be able to do this
-                    dv_write2(update_meta(rp2(rdata$dvw)), file = file)
-                }, error = function(e) {
-                    isolate(rds_ok <- save_to_rds(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2()))
-                    show_save_error_modal(msg = conditionMessage(e), rds_ok = rds_ok, tempfile_name = tf)
-                    NULL
-                })
-            }
-        )
-
-        output$save_rds_button <- downloadHandler(
-            filename = function() paste0(save_file_basename(), ".ovs"),
-            content = function(file) {
-                tryCatch({
-                    ## TODO flush any rally codes to plays2 - but note that then we won't have the right rally_state when we restart
-                    ## so might not be able to do this
-                    out <- update_meta(rp2(rdata$dvw))
-                    out$plays <- NULL ## don't save this
-                    out$game_state <- isolate(reactiveValuesToList(game_state))
-                    out$scouting_options <- isolate(rdata$options)
-                    ## save court refs
-                    dr <- list()
-                    isolate({
-                        if (!is.null(detection_ref1()$court_ref)) dr[[app_data$video_src]] <- detection_ref1()
-                        if (!is.null(detection_ref2()$court_ref) && "video_src2" %in% names(app_data) && !is.na(app_data$video_src2) && nzchar(app_data$video_src2)) dr[[app_data$video_src2]] <- detection_ref2()
-                    })
-                    out$detection_refs <- dr
-                    saveRDS(out, file)
-                }, error = function(e) {
-                    isolate(rds_ok <- save_to_rds(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2()))
-                    show_save_error_modal(msg = conditionMessage(e), rds_ok = rds_ok, tempfile_name = tf)
-                    NULL
-                })
-            }
-        )
-
         observeEvent(input$manual_code, {
             res <- handle_non_skill_code(input$manual_code)
             if (res$ok) {
@@ -3379,27 +3328,68 @@ ov_scouter_server <- function(app_data) {
 
         ## TODO @param key_remapping list: a named list of key remappings, with entries as per [ov_default_key_remapping()]
 
+        ## functions for saving files
+        save_file_basename <- reactive({
+            if (!is.null(rdata$dvw$meta$filename) && !is.na(rdata$dvw$meta$filename) && nchar(rdata$dvw$meta$filename)) {
+                fs::path_ext_remove(basename(rdata$dvw$meta$filename))
+            } else if (app_data$with_video && !is.null(app_data$video_src) && nchar(app_data$video_src) && !is_url(app_data$video_src)) {
+                basename(fs::path_ext_remove(app_data$video_src))
+            } else {
+                "myfile"
+            }
+        })
+
+        output$save_dvw_button <- downloadHandler(
+            filename = function() paste0(save_file_basename(), ".dvw"),
+            content = function(file) {
+                tryCatch({
+                    ## TODO flush any rally codes to plays2 - but note that then we won't have the right rally_state when we restart
+                    ## so might not be able to do this
+                    dv_write2(update_meta(rp2(rdata$dvw)), file = file)
+                }, error = function(e) {
+                    ovs_ok <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())
+                    show_save_error_modal(msg = conditionMessage(e), ovs_ok = ovs_ok, tempfile_name = tf)
+                    NULL
+                })
+            }
+        )
+
+        output$save_rds_button <- downloadHandler(
+            filename = function() paste0(save_file_basename(), ".ovs"),
+            content = function(file) {
+                tryCatch({
+                    ## TODO flush any rally codes to plays2 - but note that then we won't have the right rally_state when we restart
+                    ## so might not be able to do this
+                    out <- update_meta(rp2(rdata$dvw))
+                    out$plays <- NULL ## don't save this
+                    out$game_state <- isolate(reactiveValuesToList(game_state))
+                    out$scouting_options <- isolate(rdata$options)
+                    ## save court refs
+                    dr <- list()
+                    isolate({
+                        if (!is.null(detection_ref1()$court_ref)) dr[[app_data$video_src]] <- detection_ref1()
+                        if (!is.null(detection_ref2()$court_ref) && "video_src2" %in% names(app_data) && !is.na(app_data$video_src2) && nzchar(app_data$video_src2)) dr[[app_data$video_src2]] <- detection_ref2()
+                    })
+                    out$detection_refs <- dr
+                    saveRDS(out, file)
+                }, error = function(e) {
+                    ovs_ok <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())
+                    show_save_error_modal(msg = conditionMessage(e), ovs_ok = ovs_ok, tempfile_name = tf)
+                    NULL
+                })
+            }
+        )
+
         ## disaster recovery
         shiny::onSessionEnded(function() {
-            tryCatch({
-                ## TODO use save_to_rds function
-                dvw <- isolate(rdata$dvw)
-                dvw$plays <- NULL ## don't save this
-                dvw$game_state <- isolate(reactiveValuesToList(game_state))
-                dvw$scouting_options <- isolate(rdata$options)
-                tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".ovs")
-                ## save court refs
-                dr <- list()
-                isolate({
-                    if (!is.null(detection_ref1()$court_ref)) dr[[app_data$video_src]] <- detection_ref1()
-                    if (!is.null(detection_ref2()$court_ref) && "video_src2" %in% names(app_data) && !is.na(app_data$video_src2) && nzchar(app_data$video_src2)) dr[[app_data$video_src2]] <- detection_ref2()
-                })
-                dvw$detection_refs <- dr
-                saveRDS(dvw, tf)
+            ovs_ok <- tryCatch({
+                save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2(), game_state = game_state, was_session_end = TRUE)
+            }, error = function(e) FALSE)
+            if (ovs_ok) {
                 message("working file has been saved to: ", tf)
-            }, error = function(e) {
+            } else {
                 message("could not save working file on exit (error message was: ", conditionMessage(e))
-            })
+            }
         })
         ## seek to video time on startup
         if ("video_time" %in% names(app_data$dvw$plays2) && nrow(app_data$dvw$plays2) > 0) {
