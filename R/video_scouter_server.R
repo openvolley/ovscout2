@@ -182,7 +182,7 @@ ov_scouter_server <- function(app_data) {
         } else {
             temp <- as.list(tail(app_data$dvw$plays2, 1))
         }
-        if (!"serving" %in% names(temp) || is.na(temp$serving)) temp$serving <- "*" ## default to home team serving - maybe allow this as a parm to ov_scouter (maybe TODO)
+        if (!"serving" %in% names(temp) || is.na(temp$serving)) temp$serving <- "*" ## default to home team serving
         temp$current_team <- temp$serving
         temp$rally_started <- FALSE
         temp$start_x <- temp$start_y <- temp$mid_x <- temp$mid_y <- temp$end_x <- temp$end_y <- NA_real_
@@ -359,7 +359,9 @@ ov_scouter_server <- function(app_data) {
                                 if (app_data$scout_mode == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
                                 crc$code <- newcode
                                 ## so we have a new code, but the (changed) information in that won't be in the other columns of crc yet
-                                temp <- parse_code_minimal(newcode)[[1]] ## TODO deal with a compound code that returns multiple codes here
+                                temp <- parse_code_minimal(newcode)[[1]]
+                                ## if the new code was a compound code, then that will resolve to two codes. We are only using the first because
+                                ##  it's not clear how to deal with the second code. It can't necessarily inherit all details from the edited code
                                 if (!is.null(temp)) {
                                     ## should not be NULL, that's only for non-skill rows
                                     ## put whatever got updated back into crc
@@ -368,6 +370,7 @@ ov_scouter_server <- function(app_data) {
                                     if (ridx <= nrow(rdata$dvw$plays2)) {
                                         newrc <- make_plays2(crc, game_state = crc$game_state[[1]], rally_ended = FALSE, dvw = rdata$dvw)
                                         rdata$dvw$plays2 <- transfer_scout_details(from_row = newrc, to_df = rdata$dvw$plays2, row_idx = ridx, dvw = rdata$dvw)
+                                        ## TODO should this have an rp2() wrapper?
                                     } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
                                         rc <- rally_codes()
                                         rcidx <- ridx - nrow(rdata$dvw$plays2)
@@ -418,10 +421,12 @@ ov_scouter_server <- function(app_data) {
                             ## TODO warn
                         } else if (grepl("^(>|\\*T|aT)", code)) { ## timeout, comment
                             newrow <- make_plays2(code, game_state = gs, rally_ended = FALSE, dvw = rdata$dvw)
+                            newrow$time <- insert_clock_time
+                            newrow$video_time <- insert_video_time
+                            ## check: any other details to transfer? TODO
                             cat("gs:", str(gs), "\n")
                             cat("newrow:", str(newrow), "\n")
                             if (insert_ridx <= nrow(rdata$dvw$plays2)) {
-                                ## TODO transfer other details, time
                                 cat(nrow(rdata$dvw$plays2), "\n")
                                 rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
                                                                   newrow,
@@ -448,16 +453,21 @@ ov_scouter_server <- function(app_data) {
                                     code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, start_zone_valid = TRUE, endxy_valid = TRUE, t = insert_video_time, time = insert_clock_time, rally_state = insert_rs, game_state = gs, default_scouting_table = rdata$options$default_scouting_table)
                                 }
                             }))
-                            ## TODO update the preceding rally_codes row if new info has been provided here
+                            ## TODO check row updating here
                             if (insert_ridx <= nrow(rdata$dvw$plays2)) {
-                                rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
-                                                                  make_plays2(newrc, game_state = gs, rally_ended = FALSE, dvw = rdata$dvw),
-                                                                  rdata$dvw$plays2[insert_ridx:nrow(rdata$dvw$plays2), ]))
+                                newrow <- make_plays2(newrc, game_state = gs, rally_ended = FALSE, dvw = rdata$dvw)
+                                temp <- bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
+                                                  newrow,
+                                                  rdata$dvw$plays2[insert_ridx:nrow(rdata$dvw$plays2), ])
+                                ## update surrounding rows
+                                temp <- transfer_scout_details(from_row = newrow, to_df = temp, row_idx = insert_ridx, dvw = rdata$dvw)
+                                rdata$dvw$plays2 <- rp2(temp)
                             } else {
                                 rc <- rally_codes()
                                 rcidx <- nrow(rdata$dvw$plays2) - insert_ridx
-                                newrc <- bind_rows(rc[seq_len(rcidx - 1L), ], newrc, rc[rcidx:nrow(rc), ])
-                                rally_codes(newrc)
+                                rc <- bind_rows(rc[seq_len(rcidx - 1L), ], newrc, rc[rcidx:nrow(rc), ])
+                                ## update surrounding rows and update rally_codes()
+                                rally_codes(transfer_scout_details(from_row = newcrc, to_df = rc, row_idx = rcidx, dvw = rdata$dvw))
                             }
                         }
                     }
@@ -842,9 +852,13 @@ ov_scouter_server <- function(app_data) {
                         game_state$current_team <- game_state$serving
                         populate_server()
                     }
-                } else if (grepl("^[a\\*]z", code)) {
-                    ## setter position, TODO
-                    ## ^^^
+                } else if (grepl("^[a\\*]z[[:digit:]]", code)) {
+                    ## setter position, TODO test
+                    pos <- suppressWarnings(as.integer(substr(code, 2, 2)))
+                    if (!is.na(pos)) {
+                        if (grepl("^a", code)) game_state$visiting_setter_position <- pos else game_state$home_setter_position <- pos
+                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(code, game_state = game_state, dvw = rdata$dvw)))
+                    }
                 } else {
                     home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
                     visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
@@ -1087,7 +1101,7 @@ ov_scouter_server <- function(app_data) {
             ## TODO this_click_sc <- xxx ## click-mode shortcuts
             ## TODO this_type_sc <- xxx ## type-mode shortcuts
             ## TODO this_pl_sc <- xxx ## playslist shortcuts
-##&&&
+
             ## save prefs
             ## TODO load the shortcuts components and just re-save them?
             tryCatch({

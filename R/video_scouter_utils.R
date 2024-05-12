@@ -382,7 +382,8 @@ transfer_scout_row_details <- function(from, to, tempo = TRUE, num_p = TRUE, pos
     }
 }
 
-## given a new row `from_row`, transfer selected skill details from that row to the surrounding rows in the `to_df` dataframe
+## given a new row `from_row` and a data frame `to_df`, replace the row at `row_idx` with `from_row` and transfer selected skill details from that
+##  row to the surrounding rows in `to_df`
 ## `row_idx` gives the row number of `from_row` in `to_df`. `row_idx` can be (nrow(to_df) + 1) if it's being appended but note that in this case `from_row` does NOT get appended by this function
 ## the `which` parameter is a vector of row offsets to modify (-1 means immediately preceding row, +1 = immediately following row, +2 = the row after that, etc)
 transfer_scout_details <- function(from_row, to_df, row_idx, tempo = TRUE, num_p = TRUE, which = c(-1L, 1L), dvw) {
