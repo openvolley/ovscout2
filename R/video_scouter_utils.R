@@ -328,19 +328,72 @@ update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target
               game_state = gs)
 }
 
-## wrapper around update_code_trow that will transfer details from the `from` row to the `to` row
-## each of `from` and `to` should be a one-row tibble, as from rally_codes()
-transfer_scout_details <- function(from, to, tempo = TRUE) {
-    if (tempo) {
-        if ((from$skill %eq% "A" && to$skill %eq% "E" && from$team %eq% to$team) ||
-            (from$skill %eq% "S" && to$skill %eq% "R") ||
-            (from$skill %eq% "A" && to$skill %in% c("B", "D") && from$team %neq% to$team) ||
-            (from$skill %eq% "B" && to$skill %eq% "D" && from$team %eq% to$team)) {
-            ## make e.g. set tempo match attack tempo, dig tempo match attack tempo
-            to$tempo <- from$tempo
+## transfer selected skill details from the `from` row to the `to` row
+## each of `from` and `to` should be a one-row tibble, as from rally_codes(), or from plays2
+transfer_scout_row_details <- function(from, to, tempo = TRUE, num_p = TRUE, dvw) {
+    if ("rally_codes" %in% names(from) && "rally_codes" %in% names(to)) {
+        ## we have been given a row from the plays2 data.frame
+        ## call this function again with the rally_codes from those rows
+        temp <- transfer_scout_row_details(from = from$rally_codes[[1]], to = to$rally_codes[[1]], tempo = tempo, num_p = num_p)
+        ## now rebuild code etc
+        out <- make_plays2(temp, game_state = to$rally_codes[[1]]$game_state[[1]], dvw = dvw)
+        out[, names(to)]
+    } else if (!"game_state" %in% names(from) || !"game_state" %in% names(to)) {
+        warning("cannot transfer scout details: unexpected from/to format")
+        to
+    } else {
+        ## we've been given a row from rally_codes
+        #cat(str(from))
+        #cat(str(to))
+        if (tempo) {
+            if ((from$skill %eq% "A" && to$skill %eq% "E" && from$team %eq% to$team) ||
+                (from$skill %eq% "S" && to$skill %eq% "R") || (from$skill %eq% "R" && to$skill %eq% "S") ||
+                (from$skill %eq% "A" && to$skill %in% c("B", "D") && from$team %neq% to$team) ||
+                (from$skill %eq% "B" && to$skill %eq% "D" && from$team %eq% to$team)) {
+                ## make e.g. set tempo match attack tempo, dig tempo match attack tempo
+                to$tempo <- from$tempo
+            }
         }
+        if (num_p) {
+            if (from$skill %eq% "A" && to$skill %eq% "B" && from$team %neq% to$team) to$num_p <- from$num_p
+        }
+        to
     }
-    to
+}
+
+## given a new row `from_row`, transfer selected skill details from that row to the surrounding rows in the `to_df` dataframe
+## `row_idx` gives the row number of `from_row` in `to_df`. `row_idx` can be (nrow(to_df) + 1) if it's being appended but note that in this case `from_row` does NOT get appended by this function
+## the `which` parameter is a vector of row offsets to modify (-1 means immediately preceding row, +1 = immediately following row, +2 = the row after that, etc)
+transfer_scout_details <- function(from_row, to_df, row_idx, tempo = TRUE, num_p = TRUE, which = c(-1L, 1L), dvw) {
+    if (nrow(to_df) < 1) return(to_df)
+    if (is.logical(row_idx)) row_idx <- which(row_idx)
+    if (length(row_idx) != 1 || is.na(row_idx)) {
+        warning("cannot update scout details: invalid row_idx")
+        return(to_df)
+    }
+    if (!setequal(names(from_row), names(to_df))) {
+        warning("cannot update scout details: names differ")
+        return(to_df)
+    }
+    from_row <- from_row[, names(to_df)] ## ensure column ordering
+    ## potentially need to transfer some details from the new row to the preceding or following rows
+    insert_row_idx <- row_idx ## indices of rows in to_df that will be replaced
+    new_df_chunk <- from_row ## replace with this
+    if ((-1L %in% which) && row_idx > 1 && row_idx <= (nrow(to_df) + 1)) {
+        ## new details to the immediately preceding row
+        new_df_chunk <- bind_rows(transfer_scout_row_details(from = from_row, to = to_df[row_idx - 1L, ], tempo = tempo, num_p = num_p, dvw = dvw), new_df_chunk)
+##        cat("transfer1:", str(new_df_chunk), "\n")
+        insert_row_idx <- c(row_idx - 1L, insert_row_idx)
+    }
+    if ((1L %in% which) && row_idx < nrow(to_df)) {
+        ## new details to the immediately following row
+        new_df_chunk <- bind_rows(new_df_chunk, transfer_scout_row_details(from = from_row, to = to_df[row_idx + 1L, ], tempo = tempo, num_p = num_p, dvw = dvw))
+##        cat("transfer2:", str(new_df_chunk), "\n")
+        insert_row_idx <- c(insert_row_idx, row_idx + 1L)
+    }
+    ## NOTE and TODO FIX this is incomplete! If we edit the tempo of a dig row, then we need to change the preceding block, attack, and set tempos. Not just the one row prior and after the new row
+    to_df[insert_row_idx, ] <- new_df_chunk
+    to_df
 }
 
 ## take a vector of scout codes (character) and return a list. List elements will be NULL for non-skill codes (timeouts, subs, end-of-set, etc) or a one-row x 14 column data frame otherwise, with the 14 code components in columns

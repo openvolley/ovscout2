@@ -416,22 +416,20 @@ ov_scouter_server <- function(app_data) {
                                 if (app_data$scout_mode == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
                                 crc$code <- newcode
                                 ## so we have a new code, but the (changed) information in that won't be in the other columns of crc yet
-                                ## if ridx is greater than the length of plays2 rows, then put this in rally_codes()
-                                if (ridx <= nrow(rdata$dvw$plays2)) {
-                                    ## need to update crc$rally_codes with the info held in newcode
-                                    temp <- parse_code_minimal(newcode)[[1]] ## TODO deal with a compound code that returns multiple codes here
-                                    if (!is.null(temp)) {
-                                        ## should not be NULL, that's only for non-skill rows
-                                        crc <- bind_cols(crc[, setdiff(names(crc), names(temp))], temp)[, names(crc)]
+                                temp <- parse_code_minimal(newcode)[[1]] ## TODO deal with a compound code that returns multiple codes here
+                                if (!is.null(temp)) {
+                                    ## should not be NULL, that's only for non-skill rows
+                                    ## put whatever got updated back into crc
+                                    crc <- bind_cols(crc[, setdiff(names(crc), names(temp))], temp)[, names(crc)]
+                                    ## if ridx is greater than the length of plays2 rows, then put this in rally_codes()
+                                    if (ridx <= nrow(rdata$dvw$plays2)) {
                                         newrc <- make_plays2(crc, game_state = crc$game_state[[1]], rally_ended = FALSE, dvw = rdata$dvw)
-                                        rdata$dvw$plays2[ridx, ] <- newrc[, names(rdata$dvw$plays2)]
+                                        rdata$dvw$plays2 <- transfer_scout_details(from_row = newrc, to_df = rdata$dvw$plays2, row_idx = ridx, dvw = rdata$dvw)
+                                    } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
+                                        rc <- rally_codes()
+                                        rcidx <- ridx - nrow(rdata$dvw$plays2)
+                                        rally_codes(transfer_scout_details(from_row = crc, to_df = rc, row_idx = rcidx, dvw = rdata$dvw))
                                     }
-                                } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
-                                    rc <- rally_codes()
-                                    rc[ridx - nrow(rdata$dvw$plays2), ] <- crc
-                                    rally_codes(rc)
-                                    ## TODO check that this works, because the code in rally_codes should be used but just need to check
-                                    ## TODO transfer details
                                 }
                             }
                         }
@@ -960,11 +958,12 @@ ov_scouter_server <- function(app_data) {
                             ## should not be NULL, that's only for non-skill rows
                             rc <- rally_codes()
                             newrc <- code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, start_zone_valid = TRUE, endxy_valid = TRUE, t = this_video_time, time = this_clock_time, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)
-                            ## update the preceding rally_codes row if new info has been provided
+                            ## update the preceding rally_codes rows if new info has been provided
                             prev_touch <- NULL
                             nrc <- nrow(rc)
                             if (nrc > 0) {
-                                rc[nrc, ] <- transfer_scout_details(from = newrc, to = rc[nrc, ])
+                                rc[nrc, ] <- transfer_scout_row_details(from = newrc, to = rc[nrc, ])
+                                ## equivalently but less efficiently rc <- transfer_scout_details(from_row = newrc, to_df = rc, row_idx = nrc + 1L, which = -1L, dvw = rdata$dvw)
                                 prev_touch <- rc[nrc, ]
                             }
                             rally_codes(bind_rows(rc, newrc)) ## start_x = NA_real_, start_y = NA_real_
@@ -1101,9 +1100,11 @@ ov_scouter_server <- function(app_data) {
                 crc
             }))
             ## make sure details now match from one skill to the next
-            smth <- bind_rows(lapply(seq_len(nrow(smth)), function(i) {
-                if (i < 2) smth[1, ] else transfer_scout_details(from = smth[i - 1, ], to = smth[i, ])
-            }))
+            ## no, can't do this sequentially, because if we update e.g. an attack tempo during rally review, that will get overridden by the set tempo that precedes it
+            ## would need to do this as codes are edited
+            ## smth <- bind_rows(lapply(seq_len(nrow(smth)), function(i) {
+            ##     if (i < 2) smth[1, ] else transfer_scout_row_details(from = smth[i - 1, ], to = smth[i, ])
+            ## }))
             ## cat(str(smth, max.level = 2))
             rally_codes(smth) ## update
             end_of_set <- rally_ended() ## process
