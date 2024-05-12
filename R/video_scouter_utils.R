@@ -330,7 +330,11 @@ update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target
 
 ## transfer selected skill details from the `from` row to the `to` row
 ## each of `from` and `to` should be a one-row tibble, as from rally_codes(), or from plays2
-transfer_scout_row_details <- function(from, to, tempo = TRUE, num_p = TRUE, dvw) {
+## The details transferred are somewhat conservative. We could in principle adjust skill evaluations according to the
+#    compound skills table (so if e.g. the scout started with A+ D- and changed the D to D+, we could automatically adjust the A to A-)
+## But it seems like this is a risk that the auto-correction will override something that the scout is trying to do (that does not
+##   match the compound skills table). So left for now as something to think about TODO
+transfer_scout_row_details <- function(from, to, tempo = TRUE, num_p = TRUE, pos = TRUE, eval = FALSE, dvw) {
     if ("rally_codes" %in% names(from) && "rally_codes" %in% names(to)) {
         ## we have been given a row from the plays2 data.frame
         ## call this function again with the rally_codes from those rows
@@ -343,19 +347,36 @@ transfer_scout_row_details <- function(from, to, tempo = TRUE, num_p = TRUE, dvw
         to
     } else {
         ## we've been given a row from rally_codes
-        #cat(str(from))
-        #cat(str(to))
         if (tempo) {
-            if ((from$skill %eq% "A" && to$skill %eq% "E" && from$team %eq% to$team) ||
+            ## make e.g. set tempo match attack tempo, dig tempo match attack tempo
+            ## not yet allowing dig tempo to change the preceding attack or set tempo, that will need to disambiguate the
+            ## set-attack-(block)-dig from the same dig in a subsequent dig-set-attack sequence
+            if (((from$skill %eq% "A" && to$skill %eq% "E" || (from$skill %eq% "E" && to$skill %eq% "A")) && from$team %eq% to$team) ||
                 (from$skill %eq% "S" && to$skill %eq% "R") || (from$skill %eq% "R" && to$skill %eq% "S") ||
                 (from$skill %eq% "A" && to$skill %in% c("B", "D") && from$team %neq% to$team) ||
-                (from$skill %eq% "B" && to$skill %eq% "D" && from$team %eq% to$team)) {
-                ## make e.g. set tempo match attack tempo, dig tempo match attack tempo
+                (from$skill %eq% "B" && to$skill %in% c("A", "D") && from$team %eq% to$team)) {
                 to$tempo <- from$tempo
             }
         }
         if (num_p) {
-            if (from$skill %eq% "A" && to$skill %eq% "B" && from$team %neq% to$team) to$num_p <- from$num_p
+            if (((from$skill %eq% "A" && to$skill %eq% "B") || (from$skill %eq% "B" && to$skill %eq% "A")) && from$team %neq% to$team) {
+                to$num_p <- from$num_p
+            }
+        }
+        if (pos) {
+            if ((from$skill %eq% "S" && to$skill %eq% "R") || (from$skill %eq% "R" && to$skill %eq% "S")) {
+                to$start_zone <- from$start_zone
+                to$end_zone <- from$end_zone
+                to$end_subzone <- from$end_subzone
+            }
+            ## dig location could in principle come from attack end location but that depends on whether the file is using zones or cones
+            ##  and also whether the scout is scouting attacks with intended direction (end zone) or actual (after deflection off block)
+            ##  so leave for now
+        }
+        if (eval) {
+            ## match e.g. serve quality to reception
+            ## but see note above
+            warning("evaluation transfer not yet enabled")
         }
         to
     }
