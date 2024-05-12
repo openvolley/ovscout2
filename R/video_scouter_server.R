@@ -223,7 +223,7 @@ ov_scouter_server <- function(app_data) {
         ## handle court module home team buttons
         ## note that these should only be available to the user if there is not a rally in progress
         observeEvent(court_inset$rotate_home(), do_rotate("home"))
-        observeEvent(court_inset$timeout_home(), handle_manual_code("*T"))
+        observeEvent(court_inset$timeout_home(), handle_non_skill_code("*T"))
         observeEvent(court_inset$p1pt_home(), {
             game_state$home_score_start_of_point <- max(0L, game_state$home_score_start_of_point + 1L) ## max not strictly necessary here
         })
@@ -233,7 +233,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(court_inset$substitution_home(), show_substitution_pane("*c"))
         ## visiting team buttons
         observeEvent(court_inset$rotate_visiting(), do_rotate("visiting"))
-        observeEvent(court_inset$timeout_visiting(), handle_manual_code("aT"))
+        observeEvent(court_inset$timeout_visiting(), handle_non_skill_code("aT"))
         observeEvent(court_inset$p1pt_visiting(), {
             game_state$visiting_score_start_of_point <- max(0L, game_state$visiting_score_start_of_point + 1L) ## max not strictly necessary here
         })
@@ -865,20 +865,14 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$undoType, do_undo())
 
         observeEvent(input$pt_home, {
-            ##res <- handle_manual_code("*p", process_rally_end = FALSE)
-            ##apply_rally_review() #review_rally()
             ## add this to the end of whatever is in the scout bar (which might be empty) and process the lot
             dojs(paste0("Shiny.setInputValue('scout_input_leftovers', scout_in_el.val() + ' *p', { priority: 'event' });"))
         })
 
         observeEvent(input$pt_away, {
-            ##res <- handle_manual_code("ap", process_rally_end = FALSE)
-            ##apply_rally_review() # review_rally()
             ## add this to the end of whatever is in the scout bar (which might be empty) and process the lot
             dojs(paste0("Shiny.setInputValue('scout_input_leftovers', scout_in_el.val() + ' ap', { priority: 'event' });"))
         })
-
-##        observeEvent(input$scout_input_times, print(get_scout_input_times(input)))
 
         handle_scout_codes <- function(codes) {
             ## split on spaces
@@ -894,14 +888,14 @@ ov_scouter_server <- function(app_data) {
                 if (grepl("^(>|\\*T|aT|\\*p|ap|\\*c|ac)", code) || ## timeout, point assignment, sub
                     grepl("^[a\\*]C[[:digit:]]+[:\\.][[:digit:]]+", code) || ## substitution ensuring it can't be an attack combo code
                     (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(game_state$rally_started))) { ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
-                    res <- handle_manual_code(code, process_rally_end = FALSE) ## FALSE so that this does not automatically handle end-of-rally ap, *p codes
+                    res <- handle_non_skill_code(code, process_rally_end = FALSE) ## FALSE so that this does not automatically handle end-of-rally ap, *p codes
                     if (code %in% c("*p", "ap")) {
                         review_rally()
                     }
                     if (!res$ok) {
                         ## TODO something
                     } else if (isTRUE(res$end_of_set)) {
-                        ## handle_manual_code will have called rally_ended if appropriate, which also detects end of set (shows the modal to confirm)
+                        ## handle_non_skill_code will have called rally_ended if appropriate, which also detects end of set (shows the modal to confirm)
                         ## what else needs to happen? TODO
                     }
                 } else if (grepl("^[a\\*]?S$", code)) {
@@ -3249,7 +3243,7 @@ ov_scouter_server <- function(app_data) {
         )
 
         observeEvent(input$manual_code, {
-            res <- handle_manual_code(input$manual_code)
+            res <- handle_non_skill_code(input$manual_code)
             if (res$ok) {
                 editing$active <- NULL
                 if (!res$end_of_set) {
@@ -3260,7 +3254,8 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
-        handle_manual_code <- function(code, process_rally_end = TRUE) {
+        ## deals with non-skill codes entered manually, or the same codes sent via buttons
+        handle_non_skill_code <- function(code, process_rally_end = TRUE) {
             ok <- TRUE
             end_of_set <- FALSE
             if (!is.null(code)) {
@@ -3332,12 +3327,6 @@ ov_scouter_server <- function(app_data) {
 ##            ##  ..$ : chr "tmp"
 ##            ## $ root: chr "root"
 ##        })
-
-##        observe({
-##            cat("game_state:\n")
-##            cat(str(reactiveValuesToList(game_state)))
-##        })
-
 
         sc_to_edit <- reactiveVal(NULL)
         sc_newvalue <- reactiveVal(NULL)
