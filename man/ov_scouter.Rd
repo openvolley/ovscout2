@@ -21,7 +21,7 @@ ov_scouter(
   app_styling = ov_app_styling(),
   click_shortcuts = ov_default_click_shortcuts(),
   type_shortcuts = ov_default_type_shortcuts(),
-  playstable_shortcuts = ov_default_playstable_shortcuts(scout_mode),
+  playstable_shortcuts = ov_default_playstable_shortcuts(),
   key_remapping = ov_default_key_remapping(scout_mode),
   scout_name = "",
   show_courtref = FALSE,

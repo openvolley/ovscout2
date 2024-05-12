@@ -10,7 +10,7 @@ ov_default_click_shortcuts()
 
 ov_default_type_shortcuts()
 
-ov_default_playstable_shortcuts(scout_mode = "click")
+ov_default_playstable_shortcuts()
 }
 \value{
 A named list

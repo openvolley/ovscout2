@@ -105,7 +105,7 @@ end_zone_helper <- function(skill, evaln, dvw) {
 
 ## team helper that shows team names
 team_helper <- function(dvw) {
-    mu2html(paste0("{Team}---[*]&nbsp;", home_team(dvw), "|[a]&nbsp;", visiting_team(dvw)))
+    mu2html(paste0("{Team}---[*]&nbsp;", datavolley::home_team(dvw), "|[a]&nbsp;", datavolley::visiting_team(dvw)))
 }
 
 ## player number helper that shows player numbers and names depending on the team chosen

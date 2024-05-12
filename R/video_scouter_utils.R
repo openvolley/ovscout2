@@ -1273,11 +1273,6 @@ do_video_inner <- function(what, ..., video_state, rally_state, app_data, sessio
             dojs(paste0(getel, ".currentTime(", getel, ".currentTime() + ", myargs[[1]], ");"))
         } else if (what == "playback_rate") {
             dojs(paste0(getel, ".playbackRate(", myargs[[1]], ");"))
-        } else if (what == "playback_rate_faster") {
-            ## update the slider, and the observer will see it and send the video command
-            if (!is.null(input$playback_rate) && !is.na(input$playback_rate)) updateSliderInput(session, "playback_rate", value = input$playback_rate + 0.1)
-        } else if (what == "playback_rate_slower") {
-            if (!is.null(input$playback_rate) && !is.na(input$playback_rate) && isTRUE(input$playback_rate > 0.1)) updateSliderInput(session, "playback_rate", value = max(input$playback_rate - 0.1, 0.1, na.rm = TRUE))
         } else if (what == "get_volume") {
             dojs(paste0(getel, ".volume();"))
         } else if (what == "set_volume") {
@@ -1314,12 +1309,15 @@ do_video_inner <- function(what, ..., video_state, rally_state, app_data, sessio
 
 ## save to ovs file. game_state only needed if was_session_end is TRUE
 save_to_ovs <- function(rdata, app_data, courtref1, courtref2, game_state, was_session_end = FALSE) {
-    ovs_ok <- FALSE
+    msg <- NULL
+    ok <- FALSE
+    tf <- character()
     isolate({
         if (app_data$run_env %eq% "shiny_local") {
             ## this only makes sense if running locally, not deployed on a server
             tf <- tempfile(tmpdir = file.path(app_data$user_dir, "autosave"), pattern = "ovscout2-", fileext = ".ovs")
-            try({
+            msg <- tryCatch({
+                msgi <- NULL
                 temp <- rdata$dvw
                 temp$scouting_options <- rdata$options
                 if (was_session_end) {
@@ -1332,9 +1330,20 @@ save_to_ovs <- function(rdata, app_data, courtref1, courtref2, game_state, was_s
                 if (!is.null(courtref2$court_ref) && "video_src2" %in% names(app_data) && !is.na(app_data$video_src2) && nzchar(app_data$video_src2)) dr[[app_data$video_src2]] <- courtref2
                 temp$detection_refs <- dr
                 saveRDS(temp, file = tf)
-                ovs_ok <- file.exists(tf) && file.size(tf) > 0
-            }, silent = TRUE)
+                if (!(file.exists(tf) && file.size(tf) > 0)) msgi <- "could not save file"
+                if (was_session_end) {
+                    if (!is.null(msgi)) {
+                        message("working file has been saved to: ", tf)
+                    } else {
+                        message("could not save working file on exit")
+                    }
+                }
+                msgi
+            }, error = function(e) {
+                if (was_session_end) message("could not save working file on exit (error message was: ", conditionMessage(e))
+                conditionMessage(e)
+            })
         }
     })
-    ovs_ok
+    list(ok = is.null(msg), filename = tf, error_message = msg)
 }

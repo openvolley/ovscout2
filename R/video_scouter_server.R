@@ -717,9 +717,10 @@ ov_scouter_server <- function(app_data) {
                             ## player contact with the ball
                             do_contact()
                         } else if (ky %in% app_data$shortcuts$video_faster) {
-                            do_video("playback_rate_faster")
+                            ## update the slider, and the observer will see it and send the video command
+                            if (!is.null(input$playback_rate) && !is.na(input$playback_rate)) updateSliderInput(session, "playback_rate", value = input$playback_rate + 0.1)
                         } else if (ky %in% app_data$shortcuts$video_slower) {
-                            do_video("playback_rate_slower")
+                            if (!is.null(input$playback_rate) && !is.na(input$playback_rate) && isTRUE(input$playback_rate > 0.1)) updateSliderInput(session, "playback_rate", value = max(input$playback_rate - 0.1, 0.1, na.rm = TRUE))
                         } else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)", names(app_data$shortcuts))])) {
                             if (is.null(editing$active)) {
                                 ## video forward/backward nav
@@ -1090,7 +1091,8 @@ ov_scouter_server <- function(app_data) {
             ## save prefs
             ## TODO load the shortcuts components and just re-save them?
             tryCatch({
-                saveRDS(list(app_prefs = thisprefs, click_shortcuts = this_click_sc, type_shortcuts = this_type_sc, playstable_shortcuts = this_pl_sc),
+                saveRDS(list(app_prefs = thisprefs##, click_shortcuts = this_click_sc, type_shortcuts = this_type_sc, playstable_shortcuts = this_pl_sc
+                             ),
                         file = app_data$options_file)
             }, error = function(e) warning("could not save preferences to file"))
             ## transfer to active prefs object
@@ -3282,8 +3284,8 @@ ov_scouter_server <- function(app_data) {
                     ## so might not be able to do this
                     dv_write2(update_meta(rp2(rdata$dvw)), file = file)
                 }, error = function(e) {
-                    ovs_ok <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())
-                    show_save_error_modal(msg = conditionMessage(e), ovs_ok = ovs_ok, tempfile_name = tf)
+                    temp <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())
+                    show_save_error_modal(msg = temp$error_message, ovs_ok = temp$ok, tempfile_name = temp$filename)
                     NULL
                 })
             }
@@ -3308,8 +3310,8 @@ ov_scouter_server <- function(app_data) {
                     out$detection_refs <- dr
                     saveRDS(out, file)
                 }, error = function(e) {
-                    ovs_ok <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())
-                    show_save_error_modal(msg = conditionMessage(e), ovs_ok = ovs_ok, tempfile_name = tf)
+                    temp <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())
+                    show_save_error_modal(msg = temp$error_message, ovs_ok = temp$ok, tempfile_name = temp$filename)
                     NULL
                 })
             }
@@ -3317,14 +3319,9 @@ ov_scouter_server <- function(app_data) {
 
         ## disaster recovery
         shiny::onSessionEnded(function() {
-            ovs_ok <- tryCatch({
+            try({
                 save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2(), game_state = game_state, was_session_end = TRUE)
-            }, error = function(e) FALSE)
-            if (ovs_ok) {
-                message("working file has been saved to: ", tf)
-            } else {
-                message("could not save working file on exit (error message was: ", conditionMessage(e))
-            }
+            })
         })
         ## seek to video time on startup
         if ("video_time" %in% names(app_data$dvw$plays2) && nrow(app_data$dvw$plays2) > 0) {

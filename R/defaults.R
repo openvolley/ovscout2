@@ -216,8 +216,8 @@ ov_default_shortcuts <- function(scout_mode = "click") {
 
 #' @rdname ov_default_click_shortcuts
 #' @export
-ov_default_playstable_shortcuts <- function(scout_mode = "click") {
-    ## currently same default shortcuts regardless of scout mode
+ov_default_playstable_shortcuts <- function() {
+    ## same default shortcuts regardless of scout mode
     ## shortcuts here can use modifier keys: Ctrl-x is ctrl and x, ditto Alt-x, Meta-x, Shift-x
     ## NOTE that the actual key should be lower case here (not the modifiers Ctrl-, Alt-, Shift-, or Meta-)
     list(edit_code = "enter",
