@@ -224,14 +224,22 @@ ov_scouter_server <- function(app_data) {
         ## note that these should only be available to the user if there is not a rally in progress
         observeEvent(court_inset$rotate_home(), do_rotate("home"))
         observeEvent(court_inset$timeout_home(), handle_manual_code("*T"))
-        observeEvent(court_inset$p1pt_home(), adjust_scores(home_team_by = 1L))
-        observeEvent(court_inset$m1pt_home(), adjust_scores(home_team_by = -1L))
+        observeEvent(court_inset$p1pt_home(), {
+            game_state$home_score_start_of_point <- max(0L, game_state$home_score_start_of_point + 1L) ## max not strictly necessary here
+        })
+        observeEvent(court_inset$m1pt_home(), {
+            game_state$home_score_start_of_point <- max(0L, game_state$home_score_start_of_point - 1L)
+        })
         observeEvent(court_inset$substitution_home(), show_substitution_pane("*c"))
         ## visiting team buttons
         observeEvent(court_inset$rotate_visiting(), do_rotate("visiting"))
         observeEvent(court_inset$timeout_visiting(), handle_manual_code("aT"))
-        observeEvent(court_inset$p1pt_visiting(), adjust_scores(visiting_team_by = 1L))
-        observeEvent(court_inset$m1pt_visiting(), adjust_scores(visiting_team_by = -1L))
+        observeEvent(court_inset$p1pt_visiting(), {
+            game_state$visiting_score_start_of_point <- max(0L, game_state$visiting_score_start_of_point + 1L) ## max not strictly necessary here
+        })
+        observeEvent(court_inset$m1pt_visiting(), {
+            game_state$visiting_score_start_of_point <- max(0L, game_state$visiting_score_start_of_point - 1L)
+        })
         observeEvent(court_inset$substitution_visiting(), show_substitution_pane("ac"))
 
         teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata, two_cols = app_data$scout_mode != "type")
@@ -3432,16 +3440,6 @@ ov_scouter_server <- function(app_data) {
             for (i in pseq) game_state[[paste0(tm, "_p", i)]] <- temp[i]
             poscode <- paste0(hv, "z", game_state[[paste0(tm, "_setter_position")]])
             rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw)))
-        }
-
-        adjust_scores <- function(home_team_by = 0L, visiting_team_by = 0L) {
-            scores <- c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point)
-            if ((isTRUE(home_team_by < 0 && scores[1] >= -home_team_by)) || (isTRUE(home_team_by > 0))) {
-                game_state$home_score_start_of_point <- scores[1] + home_team_by
-            }
-            if ((isTRUE(visiting_team_by < 0 && scores[2] >= -visiting_team_by)) || (isTRUE(visiting_team_by > 0))) {
-                game_state$visiting_score_start_of_point <- scores[2] + visiting_team_by
-            }
         }
     }
 }
