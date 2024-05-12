@@ -1224,6 +1224,94 @@ get_video_source_type <- function(src, base_url) {
     list(src = src, type = type)
 }
 
+## video functions
+## return value can take various forms (all returned invisibly):
+## - if we are running without video: NULL
+## - for "pause", "play", or "toggle_pause": the pause state after executing the command (logical)
+## - for "mute", "unmute", "toggle_mute", or "muted": the mute state (logical)
+## - for everything else: NULL
+do_video_inner <- function(what, ..., video_state, rally_state, app_data, session, id = "main_video") {
+    if (!app_data$with_video) return(invisible(NULL))
+    getel <- "vidplayer"
+    myargs <- list(...)
+    invisible({
+        if (what == "pause") {
+            dojs(paste0(getel, ".pause(); pause_on_type = 0;")) ## disable, otherwise it will unpause the video after a keypress
+            video_state$paused <- TRUE
+            if (rally_state() == "click serve start") rally_state(app_data$click_to_start_msg)
+            TRUE ## paused state
+        } else if (what == "play") {
+            dojs(paste0(getel, ".play(); pause_on_type = ", app_data$pause_on_type, ";")) ## re-enable, it would have been disabled while the modal was showing
+            video_state$paused <- FALSE
+            if (rally_state() == app_data$click_to_start_msg) rally_state("click serve start")
+            FALSE ## not paused state
+        } else if (what == "toggle_pause") {
+            ## careful using this, because there are situations where we don't want to allow unpausing - see deal_with_pause()
+            if (video_state$paused) {
+                dojs(paste0(getel, ".play(); pause_on_type = 0;"))
+                video_state$paused <- FALSE
+                if (rally_state() == app_data$click_to_start_msg) rally_state("click serve start")
+                FALSE
+            } else {
+                dojs(paste0(getel, ".pause(); pause_on_type = ", app_data$pause_on_type, ";"))
+                video_state$paused <- TRUE
+                TRUE
+            }
+        } else if (what == "get_time") {
+            dojs(paste0("Shiny.setInputValue('video_time', ", getel, ".currentTime())"))
+        } else if (what == "get_time_fid") {
+            dojs(paste0("Shiny.setInputValue('video_time', ", getel, ".currentTime() + '&", myargs[[1]], "')"))
+        } else if (what == "set_time") {
+            dojs(paste0(getel, ".currentTime(", myargs[[1]], ");"))
+        } else if (what == "set_current_video_time") {
+            dojs(paste0("Shiny.setInputValue('set_current_video_time', ", getel, ".currentTime() + '&", myargs[1], "&' + new Date().getTime())"))
+        } else if (what == "tag_current_video_time") {
+            dojs(paste0("Shiny.setInputValue('tag_current_video_time', ", getel, ".currentTime() + '&", myargs[1], "')"))
+        } else if (what == "rew") {
+            dojs(paste0(getel, ".currentTime(", getel, ".currentTime() - ", myargs[[1]], ");"))
+        } else if (what == "ff") {
+            dojs(paste0(getel, ".currentTime(", getel, ".currentTime() + ", myargs[[1]], ");"))
+        } else if (what == "playback_rate") {
+            dojs(paste0(getel, ".playbackRate(", myargs[[1]], ");"))
+        } else if (what == "playback_rate_faster") {
+            ## update the slider, and the observer will see it and send the video command
+            if (!is.null(input$playback_rate) && !is.na(input$playback_rate)) updateSliderInput(session, "playback_rate", value = input$playback_rate + 0.1)
+        } else if (what == "playback_rate_slower") {
+            if (!is.null(input$playback_rate) && !is.na(input$playback_rate) && isTRUE(input$playback_rate > 0.1)) updateSliderInput(session, "playback_rate", value = max(input$playback_rate - 0.1, 0.1, na.rm = TRUE))
+        } else if (what == "get_volume") {
+            dojs(paste0(getel, ".volume();"))
+        } else if (what == "set_volume") {
+            dojs(paste0(getel, ".volume(", myargs[[1]], ");"))
+        } else if (what == "mute") {
+            dojs(paste0(getel, ".muted(true);"))
+            video_state$muted <- TRUE
+            TRUE ## mute state
+        } else if (what == "unmute") {
+            dojs(paste0(getel, ".muted(false);"))
+            video_state$muted <- FALSE
+            FALSE ## mute state
+        } else if (what == "muted") {
+            video_state$muted
+        } else if (what == "toggle_mute") {
+            if (video_state$muted) {
+                shiny::updateActionButton(session, "video_toggle_mute", label = "Mute")
+                ##do_video("unmute")
+                dojs(paste0(getel, ".muted(false);"))
+                video_state$muted <- FALSE
+                FALSE ## mute state
+            } else {
+                shiny::updateActionButton(session, "video_toggle_mute", label = "Unmute")
+                ##do_video("mute")
+                dojs(paste0(getel, ".muted(true);"))
+                video_state$muted <- TRUE
+                TRUE ## mute state
+            }
+        } else {
+            NULL
+        }
+    })
+}
+
 ## save to ovs file. game_state only needed if was_session_end is TRUE
 save_to_ovs <- function(rdata, app_data, courtref1, courtref2, game_state, was_session_end = FALSE) {
     ovs_ok <- FALSE

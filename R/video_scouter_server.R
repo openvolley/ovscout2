@@ -173,8 +173,8 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## initialize the game state
-        .click_to_start_msg <- paste0(if (app_data$scout_mode != "type") "click or ", "unpause the video to start") ## this is a bit unnecessary since the rally state message isn't shown in type mode
-        rally_state <- reactiveVal(.click_to_start_msg)
+        app_data$click_to_start_msg <- paste0(if (app_data$scout_mode != "type") "click or ", "unpause the video to start") ## this is a bit unnecessary since the rally state message isn't shown in type mode
+        rally_state <- reactiveVal(app_data$click_to_start_msg)
         rally_codes <- reactiveVal(empty_rally_codes)
         if ("game_state" %in% names(app_data$dvw) && !is.null(app_data$dvw$game_state)) {
             ## saved as an rds, so re-use this
@@ -257,76 +257,8 @@ ov_scouter_server <- function(app_data) {
         video_state <- reactiveValues(paused = TRUE, muted = TRUE) ## starts paused and muted
         editing <- reactiveValues(active = NULL)
 
-        ## video functions
-        do_video <- function(what, ..., id = "main_video") {
-            if (!app_data$with_video) return(NULL)
-            getel <- "vidplayer"
-            myargs <- list(...)
-            if (what == "pause") {
-                dojs(paste0(getel, ".pause(); pause_on_type = 0;")) ## disable, otherwise it will unpause the video after a keypress
-                video_state$paused <- TRUE
-                if (rally_state() == "click serve start") rally_state(.click_to_start_msg)
-                NULL
-            } else if (what == "play") {
-                dojs(paste0(getel, ".play(); pause_on_type = ", app_data$pause_on_type, ";")) ## re-enable, it would have been disabled while the modal was showing
-                video_state$paused <- FALSE
-                if (rally_state() == .click_to_start_msg) rally_state("click serve start")
-            } else if (what == "toggle_pause") {
-                ## careful using this, because there are situations where we don't want to allow unpausing - see deal_with_pause()
-                if (video_state$paused) {
-                    dojs(paste0(getel, ".play(); pause_on_type = 0;"))
-                    video_state$paused <- FALSE
-                    if (rally_state() == .click_to_start_msg) rally_state("click serve start")
-                } else {
-                    dojs(paste0(getel, ".pause(); pause_on_type = ", app_data$pause_on_type, ";"))
-                    video_state$paused <- TRUE
-                }
-                NULL
-            } else if (what == "get_time") {
-                dojs(paste0("Shiny.setInputValue('video_time', ", getel, ".currentTime())"))
-            } else if (what == "get_time_fid") {
-                dojs(paste0("Shiny.setInputValue('video_time', ", getel, ".currentTime() + '&", myargs[[1]], "')"))
-            } else if (what == "set_time") {
-                dojs(paste0(getel, ".currentTime(", myargs[[1]], ");"))
-            } else if (what == "set_current_video_time") {
-                dojs(paste0("Shiny.setInputValue('set_current_video_time', ", getel, ".currentTime() + '&", myargs[1], "&' + new Date().getTime())"))
-            } else if (what == "tag_current_video_time") {
-                dojs(paste0("Shiny.setInputValue('tag_current_video_time', ", getel, ".currentTime() + '&", myargs[1], "')"))
-            } else if (what == "rew") {
-                dojs(paste0(getel, ".currentTime(", getel, ".currentTime() - ", myargs[[1]], ");"))
-            } else if (what == "ff") {
-                dojs(paste0(getel, ".currentTime(", getel, ".currentTime() + ", myargs[[1]], ");"))
-            } else if (what == "playback_rate") {
-                dojs(paste0(getel, ".playbackRate(", myargs[[1]], ");"))
-            } else if (what == "playback_rate_faster") {
-                ## update the slider, and the observer will see it and send the video command
-                if (!is.null(input$playback_rate) && !is.na(input$playback_rate)) updateSliderInput(session, "playback_rate", value = input$playback_rate + 0.1)
-            } else if (what == "playback_rate_slower") {
-                if (!is.null(input$playback_rate) && !is.na(input$playback_rate) && isTRUE(input$playback_rate > 0.1)) updateSliderInput(session, "playback_rate", value = max(input$playback_rate - 0.1, 0.1, na.rm = TRUE))
-            } else if (what == "get_volume") {
-                dojs(paste0(getel, ".volume();"))
-            } else if (what == "set_volume") {
-                dojs(paste0(getel, ".volume(", myargs[[1]], ");"))
-            } else if (what == "mute") {
-                dojs(paste0(getel, ".muted(true);"))
-                video_state$muted <- TRUE
-            } else if (what == "unmute") {
-                dojs(paste0(getel, ".muted(false);"))
-                video_state$muted <- FALSE
-            } else if (what == "muted") {
-                video_state$muted
-            } else if (what == "toggle_mute") {
-                if (video_state$muted) {
-                    shiny::updateActionButton(session, "video_toggle_mute", label = "Mute")
-                    do_video("unmute")
-                } else {
-                    shiny::updateActionButton(session, "video_toggle_mute", label = "Unmute")
-                    do_video("mute")
-                }
-            } else {
-                NULL
-            }
-        }
+        ## video function shortcut
+        do_video <- function(...) do_video_inner(..., video_state = video_state, rally_state = rally_state, app_data = app_data, session = session)
 
         observeEvent(input$playback_rate, {
             if (!is.null(input$playback_rate)) do_video("playback_rate", input$playback_rate)
@@ -356,6 +288,8 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$edit_commit, {
             do_edit_commit()
         })
+
+        ## this is a workaround to deal with input values not being updated in time if the user presses Enter quickly while editing codes (in e.g. manual code entry)
         observeEvent(input$code_entries, {
             req(input$code_entries)
             ##cat("ces:", capture.output(str(input$code_entries)), "\n")
@@ -369,6 +303,7 @@ ov_scouter_server <- function(app_data) {
             }), collapse = "")
             do_edit_commit(nc1, nc2)
         })
+
         get_current_rally_code <- function() {
             tryCatch({
                 ridx <- playslist_mod$current_row()
@@ -616,7 +551,7 @@ ov_scouter_server <- function(app_data) {
                              tags$p("Scouting cannot start until this information has been entered.")
                              )
                 } else {
-                    if (rally_state() == "fix required information before scouting can begin") rally_state(if (video_state$paused) .click_to_start_msg else "click serve start")
+                    if (rally_state() == "fix required information before scouting can begin") rally_state(if (video_state$paused) app_data$click_to_start_msg else "click serve start")
                     NULL
                 }
             })
@@ -1320,7 +1255,7 @@ ov_scouter_server <- function(app_data) {
                 warning("invalid click time\n")
                 do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
             }
-            if (rally_state() != .click_to_start_msg) courtxy(vid_to_crt(this_click))
+            if (rally_state() != app_data$click_to_start_msg) courtxy(vid_to_crt(this_click))
             loop_trigger(loop_trigger() + 1L)
             ## 6th element of input$video_click gives status of shift key during click
             shiftclick <- (length(input$video_click) > 5) && isTRUE(input$video_click[6] > 0)
@@ -1464,7 +1399,7 @@ ov_scouter_server <- function(app_data) {
         process_action <- function(was_shift_click = FALSE) {
             if (app_data$scout_mode == "type") return(process_action_type_mode(was_shift_click = was_shift_click))
             if (loop_trigger() > 0 && rally_state() != "fix required information before scouting can begin") {
-                if (rally_state() == .click_to_start_msg) {
+                if (rally_state() == app_data$click_to_start_msg) {
                     if (meta_is_valid()) {
                         do_video("play")
                         rally_state("click serve start")
