@@ -467,7 +467,7 @@ ov_scouter_server <- function(app_data) {
                                 rcidx <- nrow(rdata$dvw$plays2) - insert_ridx
                                 rc <- bind_rows(rc[seq_len(rcidx - 1L), ], newrc, rc[rcidx:nrow(rc), ])
                                 ## update surrounding rows and update rally_codes()
-                                rally_codes(transfer_scout_details(from_row = newcrc, to_df = rc, row_idx = rcidx, dvw = rdata$dvw))
+                                rally_codes(transfer_scout_details(from_row = newrc, to_df = rc, row_idx = rcidx, dvw = rdata$dvw))
                             }
                         }
                     }
