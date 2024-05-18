@@ -222,6 +222,8 @@ ov_scouter_server <- function(app_data) {
         })
         tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata, styling = app_data$styling, visible = reactive(prefs$scoreboard))
 
+        have_asked_end_of_set <- reactiveVal(FALSE) ## only ask once per set: if the user says no, then don't keep popping the modal up after every point (it's perhaps a drill or training scrimmage)
+
         playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show,
                                     plays_cols_renames = plays_cols_renames, display_option = reactive(prefs$playlist_display_option))
 
@@ -1474,7 +1476,7 @@ ov_scouter_server <- function(app_data) {
                           } else {
                               ((max(scores) >= 25 && game_state$set_number < 5) || (max(scores) >= 15 && game_state$set_number == 5)) && abs(diff(scores)) >= 2
                           }
-            if (end_of_set) {
+            if (end_of_set && !have_asked_end_of_set()) {
                 show_scout_modal(
                     vwModalDialog(title = "End of set", footer = NULL, width = scout_modal_width, modal_halign = "left",
                                   paste0("Confirm end of set ", game_state$set_number, "?"),
@@ -1484,6 +1486,7 @@ ov_scouter_server <- function(app_data) {
                                   ), with_review_pane = FALSE)
                 do_video("pause")
                 rally_state("confirm end of set")
+                have_asked_end_of_set(TRUE)
             }
             end_of_set
         }
@@ -1693,6 +1696,7 @@ ov_scouter_server <- function(app_data) {
             rdata$dvw <- update_meta(rp2(rdata$dvw))
             remove_scout_modal()
             rally_state("click serve start")
+            have_asked_end_of_set(FALSE) ## reset
         })
         observeEvent(input$end_of_set_cancel, {
             do_video("play")
