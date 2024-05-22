@@ -10,6 +10,7 @@ ov_scouting_options(
   default_nblockers = NA,
   transition_sets = FALSE,
   attacks_by = "codes",
+  zones_cones = "Z",
   team_system = "SHM3",
   setter_dump_code = "PP",
   second_ball_attack_code = "P2",
@@ -29,6 +30,8 @@ ov_scouting_options(
 \item{transition_sets}{logical: scout sets in transition? If \code{FALSE}, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted}
 
 \item{attacks_by}{string: "codes" (X5, V5, etc) or "tempo" (high, medium, quick)}
+
+\item{zones_cones}{string: record attack directions as "Z"ones or "C"ones}
 
 \item{team_system}{string: the assumed system that teams are using to assign e.g. passing and hitting responsibilities
 \itemize{

@@ -601,7 +601,7 @@ mod_match_data_edit <- function(input, output, session, rdata, editing, styling)
                          fluidRow(column(4, textInput(ns("match_edit_day_number"), "Day number:", value = rdata$dvw$meta$match$day_number)),
                                   column(4, textInput(ns("match_edit_match_number"), "Match number:", value = rdata$dvw$meta$match$match_number)),
                                   ##column(2, shiny::selectInput("match_edit_regulation", "Regulation:", choices = c("indoor sideout", "indoor rally point", "beach rally point"), selected = rdata$dvw$meta$match$regulation)),
-                                  column(4, shiny::selectInput(ns("match_edit_zones_or_cones"), "Zones or cones:", choices = c("C", "Z"), selected = rdata$dvw$meta$match$zones_or_cones))),
+                                  column(4, shiny::selectInput(ns("match_edit_zones_or_cones"), "Zones or cones:", choices = c(Cones = "C", Zones = "Z"), selected = rdata$dvw$meta$match$zones_or_cones))),
                          fluidRow(column(4, textInput(ns("more_edit_scout"), label = "Scout:", value = rdata$dvw$meta$more$scout)),
                                   column(4, textInput(ns("edit_comments1"), label = "Comments:", value = if (ncol(rdata$dvw$meta$comments) > 0) na2mt(rdata$dvw$meta$comments[[1]]) else ""),
                                          textInput(ns("edit_comments2"), label = NULL, value = if (ncol(rdata$dvw$meta$comments) > 1) na2mt(rdata$dvw$meta$comments[[2]]) else ""),

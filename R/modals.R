@@ -129,6 +129,10 @@ show_prefcuts_modal <- function(prefs, opts) {
                                      column(3, selectInput("prefs_playlist_display_option", "Plays list style", choices = c("Scouted codes" = "dv_codes", "Commentary style" = "commentary"), selected = prefs$playlist_display_option)),
                                      column(3, checkboxInput("prefs_review_pane", "Show review pane (video loop) in popups?", value = prefs$review_pane)))
                             ),
+                   tabPanel(tags$strong("Common scouting conventions"),
+                            tags$hr(), tags$br(), tags$p("These conventions apply when scouting in both \"click\" and \"type\" mode."), tags$hr(),
+                            fluidRow(column(3, selectInput("scopts_zones_cones", tags$span(title = HTML("Are attack directions being recorded as zones or cones?<br />If you want to change the current match settings without changing your preferences, you can do this via the 'Edit match data' button."), "Attack directions by zones or cones:", icon("question-circle")), choices = c(Cones = "C", Zones = "Z"), selected = opts$zones_cones)))
+                            ),
                    tabPanel(tags$strong("'Click' scouting conventions"),
                             tags$hr(), tags$br(), tags$p("These conventions apply when scouting in \"click\" mode (not typing mode). Warning: changing scouting conventions once a match is already partially-scouted could lead to inconsistent files."),
                             tags$hr(),

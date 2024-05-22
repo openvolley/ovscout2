@@ -1105,6 +1105,7 @@ ov_scouter_server <- function(app_data) {
                               default_nblockers = as.numeric(input$scopts_default_nblockers),
                               transition_sets = input$scopts_transition_sets,
                               attacks_by = input$scopts_attacks_by,
+                              zones_cones = input$scopts_zones_cones,
                               team_system = input$scopts_team_system,
                               setter_dump_code = if (nzchar(input$scopts_setter_dump_code)) input$scopts_setter_dump_code else ov_scouting_options()$setter_dump_code,
                               second_ball_attack_code = if (nzchar(input$scopts_second_ball_attack_code)) input$scopts_second_ball_attack_code else ov_scouting_options()$second_ball_attack_code,
@@ -1126,8 +1127,9 @@ ov_scouter_server <- function(app_data) {
             ## apply any that require immediate action
             if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- prefs$scout_name
 
-            ## apply scouting opts
-            ## NOTE these are not saved, just applied - TODO?
+            ## save scouting options
+            tryCatch({ saveRDS(this_opts, file = app_data$scouting_options_file) }, error = function(e) warning("could not save scouting convention preferences to file"))
+            ## apply
             for (nm in names(this_opts)) rdata$options[[nm]] <- this_opts[[nm]]
 
             editing$active <- NULL

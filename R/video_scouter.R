@@ -171,10 +171,12 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
             dvw <- NULL
         }
     }
+    dvw_from_empty <- FALSE ## if we start from an empty one, user-saved preferences will override things in this file, otherwise they won't
     if (is.null(dvw)) {
         ## default to an empty one
         suppressWarnings(dvw <- dv_create(teams = c("Home team", "Visiting team"))) ## don't warn about empty rosters
         dvw$meta$match$date <- Sys.Date() ## use today's date, so that at least we have a date
+        dvw_from_empty <- TRUE
     } else {
         if (!inherits(dvw, "datavolley")) stop("dvw should be a datavolley object or the path to a .dvw or .ovs file")
     }
@@ -269,19 +271,32 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         }
     }
 
-    ## sort out scouting options
+    ## sort out scouting options (conventions)
     ## start with defaults
     opts <- ov_scouting_options()
-    ## override with scouting options from the saved dvw, if it has them
-    if (!is.null(dvw$scouting_options)) {
-        for (nm in names(dvw$scouting_options)) opts[[nm]] <- dvw$scouting_options[[nm]]
+    ## has the user saved their scouting option preferences?
+    scouting_opts_file <- file.path(user_dir, "scouting_conventions.rds")
+    saved_scouting_opts <- if (file.exists(scouting_opts_file)) readRDS(scouting_opts_file) else list()
+    provided_scouting_opts <- if (!missing(scouting_options) && length(scouting_options) > 0) scouting_options else list()
+    ## replace defaults with saved preferences, if there are any
+    for (nm in names(opts)) {
+        if (nm %in% names(saved_scouting_opts)) opts[[nm]] <- saved_scouting_opts[[nm]]
     }
-    ## and finally if the user has specifically provided scouting options, use those
+    ## if the user has specifically provided scouting options as a parameter to this function, use those
     did_provide_s_opts <- FALSE
-    if (!missing(scouting_options) && length(scouting_options) > 0) {
+    if (length(provided_scouting_opts) > 0) {
         did_provide_s_opts <- TRUE
-        for (nm in names(scouting_options)) opts[[nm]] <- scouting_options[[nm]]
+        for (nm in names(provided_scouting_opts)) opts[[nm]] <- provided_scouting_opts[[nm]]
     }
+    if (!dvw_from_empty) {
+        ## finally, override with scouting options from the saved dvw, if it has them
+        ## the scouting options saved in the dvw file should override the parameter-provided ones unless we started from an empty dvw file
+        ## because it is not desirable to unintentionally change the options being used mid-scout
+        if (!is.null(dvw$scouting_options)) {
+            for (nm in names(dvw$scouting_options)) opts[[nm]] <- dvw$scouting_options[[nm]]
+        }
+    }
+
     ## same with shortcuts
     
     ## TODO populate shortcuts from saved_opts$click_shortcuts etc
@@ -298,11 +313,11 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     pt_scts <- ov_default_playstable_shortcuts()
     for (nm in names(playstable_shortcuts)) pt_scts[[nm]] <- playstable_shortcuts[[nm]]
 
-    ## attack_table in options overrides the one in the file. Also if we have no attack table, we need one
-    if ((did_provide_s_opts && "attack_table" %in% names(scouting_options)) || is.null(dvw$meta$attacks)) dvw$meta$attacks <- opts$attack_table
+    ## attack_table in options overrides the one in the file if we started from an empty dvw. Also if we have no attack table, we need one
+    if (dvw_from_empty || is.null(dvw$meta$attacks)) dvw$meta$attacks <- opts$attack_table
 
     ## finally the shiny app
-    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = with_video, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, click_shortcuts = click_scts, type_shortcuts = type_scts, playstable_shortcuts = pt_scts, remapping = key_remapping, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout_name = scout_name, show_courtref = show_courtref, scout_mode = scout_mode)
+    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = with_video, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, scouting_options_file = scouting_opts_file, click_shortcuts = click_scts, type_shortcuts = type_scts, playstable_shortcuts = pt_scts, remapping = key_remapping, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout_name = scout_name, show_courtref = show_courtref, scout_mode = scout_mode)
     if ("video_file2" %in% names(other_args)) {
         video_file2 <- other_args$video_file2
         other_args$video_file2 <- NULL
@@ -490,6 +505,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 #' @param default_nblockers integer: if `nblockers` is TRUE, what number of blockers should we default to? If `NA`, no default
 #' @param transition_sets logical: scout sets in transition? If `FALSE`, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted
 #' @param attacks_by string: "codes" (X5, V5, etc) or "tempo" (high, medium, quick)
+#' @param zones_cones string: record attack directions as "Z"ones or "C"ones
 #' @param team_system string: the assumed system that teams are using to assign e.g. passing and hitting responsibilities
 #' * "SHM3" - a setter-hitter-middle rotation, with 3 passers (the libero and two outside hitters)
 #' @param setter_dump_code string: the attack combination code for a setter dump
@@ -502,13 +518,14 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 #' @return A named list
 #'
 #' @export
-ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR", default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), attack_table = ov_simplified_attack_table()) {
+ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", zones_cones = "Z", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR", default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), attack_table = ov_simplified_attack_table()) {
     end_convention <- match.arg(end_convention, c("actual", "intended"))
     assert_that(is.flag(nblockers), !is.na(nblockers))
     if (is.null(default_nblockers)) default_nblockers <- NA
     assert_that(default_nblockers %in% c(NA, 1:4))
     assert_that(is.flag(transition_sets), !is.na(transition_sets))
     attacks_by <- match.arg(attacks_by, c("codes", "tempo"))
+    zones_cones <- match.arg(zones_cones, c("Z", "C"))
     team_system <- match.arg(team_system, c("SHM3"))
     assert_that(is.string(setter_dump_code))
     assert_that(is.string(second_ball_attack_code))
@@ -523,7 +540,7 @@ ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, def
     if (!is.data.frame(attack_table) || !all(c("code", "description", "type", "set_type", "attacker_position", "start_coordinate") %in% names(attack_table)) || nrow(attack_table) < 1) {
         stop("attack_table does not appear to be valid. It should be a tibble or data.frame as returned by e.g. ov_default_attack_table()")
     }
-    list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, attacks_by = attacks_by, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code, default_scouting_table = default_scouting_table, compound_table = compound_table, attack_table = attack_table)
+    list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, attacks_by = attacks_by, zones_cones = zones_cones, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code, default_scouting_table = default_scouting_table, compound_table = compound_table, attack_table = attack_table)
 }
 
 

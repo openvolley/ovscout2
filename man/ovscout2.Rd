@@ -27,6 +27,7 @@ Authors:
 Other contributors:
 \itemize{
   \item Krystian Kowalski [contributor]
+  \item Hugh Nguyen [contributor]
   \item Brady Williams [contributor]
   \item openvolley.org [originator]
 }
