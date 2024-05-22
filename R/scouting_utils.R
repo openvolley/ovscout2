@@ -217,7 +217,7 @@ update_meta <- function(x) {## used to have this but was only used in console te
 
 ## write the scouted match to a file, using the plays2 data instead of the plays
 ## then it is possible to read that file back in, which will populate the full plays data.frame without having to duplicate the code needed to do this
-dv_write2 <- function(x, file, text_encoding = "UTF-8") {
+dv_write2 <- function(x, file, text_encoding = "UTF-8", convert_cones = TRUE) {
     x[["plays"]] <- tibble()
     ## ensure players are OK
     x$meta$players_h <- make_players(x$meta$players_h)
@@ -242,9 +242,11 @@ dv_write2 <- function(x, file, text_encoding = "UTF-8") {
         ##this[this %eq% "Reception"] <- "r"
         ##xp$attack_phase <- this
 
-        ## ovs files use coordinates as their primary location source, and these are converted to zones/subzones
+        ## when click-mode scouting, ovs files use coordinates as their primary location source, and these are converted to zones/subzones
         ## if our meta$match$zones_or_cones is "C", i.e. we want cones, then we need to modify the scouted attack code lines now before saving to dvw
-        if (x$meta$match$zones_or_cones %eq% "C") {
+        ## but don't do this if scouting in type-mode
+        ## TODO in click mode and using cones, actually store as cones
+        if (isTRUE(convert_cones) && x$meta$match$zones_or_cones %eq% "C") {
             ## attacks with end positions
             aidx <- which(nchar(x$plays2$code) > 10 & substr(x$plays2$code, 4, 4) %in% "A" & !is.na(x$plays2$start_coordinate) & !is.na(x$plays2$end_coordinate))
             if (length(aidx) > 0) {

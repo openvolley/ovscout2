@@ -2072,7 +2072,7 @@ ov_scouter_server <- function(app_data) {
                     tryCatch({
                         temp_dvw_file <- file.path(app_data$auto_save_dir, paste0(save_file_basename(), "-live.dvw"))
                         if (file.exists(temp_dvw_file)) unlink(temp_dvw_file)
-                        dv_write2(update_meta(rp2(rdata$dvw)), file = temp_dvw_file)
+                        dv_write2(update_meta(rp2(rdata$dvw)), file = temp_dvw_file, convert_cones = app_data$scout_mode != "type")
                     }, error = function(e) warning("could not auto-save file"))
                 }
             }
@@ -3311,7 +3311,7 @@ ov_scouter_server <- function(app_data) {
                 tryCatch({
                     ## TODO flush any rally codes to plays2 - but note that then we won't have the right rally_state when we restart
                     ## so might not be able to do this
-                    dv_write2(update_meta(rp2(rdata$dvw)), file = file)
+                    dv_write2(update_meta(rp2(rdata$dvw)), file = file, convert_cones = app_data$scout_mode != "type")
                 }, error = function(e) {
                     temp <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())
                     show_save_error_modal(msg = temp$error_message, ovs_ok = temp$ok, tempfile_name = temp$filename)
