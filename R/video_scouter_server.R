@@ -1718,10 +1718,11 @@ ov_scouter_server <- function(app_data) {
                     overlay_points(rbind(overlay_points(), sxy)) ## show start and end
                     ## popup
                     ## note that we can't currently cater for a block kill with cover-dig error (just scout as block kill without the dig error)
+                    blocked_for_reattack <- (game_state$start_y < 3.5) %eq% (game_state$end_y < 3.5)
                     c1_buttons <- make_fat_radio_buttons(
                         choices = c("Attack kill (without dig error)" = "A#", "Attack error" = "A=", "Blocked for reattack (play continues)" = "A!", "Dig" = "D", "Dig error (attack kill)" = "D=", "Block kill" = "B#", "Block fault" = "B/"),
                         ## default blocked for reattack if the ball did not cross the net, otherwise dig
-                        selected = if ((game_state$start_y < 3.5) %eq% (game_state$end_y < 3.5)) "A!" else "D",
+                        selected = if (blocked_for_reattack) "A!" else "D",
                         input_var = "c1")
                     ## allow the possibility to change the hit type
                     htype <- check_hit_type(input$hit_type) ## the currently-selected hit type, default to "H" if not assigned
@@ -1818,10 +1819,10 @@ ov_scouter_server <- function(app_data) {
                                                        do.call(fixedRow, lapply(c1_buttons[4:7], function(but) column(2, but))),
                                                        tags$br(), tags$hr(),
                                                        ## either dig players (defending team)
-                                                       tags$div(id = "c1_digp_ui", tags$p(tags$strong("Dig player")),
+                                                       tags$div(id = "c1_digp_ui", style = if (blocked_for_reattack) "display:none;" else NULL, tags$p(tags$strong("Dig player")),
                                                                 do.call(fixedRow, lapply(dig_player_buttons, function(but) column(1, but)))),
                                                        ## or cover players (attacking team)
-                                                       tags$div(id = "c1_coverp_ui", style = "display:none;", tags$p(tags$strong("Cover dig player")),
+                                                       tags$div(id = "c1_coverp_ui", style = if (blocked_for_reattack) NULL else "display:none;", tags$p(tags$strong("Cover dig player")),
                                                                 do.call(fixedRow, lapply(cover_player_buttons, function(but) column(1, but)))),
                                                        ## or block players
                                                        tags$div(id = "c1_blockp_ui", style = "display:none;", tags$p(tags$strong("Block kill"), "by player"),
