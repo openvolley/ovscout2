@@ -101,6 +101,13 @@ ov_scouter_server <- function(app_data) {
         } else {
             app_data$shortcuts <- app_data$click_shortcuts ## this is the active set
         }
+        output$zones_cones <- renderUI({
+            if (app_data$scout_mode == "type") {
+                tags$div(style = "float:right; font-size:small;", "You are scouting attack directions with:", if (rdata$dvw$meta$match$zones_or_cones %eq% "C") "cones" else if (rdata$dvw$meta$match$zones_or_cones %eq% "Z") "zones" else "unknown")
+            } else {
+                NULL
+            }
+        })
         have_second_video <- !is.null(app_data$video_src2)
         current_video_src <- reactiveVal(1L) ## start with video 1
         preview_video_src <- reactiveVal(1L)
