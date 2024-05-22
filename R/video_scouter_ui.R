@@ -76,9 +76,15 @@ ov_scouter_ui <- function(app_data) {
                                               if (!is.null(app_data$video_src2)) actionButton("switch_video", "Switch video", class = "leftbut"),
                                               data.step = 2, data.intro = "Click on these buttons if you want to edit the court reference, starting lineups, rosters, or match metadata. The court reference defines where the court is located in the video image."),
                                           tags$hr(),
-                                          if (!is.null(app_data$dvw$plays2)) tags$div(downloadButton("save_rds_button", "Save file", class = "leftbut"),
-                                                                                      downloadButton("save_dvw_button", "Export to dvw", class = "leftbut"),
-                                                                                      uiOutput("reports_ui")),
+                                          ##if (!is.null(app_data$dvw$plays2))
+                                          tags$div(downloadButton("save_rds_button", "Save file", class = "leftbut"),
+                                                   if (app_data$scout_mode == "type") {
+                                                       ## go straight to export
+                                                       downloadButton("save_dvw_button", "Export to dvw", class = "leftbut")
+                                                   } else {
+                                                       actionButton("ask_save_dvw_button", "Export to dvw", class = "leftbut")
+                                                   },
+                                                   uiOutput("reports_ui")),
                                           tags$hr(),
                                           introBox(actionButton("general_help", label = "General Help", icon = icon("question"), class = "leftbut"),
                                                    tags$button(class = "btn btn-default leftbut", "User manual", onclick = "window.open('https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html', '_blank')"),

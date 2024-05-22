@@ -31,7 +31,7 @@ ov_scouting_options(
 
 \item{attacks_by}{string: "codes" (X5, V5, etc) or "tempo" (high, medium, quick)}
 
-\item{zones_cones}{string: record attack directions as "Z"ones or "C"ones}
+\item{zones_cones}{string: record attack directions as "Z"ones or "C"ones (ignored when scouting in 'click' mode, which always uses zones. But after click-scouting you can export your dvw with attack directions as cones, if you wish)}
 
 \item{team_system}{string: the assumed system that teams are using to assign e.g. passing and hitting responsibilities
 \itemize{

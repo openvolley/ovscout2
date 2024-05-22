@@ -114,6 +114,16 @@ show_video_setup_modal <- function(prevsrc, dvw) {
        ))
 }
 
+show_save_dvw_modal <- function() {
+    showModal(modalDialog(title = "Video setup", easyClose = TRUE, size = "l", footer = NULL,
+                          checkboxInput("dvw_save_with_cones", "Save attack directions as cones"),
+                          tags$br(),
+                          tags$hr(),
+                          fixedRow(column(2, actionButton("just_cancel", "Cancel", class = "cancel fatradio")),
+                                   column(2, offset = 8, downloadButton("save_dvw_button", "Export dvw", class = "continue fatradio", style = "padding-top:24px;")))
+                          ))
+}
+
 show_prefcuts_modal <- function(prefs, opts) {
     ## opts comes from rdata$options
     showModal(vwModalDialog(title = "Preferences", footer = NULL, width = 100,
@@ -128,10 +138,6 @@ show_prefcuts_modal <- function(prefs, opts) {
                             fluidRow(column(3, checkboxInput("prefs_ball_path", "Show the ball path on the court inset diagram?", value = prefs$ball_path)),
                                      column(3, selectInput("prefs_playlist_display_option", "Plays list style", choices = c("Scouted codes" = "dv_codes", "Commentary style" = "commentary"), selected = prefs$playlist_display_option)),
                                      column(3, checkboxInput("prefs_review_pane", "Show review pane (video loop) in popups?", value = prefs$review_pane)))
-                            ),
-                   tabPanel(tags$strong("Common scouting conventions"),
-                            tags$hr(), tags$br(), tags$p("These conventions apply when scouting in both \"click\" and \"type\" mode."), tags$hr(),
-                            fluidRow(column(3, selectInput("scopts_zones_cones", tags$span(title = HTML("Are attack directions being recorded as zones or cones?<br />If you want to change the current match settings without changing your preferences, you can do this via the 'Edit match data' button."), "Attack directions by zones or cones:", icon("question-circle")), choices = c(Cones = "C", Zones = "Z"), selected = opts$zones_cones)))
                             ),
                    tabPanel(tags$strong("'Click' scouting conventions"),
                             tags$hr(), tags$br(), tags$p("These conventions apply when scouting in \"click\" mode (not typing mode). Warning: changing scouting conventions once a match is already partially-scouted could lead to inconsistent files."),
@@ -150,6 +156,10 @@ show_prefcuts_modal <- function(prefs, opts) {
                                      column(3, textInput("scopts_overpass_attack_code", tags$span(title = HTML("The attack combination code for an attack on an overpass"), "Overpass attack code:", icon("question-circle")), placeholder = "PR", value = opts$overpass_attack_code))) ## string: the attack combination code for an attack on an overpass
                             ## TODO @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
                             ## TODO @param compound_table tibble: the table of compound codes
+                            ),
+                   tabPanel(tags$strong("'Type' scouting conventions"),
+                            tags$hr(), tags$br(), tags$p("These conventions apply when scouting in \"type\" mode. Warning: changing scouting conventions once a match is already partially-scouted could lead to inconsistent files."), tags$hr(),
+                            fluidRow(column(3, selectInput("scopts_zones_cones", tags$span(title = HTML("Are attack directions being recorded as zones or cones?<br />If you want to change the current match settings without changing your preferences, you can do this via the 'Edit match data' button."), "Attack directions by zones or cones:", icon("question-circle")), choices = c(Cones = "C", Zones = "Z"), selected = opts$zones_cones)))
                             )
                    ),
        tags$br(),

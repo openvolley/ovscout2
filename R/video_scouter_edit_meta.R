@@ -50,7 +50,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$match$day_number <- input[[md_ns("match_edit_day_number")]]
         dvw$meta$match$match_number <- input[[md_ns("match_edit_match_number")]]
         ## currently disabled dvw$meta$match$regulation <- input[[md_ns("match_edit_regulation")]]
-        dvw$meta$match$zones_or_cones <- input[[md_ns("match_edit_zones_or_cones")]]
+        if (!is.null(input[[md_ns("match_edit_zones_or_cones")]]) && input[[md_ns("match_edit_zones_or_cones")]] %in% c("Z", "C")) dvw$meta$match$zones_or_cones <- input[[md_ns("match_edit_zones_or_cones")]]
         dvw$meta$more$scout <- input[[md_ns("more_edit_scout")]]
         ## comments
         null2na <- function(z) if (length(z) < 1) NA_character_ else z

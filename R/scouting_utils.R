@@ -218,6 +218,12 @@ update_meta <- function(x) {## used to have this but was only used in console te
 ## write the scouted match to a file, using the plays2 data instead of the plays
 ## then it is possible to read that file back in, which will populate the full plays data.frame without having to duplicate the code needed to do this
 dv_write2 <- function(x, file, text_encoding = "UTF-8", convert_cones = TRUE) {
+    ## convert_cones = TRUE will convert zones to cones prior to saving (necessary if using click-scouting but the user wants cones in their dvw file. Internally all attacks are recorded with end_zone when click scouting, so we can convert them on export if needed)
+    ## Note that we don't want to do that with type-scouting, because the user will have actually scouted cones in that case
+    ## (if x$meta$match$zones_or_cones is already "C", we don't want to try and convert them. That should never be "C" with click-scouted files)
+    ## attacks with end positions
+    convert_cones <- isTRUE(convert_cones) && x$meta$match$zones_or_cones %eq% "Z"
+    if (convert_cones) x$meta$match$zones_or_cones <- "C" ## change the indicator in the metadata
     x[["plays"]] <- tibble()
     ## ensure players are OK
     x$meta$players_h <- make_players(x$meta$players_h)
@@ -243,11 +249,9 @@ dv_write2 <- function(x, file, text_encoding = "UTF-8", convert_cones = TRUE) {
         ##xp$attack_phase <- this
 
         ## when click-mode scouting, ovs files use coordinates as their primary location source, and these are converted to zones/subzones
-        ## if our meta$match$zones_or_cones is "C", i.e. we want cones, then we need to modify the scouted attack code lines now before saving to dvw
+        ## but we can convert to cones before saving to dvw if desired
         ## but don't do this if scouting in type-mode
-        ## TODO in click mode and using cones, actually store as cones
-        if (isTRUE(convert_cones) && x$meta$match$zones_or_cones %eq% "C") {
-            ## attacks with end positions
+        if (convert_cones) {
             aidx <- which(nchar(x$plays2$code) > 10 & substr(x$plays2$code, 4, 4) %in% "A" & !is.na(x$plays2$start_coordinate) & !is.na(x$plays2$end_coordinate))
             if (length(aidx) > 0) {
                 sz <- dv_xy2zone(x$plays2$start_coordinate[aidx]) ## start zone for each attack

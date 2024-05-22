@@ -68,6 +68,11 @@ ov_scouter_server <- function(app_data) {
             }
         }
         if (!is.null(app_data$video_src2)) app_data$dvw$video_file2 <- app_data$video_src2
+
+        if (app_data$scout_mode == "click") {
+            ## if we are click-scouting, we can only do attack directions by zones
+            app_data$dvw$meta$match$zones_or_cones <- "Z"
+        }
         rdata <- reactiveValues(dvw = app_data$dvw, options = app_data$options)
         prefs <- reactiveValues(scout_name = app_data$scout_name, show_courtref = app_data$show_courtref, scoreboard = app_data$scoreboard, pause_on_type = app_data$pause_on_type, ball_path = app_data$ball_path, playlist_display_option = app_data$playlist_display_option, review_pane = app_data$review_pane)
         if (!is.null(app_data$playback_rate) && isTRUE(app_data$playback_rate > 0)) updateSliderInput(session, "playback_rate", value = app_data$playback_rate)
@@ -274,7 +279,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## match, team, and lineup data editing
-        match_data_edit_mod <- callModule(mod_match_data_edit, id = "match_data_editor", rdata = rdata, editing = editing, styling = app_data$styling)
+        match_data_edit_mod <- callModule(mod_match_data_edit, id = "match_data_editor", rdata = rdata, editing = editing, app_data = app_data)
         team_edit_mod <- callModule(mod_team_edit, id = "team_editor", rdata = rdata, editing = editing, styling = app_data$styling)
         team_select_mod <- callModule(mod_team_select, id = "team_selector", rdata = rdata, editing = editing, app_data = app_data)
         lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, video_state = video_state, styling = app_data$styling)
@@ -2074,7 +2079,7 @@ ov_scouter_server <- function(app_data) {
                     tryCatch({
                         temp_dvw_file <- file.path(app_data$auto_save_dir, paste0(save_file_basename(), "-live.dvw"))
                         if (file.exists(temp_dvw_file)) unlink(temp_dvw_file)
-                        dv_write2(update_meta(rp2(rdata$dvw)), file = temp_dvw_file, convert_cones = app_data$scout_mode != "type")
+                        dv_write2(update_meta(rp2(rdata$dvw)), file = temp_dvw_file) ## TODO something about convert_cones here
                     }, error = function(e) warning("could not auto-save file"))
                 }
             }
@@ -3311,9 +3316,8 @@ ov_scouter_server <- function(app_data) {
             filename = function() paste0(save_file_basename(), ".dvw"),
             content = function(file) {
                 tryCatch({
-                    ## TODO flush any rally codes to plays2 - but note that then we won't have the right rally_state when we restart
-                    ## so might not be able to do this
-                    dv_write2(update_meta(rp2(rdata$dvw)), file = file, convert_cones = app_data$scout_mode != "type")
+                    dv_write2(update_meta(rp2(rdata$dvw)), file = file, convert_cones = isTRUE(input$dvw_save_with_cones))
+                    removeModal()
                 }, error = function(e) {
                     temp <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())
                     show_save_error_modal(msg = temp$error_message, ovs_ok = temp$ok, tempfile_name = temp$filename)
@@ -3321,6 +3325,8 @@ ov_scouter_server <- function(app_data) {
                 })
             }
         )
+        ## ask about exporting with cones
+        observeEvent(input$ask_save_dvw_button, show_save_dvw_modal())
 
         output$save_rds_button <- downloadHandler(
             filename = function() paste0(save_file_basename(), ".ovs"),

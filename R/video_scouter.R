@@ -283,9 +283,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         if (nm %in% names(saved_scouting_opts)) opts[[nm]] <- saved_scouting_opts[[nm]]
     }
     ## if the user has specifically provided scouting options as a parameter to this function, use those
-    did_provide_s_opts <- FALSE
-    if (length(provided_scouting_opts) > 0) {
-        did_provide_s_opts <- TRUE
+    did_provide_s_opts <- length(provided_scouting_opts) > 0
+    if (did_provide_s_opts) {
         for (nm in names(provided_scouting_opts)) opts[[nm]] <- provided_scouting_opts[[nm]]
     }
     if (!dvw_from_empty) {
@@ -294,6 +293,12 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         ## because it is not desirable to unintentionally change the options being used mid-scout
         if (!is.null(dvw$scouting_options)) {
             for (nm in names(dvw$scouting_options)) opts[[nm]] <- dvw$scouting_options[[nm]]
+        }
+        if (scout_mode == "click") {
+            ## click mode only supports zones
+            if (dvw$meta$match$zones_or_cones %eq% "C") {
+                stop("existing dvw file has been scouted with cones, but scout_mode = 'click' only supports zones")
+            }
         }
     }
 
@@ -505,7 +510,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 #' @param default_nblockers integer: if `nblockers` is TRUE, what number of blockers should we default to? If `NA`, no default
 #' @param transition_sets logical: scout sets in transition? If `FALSE`, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted
 #' @param attacks_by string: "codes" (X5, V5, etc) or "tempo" (high, medium, quick)
-#' @param zones_cones string: record attack directions as "Z"ones or "C"ones
+#' @param zones_cones string: record attack directions as "Z"ones or "C"ones (ignored when scouting in 'click' mode, which always uses zones. But after click-scouting you can export your dvw with attack directions as cones, if you wish)
 #' @param team_system string: the assumed system that teams are using to assign e.g. passing and hitting responsibilities
 #' * "SHM3" - a setter-hitter-middle rotation, with 3 passers (the libero and two outside hitters)
 #' @param setter_dump_code string: the attack combination code for a setter dump
