@@ -946,7 +946,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                         column(2, selectInput(ns("ht_new_role"), label = "Role", choices = c("", "libero", "outside", "opposite", "middle", "setter", "unknown"))),
                                                         ##column(1, selectInput(ns("ht_new_special"), label = "Special", choices = c("", "L", "C")))
                                                         ),
-                                               fluidRow(column(3, offset = 9, actionButton(ns("ht_add_player_button"), "Add player")))
+                                               fluidRow(column(3, offset = 9, actionButton_with_enter(ns("ht_add_player_button"), "Add player")))
                                            ),
                                            #actionButton(ns("load_home_team"), label = "Load home team", class = "updating"),
                                            uiOutput(ns("ht_delete_player_ui"))
@@ -965,7 +965,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                         column(2, selectInput(ns("vt_new_role"), label = "Role", choices = c("", "libero", "outside", "opposite", "middle", "setter", "unknown"))),
                                                         ##column(1, selectInput(ns("vt_new_special"), label = "Special", choices = c("", "L", "C")))
                                                         ),
-                                               fluidRow(column(3, offset = 9, actionButton(ns("vt_add_player_button"), "Add player")))
+                                               fluidRow(column(3, offset = 9, actionButton_with_enter(ns("vt_add_player_button"), "Add player")))
                                            ),
                                            #actionButton(ns("load_visiting_team"), label = "Load visiting team", class = "updating"),
                                            uiOutput(ns("vt_delete_player_ui"))
