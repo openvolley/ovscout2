@@ -224,11 +224,11 @@ Scouting now continues until the point ends, with attacks, digs, and other conta
 
 The point can be ended by entering a terminal action (kill or error), or if the point ends in a way that doesn't fit nicely with the available options, you can pause the video (press "q" or the pause button) and choose "Won current rally" for the appropriate team.
 
-## End of set
+## End of the set
 
 When the set concludes, it will prompt you to confirm whether it is the end of the set. Confirm the end of the set and then enter the lineups for the next set ready to start scouting that one.
 
-## End of match
+## End of the match
 
 At the end of the match, you don't need to do anything extra. Just end the final set as normal, and ignore the instruction to enter the lineups for the next set. And now you can generate a match report, if you wish!
 

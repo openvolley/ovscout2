@@ -4,6 +4,7 @@ Version: 0.2.9
 Authors@R: c(person(given = "Ben", family = "Raymond", role = c("aut", "cre"), email = "ben@untan.gl"),
              person(given = "Adrien", family = "Ickowicz", role = "aut"),
              person(given = "Krystian", family = "Kowalski", role = "ctb"),
+             person(given = "Hugh", family = "Nguyen", role = "ctb"),
              person(given = "Brady", family = "Williams", role = "ctb"),
              person("openvolley.org", role = "org"))
 Description: Functions for scouting volleyball match files.
