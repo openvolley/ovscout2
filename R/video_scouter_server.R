@@ -806,6 +806,9 @@ ov_scouter_server <- function(app_data) {
                     ## switch to the playslist table
                     focus_to_playslist()
                     playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
+                } else if (input$scout_shortcut %eq% "save_file") {
+                    dojs("$('#save_rds_button')[0].click();")
+                    ## saves, but in firefox at least the download dropdown dialog is shown. Programmatically focusing back to the scout bar does not seem to get rid of it. But you can press escape to dismiss it
                 }
             }
         })

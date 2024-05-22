@@ -209,7 +209,8 @@ ov_default_shortcuts <- function(scout_mode = "click") {
              video_slower = c(),
              assign_point_top = "Ctrl-arrowup",
              assign_point_bottom = "Ctrl-arrowdown",
-             switch_windows = "tab"
+             switch_windows = "tab",
+             save_file = "Ctrl-s"
              )
     }
 }
