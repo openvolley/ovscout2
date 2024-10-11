@@ -324,9 +324,9 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
     clickout <- reactiveVal(list(x = NA_real_, y = NA_real_))
     observeEvent(input$plot_click, {
         req(input$plot_click)
-        ## input$plot_click gives the click location, but we want to flip this if the court direction has been reversed
+        ## input$plot_click gives the click location
         out <- data.frame(x = input$plot_click$x, y = input$plot_click$y)
-        if (need_to_flip(current_video_src(), game_state$home_team_end)) out <- dv_flip_xy(out)
+        ## unlike the ggplot version (mod_courtrot2) this base plotting does not need to flip the coordinates, because the actual plot data has been transformed, which means that the click location is always oriented the correct way regardless of whether the court direction has been reversed or not
         clickout(out)
     })
 
