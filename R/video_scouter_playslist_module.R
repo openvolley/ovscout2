@@ -84,9 +84,11 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
         }
     }
 
+    was_clicked <- reactiveVal(0L)
     observeEvent(input$clicked, {
         if (!is.null(input$clicked)) {
             if (!is.null(selected_row()) && input$clicked %eq% selected_row()) unselect() else select(input$clicked, scroll = FALSE)
+            was_clicked(was_clicked() + 1L)
         }
     })
 
@@ -123,5 +125,5 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
         set_data(rdata$dvw$plays, selected = isolate(redraw_select()), display_as = display_option())
     })
 
-    list(scroll_playslist = scroll_to, current_row = selected_row, select = select, select_last = select_last, unselect = unselect, redraw_select = redraw_select)
+    list(scroll_playslist = scroll_to, current_row = selected_row, select = select, select_last = select_last, unselect = unselect, redraw_select = redraw_select, clicked = was_clicked)
 }

@@ -233,11 +233,31 @@ focus_to_element <- function(id, highlight_all = TRUE) {
     }
 }
 
-focus_to_scout_bar <- function(srv_code) {
-    dojs(paste0("var el = document.getElementById('scout_in'); if (el) { ", if (!missing(srv_code)) paste0("el.value = '", srv_code, "'; "), "el.selectionStart = el.selectionEnd = el.value.length; el.focus(); }"))
+## helper function to evaluate an expression in the server
+eval_in_server <- function(expr) {
+    for (pf in seq(1L, sys.nframe() - 1L, by = 1L)) {
+        if (exists(".am_in_server", envir = parent.frame(n = pf))) return(eval(expr, envir = parent.frame(n = pf)))
+    }
+    warning("could not evaluate in server:", expr)
 }
 
-focus_to_playslist <- function() dojs("$('#playslist-tbl-i').focus();")
+focus_to_scout_bar <- function(srv_code) {
+    dojs(paste0("var el = document.getElementById('scout_in'); if (el) { ", if (!missing(srv_code)) paste0("el.value = '", srv_code, "'; "), "el.selectionStart = el.selectionEnd = el.value.length; el.focus(); }"))
+    eval_in_server(expression(active_ui("scout_bar")))
+}
+
+focus_to_playslist <- function() {
+    dojs("$('#playslist-tbl-i').focus();")
+    eval_in_server(expression(active_ui("playslist")))
+}
+
+refocus_to_ui <- function(el) {
+    if (el %eq% "scout_bar") {
+        focus_to_scout_bar()
+    } else if (el %eq% "playslist") {
+        focus_to_playslist()
+    }
+}
 
 decode_keypress <- function(k, debug = 0) {
     temp <- strsplit(k, "@")[[1]]

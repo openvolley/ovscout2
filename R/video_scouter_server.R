@@ -3,11 +3,12 @@ ov_scouter_server <- function(app_data) {
         debug <- 0L
         cstr <- function(z) capture.output(str(z))
         have_warned_auto_save <- FALSE
+        .am_in_server <- TRUE ## for eval_in_server function
 
         ## function to populate the team character and player number of the serving player in the scout typing entry box
         populate_server <- function() {
             isolate({
-                cat(str(reactiveValuesToList(game_state)))
+                ## cstr(reactiveValuesToList(game_state))
                 srv_code <- if (game_state$serving %eq% "*" && !is.null(game_state$home_p1) && !is.na(game_state$home_p1)) {
                                 paste0("*", ldz2(game_state$home_p1))
                             } else if (game_state$serving %eq% "a" && !is.null(game_state$visiting_p1) && !is.na(game_state$visiting_p1)) {
@@ -18,6 +19,11 @@ ov_scouter_server <- function(app_data) {
             })
             focus_to_scout_bar(srv_code)
         }
+
+        ## the active UI element, used in typing mode to keep track of where the focus should be. Possible values "" (uninitialilzed), "scout_bar", "playslist"
+        active_ui <- reactiveVal("")
+        if (debug > 0) observeEvent(active_ui(), cat("active_ui:", active_ui(), "\n"))
+        observeEvent(input$scout_in_click, focus_to_scout_bar())
 
         extra_db_con <- NULL
         if (!is.null(app_data$extra_db)) {
@@ -220,14 +226,11 @@ ov_scouter_server <- function(app_data) {
         if (!"home_team_end" %in% names(temp)) temp$home_team_end <- "upper" ## home team end defaults to upper
         game_state <- do.call(reactiveValues, temp)
 
-        if (app_data$scout_mode == "type") {
-            populate_server()
-        }
+        if (app_data$scout_mode == "type") populate_server()
 
-
-        playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show,
-                                    plays_cols_renames = plays_cols_renames, display_option = reactive(prefs$playlist_display_option))
-
+        playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show, plays_cols_renames = plays_cols_renames,
+                                    display_option = reactive(prefs$playlist_display_option))
+        observeEvent(playslist_mod$clicked(), { if (isTRUE(playslist_mod$clicked() > 0)) focus_to_playslist() })
 
         ## court inset showing rotation and team lists
         court_inset <- callModule(mod_courtrot2_base, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_path = reactive(prefs$ball_path), current_plays_row = reactive(playslist_mod$current_row()))
@@ -418,7 +421,7 @@ ov_scouter_server <- function(app_data) {
                             gs <- sanitize_game_state(details_from$game_state[[1]])
                             if (debug) cat("  details being taken from rally_codes, row:", rcidx, "\n")
                         }
-                        cat("details from:", str(details_from), "\n")
+                        ## cat("details from:", str(details_from), "\n")
                         insert_clock_time <- details_from$time ## TODO check, in previous versions plays2 had clock time but rally_codes generally did not
                         if (is.null(insert_clock_time)) insert_clock_time <- as.POSIXct(NA) ## fallback if time is completely missing
                         insert_video_time <- details_from$t
@@ -438,8 +441,8 @@ ov_scouter_server <- function(app_data) {
                             newrow$time <- insert_clock_time
                             newrow$video_time <- insert_video_time
                             ## check: any other details to transfer? TODO
-                            cat("gs:", str(gs), "\n")
-                            cat("newrow:", str(newrow), "\n")
+                            ## cat("gs:", str(gs), "\n")
+                            ## cat("newrow:", str(newrow), "\n")
                             if (insert_ridx <= nrow(rdata$dvw$plays2)) {
                                 cat(nrow(rdata$dvw$plays2), "\n")
                                 rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
@@ -640,8 +643,7 @@ ov_scouter_server <- function(app_data) {
                         ## navigate up/down in playslist table
                         playslist_mod$select(playslist_mod$current_row() + if (tolower(ky) == app_data$playstable_shortcuts$up) -1L else 1L)
                     } else if (tolower(ky) %eq% app_data$playstable_shortcuts$switch_windows && app_data$scout_mode == "type") {
-                        ## go to scout bar
-                        dojs("$('#scout_in').focus();")
+                        focus_to_scout_bar() ## go to scout bar
                         playslist_mod$redraw_select("last") ## change redraw behaviour (keep the last row selected, including when new row added)
                         playslist_mod$select_last() ## select last row
                     } else if (ky %in% app_data$playstable_shortcuts$go_to_time) {
@@ -728,7 +730,10 @@ ov_scouter_server <- function(app_data) {
                         if (grepl("scout_in", k$id)) {
                             ## tab from scout bar, go to playslist table
                             ## currently handled in switch_windows shortcut below, TODO rationalize this
-                        } ## otherwise tabs currently handled by default browser behaviour
+                        } else if (app_data$scout_mode == "type") {
+                            ## otherwise (noting that we are not in a modal and not in the playslist table here) if we are in typing mode, switch to the input bar
+                            focus_to_scout_bar()
+                        }
                     } else if (is.null(editing$active) && !courtref_active()) {
                         ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
                         if (ky %in% app_data$shortcuts$undo) {
@@ -1056,8 +1061,8 @@ ov_scouter_server <- function(app_data) {
             home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
             visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
             rctxt <- lapply(seq_along(rctxt0), function(i) ov_code_interpret(input[[paste0("rcedit_", i)]], attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num))
-            cat("edited codes:\n")
-            cat(str(rctxt))
+            ##cat("edited codes:\n")
+            ##cat(str(rctxt))
             ## may now have more (or less) codes than we started with
             smth <- bind_rows(lapply(seq_along(rctxt), function(i) {
                 newcode <- rctxt[[i]] ## one or more codes, but some can be empty strings if the review text box was empty
