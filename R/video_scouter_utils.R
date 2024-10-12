@@ -1372,7 +1372,7 @@ save_to_ovs <- function(rdata, app_data, courtref1, courtref2, game_state, was_s
                 saveRDS(temp, file = tf)
                 if (!(file.exists(tf) && file.size(tf) > 0)) msgi <- "could not save file"
                 if (was_session_end) {
-                    if (!is.null(msgi)) {
+                    if (is.null(msgi)) {
                         message("working file has been saved to: ", tf)
                     } else {
                         message("could not save working file on exit")
