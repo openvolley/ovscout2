@@ -20,7 +20,7 @@ ov_scouter_ui <- function(app_data) {
               rintrojs::introjsUI(),
               ovideo::ov_video_js(youtube = yt, version = 2), ## for the review pane
               tags$head(tags$link(href = "css/ovscout2.css", rel = "stylesheet"),
-                        tags$style(paste0(".btn, .btn:hover, .btn.active { border-width:1px; font-size: ", app_data$styling$button_font_size , ";} .libero {background-color:", app_data$styling$libero_colour, "; border-color:", app_data$styling$libero_light_colour, "} .libero.active {background-color:", app_data$styling$libero_dark_colour, "; border-color:", app_data$styling$libero_colour, "} .libero.active:hover, .libero:hover {background-color:", app_data$styling$libero_light_colour, "; border-color:", app_data$styling$libero_colour, "}")),## .fatradio:focus, .fatradio:hover {background-color:#FFFFFF;}")),
+                        tags$style(paste0(".btn, .btn:hover, .btn.active { border-width:1px; font-size: ", app_data$styling$button_font_size , ";} .libero {background-color:", app_data$styling$libero_colour, "; border-color:", app_data$styling$libero_light_colour, "} .libero.active {background-color:", app_data$styling$libero_dark_colour, "; border-color:", app_data$styling$libero_colour, "} .libero.active:hover, .libero:hover {background-color:", app_data$styling$libero_light_colour, "; border-color:", app_data$styling$libero_colour, "} .homebut { background-color:", app_data$styling$h_court_colour, "} .homebut:hover, .homebut:active { background-color:", app_data$styling$h_court_light_colour, "} .visbut { background-color:", app_data$styling$v_court_colour, "} .visbut:hover, .visbut:active { background-color:", app_data$styling$v_court_light_colour, "}")),## .fatradio:focus, .fatradio:hover {background-color:#FFFFFF;}")),
                         tags$style(paste0(".undo {background-color:", app_data$styling$undo_colour, "; border-color:", app_data$styling$undo_light_colour, "} .undo:hover {background-color:", app_data$styling$undo_light_colour, "; border-color:", app_data$styling$undo_colour, "} .continue {background-color:", app_data$styling$continue_colour, "; border-color:", app_data$styling$continue_light_colour, "} .continue:hover {background-color:", app_data$styling$continue_light_colour, "; border-color:", app_data$styling$continue_colour, "} .cancel {background-color:", app_data$styling$cancel_colour, "; border-color:", app_data$styling$cancel_light_colour, "} .cancel:hover {background-color:", app_data$styling$cancel_light_colour, "; border-color:", app_data$styling$cancel_colour, "}")),
                         if (!is.null(app_data$css)) tags$style(app_data$css),
                         tags$link(href = if (running_locally) "css/video-js.min.css" else "//vjs.zencdn.net/8.3.0/video-js.min.css", rel = "stylesheet"),
@@ -114,11 +114,11 @@ ov_scouter_ui <- function(app_data) {
                               if (app_data$scout_mode == "type") {
                                   if (app_data$with_video) {
                                       fluidRow(
-                                          column(1, actionButton("pt_home", "(*) Pt", width = "100%", style = "background-color: #bfefff; height: 72px;") ),
+                                          column(1, actionButton("pt_home", "(*) Pt", width = "100%", class = "homebut", style = "height: 72px;") ),
                                           column(5, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")), tags$input(id = "scout_in", type = "text", onclick = "Shiny.setInputValue('scout_in_click', true, { priority: 'event' })")),
                                                  uiOutput("zones_cones")),
-                                          column(1, actionButton("pt_away", "(a) Pt", width = "100%", style = "background-color: #bcee68; height:72px;") ),
-                                          column(1, actionButton("undoType", "Undo", width = "100%", style = "background-color: orange; height:72px;")),
+                                          column(1, actionButton("pt_away", "(a) Pt", width = "100%", class = "visbut", style = "height:72px;") ),
+                                          column(1, actionButton("undoType", "Undo", width = "100%", class = "undobut", style = "height:72px;")),
                                                column(4, introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")))
                                   } else {
                                       fluidRow(column(1, offset = 2, actionButton("pt_home", "(*) Pt", width = "100%", style = "background-color: #bfefff; height: 72px;") ),

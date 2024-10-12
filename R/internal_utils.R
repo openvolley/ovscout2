@@ -41,6 +41,9 @@ dojs <- function(jscmd) {
 js_show2 <- function(id) dojs(paste0("var el=$('#", id, "'); el.show();"))
 js_hide2 <- function(id) dojs(paste0("var el=$('#", id, "'); el.hide();"))
 
+js_disable <- function(id) dojs(paste0("$('#", id, "').attr('disabled', 'disabled');"))
+js_enable <- function(id) dojs(paste0("$('#", id, "').removeAttr('disabled');"))
+
 names_first_to_capital <- function(x, fun) {
     setNames(x, var2fc(if (missing(fun)) names(x) else vapply(names(x), fun, FUN.VALUE = "", USE.NAMES = FALSE)))
 }

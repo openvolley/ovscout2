@@ -37,28 +37,28 @@ mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE) {
 
 mod_courtrot2_ui <- function(id, styling) {
     ns <- NS(id)
-    tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;} .crhbut { background-color:", styling$h_court_colour, "; margin-top:2px; } .crhbut:hover, .crhbut:active { background-color:", styling$h_court_light_colour, "; } .crvbut { background-color:", styling$v_court_colour, "; margin-top:2px; } .crvbut:hover, .crvbut:active { background-color:", styling$v_court_light_colour, "; }"))),
+    tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;} .crhbut { background-color:", styling$h_court_colour, "; margin-top:2px; } .crhbut:hover, .crhbut:active { margin-top:2px; background-color:", styling$h_court_light_colour, "; } .crvbut { background-color:", styling$v_court_colour, "; margin-top:2px; } .crvbut:hover, .crvbut:active { margin-top:2px; background-color:", styling$v_court_light_colour, "; }"))),
             tags$div(style = "border-radius: 4px; padding: 4px;",
                      fluidRow(
                      column(2,
-                            actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")), class = "crhbut"),
-                            actionButton(ns("p1pt_home"), tags$span("Home", tags$br(), icon("plus")), class = "crhbut"),
-                            actionButton(ns("m1pt_home"), tags$span("Home", tags$br(), icon("minus")), class = "crhbut"),
-                            actionButton(ns("timeout_home"), tags$span("Home", tags$br(), icon("t")), class = "crhbut"),
-                            actionButton(ns("substitution_home"), tags$span("Home", tags$br(), icon("right-left")), class = "crhbut")
+                            actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")), class = "crhbut", title = "Rotate"),
+                            actionButton(ns("p1pt_home"), tags$span("Home", tags$br(), icon("plus")), class = "crhbut", title = "+1 point"),
+                            actionButton(ns("m1pt_home"), tags$span("Home", tags$br(), icon("minus")), class = "crhbut", title = "-1 point"),
+                            actionButton(ns("timeout_home"), tags$span("Home", tags$br(), icon("t")), class = "crhbut", title = "Timeout"),
+                            actionButton(ns("substitution_home"), tags$span("Home", tags$br(), icon("right-left")), class = "crhbut", title = "Substitution")
                          ),
                      column(8, plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:46vh; width:36vh;")),
                      column(2,
-                            actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")), class = "crvbut"),
-                            actionButton(ns("p1pt_visiting"), tags$span("Visiting", tags$br(), icon("plus")), class = "crvbut"),
-                            actionButton(ns("m1pt_visiting"), tags$span("Visiting", tags$br(), icon("minus")), class = "crvbut"),
-                            actionButton(ns("timeout_visiting"), tags$span("Visiting", tags$br(), icon("t")), class = "crvbut"),
-                            actionButton(ns("substitution_visiting"), tags$span("Visiting", tags$br(), icon("right-left")), class = "crvbut")
+                            actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")), class = "crvbut", title = "Rotate"),
+                            actionButton(ns("p1pt_visiting"), tags$span("Visiting", tags$br(), icon("plus")), class = "crvbut", title = "+1 point"),
+                            actionButton(ns("m1pt_visiting"), tags$span("Visiting", tags$br(), icon("minus")), class = "crvbut", title = "-1 point"),
+                            actionButton(ns("timeout_visiting"), tags$span("Visiting", tags$br(), icon("t")), class = "crvbut", title = "Timeout"),
+                            actionButton(ns("substitution_visiting"), tags$span("Visiting", tags$br(), icon("right-left")), class = "crvbut", title = "Substitution")
                      ),
                      ),
                      fluidRow(
                          column(2, offset = 2, actionButton(ns("switch_serving"), HTML("Switch<br />serving team"))),
-                         column(1, offset = 4, actionButton(ns("court_inset_swap"), label = tags$span(style = "font-size:150%;", "\u21f5"), class = "iconbut")) ## flip court diagram
+                         column(1, offset = 4, actionButton(ns("court_inset_swap"), label = tags$span(style = "font-size:150%;", "\u21f5"), class = "iconbut", title = "Flip court diagram")) ## flip court diagram
                      ),
                      ))
 }
