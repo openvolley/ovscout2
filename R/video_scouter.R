@@ -589,6 +589,7 @@ ov_scouter_demo <- function(...) {
     x <- dv_create(teams = x0$meta$teams, match = x0$meta$match, players_h = x0$meta$players_h, players_v = x0$meta$players_v)
     ## enter the team lineups for set 1, with liberos
     x <- dv_set_lineups(x, set_number = 1, lineups = list(c(as.numeric(x0$plays[4, paste0("home_p", 1:6)]), 14), c(as.numeric(x0$plays[4, paste0("visiting_p", 1:6)]), 13)), setter_positions = c(x0$plays$home_setter_position[4], x0$plays$visiting_setter_position[4]))
+    x$meta$match$zones_or_cones <- "Z"
 
     ov_scouter(x, video_file = video_file, court_ref = court_ref, ...)
 }
