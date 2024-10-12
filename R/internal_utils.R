@@ -252,6 +252,7 @@ focus_to_scout_bar <- function(srv_code) {
 focus_to_playslist <- function() {
     dojs("$('#playslist-tbl-i').focus();")
     eval_in_server(expression(active_ui("playslist")))
+    eval_in_server(expression(playslist_mod$redraw_select("last")))
 }
 
 refocus_to_ui <- function(el) {

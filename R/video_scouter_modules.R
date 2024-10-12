@@ -546,6 +546,7 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
                             arrows(segxy$x[2], segxy$y[2], segxy$x[3], segxy$y[3], angle = 15, length = 0.15)
                         }
                         points(segxy$x[1], segxy$y[1], pch = 21, bg = "white", cex = 2)
+                        text(segxy$x[1], segxy$y[1], labels = "S", col = "black", cex = 0.75)
                     }
                 } else if (nrow(rally_codes()) > 0) {
                     ## plot the current rally actions

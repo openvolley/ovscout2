@@ -134,8 +134,14 @@ ov_scouter_ui <- function(app_data) {
                        column(3 - (app_data$scout_mode == "type"), style = "padding-left:5px; padding-right:5px",
                               if (app_data$scout_mode != "type") introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
                               uiOutput("problem_ui"),
-                              introBox(mod_playslist_ui("playslist", height = if (app_data$scout_mode == "type") "85vh" else "35vh", styling = app_data$styling), data.step = 6, data.intro = "List of actions. New entries appear here as they are scouted."),
-                              uiOutput("error_message"))
+                              tags$div(id = "code_edit_buttons", style = "height:34px;",
+                                       actionButton("edit_code_insert", class = "cebut", label = tags$span(icon("plus")), title = "Insert new code above current"),
+                                       actionButton("edit_code_delete", class = "cebut", label = tags$span(icon("trash-can")), title = "Delete current"),
+                                       actionButton("edit_code_edit", class = "cebut", label = tags$span(icon("pen-to-square")), title = "Edit current"),
+                                       actionButton("edit_code_edit_coords", class = "cebut", label = tags$span(icon("location-dot")), title = "Edit coordinates of current")),
+                              uiOutput("code_edit_dialog"),
+                              introBox(mod_playslist_ui("playslist", height = if (app_data$scout_mode == "type") "85vh" else "35vh", styling = app_data$styling), data.step = 6, data.intro = "List of actions. New entries appear here as they are scouted.")##, uiOutput("error_message")
+                              )
                        ),
               tags$link(href = "css/post.css", rel = "stylesheet"),
               ## not used? tags$script("review_player_onerror = function(e) { $('#review_player').removeClass('loading'); try { var this_src = btoa(document.getElementById(e.target.id).getAttribute('src')); } catch(err) { var this_src = ''; }; Shiny.setInputValue('video_error', e.target.id + '@' + this_src + '@' + e.target.error.code + '@' + new Date().getTime()); }"),

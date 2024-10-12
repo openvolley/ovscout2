@@ -321,6 +321,31 @@ ov_scouter_server <- function(app_data) {
             do_edit_commit(nc1, nc2)
         })
 
+        ## hide the code edit buttons if there is no selected row in the plays table
+        observe({
+            if (is.null(playslist_mod$current_row())) {
+                js_disable("edit_code_insert")
+                js_disable("edit_code_delete")
+                js_disable("edit_code_edit")
+                js_disable("edit_code_edit_coords")
+            } else {
+                js_enable("edit_code_insert")
+                js_enable("edit_code_delete")
+                js_enable("edit_code_edit")
+                js_enable("edit_code_edit_coords")
+            }
+        })
+        ## handle code edit button presses
+        observeEvent(input$edit_code_edit, edit_data_row())
+        observeEvent(input$edit_code_delete, delete_data_row())
+        observeEvent(input$edit_code_insert, insert_data_row("above"))
+        observeEvent(input$edit_code_edit_coords, {
+            output$code_edit_dialog <- renderUI({
+                tags$div(class = "alert alert-danger", "Click start coordinate OR", actionButton("edit_coord_cancel", "Cancel"))
+            })
+            editing$active <- "coord_click"
+        })
+
         get_current_rally_code <- function() {
             tryCatch({
                 ridx <- playslist_mod$current_row()
@@ -1274,6 +1299,38 @@ ov_scouter_server <- function(app_data) {
             imagexy
         }
 
+        ## use this function to set the coordinate in the current row (e.g. we are editing a row, and we've clicked a court location on the video pane or court diagram
+        set_coord <- function(which, xy) {
+            which <- match.arg(which, c("start", "end"))
+            output$code_edit_dialog <- renderUI({
+                if (which == "start") {
+                    tags$div(class = "alert alert-danger", "Click end coordinate OR", actionButton("edit_coord_cancel", "Cancel"))
+                } else {
+                    NULL
+                }
+            })
+            if (is.null(xy)) xy <- list(x = NA_real_, y = NA_real_)
+            ridx <- playslist_mod$current_row()
+            xcol <- paste0(which, "_x")
+            ycol <- paste0(which, "_y")
+            ccol <- paste0(which, "_coordinate")
+            if (ridx <= nrow(rdata$dvw$plays2)) {
+                rdata$dvw$plays2$rally_codes[[ridx]][[xcol]] <- xy$x
+                rdata$dvw$plays2$rally_codes[[ridx]][[ycol]] <- xy$y
+                rdata$dvw$plays2[[ccol]][ridx] <- dv_xy2index(as.numeric(xy$x), as.numeric(xy$y))
+            } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
+                rc <- rally_codes()
+                rcidx <- ridx - nrow(rdata$dvw$plays2)
+                rc[[xcol]][rcidx] <- xy$x
+                rc[[ycol]][rcidx] <- xy$y
+                rally_codes(rc)
+            }
+        }
+        observeEvent(input$edit_coord_cancel, {
+            editing$active <- NULL
+            output$code_edit_dialog <- renderUI(NULL)
+        })
+
         courtxy <- reactiveVal(list(x = NA_real_, y = NA_real_)) ## keeps track of click locations (in court x, y space)
         loop_trigger <- reactiveVal(0L)
         observeEvent(input$video_click, priority = 99, {
@@ -1281,38 +1338,70 @@ ov_scouter_server <- function(app_data) {
             flash_screen() ## visual indicator that click has registered
             ## calculate the normalized x,y coords
             this_click <- if (length(input$video_click) > 4) list(x = input$video_click[1] / input$video_click[3], y = 1 - input$video_click[2] / input$video_click[4])
-            ## and video time
-            time_uuid <- uuid()
-            game_state$current_time_uuid <- time_uuid
-            click_time <- as.numeric(input$video_click[5])
-            if (!is.na(click_time) && click_time >= 0) {
-                ## got the video time as part of the click packet, stash it
-                this_timebase <- current_video_src()
-                if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- 1
-                video_times[[time_uuid]] <<- round(rebase_time(click_time, time_from = this_timebase), 2) ## video times to 2 dec places
+            if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click", "coord_click2"))) {
+                thisxy <- vid_to_crt(this_click)
+                if (is.null(editing$active) || editing$active %eq% "coord_click") {
+                    ## first click is the start coord
+                    playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
+                    editing$active <- "coord_click2"
+                    set_coord("start", xy = thisxy)
+                    set_coord("end", xy = NULL) ## clear the end coord
+                } else if (editing$active %eq% "coord_click2") {
+                    playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
+                    ## end coord
+                    set_coord("end", xy = thisxy)
+                    editing$active <- NULL
+                }
+                refocus_to_ui(active_ui()) ## we just clicked away from the active UI element, so go back to it
             } else {
-                ## invalid time received, ask again
-                warning("invalid click time\n")
-                do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
+                ## and video time
+                time_uuid <- uuid()
+                game_state$current_time_uuid <- time_uuid
+                click_time <- as.numeric(input$video_click[5])
+                if (!is.na(click_time) && click_time >= 0) {
+                    ## got the video time as part of the click packet, stash it
+                    this_timebase <- current_video_src()
+                    if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- 1
+                    video_times[[time_uuid]] <<- round(rebase_time(click_time, time_from = this_timebase), 2) ## video times to 2 dec places
+                } else {
+                    ## invalid time received, ask again
+                    warning("invalid click time\n")
+                    do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
+                }
+                if (rally_state() != app_data$click_to_start_msg) courtxy(vid_to_crt(this_click))
+                playslist_mod$redraw_select("last")
+                loop_trigger(loop_trigger() + 1L)
+                ## 6th element of input$video_click gives status of shift key during click
+                shiftclick <- (length(input$video_click) > 5) && isTRUE(input$video_click[6] > 0)
+                process_action(shiftclick)
+                ## TODO MAYBE also propagate the click to elements below the overlay?
             }
-            if (rally_state() != app_data$click_to_start_msg) courtxy(vid_to_crt(this_click))
-            loop_trigger(loop_trigger() + 1L)
-            ## 6th element of input$video_click gives status of shift key during click
-            shiftclick <- (length(input$video_click) > 5) && isTRUE(input$video_click[6] > 0)
-            process_action(shiftclick)
-            ## TODO MAYBE also propagate the click to elements below the overlay?
         })
         observeEvent(court_inset$click(), {
             flash_screen() ## visual indicator that click has registered
-            if (app_data$scout_mode == "type") {
-                ##cat(str(court_inset$click()))
-                ## TODO
+            if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click", "coord_click2"))) {
+                ## TODO check
+                thisxy <- court_inset$click()
+                if (is.null(editing$active) || editing$active %eq% "coord_click") {
+                    playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
+                    ## first click is the start coord
+                    editing$active <- "coord_click2"
+                    set_coord("start", xy = thisxy)
+                    set_coord("end", xy = NULL) ## clear the end coord
+                } else if (editing$active %eq% "coord_click2") {
+                    playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
+                    ## end coord
+                    set_coord("end", xy = thisxy)
+                    editing$active <- NULL
+                }
+                refocus_to_ui(active_ui()) ## we just clicked away from the active UI element, so go back to it
             } else {
                 ## when court diagram clicked, treat it as if it were a click on the video: get the corresponding video time and trigger the loop
                 time_uuid <- uuid()
                 game_state$current_time_uuid <- time_uuid
                 do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@1 or @2)
                 courtxy(court_inset$click())
+                playslist_mod$redraw_select("last")
                 loop_trigger(loop_trigger() + 1L)
                 process_action()
             }
