@@ -360,9 +360,9 @@ transfer_scout_row_details <- function(from, to, tempo = TRUE, num_p = TRUE, pos
             ## not yet allowing dig tempo to change the preceding attack or set tempo, that will need to disambiguate the
             ## set-attack-(block)-dig from the same dig in a subsequent dig-set-attack sequence
             if (((from$skill %eq% "A" && to$skill %eq% "E" || (from$skill %eq% "E" && to$skill %eq% "A")) && from$team %eq% to$team) ||
-                (from$skill %eq% "S" && to$skill %eq% "R") || (from$skill %eq% "R" && to$skill %eq% "S") ||
-                (from$skill %eq% "A" && to$skill %in% c("B", "D") && from$team %neq% to$team) ||
-                (from$skill %eq% "B" && to$skill %in% c("A", "D") && from$team %eq% to$team)) {
+                 (from$skill %eq% "S" && to$skill %eq% "R") || (from$skill %eq% "R" && to$skill %eq% "S") ||
+                 (from$skill %eq% "A" && to$skill %in% c("B", "D") && from$team %neq% to$team) ||
+                 (from$skill %eq% "B" && to$skill %in% c("A", "D") && from$team %eq% to$team)) {
                 to$tempo <- from$tempo
             }
         }
