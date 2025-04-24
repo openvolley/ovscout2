@@ -199,25 +199,6 @@ get_port <- function(port = NULL, port_range = c(3000L, 8000L), host = "127.0.0.
     port
 }
 
-## create a resize observer that watches an element and fires js code when it changes size
-## id is the id of the element to observe
-## fun is a string of the js to run on resize
-## debounce can be used to debounce excessive executions, requires that dbnc is defined in the UI
-resize_observer <- function(id, fun, nsfun, debounce = 0, as = "tag") {
-    as <- match.arg(as, c("tag", "string")) ## "string" is just the js code as a string, "tag" is wrapped in tags$script(HTML(...))
-    if (missing(nsfun)) nsfun <- function(x) paste0(id, "_", x)
-    obsfun <- nsfun("rsz_obs") ## name of the observer function
-    ## if the observer function has not yet been defined, and the element to observe exists, then create the observer function
-    js <- paste0("if (typeof ", obsfun, " === 'undefined' && document.getElementById('", id, "')) {")
-    if (debounce > 0) {
-        js <- paste0(js, " const ", obsfun, " = new ResizeObserver(dbnc(() => { ", fun, "}, ", debounce, "));")
-    } else {
-        js <- paste0(js, " const ", obsfun, " = new ResizeObserver(() => { ", fun, " }); ")
-    }
-    js <- paste0(js, " ", obsfun, ".observe(document.getElementById('", id, "')); }")
-    if (as == "tag") tags$script(HTML(js)) else paste0(js, ";")
-}
-
 focus_to_modal_element <- function(id, highlight_all = TRUE) {
     ## function to set the cursor focus to a particular entry box in a modal popup
     if (!highlight_all) {
