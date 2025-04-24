@@ -46,33 +46,38 @@ build_ovscout2_js <- function(app_data) {
     myjsfile <- file.path(app_data$assets_dir, "ovscout2.js")
     myjs <- paste0(readLines(system.file("extdata/js/ovscout2.js", package = "ovscout2", mustWork = TRUE)), collapse = "\n") ## key press handling
     if (isTRUE(app_data$live)) {
+        ## function to dispose of the player and reload it
+        myjs <- paste(myjs, "vidplayer_reload_fun = function() {",
+                      "  var cs = vidplayer.currentSource(); var ct = vidplayer.currentTime(); vidplayer.dispose();",
+                      player_constructor_js(id = "main_video", app_data = app_data, autoplay = TRUE, muted = NA, ready_extra = "vidplayer.currentTime(ct); vidplayer.play();"),
+                      ##   does muted = NA keep the current setting?? probably not because player has been reset. TODO check
+                      "  vidplayer.one('play', () => { vidplayer_near_end_fun(); });", ## once the player restarts playing, attach the timeupdate watcher
+                      "}", sep = "\n")
         ## define the vidplayer_near_end_fun, which reinitializes the player when it nears the file end
         myjs <- paste(myjs, "vidplayer_near_end_fun = function() {",
-                       "  if (vidplayer.currentTime() >= (vidplayer.duration() - 5)) {",
-                       "    console.log('too close to end of new video');",
-                       "    //  something",
-                       "  } else {",
-                       "    vidplayer.on('timeupdate', function(event) {",
-                       "      if (this.currentTime() >= (this.duration() - 5)) {",
-                       "        console.log('video near end'); Shiny.setInputValue('video_near_end', true, { priority: 'event' });",
-                       "        var cs = vidplayer.currentSource(); var ct = vidplayer.currentTime(); vidplayer.dispose();",
-                       player_constructor_js(id = "main_video", app_data = app_data, autoplay = TRUE, muted = NA, ready_extra = "vidplayer.currentTime(ct); vidplayer.play();"),
-                       ##   does muted = NA keep the current setting?? probably not because player has been reset. TODO check
-                       "        vidplayer.one('play', () => { vidplayer_near_end_fun(); });", ## once the player restarts playing, attach the timeupdate watcher
-                       "      }",
-                       "    });",
-                       "  }",
-                       "}", sep = "\n")
+                      "  if (vidplayer.currentTime() >= (vidplayer.duration() - 5)) {",
+                      "    console.log('too close to end of new video');",
+                      "    setTimeout(vidplayer_reload_fun, 3000);", ## try again in a bit
+                      "  } else {",
+                      "    vidplayer.on('timeupdate', function(event) {",
+                      "      if (this.currentTime() >= (this.duration() - 5)) {",
+                      "        console.log('video near end'); Shiny.setInputValue('video_near_end', true, { priority: 'event' });",
+                      "        vidplayer_reload_fun();",
+                      "      }",
+                      "    });",
+                      "  }",
+                      "}", sep = "\n")
     }
     if (app_data$with_video) {
         myjs <- paste(myjs, "$(document).on('shiny:sessioninitialized', function() {",
-                       resize_observer("review_player", fun = "Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());", debounce = 100, as = "string"),
-                       player_constructor_js(id = "main_video", app_data = app_data),
-                       if (isTRUE(app_data$live)) "vidplayer_near_end_fun();", ## if live, attach the vidplayer_near_end_fun
-                       resize_observer("main_video", fun = "var tbh = $('#main_video .vjs-control-bar').height(); $('#video_overlay').css('height', ($('#main_video').innerHeight() - tbh) + 'px'); $('#video_overlay').css('margin-bottom', tbh + 'px'); document.getElementById('video_overlay_canvas').height = $('#main_video').innerHeight() - tbh; $('#video_overlay_canvas').css('margin-bottom', tbh + 'px'); document.getElementById('video_overlay').style.width = $('#main_video').innerWidth() + 'px'; document.getElementById('video_overlay_canvas').width = $('#main_video').innerWidth(); Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); document.getElementById('video_overlay').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px'; document.getElementById('video_overlay_canvas').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px';", debounce = 100, as = "string"), ";",
-                       ## vidplayer.on('loadedmetadata', () => { console.log('METADATA READY'); }); vidplayer.on('ready', () => { console.log('ONREADY') });
-                       "});", sep = "\n")
+                      resize_observer("review_player", fun = "Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());", debounce = 100, as = "string"),
+                      player_constructor_js(id = "main_video", app_data = app_data),
+                      if (isTRUE(app_data$live)) "vidplayer_near_end_fun();", ## if live, attach the vidplayer_near_end_fun
+                      resize_observer("main_video", fun = "var tbh = $('#main_video .vjs-control-bar').height(); $('#video_overlay').css('height', ($('#main_video').innerHeight() - tbh) + 'px'); $('#video_overlay').css('margin-bottom', tbh + 'px'); document.getElementById('video_overlay_canvas').height = $('#main_video').innerHeight() - tbh; $('#video_overlay_canvas').css('margin-bottom', tbh + 'px'); document.getElementById('video_overlay').style.width = $('#main_video').innerWidth() + 'px'; document.getElementById('video_overlay_canvas').width = $('#main_video').innerWidth(); Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); document.getElementById('video_overlay').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px'; document.getElementById('video_overlay_canvas').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px';", debounce = 100, as = "string"), ";",
+                      ## vidplayer.on('loadedmetadata', () => { console.log('METADATA READY'); }); vidplayer.on('ready', () => { console.log('ONREADY') });
+                      "});", sep = "\n")
     }
     cat(myjs, file = myjsfile, sep = "\n")
+    ## cat("assets js:", myjsfile, "\n") ## for debugging
     paste0("assets/", basename(myjsfile)) ## return the relative url
 }
