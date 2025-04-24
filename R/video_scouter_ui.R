@@ -3,10 +3,54 @@ ov_video_ui_element <- function(app_data, yt) {
     tagList(fluidRow(column(4, uiOutput("rally_state"))),
             introBox(tags$div(id = "video_holder", style = "position:relative;",
                               if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc")),
-                              HTML(paste0("<video id=\"main_video\" style=\"width:100%; height:", if (app_data$scout_mode == "type") 60 else 85, "vh;\" class=\"video-js vjs-has-started\" crossorigin=\"anonymous\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"inactivityTimeout\": 0, \"sources\": ", if (yt) paste0("[{ \"type\": \"video/youtube\", \"src\": \"", app_data$video_src, "\"}]") else paste0("[{ \"src\": \"", if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), "\"}]"), " }'>\n",
-                                          "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>"))
+                              tags$video(id = "main_video", style = paste0("width:100%; height:", if (app_data$scout_mode == "type") 60 else 85, "vh;"), class = "video-js vjs-has-started", crossorigin = "anonymous", tags$p(class = "vjs-no-js", "This app cannot be used without a web browser that", tags$a(href = "https://videojs.com/html5-video-support/", target = "_blank", "supports HTML5 video")))
                               ),
                      tags$canvas(id = "video_overlay_canvas", style = "position:absolute;", height = "400", width = "600"), plotOutput("video_overlay"), data.step = 3, data.intro = "Video of the game to scout."))
+}
+
+player_constructor_js <- function(id = "main_video", app_data, autoplay = FALSE, muted = TRUE, ready_extra) {
+    yt <- isTRUE(is_youtube_url(app_data$video_src)) || isTRUE(!is.null(app_data$video_src2) && is_youtube_url(app_data$video_src2))
+    out <- paste0("vidplayer = videojs('", id, "', ",
+                  ## options
+                  "{'techOrder': ['html5'", if (yt) ", 'youtube'", "], ",
+                  "'controls': true, 'autoplay': ", tolower(isTRUE(autoplay)), ", 'preload': 'auto', 'liveui': true, 'restoreEl': true, 'inactivityTimeout': 0, ",
+                  if (!is.na(muted)) paste0("'muted': ", tolower(isTRUE(muted)), ", "),
+                  ## sources
+                  "'sources': ", if (yt) {
+                                     paste0("[{ 'type': 'video/youtube', 'src': '", app_data$video_src, "'}]")
+                                 } else {
+                                     paste0("[{ 'src': '", if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), "'",
+                                            if (isTRUE(app_data$live)) paste0(" + '?ovslive=' + new Date().getTime()"),
+                                            if (grepl("m3u8$", app_data$video_src)) paste0(", 'type': 'application/x-mpegURL'"), ## otherwise let videojs guess it
+                                            "}]")
+                                 },
+                  " });\n", ## end options
+                  ## other setup
+                  "vidplayer.reloadSourceOnError({'errorInterval':5});\n",
+                  paste0("vidplayer.ready(function() {\n  console.log('VIDPLAYER READY'); ",
+                         if (!missing(ready_extra)) sub(";+$", "; ", paste0(stringr::str_trim(ready_extra), ";")),
+                         "  Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());\n});\n"))
+    out
+}
+
+live_near_end_js <- function(app_data) {
+    ## define the vidplayer_near_end_fun, which reinitializes the player when it nears the file end
+    paste0("\nvidplayer_near_end_fun = function() {\n",
+           "  if (vidplayer.currentTime() >= (vidplayer.duration() - 5)) {\n",
+           "    console.log('too close to end of new video');\n",
+           "    //  something\n",
+           "  } else {\n",
+           "    vidplayer.on('timeupdate', function(event) {\n",
+           "      if (this.currentTime() >= (this.duration() - 5)) {\n",
+           "        console.log('video near end'); Shiny.setInputValue('video_near_end', true, { priority: 'event' });\n",
+           "        var cs = vidplayer.currentSource(); var ct = vidplayer.currentTime(); vidplayer.dispose();\n      ",
+           player_constructor_js(id = "main_video", app_data = app_data, autoplay = TRUE, muted = NA, ready_extra = "vidplayer.currentTime(ct); vidplayer.play(); "),
+           ##   does muted = NA keep the current setting?? probably not because player has been reset. TODO check
+           "        vidplayer.one('play', () => { vidplayer_near_end_fun(); });\n", ## once the player restarts playing, attach the timeupdate watcher
+           "      }\n",
+           "    });\n",
+           "  }",
+           "}\n")
 }
 
 ov_scouter_ui <- function(app_data) {
@@ -32,9 +76,12 @@ ov_scouter_ui <- function(app_data) {
                         tags$script(src = "js/ovscout2.js"),
                         if (app_data$with_video) tags$script(HTML(paste0("$(document).on('shiny:sessioninitialized', function() {",
                                resize_observer("review_player", fun = "Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());", debounce = 100, as = "string"),
-                               "vidplayer = videojs('main_video'); vidplayer.ready(function() {
-                               Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());",
-                             resize_observer("main_video", fun = "var tbh = $('#main_video .vjs-control-bar').height(); $('#video_overlay').css('height', ($('#main_video').innerHeight() - tbh) + 'px'); $('#video_overlay').css('margin-bottom', tbh + 'px'); document.getElementById('video_overlay_canvas').height = $('#main_video').innerHeight() - tbh; $('#video_overlay_canvas').css('margin-bottom', tbh + 'px'); document.getElementById('video_overlay').style.width = $('#main_video').innerWidth() + 'px'; document.getElementById('video_overlay_canvas').width = $('#main_video').innerWidth(); Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); document.getElementById('video_overlay').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px'; document.getElementById('video_overlay_canvas').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px';", debounce = 100, as = "string"), "}); });"))), ## vidplayer.on('ended', function(){ this.src(this.src()); } );
+                               if (isTRUE(app_data$live)) live_near_end_js(app_data), ## defines vidplayer_near_end_fun in js
+                               player_constructor_js(id = "main_video", app_data = app_data),
+                               if (isTRUE(app_data$live)) "vidplayer_near_end_fun();", ## if live, attach the vidplayer_near_end_fun
+                               resize_observer("main_video", fun = "var tbh = $('#main_video .vjs-control-bar').height(); $('#video_overlay').css('height', ($('#main_video').innerHeight() - tbh) + 'px'); $('#video_overlay').css('margin-bottom', tbh + 'px'); document.getElementById('video_overlay_canvas').height = $('#main_video').innerHeight() - tbh; $('#video_overlay_canvas').css('margin-bottom', tbh + 'px'); document.getElementById('video_overlay').style.width = $('#main_video').innerWidth() + 'px'; document.getElementById('video_overlay_canvas').width = $('#main_video').innerWidth(); Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); document.getElementById('video_overlay').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px'; document.getElementById('video_overlay_canvas').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px';", debounce = 100, as = "string"), "; ",
+                               ## vidplayer.on('loadedmetadata', () => { console.log('METADATA READY'); }); vidplayer.on('ready', () => { console.log('ONREADY') });
+                               "});"))),
                         tags$title("Volleyball scout and video sync")
                         ),
               if (!is.null(app_data$ui_header)) {

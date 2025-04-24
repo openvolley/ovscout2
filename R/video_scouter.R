@@ -42,6 +42,8 @@
 ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scout_mode = "click", pause_on_type = 500, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), click_shortcuts = ov_default_click_shortcuts(), type_shortcuts = ov_default_type_shortcuts(), playstable_shortcuts = ov_default_playstable_shortcuts(), key_remapping = ov_default_key_remapping(scout_mode), scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     dots <- list(...)
+    ## undocumented (experimental) parameters that can be passed via ... :
+    ## - `live` treats the video file as if it were continually updated from a live feed
 
     ## backwards compatibility, treat shortcuts parm as click_shortcuts
     if ("shortcuts" %in% names(dots) && missing(click_shortcuts)) {
@@ -494,6 +496,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         dir.create(app_data$reports_dir)
     }
 
+    ## undocumented other_args passed via ...
+    other_args$live <- isTRUE(other_args$live)
     app_data <- c(app_data, other_args)
 
     this_app <- list(ui = ov_scouter_ui(app_data = app_data), server = ov_scouter_server(app_data = app_data))
