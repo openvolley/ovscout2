@@ -1180,6 +1180,7 @@ ov_scouter_server <- function(app_data) {
         ar_fix_x <- function(x, direction = "to_image") {
             eAR <- input$dv_width / input$dv_height
             mAR <- if ((current_video_src() == 1L && is_youtube_url(app_data$video_src)) || (current_video_src() == 2L && is_youtube_url(app_data$video_src2))) {
+                       ## the youtube player does not offer a way of querying the size but youtube videos are always 16:9
                        16 / 9
                    } else {
                        input$video_width / input$video_height
@@ -1196,7 +1197,7 @@ ov_scouter_server <- function(app_data) {
         ar_fix_y <- function(y, direction = "to_image") {
             eAR <- input$dv_width / input$dv_height
             mAR <- if ((current_video_src() == 1L && is_youtube_url(app_data$video_src)) || (current_video_src() == 2L && is_youtube_url(app_data$video_src2))) {
-                       16 / 9
+                       16 / 9 ## always 16:9 for youtube
                    } else {
                        input$video_width / input$video_height
                    }
