@@ -8,50 +8,6 @@ ov_video_ui_element <- function(app_data, yt) {
                      tags$canvas(id = "video_overlay_canvas", style = "position:absolute;", height = "400", width = "600"), plotOutput("video_overlay"), data.step = 3, data.intro = "Video of the game to scout."))
 }
 
-player_constructor_js <- function(id = "main_video", app_data, autoplay = FALSE, muted = TRUE, ready_extra) {
-    yt <- isTRUE(is_youtube_url(app_data$video_src)) || isTRUE(!is.null(app_data$video_src2) && is_youtube_url(app_data$video_src2))
-    out <- paste0("vidplayer = videojs('", id, "', ",
-                  ## options
-                  "{'techOrder': ['html5'", if (yt) ", 'youtube'", "], ",
-                  "'controls': true, 'autoplay': ", tolower(isTRUE(autoplay)), ", 'preload': 'auto', 'liveui': true, 'restoreEl': true, 'inactivityTimeout': 0, ",
-                  if (!is.na(muted)) paste0("'muted': ", tolower(isTRUE(muted)), ", "),
-                  ## sources
-                  "'sources': ", if (yt) {
-                                     paste0("[{ 'type': 'video/youtube', 'src': '", app_data$video_src, "'}]")
-                                 } else {
-                                     paste0("[{ 'src': '", if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), "'",
-                                            if (isTRUE(app_data$live)) paste0(" + '?ovslive=' + new Date().getTime()"),
-                                            if (grepl("m3u8$", app_data$video_src)) paste0(", 'type': 'application/x-mpegURL'"), ## otherwise let videojs guess it
-                                            "}]")
-                                 },
-                  " });\n", ## end options
-                  ## other setup
-                  "vidplayer.reloadSourceOnError({'errorInterval':5});\n",
-                  paste0("vidplayer.ready(function() {\n  console.log('VIDPLAYER READY'); ",
-                         if (!missing(ready_extra)) sub(";+$", "; ", paste0(stringr::str_trim(ready_extra), ";")),
-                         "  Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());\n});\n"))
-    out
-}
-
-live_near_end_js <- function(app_data) {
-    ## define the vidplayer_near_end_fun, which reinitializes the player when it nears the file end
-    paste0("\nvidplayer_near_end_fun = function() {\n",
-           "  if (vidplayer.currentTime() >= (vidplayer.duration() - 5)) {\n",
-           "    console.log('too close to end of new video');\n",
-           "    //  something\n",
-           "  } else {\n",
-           "    vidplayer.on('timeupdate', function(event) {\n",
-           "      if (this.currentTime() >= (this.duration() - 5)) {\n",
-           "        console.log('video near end'); Shiny.setInputValue('video_near_end', true, { priority: 'event' });\n",
-           "        var cs = vidplayer.currentSource(); var ct = vidplayer.currentTime(); vidplayer.dispose();\n      ",
-           player_constructor_js(id = "main_video", app_data = app_data, autoplay = TRUE, muted = NA, ready_extra = "vidplayer.currentTime(ct); vidplayer.play(); "),
-           ##   does muted = NA keep the current setting?? probably not because player has been reset. TODO check
-           "        vidplayer.one('play', () => { vidplayer_near_end_fun(); });\n", ## once the player restarts playing, attach the timeupdate watcher
-           "      }\n",
-           "    });\n",
-           "  }",
-           "}\n")
-}
 
 ov_scouter_ui <- function(app_data) {
     ## some startup stuff
@@ -63,25 +19,17 @@ ov_scouter_ui <- function(app_data) {
               tags$script("Shiny.addCustomMessageHandler('evaljs', function(jsexpr) { eval(jsexpr) });"), ## handler for running js code directly
               rintrojs::introjsUI(),
               ovideo::ov_video_js(youtube = yt, version = 2), ## for the review pane
-              tags$head(tags$link(href = "css/ovscout2.css", rel = "stylesheet"),
-                        tags$style(paste0(".btn, .btn:hover, .btn.active { border-width:1px; font-size: ", app_data$styling$button_font_size , ";} .libero {background-color:", app_data$styling$libero_colour, "; border-color:", app_data$styling$libero_light_colour, "} .libero.active {background-color:", app_data$styling$libero_dark_colour, "; border-color:", app_data$styling$libero_colour, "} .libero.active:hover, .libero:hover {background-color:", app_data$styling$libero_light_colour, "; border-color:", app_data$styling$libero_colour, "} .homebut { background-color:", app_data$styling$h_court_colour, "} .homebut:hover, .homebut:active { background-color:", app_data$styling$h_court_light_colour, "} .visbut { background-color:", app_data$styling$v_court_colour, "} .visbut:hover, .visbut:active { background-color:", app_data$styling$v_court_light_colour, "}")),## .fatradio:focus, .fatradio:hover {background-color:#FFFFFF;}")),
-                        tags$style(paste0(".undo {background-color:", app_data$styling$undo_colour, "; border-color:", app_data$styling$undo_light_colour, "} .undo:hover {background-color:", app_data$styling$undo_light_colour, "; border-color:", app_data$styling$undo_colour, "} .continue {background-color:", app_data$styling$continue_colour, "; border-color:", app_data$styling$continue_light_colour, "} .continue:hover {background-color:", app_data$styling$continue_light_colour, "; border-color:", app_data$styling$continue_colour, "} .cancel {background-color:", app_data$styling$cancel_colour, "; border-color:", app_data$styling$cancel_light_colour, "} .cancel:hover {background-color:", app_data$styling$cancel_light_colour, "; border-color:", app_data$styling$cancel_colour, "}")),
-                        if (!is.null(app_data$css)) tags$style(app_data$css),
-                        tags$link(href = if (running_locally) "css/video-js.min.css" else "//vjs.zencdn.net/8.3.0/video-js.min.css", rel = "stylesheet"),
-                        tags$script(src = if (running_locally) "js/video.min.js" else "//vjs.zencdn.net/8.3.0/video.min.js"),
-                        if (dash) tags$script(src = if (running_locally) "js/dash.all.min.js" else "//cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.1/dash.all.min.js"),
-                        if (dash) tags$script(src = if (running_locally) "js/videojs-dash.min.js" else "//cdnjs.cloudflare.com/ajax/libs/videojs-contrib-dash/5.1.1/videojs-dash.min.js"),
-                        if (yt) tags$script(src = "https://cdn.jsdelivr.net/npm/videojs-youtube@2.6.1/dist/Youtube.min.js"), ## for youtube
-                        ##key press handling
-                        tags$script(src = "js/ovscout2.js"),
-                        if (app_data$with_video) tags$script(HTML(paste0("$(document).on('shiny:sessioninitialized', function() {",
-                               resize_observer("review_player", fun = "Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());", debounce = 100, as = "string"),
-                               if (isTRUE(app_data$live)) live_near_end_js(app_data), ## defines vidplayer_near_end_fun in js
-                               player_constructor_js(id = "main_video", app_data = app_data),
-                               if (isTRUE(app_data$live)) "vidplayer_near_end_fun();", ## if live, attach the vidplayer_near_end_fun
-                               resize_observer("main_video", fun = "var tbh = $('#main_video .vjs-control-bar').height(); $('#video_overlay').css('height', ($('#main_video').innerHeight() - tbh) + 'px'); $('#video_overlay').css('margin-bottom', tbh + 'px'); document.getElementById('video_overlay_canvas').height = $('#main_video').innerHeight() - tbh; $('#video_overlay_canvas').css('margin-bottom', tbh + 'px'); document.getElementById('video_overlay').style.width = $('#main_video').innerWidth() + 'px'; document.getElementById('video_overlay_canvas').width = $('#main_video').innerWidth(); Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); document.getElementById('video_overlay').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px'; document.getElementById('video_overlay_canvas').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px';", debounce = 100, as = "string"), "; ",
-                               ## vidplayer.on('loadedmetadata', () => { console.log('METADATA READY'); }); vidplayer.on('ready', () => { console.log('ONREADY') });
-                               "});"))),
+              tags$head(## tags$meta(`http-equiv` = "Content-Security-Policy", content = "default-src * 'self' 'unsafe-inline' 'unsafe-eval' data: gap: content: blob:"), ## does this help with m3u8 issues? ## worker-src blob:; child-src blob: gap:; img-src 'self' blob: data:;
+                       tags$link(href = "css/ovscout2.css", rel = "stylesheet"),
+                       tags$style(paste0(".btn, .btn:hover, .btn.active { border-width:1px; font-size: ", app_data$styling$button_font_size , ";} .libero {background-color:", app_data$styling$libero_colour, "; border-color:", app_data$styling$libero_light_colour, "} .libero.active {background-color:", app_data$styling$libero_dark_colour, "; border-color:", app_data$styling$libero_colour, "} .libero.active:hover, .libero:hover {background-color:", app_data$styling$libero_light_colour, "; border-color:", app_data$styling$libero_colour, "} .homebut { background-color:", app_data$styling$h_court_colour, "} .homebut:hover, .homebut:active { background-color:", app_data$styling$h_court_light_colour, "} .visbut { background-color:", app_data$styling$v_court_colour, "} .visbut:hover, .visbut:active { background-color:", app_data$styling$v_court_light_colour, "}")),## .fatradio:focus, .fatradio:hover {background-color:#FFFFFF;}")),
+                       tags$style(paste0(".undo {background-color:", app_data$styling$undo_colour, "; border-color:", app_data$styling$undo_light_colour, "} .undo:hover {background-color:", app_data$styling$undo_light_colour, "; border-color:", app_data$styling$undo_colour, "} .continue {background-color:", app_data$styling$continue_colour, "; border-color:", app_data$styling$continue_light_colour, "} .continue:hover {background-color:", app_data$styling$continue_light_colour, "; border-color:", app_data$styling$continue_colour, "} .cancel {background-color:", app_data$styling$cancel_colour, "; border-color:", app_data$styling$cancel_light_colour, "} .cancel:hover {background-color:", app_data$styling$cancel_light_colour, "; border-color:", app_data$styling$cancel_colour, "}")),
+                       if (!is.null(app_data$css)) tags$style(app_data$css),
+                       tags$link(href = if (running_locally) "css/video-js.min.css" else "//vjs.zencdn.net/8.3.0/video-js.min.css", rel = "stylesheet"),
+                       tags$script(src = if (running_locally) "js/video.min.js" else "//vjs.zencdn.net/8.3.0/video.min.js"),
+                       if (dash) tags$script(src = if (running_locally) "js/dash.all.min.js" else "//cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.1/dash.all.min.js"),
+                       if (dash) tags$script(src = if (running_locally) "js/videojs-dash.min.js" else "//cdnjs.cloudflare.com/ajax/libs/videojs-contrib-dash/5.1.1/videojs-dash.min.js"),
+                       if (yt) tags$script(src = "https://cdn.jsdelivr.net/npm/videojs-youtube@2.6.1/dist/Youtube.min.js"), ## for youtube
+                        tags$script(src = build_ovscout2_js(app_data)),
                         tags$title("Volleyball scout and video sync")
                         ),
               if (!is.null(app_data$ui_header)) {
