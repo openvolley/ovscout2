@@ -19,11 +19,13 @@ resize_observer <- function(id, fun, nsfun, debounce = 0, as = "tag") {
 
 player_constructor_js <- function(id = "main_video", app_data, autoplay = FALSE, muted = TRUE, ready_extra) {
     yt <- isTRUE(is_youtube_url(app_data$video_src)) || isTRUE(!is.null(app_data$video_src2) && is_youtube_url(app_data$video_src2))
+    ## muted can be TRUE/FALSE or a string giving a (js) variable name. Ignored if NA
+    if (!is.na(muted) && is.logical(muted)) muted <- tolower(isTRUE(muted))
     out <- paste0("vidplayer = videojs('", id, "', ",
                   ## options
                   "{'techOrder': ['html5'", if (yt) ", 'youtube'", "], ",
                   "'controls': true, 'autoplay': ", tolower(isTRUE(autoplay)), ", 'preload': 'auto', 'liveui': true, 'restoreEl': true, 'inactivityTimeout': 0, ",
-                  if (!is.na(muted)) paste0("'muted': ", tolower(isTRUE(muted)), ", "),
+                  if (!is.na(muted)) paste0("'muted': ", muted, ", "),
                   ## sources
                   "'sources': ", if (yt) {
                                      paste0("[{ 'type': 'video/youtube', 'src': '", app_data$video_src, "'}]")
@@ -50,9 +52,9 @@ build_ovscout2_js <- function(app_data) {
         myjs <- paste(myjs, "vidplayer_reload_fun = function() {",
                       "  var ct = vidplayer.currentTime();",
                       ## dispose of the player and reconstruct it. Note that this gives a flicker as the element is removed and replaced
+                      "  var wasmuted = vidplayer.muted();", ## keep the current setting
                       "  vidplayer.dispose();",
-                      player_constructor_js(id = "main_video", app_data = app_data, autoplay = TRUE, muted = NA, ready_extra = "vidplayer.currentTime(ct); vidplayer.play();"),
-                      ##   does muted = NA keep the current setting?? probably not because player has been reset. TODO check
+                      player_constructor_js(id = "main_video", app_data = app_data, autoplay = TRUE, muted = "wasmuted", ready_extra = "vidplayer.currentTime(ct); vidplayer.play();"),
                       "  vidplayer.one('play', () => { vidplayer_near_end_fun(); });", ## once the player restarts playing, attach the timeupdate watcher
                       "}", sep = "\n")
         ## define the vidplayer_near_end_fun, which reinitializes the player when it nears the file end
