@@ -10,8 +10,9 @@ $(document).on("shiny:sessioninitialized", function() {
         var cx = e.clientX - rect.left;
         var cy = e.clientY - rect.top;
         var vt = -1;
+        var tbh = $('#main_video .vjs-control-bar').height() || 0; // the overlay height is decreased by the height of the control bar (with margin-bottom set to compensate). Fallback to 0 if not defined
         try { vt = vidplayer.currentTime(); } catch(err) {};
-        Shiny.setInputValue('video_click', [cx, cy, rect.width, rect.height, vt, e.shiftKey], {priority: 'event'})
+        Shiny.setInputValue('video_click', [cx, cy, rect.width, rect.height + tbh, vt, e.shiftKey], {priority: 'event'})
     });
 });
 
