@@ -48,7 +48,9 @@ build_ovscout2_js <- function(app_data) {
     if (isTRUE(app_data$live)) {
         ## function to dispose of the player and reload it
         myjs <- paste(myjs, "vidplayer_reload_fun = function() {",
-                      "  var cs = vidplayer.currentSource(); var ct = vidplayer.currentTime(); vidplayer.dispose();",
+                      "  var ct = vidplayer.currentTime();",
+                      ## dispose of the player and reconstruct it. Note that this gives a flicker as the element is removed and replaced
+                      "  vidplayer.dispose();",
                       player_constructor_js(id = "main_video", app_data = app_data, autoplay = TRUE, muted = NA, ready_extra = "vidplayer.currentTime(ct); vidplayer.play();"),
                       ##   does muted = NA keep the current setting?? probably not because player has been reset. TODO check
                       "  vidplayer.one('play', () => { vidplayer_near_end_fun(); });", ## once the player restarts playing, attach the timeupdate watcher

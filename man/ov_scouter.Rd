@@ -81,7 +81,7 @@ ov_scouter(
 
 \item{prompt_for_files}{logical: if \code{dvw} was not specified, prompt the user to select the dvw file}
 
-\item{...}{: extra parameters passed to \code{\link[datavolley:read_dv]{datavolley::dv_read()}} (if \code{dvw} is a provided as a string) and/or to the shiny server and UI functions}
+\item{...}{: extra parameters passed to \code{\link[datavolley:dv_read]{datavolley::dv_read()}} (if \code{dvw} is a provided as a string) and/or to the shiny server and UI functions}
 }
 \description{
 Launch a Shiny app for scouting

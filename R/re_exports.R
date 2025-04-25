@@ -1,5 +1,5 @@
 #' @export
-datavolley::read_dv
+datavolley::dv_read
 
 #' @export
 datavolley::dv_example_file
