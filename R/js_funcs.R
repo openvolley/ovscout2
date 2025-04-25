@@ -17,31 +17,34 @@ resize_observer <- function(id, fun, nsfun, debounce = 0, as = "tag") {
     if (as == "tag") tags$script(HTML(js)) else paste0(js, ";")
 }
 
-player_constructor_js <- function(id = "main_video", app_data, autoplay = FALSE, muted = TRUE, ready_extra) {
+player_constructor_js <- function(id = "main_video", app_data, autoplay = FALSE, muted = TRUE, height = NA, width = NA, ready_extra) {
     yt <- isTRUE(is_youtube_url(app_data$video_src)) || isTRUE(!is.null(app_data$video_src2) && is_youtube_url(app_data$video_src2))
     ## muted can be TRUE/FALSE or a string giving a (js) variable name. Ignored if NA
     if (!is.na(muted) && is.logical(muted)) muted <- tolower(isTRUE(muted))
-    out <- paste0("vidplayer = videojs('", id, "', ",
-                  ## options
-                  "{'techOrder': ['html5'", if (yt) ", 'youtube'", "], ",
-                  "'controls': true, 'autoplay': ", tolower(isTRUE(autoplay)), ", 'preload': 'auto', 'liveui': true, 'restoreEl': true, 'inactivityTimeout': 0, ",
-                  if (!is.na(muted)) paste0("'muted': ", muted, ", "),
-                  ## sources
-                  "'sources': ", if (yt) {
-                                     paste0("[{ 'type': 'video/youtube', 'src': '", app_data$video_src, "'}]")
-                                 } else {
-                                     paste0("[{ 'src': '", if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), "'",
-                                            if (isTRUE(app_data$live)) paste0(" + '?ovslive=' + new Date().getTime()"),
-                                            if (grepl("m3u8$", app_data$video_src)) paste0(", 'type': 'application/x-mpegURL'"), ## otherwise let videojs guess it
-                                            "}]")
-                                 },
-                  " });\n", ## end options
-                  ## other setup
-                  "vidplayer.reloadSourceOnError({'errorInterval':5});\n",
-                  paste0("vidplayer.ready(function() {\n  console.log('VIDPLAYER READY'); ",
-                         if (!missing(ready_extra)) sub(";+$", "; ", paste0(stringr::str_trim(ready_extra), ";")),
-                         "  Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());\n});"))
-    out
+    if (is.numeric(height) && !isTRUE(height > 0)) height <- NA
+    if (is.numeric(width) && !isTRUE(width > 0)) width <- NA
+    paste0("vidplayer = videojs('", id, "', ",
+           ## options
+           "{'techOrder': ['html5'", if (yt) ", 'youtube'", "], ",
+           "'controls': true, 'autoplay': ", tolower(isTRUE(autoplay)), ", 'preload': 'auto', 'liveui': true, 'restoreEl': true, 'inactivityTimeout': 0, ",
+           if (!is.na(height)) paste0("'height':", height, ", "),
+           if (!is.na(width)) paste0("'width':", width, ", "),
+           if (!is.na(muted)) paste0("'muted': ", muted, ", "),
+           ## sources
+           "'sources': ", if (yt) {
+                              paste0("[{ 'type': 'video/youtube', 'src': '", app_data$video_src, "'}]")
+                          } else {
+                              paste0("[{ 'src': '", if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), "'",
+                                     if (isTRUE(app_data$live)) paste0(" + '?ovslive=' + new Date().getTime()"),
+                                     if (grepl("m3u8$", app_data$video_src)) paste0(", 'type': 'application/x-mpegURL'"), ## otherwise let videojs guess it
+                                     "}]")
+                          },
+           " });\n", ## end options
+           ## other setup
+           ## "vidplayer.reloadSourceOnError({'errorInterval':5});\n",
+           paste0("vidplayer.ready(function() {\n  console.log('VIDPLAYER READY'); ",
+                  if (!missing(ready_extra)) sub(";+$", "; ", paste0(stringr::str_trim(ready_extra), ";")),
+                  "  Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());\n});"))
 }
 
 build_ovscout2_js <- function(app_data) {
@@ -50,11 +53,10 @@ build_ovscout2_js <- function(app_data) {
     if (isTRUE(app_data$live)) {
         ## function to dispose of the player and reload it
         myjs <- paste(myjs, "vidplayer_reload_fun = function() {",
-                      "  var ct = vidplayer.currentTime();",
+                      "  var ct = vidplayer.currentTime(); var pw = vidplayer.width(); var ph = vidplayer.height(); var wasmuted = vidplayer.muted();", ## note some current settings
                       ## dispose of the player and reconstruct it. Note that this gives a flicker as the element is removed and replaced
-                      "  var wasmuted = vidplayer.muted();", ## keep the current setting
                       "  vidplayer.dispose();",
-                      player_constructor_js(id = "main_video", app_data = app_data, autoplay = TRUE, muted = "wasmuted", ready_extra = "vidplayer.currentTime(ct); vidplayer.play();"),
+                      player_constructor_js(id = "main_video", app_data = app_data, autoplay = TRUE, muted = "wasmuted", height = "ph", width = "pw", ready_extra = "vidplayer.currentTime(ct); vidplayer.play();"),
                       "  vidplayer.one('play', () => { vidplayer_near_end_fun(); });", ## once the player restarts playing, attach the timeupdate watcher
                       "}", sep = "\n")
         ## define the vidplayer_near_end_fun, which reinitializes the player when it nears the file end
