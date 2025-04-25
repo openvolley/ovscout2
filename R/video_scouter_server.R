@@ -755,7 +755,7 @@ ov_scouter_server <- function(app_data) {
                         if (grepl("scout_in", k$id)) {
                             ## tab from scout bar, go to playslist table
                             ## currently handled in switch_windows shortcut below, TODO rationalize this
-                        } else if (app_data$scout_mode == "type") {
+                        } else if (app_data$scout_mode == "type" && is.null(editing$active)) {
                             ## otherwise (noting that we are not in a modal and not in the playslist table here) if we are in typing mode, switch to the input bar
                             focus_to_scout_bar()
                         }
