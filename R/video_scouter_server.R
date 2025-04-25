@@ -3121,6 +3121,7 @@ ov_scouter_server <- function(app_data) {
                 rally_state(restore_rally_state)
                 ## and the current team
                 game_state$current_team <- restore_current_team
+                if (nrow(rc) < 1) game_state$rally_started <- FALSE ## we've undone all actions, so the rally is back to it's pre-start state. This allows us to e.g. display the serve-switch and rotate buttons in the court diagram module
                 ## rewind the video to the time of the last action, or if we've removed all actions then the prior time of the first one
                 if (nrow(rc) > 0) do_video("set_time", tail(rc$t, 1)) else if (length(restore_t) == 1 && !is.na(restore_t)) do_video("set_time", restore_t) else do_video("rew", 3)
             } else {
