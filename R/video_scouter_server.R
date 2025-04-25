@@ -456,11 +456,14 @@ ov_scouter_server <- function(app_data) {
                         if (grepl("^[TpczPCS]", code)) code <- paste0("*", code)
                         cat("to process: ", code, "\n")
                         if (app_data$scout_mode == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
-                        if (grepl("^(\\*p|ap|\\*c|ac|\\*z|az|\\*S|aS)", code) || ## timeout, sub, setter position, assign serving team
+                        if (grepl("^(\\*p|ap|\\*c|ac|\\*z|az|\\*S|aS)", code) || ## sub, setter position, assign serving team
                             grepl("^[a\\*]C[[:digit:]]+[:\\.][[:digit:]]+", code) || ## substitution ensuring it can't be an attack combo code
                             (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(gs$rally_started))) { ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
                             ## can't handle these as edits, at least not yet
                             ## TODO warn
+                        } else if (grepl("^[a\\*]?L", code)) {
+                            ## starting lineup
+                            assign_lineup_from_manual(code, dvw = rdata$dvw)
                         } else if (grepl("^(>|\\*T|aT)", code)) { ## timeout, comment
                             newrow <- make_plays2(code, game_state = gs, rally_ended = FALSE, dvw = rdata$dvw)
                             newrow$time <- insert_clock_time
@@ -891,6 +894,9 @@ ov_scouter_server <- function(app_data) {
                         ## handle_non_skill_code will have called rally_ended if appropriate, which also detects end of set (shows the modal to confirm)
                         ## what else needs to happen? TODO
                     }
+                } else if (grepl("^[a\\*]?L", code)) {
+                    ## starting lineup
+                    ## should already have been handled, should not get here
                 } else if (grepl("^[a\\*]?S$", code)) {
                     ## set serving team
                     srv <- if (grepl("^a", code)) "a" else "*"
@@ -1023,8 +1029,16 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$scout_input, {
             codes <- input$scout_input
             cat("code is: "); print(codes)
-            if (grepl("^[a\\*]?L[[:space:]]*", codes)) {
-                lup <- lineup_preprocess(codes, dvw = rdata$dvw) ## list(home = L, visiting = L) where L is a list with elements lineup, liberos, setter
+            if (grepl("^[a\\*]?L", codes)) {
+                ## handle these here not in handle_scout_codes because the whitespace splitting behaviour is different
+                assign_lineup_from_manual(codes, dvw = rdata$dvw)
+            } else {
+                handle_scout_codes(codes)
+            }
+        })
+
+        assign_lineup_from_manual <- function(code, dvw) {
+                lup <- lineup_preprocess(code, dvw = rdata$dvw) ## list(home = L, visiting = L) where L is a list with elements lineup, liberos, setter
                 ## apply
                 setnum <- if (is.null(game_state$set_number) || is.na(game_state$set_number)) {
                               ## assume is set 1, probably needs something better
@@ -1058,10 +1072,7 @@ ov_scouter_server <- function(app_data) {
                         }
                     }
                 }
-            } else {
-                handle_scout_codes(codes)
-            }
-        })
+        }
 
         review_rally <- function() {
             ## codes can be reviewed and edited at the end of the rally
