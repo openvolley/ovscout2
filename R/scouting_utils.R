@@ -234,8 +234,8 @@ dv_write2 <- function(x, file, text_encoding = "UTF-8", convert_cones = TRUE) {
     if (convert_cones) x$meta$match$zones_or_cones <- "C" ## change the indicator in the metadata
     x[["plays"]] <- tibble()
     ## ensure players are OK
-    x$meta$players_h <- make_players(x$meta$players_h)
-    x$meta$players_v <- make_players(x$meta$players_v)
+    x$meta$players_h <- make_players(remove_players_not_played(roster = x$meta$players_h, plays = x$plays2, home_visiting = "h", faststart_only = TRUE))
+    x$meta$players_v <- make_players(remove_players_not_played(roster = x$meta$players_v, plays = x$plays2, home_visiting = "v", faststart_only = TRUE))
     ## write without the plays part
     dv_write(x, file = file, text_encoding = text_encoding)
     if (!is.null(x$plays2) && nrow(x$plays2) > 0) {
