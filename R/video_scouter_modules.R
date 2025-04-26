@@ -544,10 +544,10 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
                         na.omit()
                     if (nrow(segxy) > 0) {
                         if (nrow(segxy) == 2) {
-                            arrows(segxy$x[1], segxy$y[1], segxy$x[2], segxy$y[2], angle = 15, length = 0.15)
+                            arrows(x0 = segxy$x[1], y0 = segxy$y[1], x1 = segxy$x[2], y1 = segxy$y[2], angle = 15, length = 0.15)
                         } else if (nrow(segxy) == 3) {
-                            lines(segxy$x[1], segxy$y[1], segxy$x[2], segxy$y[2])
-                            arrows(segxy$x[2], segxy$y[2], segxy$x[3], segxy$y[3], angle = 15, length = 0.15)
+                            lines(x = c(segxy$x[1], segxy$x[2]), y = c(segxy$y[1], segxy$y[2]))
+                            arrows(x0 = segxy$x[2], y0 = segxy$y[2], x1 = segxy$x[3], y1 = segxy$y[3], angle = 15, length = 0.15)
                         }
                         points(segxy$x[1], segxy$y[1], pch = 21, bg = "white", cex = 2)
                         text(segxy$x[1], segxy$y[1], labels = "S", col = "black", cex = 0.75)
