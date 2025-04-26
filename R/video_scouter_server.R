@@ -1312,36 +1312,45 @@ ov_scouter_server <- function(app_data) {
         }
 
         ## use this function to set the coordinate in the current row (e.g. we are editing a row, and we've clicked a court location on the video pane or court diagram
-        set_coord <- function(which, xy) {
-            which <- match.arg(which, c("start", "end"))
-            output$code_edit_dialog <- renderUI({
-                if (which == "start") {
-                    tags$div(class = "alert alert-danger", "Click end coordinate OR", actionButton("edit_coord_cancel", "Cancel"))
-                } else {
-                    NULL
+        coord_edit_row <- reactiveVal(NULL) ## which row we are editing the coords of
+        set_coord <- function(ridx, which, xy) {
+            if (missing(ridx)) ridx <- isolate(coord_edit_row())
+            do_set_coord(ridx = ridx, which = which, xy = xy)
+            if (!is.null(ridx) && which == "end") do_after_coord_edit()
+        }
+        clear_coord <- function(ridx, which) {
+            if (missing(ridx)) ridx <- isolate(coord_edit_row())
+            do_set_coord(ridx = ridx, which = which, xy = NULL)
+        }
+        do_set_coord <- function(ridx, which, xy) {
+            if (!is.null(ridx)) {
+                which <- match.arg(which, c("start", "end"))
+                if (is.null(xy)) xy <- list(x = NA_real_, y = NA_real_)
+                xcol <- paste0(which, "_x")
+                ycol <- paste0(which, "_y")
+                ccol <- paste0(which, "_coordinate")
+                if (ridx <= nrow(rdata$dvw$plays2)) {
+                    ## editing in the plays2 dataframe
+                    rdata$dvw$plays2$rally_codes[[ridx]][[xcol]] <- xy$x
+                    rdata$dvw$plays2$rally_codes[[ridx]][[ycol]] <- xy$y
+                    rdata$dvw$plays2[[ccol]][ridx] <- dv_xy2index(as.numeric(xy$x), as.numeric(xy$y))
+                } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
+                    ## editing in the current rally that is not yet part of plays2
+                    rc <- rally_codes()
+                    rcidx <- ridx - nrow(rdata$dvw$plays2)
+                    rc[[xcol]][rcidx] <- xy$x
+                    rc[[ycol]][rcidx] <- xy$y
+                    rally_codes(rc)
                 }
-            })
-            if (is.null(xy)) xy <- list(x = NA_real_, y = NA_real_)
-            ridx <- playslist_mod$current_row()
-            xcol <- paste0(which, "_x")
-            ycol <- paste0(which, "_y")
-            ccol <- paste0(which, "_coordinate")
-            if (ridx <= nrow(rdata$dvw$plays2)) {
-                rdata$dvw$plays2$rally_codes[[ridx]][[xcol]] <- xy$x
-                rdata$dvw$plays2$rally_codes[[ridx]][[ycol]] <- xy$y
-                rdata$dvw$plays2[[ccol]][ridx] <- dv_xy2index(as.numeric(xy$x), as.numeric(xy$y))
-            } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
-                rc <- rally_codes()
-                rcidx <- ridx - nrow(rdata$dvw$plays2)
-                rc[[xcol]][rcidx] <- xy$x
-                rc[[ycol]][rcidx] <- xy$y
-                rally_codes(rc)
             }
         }
-        observeEvent(input$edit_coord_cancel, {
+        observeEvent(input$edit_coord_cancel, do_after_coord_edit())
+        do_after_coord_edit <- function() {
             editing$active <- NULL
+            coord_edit_row(NULL)
             output$code_edit_dialog <- renderUI(NULL)
-        })
+            refocus_to_ui(active_ui()) ## we just clicked away from the active UI element, so go back to it
+        }
 
         courtxy <- reactiveVal(list(x = NA_real_, y = NA_real_)) ## keeps track of click locations (in court x, y space)
         loop_trigger <- reactiveVal(0L)
@@ -1353,20 +1362,20 @@ ov_scouter_server <- function(app_data) {
             if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click", "coord_click2"))) {
                 thisxy <- vid_to_crt(this_click)
                 if (is.null(editing$active) || editing$active %eq% "coord_click") {
-                    ## first click is the start coord
                     playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
+                    ## first click is the start coord
                     editing$active <- "coord_click2"
-                    set_coord("start", xy = thisxy)
-                    set_coord("end", xy = NULL) ## clear the end coord
+                    coord_edit_row(playslist_mod$current_row())
+                    set_coord(which = "start", xy = thisxy)
+                    clear_coord(which = "end") ## clear the end coord
+                    output$code_edit_dialog <- renderUI(tags$div(class = "alert alert-danger", "Click end coordinate OR", actionButton("edit_coord_cancel", "Cancel")))
                 } else if (editing$active %eq% "coord_click2") {
                     playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
                     ## end coord
-                    set_coord("end", xy = thisxy)
-                    editing$active <- NULL
+                    set_coord(which = "end", xy = thisxy)
                 }
-                refocus_to_ui(active_ui()) ## we just clicked away from the active UI element, so go back to it
             } else {
-                ## and video time
+                ## video time
                 time_uuid <- uuid()
                 game_state$current_time_uuid <- time_uuid
                 click_time <- as.numeric(input$video_click[5])
@@ -1393,21 +1402,20 @@ ov_scouter_server <- function(app_data) {
             if (!is.na(court_inset$click()$x) && !is.na(court_inset$click()$y)) {
                 flash_screen() ## visual indicator that click has registered
                 if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click", "coord_click2"))) {
-                    ## TODO check
                     thisxy <- court_inset$click()
                     if (is.null(editing$active) || editing$active %eq% "coord_click") {
                         playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
                         ## first click is the start coord
                         editing$active <- "coord_click2"
-                        set_coord("start", xy = thisxy)
-                        set_coord("end", xy = NULL) ## clear the end coord
+                        coord_edit_row(playslist_mod$current_row())
+                        set_coord(which = "start", xy = thisxy)
+                        clear_coord(which = "end") ## clear the end coord
+                        output$code_edit_dialog <- renderUI(tags$div(class = "alert alert-danger", "Click end coordinate OR", actionButton("edit_coord_cancel", "Cancel")))
                     } else if (editing$active %eq% "coord_click2") {
                         playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
                         ## end coord
-                        set_coord("end", xy = thisxy)
-                        editing$active <- NULL
+                        set_coord(which = "end", xy = thisxy)
                     }
-                    refocus_to_ui(active_ui()) ## we just clicked away from the active UI element, so go back to it
                 } else {
                     ## when court diagram clicked, treat it as if it were a click on the video: get the corresponding video time and trigger the loop
                     time_uuid <- uuid()
