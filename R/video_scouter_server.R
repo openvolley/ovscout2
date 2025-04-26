@@ -538,7 +538,7 @@ ov_scouter_server <- function(app_data) {
         observe({
             notnn <- function(z) !is.null(z) && !is.na(z)
             ## check teams
-            teams_ok <- !is.null(rdata$dvw$meta$teams) && !any(tolower(rdata$dvw$meta$teams$team) %in% c("home team", "visiting team"))
+            teams_ok <- !is.null(rdata$dvw$meta$teams) ## && !any(tolower(rdata$dvw$meta$teams$team) %in% c("home team", "visiting team"))
             ## check rosters
             ## TODO better
             rosters_ok <- !is.null(rdata$dvw$meta$players_h) && length(na.omit(rdata$dvw$meta$players_h$number)) >= length(pseq) &&
@@ -1390,32 +1390,34 @@ ov_scouter_server <- function(app_data) {
             }
         })
         observeEvent(court_inset$click(), {
-            flash_screen() ## visual indicator that click has registered
-            if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click", "coord_click2"))) {
-                ## TODO check
-                thisxy <- court_inset$click()
-                if (is.null(editing$active) || editing$active %eq% "coord_click") {
-                    playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
-                    ## first click is the start coord
-                    editing$active <- "coord_click2"
-                    set_coord("start", xy = thisxy)
-                    set_coord("end", xy = NULL) ## clear the end coord
-                } else if (editing$active %eq% "coord_click2") {
-                    playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
-                    ## end coord
-                    set_coord("end", xy = thisxy)
-                    editing$active <- NULL
+            if (!is.na(court_inset$click()$x) && !is.na(court_inset$click()$y)) {
+                flash_screen() ## visual indicator that click has registered
+                if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click", "coord_click2"))) {
+                    ## TODO check
+                    thisxy <- court_inset$click()
+                    if (is.null(editing$active) || editing$active %eq% "coord_click") {
+                        playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
+                        ## first click is the start coord
+                        editing$active <- "coord_click2"
+                        set_coord("start", xy = thisxy)
+                        set_coord("end", xy = NULL) ## clear the end coord
+                    } else if (editing$active %eq% "coord_click2") {
+                        playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
+                        ## end coord
+                        set_coord("end", xy = thisxy)
+                        editing$active <- NULL
+                    }
+                    refocus_to_ui(active_ui()) ## we just clicked away from the active UI element, so go back to it
+                } else {
+                    ## when court diagram clicked, treat it as if it were a click on the video: get the corresponding video time and trigger the loop
+                    time_uuid <- uuid()
+                    game_state$current_time_uuid <- time_uuid
+                    do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@1 or @2)
+                    courtxy(court_inset$click())
+                    playslist_mod$redraw_select("last")
+                    loop_trigger(loop_trigger() + 1L)
+                    process_action()
                 }
-                refocus_to_ui(active_ui()) ## we just clicked away from the active UI element, so go back to it
-            } else {
-                ## when court diagram clicked, treat it as if it were a click on the video: get the corresponding video time and trigger the loop
-                time_uuid <- uuid()
-                game_state$current_time_uuid <- time_uuid
-                do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@1 or @2)
-                courtxy(court_inset$click())
-                playslist_mod$redraw_select("last")
-                loop_trigger(loop_trigger() + 1L)
-                process_action()
             }
         })
         do_contact <- function() {

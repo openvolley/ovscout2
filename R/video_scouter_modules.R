@@ -12,7 +12,8 @@ mod_teamslists_ui <- function(id) {
 
 mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE) {
     output$htroster <- renderUI({
-        re <- names2roster(rdata$dvw$meta$players_h, join = two_cols)
+        this <- remove_players_not_played(rdata$dvw$meta$players_h, plays = rdata$dvw$plays2, home_visiting = "h", faststart_only = TRUE)
+        re <- names2roster(this, join = two_cols)
         htn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]
         if (two_cols) {
             re1 <- re[seq_len(ceiling(length(re) / 2))]
@@ -23,7 +24,8 @@ mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE) {
         }
     })
     output$vtroster <- renderUI({
-        re <- names2roster(rdata$dvw$meta$players_v, join = two_cols)
+        this <- remove_players_not_played(rdata$dvw$meta$players_v, plays = rdata$dvw$plays2, home_visiting = "v", faststart_only = TRUE)
+        re <- names2roster(this, join = two_cols)
         vtn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]
         if (two_cols) {
             re1 <- re[seq_len(ceiling(length(re) / 2))]
@@ -929,16 +931,18 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
         vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
         ## NB the edit and cancel buttons are global, not namespaced by ns()
-        showModal(modalDialog(title = "Edit teams", size = "l",
+        showModal(vwModalDialog(title = "Edit teams",
                               footer = tags$div(
                                   actionButton("edit_commit", label = "Update teams data", class = "continue"),
                                                 actionButton("edit_cancel", label = "Cancel", class = "cancel")),
                               tabsetPanel(
                                   tabPanel("Home team",
-                                           fluidRow(column(4, textInput(ns("ht_edit_name"), label = "Team name:", value = rdata$dvw$meta$teams$team[htidx])),
-                                                    column(4, textInput(ns("ht_edit_id"), label = "Team ID:", value = rdata$dvw$meta$teams$team_id[htidx])),
-                                                    column(4, textInput(ns("ht_edit_coach"), label = "Coach:", value = rdata$dvw$meta$teams$coach[htidx])),
-                                                    column(4, textInput(ns("ht_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[htidx]))),
+                                           fluidRow(column(3, textInput(ns("ht_edit_name"), label = "Team name:", value = rdata$dvw$meta$teams$team[htidx])),
+                                                    column(3, textInput(ns("ht_edit_id"), label = "Team ID:", value = rdata$dvw$meta$teams$team_id[htidx])),
+                                                    column(3, textInput(ns("ht_edit_coach"), label = "Coach:", value = rdata$dvw$meta$teams$coach[htidx])),
+                                                    column(3, textInput(ns("ht_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[htidx]))),
+                                           fluidRow(column(3, offset = 9, actionButton(ns("ht_faststart_players"), label = "Fast start", class = "leftbut"),
+                                                           actionButton(ns("ht_undo_faststart_players"), label = "Undo fast start", class = "leftbut"))),
                                            DT::dataTableOutput(ns("ht_edit_team")),
                                            wellPanel(
                                                fluidRow(column(1, textInput(ns("ht_new_number"), label = "Number:", placeholder = "Number")),
@@ -948,16 +952,18 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                         column(2, selectInput(ns("ht_new_role"), label = "Role", choices = c("", "libero", "outside", "opposite", "middle", "setter", "unknown"))),
                                                         ##column(1, selectInput(ns("ht_new_special"), label = "Special", choices = c("", "L", "C")))
                                                         ),
-                                               fluidRow(column(3, offset = 9, actionButton_with_enter(ns("ht_add_player_button"), "Add player")))
+                                               fluidRow(column(2, offset = 10, actionButton_with_enter(ns("ht_add_player_button"), "Add player")))
                                            ),
                                            #actionButton(ns("load_home_team"), label = "Load home team", class = "updating"),
                                            uiOutput(ns("ht_delete_player_ui"))
                                            ),
                                   tabPanel("Visiting team",
-                                           fluidRow(column(4, textInput(ns("vt_edit_name"), label = "Team name:", value = rdata$dvw$meta$teams$team[vtidx])),
-                                                    column(4, textInput(ns("vt_edit_id"), label = "Team ID:", value = rdata$dvw$meta$teams$team_id[vtidx])),
-                                                    column(4, textInput(ns("vt_edit_coach"), label = "Coach:", value = rdata$dvw$meta$teams$coach[vtidx])),
-                                                    column(4, textInput(ns("vt_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[vtidx]))),
+                                           fluidRow(column(3, textInput(ns("vt_edit_name"), label = "Team name:", value = rdata$dvw$meta$teams$team[vtidx])),
+                                                    column(3, textInput(ns("vt_edit_id"), label = "Team ID:", value = rdata$dvw$meta$teams$team_id[vtidx])),
+                                                    column(3, textInput(ns("vt_edit_coach"), label = "Coach:", value = rdata$dvw$meta$teams$coach[vtidx])),
+                                                    column(3, textInput(ns("vt_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[vtidx]))),
+                                           fluidRow(column(3, offset = 9, actionButton(ns("vt_faststart_players"), label = "Fast start", class = "leftbut"),
+                                                           actionButton(ns("vt_undo_faststart_players"), label = "Fast start", class = "leftbut"))),
                                            DT::dataTableOutput(ns("vt_edit_team")),
                                            wellPanel(
                                                fluidRow(column(1, textInput(ns("vt_new_number"), label = "Number:", placeholder = "Number")),
@@ -967,7 +973,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                         column(2, selectInput(ns("vt_new_role"), label = "Role", choices = c("", "libero", "outside", "opposite", "middle", "setter", "unknown"))),
                                                         ##column(1, selectInput(ns("vt_new_special"), label = "Special", choices = c("", "L", "C")))
                                                         ),
-                                               fluidRow(column(3, offset = 9, actionButton_with_enter(ns("vt_add_player_button"), "Add player")))
+                                               fluidRow(column(2, offset = 10, actionButton_with_enter(ns("vt_add_player_button"), "Add player")))
                                            ),
                                            #actionButton(ns("load_visiting_team"), label = "Load visiting team", class = "updating"),
                                            uiOutput(ns("vt_delete_player_ui"))
@@ -977,7 +983,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
     })
 
     output$ht_edit_team <- DT::renderDataTable({
-        if (is.null(htdata_edit())) htdata_edit(rdata$dvw$meta$players_h)
+        if (is.null(htdata_edit())) htdata_edit(rdata$dvw$meta$players_h %>% dplyr::arrange(.data$number))
         if (!is.null(htdata_edit())) {
             cols_to_hide <- which(!names(htdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role"))-1L ## 0-based because no row names ##"special_role"
             cnames <- names(names_first_to_capital(htdata_edit()))
@@ -1050,10 +1056,9 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         chk <- list(input$ht_new_id, input$ht_new_number, input$ht_new_lastname, input$ht_new_firstname)
         if (!any(vapply(chk, is_nnn, FUN.VALUE = TRUE))) {
             try({
-                newrow <- tibble(number = as.numeric(input$ht_new_number), player_id = input$ht_new_id, lastname = input$ht_new_lastname, firstname = input$ht_new_firstname, role = if (nzchar(input$ht_new_role)) input$ht_new_role else NA_character_, special_role = if (input$ht_new_role %eq% "libero") "L" else NA_character_) ##(if (nzchar(input$ht_new_special)) input$ht_new_special else NA_character_)
-                newrow$name <- paste(newrow$firstname, newrow$lastname)
-                temp <- bind_rows(htdata_edit(), newrow)
-                temp <- dplyr::arrange(temp, .data$number)
+                newrow <- tibble(number = as.numeric(input$ht_new_number), player_id = input$ht_new_id, lastname = input$ht_new_lastname, firstname = input$ht_new_firstname, role = if (nzchar(input$ht_new_role)) input$ht_new_role else NA_character_, special_role = if (input$ht_new_role %eq% "libero") "L" else NA_character_) %>% ##(if (nzchar(input$ht_new_special)) input$ht_new_special else NA_character_)
+                    mutate(name = paste(.data$firstname, .data$lastname))
+                temp <- bind_rows(htdata_edit(), newrow) %>% dplyr::arrange(.data$number)
                 DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
                 htdata_edit(temp)
                 ## clear inputs
@@ -1068,9 +1073,23 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
             })
         }
     })
+    observeEvent(input$ht_faststart_players, {
+        num_to_add <- setdiff(1:99, htdata_edit()$number)
+        newrows <- tibble(number = num_to_add, player_id = paste0("HOM-P", ldz2(.data$number)), lastname = paste0("Home", ldz2(.data$number)), firstname = "Player", role = NA_character_, special_role = NA_character_) %>%
+            mutate(name = paste(.data$firstname, .data$lastname))
+        temp <- bind_rows(htdata_edit(), newrows) %>% dplyr::arrange(.data$number)
+        DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+        htdata_edit(temp)
+    })
+
+    observeEvent(input$ht_undo_faststart_players, {
+        temp <- remove_players_not_played(roster = htdata_edit(), plays = rdata$dvw$plays2, home_visiting = "h", faststart_only = TRUE) %>% dplyr::arrange(.data$number)
+        DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+        htdata_edit(temp)
+    })
 
     output$vt_edit_team <- DT::renderDataTable({
-        if (is.null(vtdata_edit())) vtdata_edit(rdata$dvw$meta$players_v)
+        if (is.null(vtdata_edit())) vtdata_edit(rdata$dvw$meta$players_v %>% dplyr::arrange(.data$number))
         if (!is.null(vtdata_edit())) {
             cols_to_hide <- which(!names(vtdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role"))-1L ## 0-based because no row names ## , "special_role"
             cnames <- names(names_first_to_capital(vtdata_edit()))
@@ -1107,10 +1126,9 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         chk <- list(input$vt_new_id, input$vt_new_number, input$vt_new_lastname, input$vt_new_firstname)
         if (!any(vapply(chk, is_nnn, FUN.VALUE = TRUE))) {
             try({
-                newrow <- tibble(number = as.numeric(input$vt_new_number), player_id = input$vt_new_id, lastname = input$vt_new_lastname, firstname = input$vt_new_firstname, role = if (nzchar(input$vt_new_role)) input$vt_new_role else NA_character_, special_role = if (input$vt_new_role %eq% "libero") "L" else NA_character_) ## if (nzchar(input$vt_new_special)) input$vt_new_special else NA_character_)
-                newrow$name <- paste(newrow$firstname, newrow$lastname)
-                temp <- bind_rows(vtdata_edit(), newrow)
-                temp <- dplyr::arrange(temp, .data$number)
+                newrow <- tibble(number = as.numeric(input$vt_new_number), player_id = input$vt_new_id, lastname = input$vt_new_lastname, firstname = input$vt_new_firstname, role = if (nzchar(input$vt_new_role)) input$vt_new_role else NA_character_, special_role = if (input$vt_new_role %eq% "libero") "L" else NA_character_) %>% ## if (nzchar(input$vt_new_special)) input$vt_new_special else NA_character_)
+                    mutate(name = paste(.data$firstname, .data$lastname))
+                temp <- bind_rows(vtdata_edit(), newrow) %>% dplyr::arrange(.data$number)
                 DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
                 vtdata_edit(temp)
                 ## clear inputs
@@ -1124,6 +1142,20 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 focus_to_element(ns("vt_new_number"))
             })
         }
+    })
+    observeEvent(input$vt_faststart_players, {
+        num_to_add <- setdiff(1:99, vtdata_edit()$number)
+        newrows <- tibble(number = num_to_add, player_id = paste0("VIS-P", ldz2(.data$number)), lastname = paste0("Visiting", ldz2(.data$number)), firstname = "Player", role = NA_character_, special_role = NA_character_) %>%
+            mutate(name = paste(.data$firstname, .data$lastname))
+        temp <- bind_rows(vtdata_edit(), newrows) %>% dplyr::arrange(.data$number)
+        DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+        vtdata_edit(temp)
+    })
+
+    observeEvent(input$vt_undo_faststart_players, {
+        temp <- remove_players_not_played(roster = vtdata_edit(), plays = rdata$dvw$plays2, home_visiting = "v", faststart_only = TRUE) %>% dplyr::arrange(.data$number)
+        DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+        vtdata_edit(temp)
     })
 
     list(htdata_edit = htdata_edit, vtdata_edit = vtdata_edit)
