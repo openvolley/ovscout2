@@ -16,15 +16,20 @@ test_that("code interpretation works correctly", {
     check_code(ov_code_interpret("*5X5!"), "*05AT!X5~4~~H")
     check_code(ov_code_interpret("5X5!"), "*05AT!X5~4~~H")
     check_code(ov_code_interpret("5X5"), "*05AT+X5~4~~H") ## default evaluation
-    check_code(ov_code_interpret("5X55"), "*05AT+X5~45~H") 
+    check_code(ov_code_interpret("5X55"), "*05AT+X5~45~H")
     check_code(ov_code_interpret("*5X5+5H2"), "*05AT+X5~45~H2")
     check_code(ov_code_interpret("*5X55H2"), "*05AT+X5~45~H2")
     check_code(ov_code_interpret("a12SM.2#78"), c("a12SM-~~~78", "*02RM#~~~78"))
     check_code(ov_code_interpret("*2X5.15=5H4"), c("*02AT#X5~45~H4", "a15BT=~~~~5~~4"))
-    check_code(ov_code_interpret("2AT#452"), "*02AT#~~~45~H2") 
+    check_code(ov_code_interpret("2AT#452"), "*02AT#~~~45~H2")
     check_code(ov_code_interpret("2AT#45t1"), "*02AT#~~~45~T1")
     check_code(ov_code_interpret("2X5#.15"), c("*02AT#X5~4", "a15BT=")) ## block error is the default on attack kill
+    check_code(ov_code_interpret("2X5#.15B"), c("*02AT#X5~4", "a15BT="))
     check_code(ov_code_interpret("2X5#.15D"), c("*02AT#X5~4", "a15DT=")) ## but we can specify e.g. dig error.
+    check_code(ov_code_interpret("2X5.15="), c("*02AT#X5~4", "a15BT=")) ## can specify the evaluation (error) on the block instead of the kill on the attack
+    check_code(ov_code_interpret("2AH#.15"), c("*02AH#", "a15BH=")) ## same should work on attack skill (not using attack compound code)
+    check_code(ov_code_interpret("2AH#.15B"), c("*02AH#", "a15BH="))
+    check_code(ov_code_interpret("2AH#.15D"), c("*02AH#", "a15DH="))
     check_code(ov_code_interpret("2SQ1.5=4"), c("*02SQ#~~~14", "a05RQ=~~~14"))
     check_code(ov_code_interpret("2X5#5S"), "*02AT#X5~45~H~S") ## Include special syntax
     check_code(ov_code_interpret("a6ETKP"), "a06ET+KP") ## Setting?

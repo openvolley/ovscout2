@@ -246,7 +246,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     c_tmp2 <- str_sub(cc_tmp2, 1, length(syntax_table$range[[i]]))
                     tmp2 <- str_match(c_tmp2, value_list2)
                     tmp2 <- tail(tmp2[!is.na(tmp2)], 1)
-                }else if (i == 13) {
+                } else if (i == 13) {
                     value_list1 <- case_when(new_code_1[4] == "A" ~syntax_table$value_list[[i]][1],
                                              new_code_1[4] == "B" ~syntax_table$value_list[[i]][2],
                                              new_code_1[4] == "R" ~syntax_table$value_list[[i]][3],
@@ -270,8 +270,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     tmp2 <- str_match(c_tmp2, value_list2)
                     tmp2 <- tail(tmp2[!is.na(tmp2)], 1)
                 } else {
-                    value_list1 <- syntax_table$value_list[[i]]
-                    value_list2 <- syntax_table$value_list[[i]]
+                    value_list1 <- value_list2 <- syntax_table$value_list[[i]]
                     c_tmp1 <- str_sub(cc_tmp1, 1,length(syntax_table$range[[i]]))
                     tmp1 <- str_match(c_tmp1, value_list1)
                     tmp1 <- tail(tmp1[!is.na(tmp1)], 1)
@@ -295,15 +294,18 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     tmp2 <- case_when(tmp1 == "a" ~ "*", TRUE ~ "a")
                 }
 
-                if (i == 3 && length(tmp1) > 0) {
+                if (i == 3 && length(tmp1) > 0 && length(tmp2) == 0) {
+                    ## skill, defined for first but not second code, so look up the default second skill (e.g. "R" to match "S")
                     tmp2 <- unique(compound_table$compound_skill[compound_table$skill == tmp1 & compound_table$default_compound_skills])
                 }
                 if (i == 4) tmp2 <- tmp1
                 if (i == 5) {
                     if (length(tmp2) > 0 && new_code_1[4] != "~" && length(tmp1) == 0) {
-                        tmp1 <- compound_table$code[compound_table$compound_code == tmp2 & compound_table$skill == new_code_1[4]]}
-                    if (length(tmp1) > 0 && new_code_2[4] != "~" && length(tmp2) == 0) {
-                        tmp2 <- compound_table$code[compound_table$compound_code == tmp1 & compound_table$skill == new_code_2[4]]}
+                        tmp1 <- compound_table$code[compound_table$compound_code == tmp2 & compound_table$skill == new_code_1[4] & (new_code_2[4] == "~" | compound_table$compound_skill == new_code_2[4])]
+                        ## note that if skill is "A" then the compound_skill can be "B" or "D", so we also need to match on that
+                    } else if (length(tmp1) > 0 && new_code_2[4] != "~" && length(tmp2) == 0) {
+                        tmp2 <- compound_table$compound_code[compound_table$code == tmp1 & compound_table$compound_skill == new_code_2[4] & (new_code_1[4] == "~" | compound_table$skill == new_code_1[4])]
+                    }
                 }
 
                 ## Special case of CMB
