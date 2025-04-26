@@ -5,7 +5,7 @@
 ## - given the stream rtmp://localhost/live/livestream, run this command in an R session:
 ##   ovscout2:::ov_file_from_stream("rtmp://localhost/live/livestream", output_filename = "/tmp/stream.mp4")
 ## - this will create snapshots at /tmp/stream.mp4, so start another R session and scout from that video file:
-##   ov_scouter(video = "/tmp/stream.mp4")
+##   ov_scouter(..., video_file = "/tmp/stream.mp4")
 
 ov_file_from_stream <- function(stream, output_filename, freq = 15, cleanup = TRUE) {
     ## internal options

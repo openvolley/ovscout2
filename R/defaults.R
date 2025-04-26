@@ -189,7 +189,7 @@ ov_default_shortcuts <- function(scout_mode = "click") {
              )
     } else {
         ## shortcuts in typing mode can use modifier keys: Ctrl-x is ctrl and x, ditto Alt-x, Meta-x, Shift-x
-        ## NOTE that the actual key should be lower case here (not the modifiers Ctrl-, Alt-, Shift-, or Meta-)
+        ## NOTE that the actual key should be lower case here (but not the modifiers Ctrl-, Alt-, Shift-, or Meta-)
         list(hide_popup = c(),
              pause = "escape",
              pause_no_popup = "Alt-escape",
@@ -220,7 +220,7 @@ ov_default_shortcuts <- function(scout_mode = "click") {
 ov_default_playstable_shortcuts <- function() {
     ## same default shortcuts regardless of scout mode
     ## shortcuts here can use modifier keys: Ctrl-x is ctrl and x, ditto Alt-x, Meta-x, Shift-x
-    ## NOTE that the actual key should be lower case here (not the modifiers Ctrl-, Alt-, Shift-, or Meta-)
+    ## NOTE that the actual key should be lower case here (but not the modifiers Ctrl-, Alt-, Shift-, or Meta-)
     list(edit_code = "enter",
          delete_code = "delete",
          insert_code = "insert",
