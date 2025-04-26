@@ -525,7 +525,9 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
         blah <- list(rally_codes_digest(), current_plays_row()) ## react to
         isolate({
             if (with_ball_path()) {
+                offs <- 0L ## adjust the current_plays_row() by this when indexing into temp_rally_plays, because if we construct it from rally_codes() then it contains only the current rally, not the preceding rdata$dvw$plays2 rows
                 temp_rally_plays2 <- if (is.null(current_plays_row()) || current_plays_row() > nrow(rdata$dvw$plays2)) {
+                                         offs <- nrow(rdata$dvw$plays2)
                                          make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw)
                                      } else {
                                          rdata$dvw$plays2
@@ -535,7 +537,7 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
                 ## all coords are recorded relative to video1 orientation, so we don't care which video is showing
                 if (!is.null(current_plays_row())) {
                     ## plot the selected action
-                    temp_rally_plays <- temp_rally_plays[current_plays_row(), ]
+                    temp_rally_plays <- temp_rally_plays[current_plays_row() - offs, ]
                     segxy <- bind_rows(temp_rally_plays %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y"),
                                        temp_rally_plays %>% dplyr::select(x = "mid_coordinate_x", y = "mid_coordinate_y"),
                                        temp_rally_plays %>% dplyr::select(x = "end_coordinate_x", y = "end_coordinate_y")) %>%
