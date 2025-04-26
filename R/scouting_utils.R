@@ -218,9 +218,15 @@ update_meta <- function(x) {## used to have this but was only used in console te
 remove_players_not_played <- function(roster, plays, home_visiting, faststart_only = TRUE) {
     if (tolower(home_visiting) %eq% "h") home_visiting <- "home" else if (tolower(home_visiting) %eq% "v") home_visiting <- "visiting"
     home_visiting <- match.arg(home_visiting, c("home", "visiting"))
-    np <- roster %>% dplyr::filter(if (faststart_only) tolower(.data$firstname) == "player" & grepl(paste0("^", home_visiting, "[[:digit:]]+$"), .data$lastname, ignore.case = TRUE) else TRUE)
+    np <- roster
+    if (faststart_only) np <- np %>% dplyr::filter(tolower(.data$firstname) == "player" & grepl(paste0("^", home_visiting, "[[:digit:]]+$"), .data$lastname, ignore.case = TRUE))
     np <- np %>% dplyr::filter(!.data$number %in% unique(na.omit(unlist(plays[, intersect(names(plays), paste0(home_visiting, "_p", 1:6))]))))
-    tryCatch(dplyr::anti_join(roster, np), error = function(e) roster) ## fallback to unmodified roster
+    if (nrow(np) > 0) {
+        tryCatch(dplyr::anti_join(roster, np, by = names(roster)), error = function(e) roster) ## fallback to unmodified roster
+    } else {
+        ## no players to remove, return the unmodified roster
+        roster
+    }
 }
 
 ## write the scouted match to a file, using the plays2 data instead of the plays

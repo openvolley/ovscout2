@@ -941,8 +941,10 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                     column(3, textInput(ns("ht_edit_id"), label = "Team ID:", value = rdata$dvw$meta$teams$team_id[htidx])),
                                                     column(3, textInput(ns("ht_edit_coach"), label = "Coach:", value = rdata$dvw$meta$teams$coach[htidx])),
                                                     column(3, textInput(ns("ht_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[htidx]))),
-                                           fluidRow(column(3, offset = 9, actionButton(ns("ht_faststart_players"), label = "Fast start", class = "leftbut"),
-                                                           actionButton(ns("ht_undo_faststart_players"), label = "Undo fast start", class = "leftbut"))),
+                                           fluidRow(column(5, offset = 7,
+                                                           tags$div(style = "float:right; font-size:small; margin-left:12px;", "Fast start will auto-populate players 1-99 so you", tags$br(), "can start scouting and edit the roster later"),
+                                                           actionButton(ns("ht_undo_faststart_players"), label = "Undo fast start", class = "leftbut", style = "float:right;"),
+                                                           actionButton(ns("ht_faststart_players"), label = "Fast start", class = "leftbut", style = "float:right;"))),
                                            DT::dataTableOutput(ns("ht_edit_team")),
                                            wellPanel(
                                                fluidRow(column(1, textInput(ns("ht_new_number"), label = "Number:", placeholder = "Number")),
@@ -962,8 +964,10 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                     column(3, textInput(ns("vt_edit_id"), label = "Team ID:", value = rdata$dvw$meta$teams$team_id[vtidx])),
                                                     column(3, textInput(ns("vt_edit_coach"), label = "Coach:", value = rdata$dvw$meta$teams$coach[vtidx])),
                                                     column(3, textInput(ns("vt_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[vtidx]))),
-                                           fluidRow(column(3, offset = 9, actionButton(ns("vt_faststart_players"), label = "Fast start", class = "leftbut"),
-                                                           actionButton(ns("vt_undo_faststart_players"), label = "Fast start", class = "leftbut"))),
+                                           fluidRow(column(5, offset = 7,
+                                                           tags$div(style = "float:right; font-size:small; margin-left:12px;", "Fast start will auto-populate players 1-99 so you", tags$br(), "can start scouting and edit the roster later"),
+                                                           actionButton(ns("vt_faststart_players"), label = "Fast start", class = "leftbut", style = "float:right;")),
+                                                           actionButton(ns("vt_undo_faststart_players"), label = "Fast start", class = "leftbut", style = "float:right;")),
                                            DT::dataTableOutput(ns("vt_edit_team")),
                                            wellPanel(
                                                fluidRow(column(1, textInput(ns("vt_new_number"), label = "Number:", placeholder = "Number")),
@@ -987,7 +991,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         if (!is.null(htdata_edit())) {
             cols_to_hide <- which(!names(htdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role"))-1L ## 0-based because no row names ##"special_role"
             cnames <- names(names_first_to_capital(htdata_edit()))
-            DT::datatable(htdata_edit(), rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
+            DT::datatable(htdata_edit(), rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE)), scroller = TRUE, scrollY = "35vh"))
         } else {
             NULL
         }
@@ -1093,7 +1097,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         if (!is.null(vtdata_edit())) {
             cols_to_hide <- which(!names(vtdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role"))-1L ## 0-based because no row names ## , "special_role"
             cnames <- names(names_first_to_capital(vtdata_edit()))
-            DT::datatable(vtdata_edit(), rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE))))
+            DT::datatable(vtdata_edit(), rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE)), scroller = TRUE, scrollY = "35vh"))
         } else {
             NULL
         }
