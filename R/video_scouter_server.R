@@ -340,10 +340,9 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$edit_code_delete, delete_data_row())
         observeEvent(input$edit_code_insert, insert_data_row("above"))
         observeEvent(input$edit_code_edit_coords, {
-            output$code_edit_dialog <- renderUI({
-                tags$div(class = "alert alert-danger", "Click start coordinate OR", actionButton("edit_coord_cancel", "Cancel"))
-            })
-            editing$active <- "coord_click"
+            coord_edit_row(playslist_mod$current_row()) ## note the current row that we are editing the coords of
+            set_code_edit_dialog("coord_click_start")
+            editing$active <- "coord_click_start"
         })
 
         get_current_rally_code <- function() {
@@ -1322,34 +1321,99 @@ ov_scouter_server <- function(app_data) {
             if (missing(ridx)) ridx <- isolate(coord_edit_row())
             do_set_coord(ridx = ridx, which = which, xy = NULL)
         }
-        do_set_coord <- function(ridx, which, xy) {
+        do_set_coord <- function(ridx, which, xy, around = TRUE) {
+            ## around = TRUE means to also set the reception coord if we are setting serve, etc
             if (!is.null(ridx)) {
-                which <- match.arg(which, c("start", "end"))
+                which <- match.arg(which, c("start", "mid", "end"))
                 if (is.null(xy)) xy <- list(x = NA_real_, y = NA_real_)
                 xcol <- paste0(which, "_x")
                 ycol <- paste0(which, "_y")
                 ccol <- paste0(which, "_coordinate")
-                if (ridx <= nrow(rdata$dvw$plays2)) {
-                    ## editing in the plays2 dataframe
-                    rdata$dvw$plays2$rally_codes[[ridx]][[xcol]] <- xy$x
-                    rdata$dvw$plays2$rally_codes[[ridx]][[ycol]] <- xy$y
-                    rdata$dvw$plays2[[ccol]][ridx] <- dv_xy2index(as.numeric(xy$x), as.numeric(xy$y))
-                } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
-                    ## editing in the current rally that is not yet part of plays2
-                    rc <- rally_codes()
-                    rcidx <- ridx - nrow(rdata$dvw$plays2)
-                    rc[[xcol]][rcidx] <- xy$x
-                    rc[[ycol]][rcidx] <- xy$y
-                    rally_codes(rc)
+                if (ridx < 1 || ((ridx > nrow(rdata$dvw$plays2)) && ((ridx - nrow(rdata$dvw$plays2)) > nrow(rally_codes())))) {
+                    ## ridx isn't valid with respect to either rdata$dvw$plays2 or rally_codes. Shouldn't happen but check just in case
+                } else {
+                    ridx0 <- ridx ## value that indexes into plays2 or (if it's larger than nrow(plays2)) into rally_codes. Save it because we'll need to pass it to the do_set_coord calls in the `around` block
+                    if (ridx <= nrow(rdata$dvw$plays2)) {
+                        ## editing in the plays2 dataframe
+                        rdata$dvw$plays2$rally_codes[[ridx]][[xcol]] <- xy$x
+                        rdata$dvw$plays2$rally_codes[[ridx]][[ycol]] <- xy$y
+                        rdata$dvw$plays2[[ccol]][ridx] <- dv_xy2index(as.numeric(xy$x), as.numeric(xy$y))
+                        temp_nr <- nrow(rdata$dvw$plays2); temp_skill <- rdata$dvw$plays2$skill ## for checking `around`, below
+                    } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
+                        ## editing in the current rally that is not yet part of plays2
+                        rc <- rally_codes()
+                        ridx <- ridx - nrow(rdata$dvw$plays2)
+                        ## prev_xy <- c(rc[[xcol]][ridx], rc[[ycol]][ridx]) ## previous value, about to overwrite this
+                        rc[[xcol]][ridx] <- xy$x
+                        rc[[ycol]][ridx] <- xy$y
+                        ## also need to change the coords in game_state
+                        rc$game_state[[ridx]][xcol] <- xy$x
+                        rc$game_state[[ridx]][ycol] <- xy$y
+                        rally_codes(rc)
+                        temp_nr <- nrow(rc); temp_skill <- rc$skill ## for checking `around`, below
+                    }
+                    if (around) {
+                        if (isTRUE(temp_skill[ridx] == "S" && ridx < temp_nr && temp_skill[ridx + 1] == "R") ||
+                            isTRUE(temp_skill[ridx] == "A" && ridx < temp_nr && temp_skill[ridx + 1] == "D")) {
+                            ## if we are editing the serve coordinates, also change the reception coordinates to match; or if editing attack, also change dig
+                            ## NOTE that if the scouting is by typing, or even from other scouting software, the coordinate conventions might be entirely different, hence TODO offer option to turn this "around" behaviour off
+                            do_set_coord(ridx = ridx0 + 1, which = which, xy = xy, around = FALSE)
+                        } else if (isTRUE(temp_skill[ridx] == "R" && ridx > 1 && temp_skill[ridx - 1] == "S") ||
+                                   isTRUE(temp_skill[ridx] == "D" && ridx > 1 && temp_skill[ridx - 1] == "A")) {
+                            ## editing reception, also change serve; or dig after attack
+                            do_set_coord(ridx = ridx0 - 1, which = which, xy = xy, around = FALSE)
+                        } else if (isTRUE(temp_skill[ridx] == "A" && ridx < (temp_nr - 1) && temp_skill[ridx + 1] == "B" && temp_skill[ridx + 2] == "D")) {
+                            ## attack - block touch - dig
+                            do_set_coord(ridx = ridx0 + 2, which = which, xy = xy, around = FALSE)
+                        } else if (isTRUE(temp_skill[ridx] == "D" && ridx > 2 && temp_skill[ridx - 1] == "B" && temp_skill[ridx - 2] == "A")) {
+                            ## dig after block touch after attack
+                            do_set_coord(ridx = ridx0 - 2, which = which, xy = xy, around = FALSE)
+                        }
+                    }
                 }
             }
         }
+        observeEvent(input$edit_coord_clear, {
+            if (editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end")) {
+                clear_coord(which = sub("coord_click_", "", editing$active))
+                if (editing$active == "coord_click_start") {
+                    set_code_edit_dialog("coord_click_mid")
+                    editing$active <- "coord_click_mid"
+                } else if (editing$active == "coord_click_mid") {
+                    set_code_edit_dialog("coord_click_end")
+                    editing$active <- "coord_click_end"
+                } else {
+                    do_after_coord_edit()
+                }
+            } else {
+                do_after_coord_edit()
+            }
+        })
         observeEvent(input$edit_coord_cancel, do_after_coord_edit())
         do_after_coord_edit <- function() {
             editing$active <- NULL
             coord_edit_row(NULL)
-            output$code_edit_dialog <- renderUI(NULL)
+            set_code_edit_dialog("clear")
             refocus_to_ui(active_ui()) ## we just clicked away from the active UI element, so go back to it
+        }
+
+        set_code_edit_dialog <- function(which) {
+            if (is.null(which)) which <- "clear"
+            which <- match.arg(tolower(which), c("coord_click_start", "coord_click_mid", "coord_click_end", "clear"))
+            output$code_edit_dialog <- renderUI({
+                if (which == "coord_click_start") {
+                    tags$div(class = "alert alert-danger", "Click start coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
+                } else if (which == "coord_click_mid") {
+                    tags$div(class = "alert alert-danger", "Click mid coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
+                } else if (which == "coord_click_end") {
+                    tags$div(class = "alert alert-danger", "Click end coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
+                } else if (which == "clear") {
+                    NULL
+                } else {
+                    warning("unexpected set_code_edit_dialog value: ", which)
+                    NULL
+                }
+            })
         }
 
         courtxy <- reactiveVal(list(x = NA_real_, y = NA_real_)) ## keeps track of click locations (in court x, y space)
@@ -1359,19 +1423,20 @@ ov_scouter_server <- function(app_data) {
             flash_screen() ## visual indicator that click has registered
             ## calculate the normalized x,y coords
             this_click <- if (length(input$video_click) > 4) list(x = input$video_click[1] / input$video_click[3], y = 1 - input$video_click[2] / input$video_click[4])
-            if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click", "coord_click2"))) {
+            if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end"))) {
                 thisxy <- vid_to_crt(this_click)
-                if (is.null(editing$active) || editing$active %eq% "coord_click") {
+                if (is.null(editing$active) || editing$active %eq% "coord_click_start") {
                     playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
-                    ## first click is the start coord
-                    editing$active <- "coord_click2"
-                    coord_edit_row(playslist_mod$current_row())
-                    set_coord(which = "start", xy = thisxy)
-                    clear_coord(which = "end") ## clear the end coord
-                    output$code_edit_dialog <- renderUI(tags$div(class = "alert alert-danger", "Click end coordinate OR", actionButton("edit_coord_cancel", "Cancel")))
-                } else if (editing$active %eq% "coord_click2") {
-                    playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
-                    ## end coord
+                    set_coord(which = "start", xy = thisxy) ## first click is the start coord
+                    set_code_edit_dialog("coord_click_mid")
+                    editing$active <- "coord_click_mid"
+                } else if (editing$active %eq% "coord_click_mid") {
+                    playslist_mod$redraw_select("keep")
+                    set_coord(which = "mid", xy = thisxy)
+                    set_code_edit_dialog("coord_click_end")
+                    editing$active <- "coord_click_end"
+                } else if (editing$active %eq% "coord_click_end") {
+                    playslist_mod$redraw_select("keep")
                     set_coord(which = "end", xy = thisxy)
                 }
             } else {
@@ -1401,17 +1466,19 @@ ov_scouter_server <- function(app_data) {
         observeEvent(court_inset$click(), {
             if (!is.na(court_inset$click()$x) && !is.na(court_inset$click()$y)) {
                 flash_screen() ## visual indicator that click has registered
-                if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click", "coord_click2"))) {
+                if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end"))) {
                     thisxy <- court_inset$click()
-                    if (is.null(editing$active) || editing$active %eq% "coord_click") {
+                    if (is.null(editing$active) || editing$active %eq% "coord_click_start") {
                         playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
-                        ## first click is the start coord
-                        editing$active <- "coord_click2"
-                        coord_edit_row(playslist_mod$current_row())
-                        set_coord(which = "start", xy = thisxy)
-                        clear_coord(which = "end") ## clear the end coord
-                        output$code_edit_dialog <- renderUI(tags$div(class = "alert alert-danger", "Click end coordinate OR", actionButton("edit_coord_cancel", "Cancel")))
-                    } else if (editing$active %eq% "coord_click2") {
+                        set_coord(which = "start", xy = thisxy) ## first click is the start coord
+                        set_code_edit_dialog("coord_click_mid")
+                        editing$active <- "coord_click_mid"
+                    } else if (editing$active %eq% "coord_click_mid") {
+                        playslist_mod$redraw_select("keep")
+                        set_coord(which = "mid", xy = thisxy)
+                        set_code_edit_dialog("coord_click_end")
+                        editing$active <- "coord_click_end"
+                    } else if (editing$active %eq% "coord_click_end") {
                         playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
                         ## end coord
                         set_coord(which = "end", xy = thisxy)
@@ -2184,7 +2251,7 @@ ov_scouter_server <- function(app_data) {
             game_state$rally_started <- FALSE
             rally_codes(empty_rally_codes)
             game_state$start_x <- game_state$start_y <- game_state$mid_x <- game_state$mid_y <- game_state$end_x <- game_state$end_y <- NA_real_
-            temp$startxy_valid <- temp$midxy_valid <- temp$endxy_valid <- FALSE
+            game_state$startxy_valid <- game_state$midxy_valid <- game_state$endxy_valid <- FALSE
             game_state$current_time_uuid <- ""
             game_state$point_won_by <- NA_character_
             if (!is.null(app_data$auto_save_dir)) {
@@ -2322,7 +2389,7 @@ ov_scouter_server <- function(app_data) {
                     Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
                     mid_xy <- infer_mid_coords(game_state = game_state) ## will be NAs if start or end are invalid
                     game_state$midxy_valid <- !any(is.na(mid_xy))
-                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = input$c1_block_touch_player, skill = "B", eval = beval, tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table))) ## TODO x,y?
+                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = input$c1_block_touch_player, skill = "B", eval = beval, tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table))) ## TODO add block touch start zone, x, y?
                 }
             }
             esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
