@@ -2385,7 +2385,7 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(input$c1_block_touch_player)) {
                 if (input$c1 %in% c("A#", "A=", "D", "D=", "A!")) {
                     mid_xy <- infer_mid_coords(game_state = game_state) ## will be NAs if start or end are invalid
-                    ## NOTE that if we are scouting with `rdata$options$end_convention %eq% "intended")` then the mid_xy should generally be OK; if we are scouting with end_convention "actual" then it is less accurate. But good enough?
+                    ## NOTE that if we are scouting with `rdata$options$end_convention %eq% "intended")` then the mid_xy should generally be OK in these situations; if we are scouting with end_convention "actual" then it is less accurate. But good enough?
                     game_state$midxy_valid <- !any(is.na(mid_xy))
                     if (input$c1 %in% c("A#", "A=", "D", "D=")) {
                         ## insert the block touch now. For A! it happens below
@@ -2394,7 +2394,11 @@ ov_scouter_server <- function(app_data) {
                         Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
                         rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = input$c1_block_touch_player, skill = "B", eval = beval, tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", ez = if (!is.na(Aidx)) block_zone(rc$sz[Aidx]) else "~", start_x = mid_xy[1], start_y = mid_xy[2], t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     }
+                } else if (input$c1 %in% c("B#")) {
+                    ## for block kill and "actual" end convention, the end point should be the net (block) location or the ball landing location. In either of these cases we'll use mid_xy as the block location
+                    if (rdata$options$end_convention %eq% "actual") mid_xy <- infer_mid_coords(game_state = game_state)
                 }
+                ## for block fault B/ it isn't clear what the scout will have entered for the attack end point, so leave mid_xy as NA
             }
             esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
             rc <- rally_codes()
@@ -2530,7 +2534,7 @@ ov_scouter_server <- function(app_data) {
                     sz <- NA_integer_
                 }
                 ## TODO if we already have a block skill here, don't add a new one, just update the existing one ... though there should never already be block skill here
-                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "/", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", ez = block_zone(sz), t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table))) ## TODO start_x,y? intended/actual conventions will matter
+                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "/", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", ez = block_zone(sz), t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table))) ## start_x,y can't really be inferred here
                 game_state$point_won_by <- other(game_state$current_team) ## "current" team here is the digging team
                 rally_ended()
             } else if (input$c1 %eq% "B#") {
@@ -2566,7 +2570,7 @@ ov_scouter_server <- function(app_data) {
                 } else {
                     sz <- NA_integer_
                 }
-                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "#", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", ez = block_zone(sz), t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table))) ## TODO start_x,y? intended/actual conventions will matter
+                rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = bp, skill = "B", eval = "#", tempo = if (!is.na(Aidx)) rc$tempo[Aidx] else "~", ez = block_zone(sz), start_x = mid_xy[1], start_y = mid_xy[2], t = if (!is.na(Aidx)) rc$t[Aidx] else NA_real_, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                 game_state$point_won_by <- game_state$current_team ## "current" team here is the digging/blocking team
                 rally_ended()
             } else {
