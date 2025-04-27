@@ -115,7 +115,7 @@ show_video_setup_modal <- function(prevsrc, dvw) {
 }
 
 show_save_dvw_modal <- function() {
-    showModal(modalDialog(title = "Video setup", easyClose = TRUE, size = "l", footer = NULL,
+    showModal(modalDialog(title = "Export dvw file", easyClose = TRUE, size = "l", footer = NULL,
                           checkboxInput("dvw_save_with_cones", "Save attack directions as cones"),
                           tags$br(),
                           tags$hr(),
