@@ -1107,7 +1107,7 @@ infer_mid_coords <- function(game_state, start_x, start_y, end_x, end_y) {
     if (missing(end_y)) end_y <- game_state$end_y
     if (!isTRUE(game_state$startxy_valid)) { start_x <- start_y <- NA_real_ }
     if (!isTRUE(game_state$endxy_valid)) { end_x <- end_y <- NA_real_ }
-    ## assume that ball has either bounced off the block as if it were a perpendicular surface (for A!), or not deviated from the block (for block touches, not used for this yet)
+    ## assume that ball has either bounced off the block as if it were a perpendicular surface (for A!), or not deviated from the block (for block touches)
     mid_x <- start_x + (end_x - start_x) * abs(start_y - 3.5) / (abs(start_y - 3.5) + abs(end_y - 3.5))
     c(mid_x, if (!is.na(mid_x)) 3.5 else NA_real_)
 }

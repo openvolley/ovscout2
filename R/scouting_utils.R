@@ -537,6 +537,15 @@ time_but_utc <- function() {
     round(nw)
 }
 
+## the end zone of a block is typically recorded as the start zone of the attack
+block_zone <- function(attack_zone) {
+    out <- rep(NA_integer_, length(attack_zone))
+    out[attack_zone %in% c(2, 9, 1)] <- 4L
+    out[attack_zone %in% c(3, 8, 6)] <- 3L
+    out[attack_zone %in% c(4, 7, 5)] <- 2L
+    out
+}
+
 plays_to_plays2 <- function(p) {
     p2 <- mutate(p, serving = case_when(.data$serving_team == .data$home_team ~ "*", .data$serving_team == .data$visiting_team ~ "a"))##, X4 = NA, X14 = NA)
     p2 <- as_tibble(dplyr::select(p2, "code", "point_phase", "attack_phase", ##"X4",
