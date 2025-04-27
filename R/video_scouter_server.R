@@ -508,7 +508,7 @@ ov_scouter_server <- function(app_data) {
                                 rdata$dvw$plays2 <- rp2(temp)
                             } else {
                                 rc <- rally_codes()
-                                rcidx <- nrow(rdata$dvw$plays2) - insert_ridx
+                                rcidx <- insert_ridx - nrow(rdata$dvw$plays2)
                                 rc <- bind_rows(rc[seq_len(rcidx - 1L), ], newrc, rc[rcidx:nrow(rc), ])
                                 ## update surrounding rows and update rally_codes()
                                 rally_codes(transfer_scout_details(from_row = newrc, to_df = rc, row_idx = rcidx, dvw = rdata$dvw))
@@ -3306,7 +3306,7 @@ ov_scouter_server <- function(app_data) {
             ridx <- playslist_mod$current_row()
             if (!is.null(ridx) && !is.na(ridx)) {
                 showModal(modalDialog(title = "Delete current row", size = "l", footer = tags$div(actionButton("delete_commit", label = "Delete code (or press Enter)"), actionButton("cancel_back_to_playslist", label = "Cancel (or press Esc)")),
-                          tags$p(tags$strong("To delete:"), rdata$dvw$plays2$code[ridx])))
+                          tags$p(tags$strong("To delete:"), if (ridx > nrow(rdata$dvw$plays2)) isolate(rally_codes())$code[ridx - nrow(rdata$dvw$plays2)] else rdata$dvw$plays2$code[ridx])))
                 focus_to_modal_element("delete_commit")
             }
         }
