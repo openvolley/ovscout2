@@ -540,8 +540,8 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
                     temp_rally_plays <- temp_rally_plays[current_plays_row() - offs, ]
                     segxy <- bind_rows(temp_rally_plays %>% dplyr::select(x = "start_coordinate_x", y = "start_coordinate_y"),
                                        temp_rally_plays %>% dplyr::select(x = "mid_coordinate_x", y = "mid_coordinate_y"),
-                                       temp_rally_plays %>% dplyr::select(x = "end_coordinate_x", y = "end_coordinate_y")) %>%
-                        na.omit()
+                                       temp_rally_plays %>% dplyr::select(x = "end_coordinate_x", y = "end_coordinate_y"))
+                    if (any(is.na(segxy[2, ]))) segxy <- segxy[-2, ] ## drop mid coord if missing
                     if (nrow(segxy) > 0) {
                         if (nrow(segxy) == 2) {
                             arrows(x0 = segxy$x[1], y0 = segxy$y[1], x1 = segxy$x[2], y1 = segxy$y[2], angle = 15, length = 0.15)
@@ -551,6 +551,7 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
                         }
                         points(segxy$x[1], segxy$y[1], pch = 21, bg = "white", cex = 2)
                         text(segxy$x[1], segxy$y[1], labels = "S", col = "black", cex = 0.75)
+                        points(tail(segxy$x, 1), tail(segxy$y, 1))
                     }
                 } else if (nrow(rally_codes()) > 0) {
                     ## plot the current rally actions
