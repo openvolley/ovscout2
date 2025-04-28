@@ -34,6 +34,14 @@ show_admin_modal <- function(game_state, dvw) {
                             ))
 }
 
+dismiss_admin_modal <- function(editing, scout_mode) {
+    ## dismiss the admin modal and unpause the video
+    editing$active <- NULL
+    removeModal()
+    do_video("play")
+    if (isTRUE(scout_mode == "type")) focus_to_scout_bar()
+}
+
 show_save_error_modal <- function(msg, ovs_ok, tempfile_name) {
     showModal(modalDialog(title = "Save error",
                           tags$div(class = "alert alert-danger", "Sorry, the save failed. The error message was:", tags$br(), tags$pre(msg), tags$br(), if (ovs_ok) paste0("The edited datavolley object has been saved to ", tempfile_name, "."))))

@@ -3,22 +3,7 @@ ov_scouter_server <- function(app_data) {
         debug <- 0L
         cstr <- function(z) capture.output(str(z))
         have_warned_auto_save <- FALSE
-        .am_in_server <- TRUE ## for eval_in_server function
-
-        ## function to populate the team character and player number of the serving player in the scout typing entry box
-        populate_server <- function() {
-            isolate({
-                ## cstr(reactiveValuesToList(game_state))
-                srv_code <- if (game_state$serving %eq% "*" && !is.null(game_state$home_p1) && !is.na(game_state$home_p1)) {
-                                paste0("*", ldz2(game_state$home_p1))
-                            } else if (game_state$serving %eq% "a" && !is.null(game_state$visiting_p1) && !is.na(game_state$visiting_p1)) {
-                                paste0("a", ldz2(game_state$visiting_p1))
-                            } else {
-                                ""
-                            }
-            })
-            focus_to_scout_bar(srv_code)
-        }
+        .am_in_server <- TRUE ## for eval_in_server and getsv functions
 
         ## the active UI element, used in typing mode to keep track of where the focus should be. Possible values "" (uninitialilzed), "scout_bar", "playslist"
         active_ui <- reactiveVal("")
@@ -83,17 +68,6 @@ ov_scouter_server <- function(app_data) {
         prefs <- reactiveValues(scout_name = app_data$scout_name, show_courtref = app_data$show_courtref, scoreboard = app_data$scoreboard, pause_on_type = app_data$pause_on_type, ball_path = app_data$ball_path, playlist_display_option = app_data$playlist_display_option, review_pane = app_data$review_pane)
         if (!is.null(app_data$playback_rate) && isTRUE(app_data$playback_rate > 0)) updateSliderInput(session, "playback_rate", value = app_data$playback_rate)
 
-        ## function to reference a video time measured on the time scale of video "from", to its equivalent time relative to video "to"
-        rebase_time <- function(t, time_to = 1, time_from) {
-            if (missing(time_from)) time_from <- current_video_src()
-            if (!time_from %in% c(1, 2)) time_from <- 1
-            if (!time_to %in% c(1, 2)) time_to <- 1
-            if (time_from > 1) t <- t - rdata$dvw$video2_offset
-            ## t is now relative to 1
-            if (time_to > 1) t <- t + rdata$dvw$video2_offset
-            t
-        }
-
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
         ## maybe TODO add button to change scout mode from click (guided) to typing
@@ -134,23 +108,8 @@ ov_scouter_server <- function(app_data) {
             }
         })
         observeEvent(input$switch_video, {
-            do_switch_video()
+            do_switch_video(have_second_video = have_second_video, current_video_src = current_video_src, rdata = rdata, app_data = app_data, video_state = video_state)
         })
-        do_switch_video <- function() {
-            if (have_second_video) {
-                current_video_src(3L - current_video_src())
-                if (current_video_src() == 1L) {
-                    new_src <- app_data$video_src
-                    offs <- -rdata$dvw$video2_offset
-                } else {
-                    new_src <- app_data$video_src2
-                    offs <- rdata$dvw$video2_offset
-                }
-                new_src <- get_video_source_type(new_src, base_url = app_data$video_server_base_url)
-                myjs <- paste0("var ct=vidplayer.currentTime(); ct=ct", if (offs >= 0) "+", offs, "; if (ct >= 0) { vidplayer.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); vidplayer.currentTime(ct);", if (!video_state$paused) "vidplayer.play(); pause_on_type = ", app_data$pause_on_type, "; Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight()); }")
-                dojs(myjs)
-            }
-        }
         ## video 2 offset tweak. This would be better with side-by-side videos, but couldn't get that working reliably
         ## maybe side-by-side still frames would be even better (though difficult to do with remote videos)
         observeEvent(input$v2_offset, {
@@ -171,19 +130,7 @@ ov_scouter_server <- function(app_data) {
             tags$p(tags$strong("Showing video: ", preview_video_src()))
         })
 
-        observeEvent(input$switch_preview, {
-            preview_video_src(3L - preview_video_src())
-            if (preview_video_src() == 1L) {
-                new_src <- app_data$video_src
-                offs <- -rdata$dvw$video2_offset
-            } else {
-                new_src <- app_data$video_src2
-                offs <- rdata$dvw$video2_offset
-            }
-            new_src <- get_video_source_type(new_src, base_url = app_data$video_server_base_url)
-            myjs <- paste0("var ct=videojs('video_preview').currentTime(); ct=ct", if (offs >= 0) "+", offs, "; if (ct >= 0) { videojs('video_preview').src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); videojs('video_preview').currentTime(ct); videojs('video_preview').play(); }")
-            dojs(myjs)
-        })
+        observeEvent(input$switch_preview, do_switch_preview(preview_video_src = preview_video_src, app_data = app_data, rdata = rdata))
 
         observeEvent(input$v2_offset_value, {
             ## TODO need this to react straight away, not after the value has been entered (the input box has been exited)
@@ -226,7 +173,7 @@ ov_scouter_server <- function(app_data) {
         if (!"home_team_end" %in% names(temp)) temp$home_team_end <- "upper" ## home team end defaults to upper
         game_state <- do.call(reactiveValues, temp)
 
-        if (app_data$scout_mode == "type") populate_server()
+        if (app_data$scout_mode == "type") populate_server(game_state)
 
         playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show, plays_cols_renames = plays_cols_renames,
                                     display_option = reactive(prefs$playlist_display_option))
@@ -273,9 +220,6 @@ ov_scouter_server <- function(app_data) {
 
         video_state <- reactiveValues(paused = TRUE, muted = TRUE) ## starts paused and muted
         editing <- reactiveValues(active = NULL)
-
-        ## video function shortcut
-        do_video <- function(...) do_video_inner(..., video_state = video_state, rally_state = rally_state, app_data = app_data, session = session)
 
         observeEvent(input$playback_rate, {
             if (!is.null(input$playback_rate)) do_video("playback_rate", input$playback_rate)
@@ -345,18 +289,6 @@ ov_scouter_server <- function(app_data) {
             editing$active <- "coord_click_start"
         })
 
-        get_current_rally_code <- function() {
-            tryCatch({
-                ridx <- playslist_mod$current_row()
-                ## if ridx is greater than the length of plays2 rows, then take it from rally_codes()
-                if (!is.null(ridx) && !is.na(ridx)) {
-                    if (ridx <= nrow(rdata$dvw$plays2)) rdata$dvw$plays2$rally_codes[[ridx]] else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) rally_codes()[ridx - nrow(rdata$dvw$plays2), ] else NULL
-                } else {
-                    NULL
-                }
-            }, error = function(e) NULL)
-        }
-
         do_edit_commit <- function(newcode1, newcode2) {
             if (!is.null(editing$active)) {
                 dismiss_modal <- TRUE
@@ -378,7 +310,7 @@ ov_scouter_server <- function(app_data) {
                     newcode2 <- sub("~+$", "", newcode2)
                     ridx <- playslist_mod$current_row()
                     if (editing$active %eq% "edit" && !is.null(ridx) && !is.na(ridx)) {
-                        crc <- get_current_rally_code() ## this is from rally_codes BUT this won't have the actual scout code unless it was a non-skill code, hrumph
+                        crc <- get_current_rally_code(playslist_mod = playslist_mod, rdata = rdata, rally_codes = rally_codes) ## this is from rally_codes BUT this won't have the actual scout code unless it was a non-skill code, hrumph
                         if (!is.null(crc)) {
                             old_code <- if (is.null(crc$code) || is.na(crc$code)) rdata$dvw$plays2$code[ridx] else crc$code
                             ## user has changed EITHER input$code_entry or used the code_entry_guide
@@ -612,40 +544,13 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## exteral video control buttons
-        observeEvent(input$video_pause, deal_with_pause())
+        observeEvent(input$video_pause, deal_with_pause(scout_modal_active = scout_modal_active, video_state = video_state, editing = editing, game_state = game_state, rdata = rdata, app_data = app_data))
         observeEvent(input$video_rew_10, do_video("rew", 10))
         observeEvent(input$video_rew_2, do_video("rew", 2))
         observeEvent(input$video_ff_2, do_video("ff", 2))
         observeEvent(input$video_ff_10, do_video("ff", 10))
         observeEvent(input$video_volume, if (!is.null(input$video_volume)) do_video("set_volume", input$video_volume))
         observeEvent(input$video_toggle_mute, do_video("toggle_mute"))
-
-        deal_with_pause <- function(show_modal = TRUE) {
-            ## don't allow unpause if we have a scouting modal shown
-            if (isTRUE(scout_modal_active())) {
-                ## but do allow pause, if somehow it isn't already
-                do_video("pause")
-            } else {##if (meta_is_valid()) {
-                ## don't allow unpause if the lineups are not valid, else it'll crash
-                if (video_state$paused) {
-                    ## we are paused
-                    if (is.null(editing$active)) {
-                        ## just unpause
-                        do_video("play")
-                    } else if (editing$active %eq% "admin") {
-                        ## otherwise, and only if we have the admin modal showing, dismiss it and unpause
-                        dismiss_admin_modal()
-                    }
-                } else {
-                    ## not paused, so pause and show admin modal
-                    do_video("pause")
-                    if (show_modal) {
-                        editing$active <- "admin"
-                        show_admin_modal(game_state = game_state, dvw = rdata$dvw)
-                    }
-                }
-            }
-        }
 
         ## handling of keyboard events outside of the scout entry bar
         observeEvent(input$controlkey, {
@@ -679,7 +584,7 @@ ov_scouter_server <- function(app_data) {
                         vt <- if (!is.na(ridx) && !is.na(ridx)) rdata$dvw$plays2$video_time[ridx] else NA
                         if (!is.null(vt) && !is.na(vt)) {
                             if (debug > 1) cat("jumping to video time: ", vt, "\n")
-                            do_video("set_time", rebase_time(vt, time_to = current_video_src()))
+                            do_video("set_time", rebase_time(vt, time_to = current_video_src(), time_from = 1, rdata = rdata)) ## TODO check that this works when viewing video 2
                         }
                     }
                 } else {
@@ -751,7 +656,7 @@ ov_scouter_server <- function(app_data) {
                         if ((is.null(editing$active) || editing$active %eq% "admin") && !courtref_active()) {
                             ## video pause/unpause
                             ## Q (uppercase) does just pause, with no admin modal
-                            deal_with_pause(show_modal = !ky %in% app_data$shortcuts$pause_no_popup)
+                            deal_with_pause(scout_modal_active = scout_modal_active, video_state = video_state, editing = editing, game_state = game_state, rdata = rdata, app_data = app_data, show_modal = !ky %in% app_data$shortcuts$pause_no_popup)
                         }
                     } else if (ky %eq% "Tab") {
                         if (grepl("scout_in", k$id)) {
@@ -768,7 +673,7 @@ ov_scouter_server <- function(app_data) {
                             do_undo()
                         } else if (ky %in% app_data$shortcuts$switch_video) {
                             ## switch video
-                            do_switch_video()
+                            do_switch_video(have_second_video = have_second_video, current_video_src = current_video_src, rdata = rdata, app_data = app_data, video_state = video_state)
                         } else if (ky %in% app_data$shortcuts$contact) {
                             ## player contact with the ball
                             do_contact()
@@ -810,7 +715,7 @@ ov_scouter_server <- function(app_data) {
                     ## handle pause here rather than in the main keydown code, because by default we want to use the escape key as a pause shortcut
                     if (!courtref_active()) {
                         if (!is.null(editing$active) && editing$active %eq% "admin") {
-                            dismiss_admin_modal()
+                            dismiss_admin_modal(editing = editing, scout_mode = app_data$scout_mode)
                         } else {
                             if (video_state$paused) {
                                 ## we are paused
@@ -902,7 +807,7 @@ ov_scouter_server <- function(app_data) {
                     if (!game_state$serving %eq% srv) {
                         game_state$serving <- srv
                         game_state$current_team <- game_state$serving
-                        populate_server()
+                        populate_server(game_state)
                     }
                 } else if (grepl("^[a\\*]z[[:digit:]]", code)) {
                     ## setter position, TODO test
@@ -1119,7 +1024,7 @@ ov_scouter_server <- function(app_data) {
             end_of_set <- rally_ended() ## process
             ## end of point, pre-populate the scout box with the server team and number
             if (!end_of_set) {
-                populate_server()
+                populate_server(game_state)
                 if (app_data$with_video) do_video("play")
             }
         }
@@ -1448,7 +1353,7 @@ ov_scouter_server <- function(app_data) {
                     ## got the video time as part of the click packet, stash it
                     this_timebase <- current_video_src()
                     if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- 1
-                    video_times[[time_uuid]] <<- round(rebase_time(click_time, time_from = this_timebase), 2) ## video times to 2 dec places
+                    video_times[[time_uuid]] <<- round(rebase_time(click_time, time_from = this_timebase, rdata = rdata), 2) ## video times to 2 dec places
                 } else {
                     ## invalid time received, ask again
                     warning("invalid click time\n")
@@ -1510,7 +1415,7 @@ ov_scouter_server <- function(app_data) {
                 ## got the video time as part of the click packet, stash it
                 this_timebase <- current_video_src()
                 if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- 1
-                click_time <- round(rebase_time(click_time, time_from = this_timebase), 2) ## video times to 2 dec places
+                click_time <- round(rebase_time(click_time, time_from = this_timebase, rdata = rdata), 2) ## video times to 2 dec places
                 video_times[[time_uuid]] <<- click_time
             } else {
                 ## invalid time received, ask again
@@ -1546,7 +1451,7 @@ ov_scouter_server <- function(app_data) {
             if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- current_video_src()
             if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- 1
             this_uuid <- sub("@.*", "", sub(".*&", "", temp))
-            if (nzchar(this_uuid)) video_times[[this_uuid]] <<- round(rebase_time(as.numeric(sub("&.+", "", temp)), time_from = this_timebase), 2) ## video times to 2 dec places
+            if (nzchar(this_uuid)) video_times[[this_uuid]] <<- round(rebase_time(as.numeric(sub("&.+", "", temp)), time_from = this_timebase, rdata = rdata), 2) ## video times to 2 dec places
         })
         retrieve_video_time <- function(id) {
             id <- sub("@.*", "", id)
@@ -3000,14 +2905,7 @@ ov_scouter_server <- function(app_data) {
             }
         }
 
-        dismiss_admin_modal <- function() {
-            ## dismiss the admin modal and unpause the video
-            editing$active <- NULL
-            removeModal()
-            do_video("play")
-            if (app_data$scout_mode == "type") focus_to_scout_bar()
-        }
-        observeEvent(input$admin_dismiss, dismiss_admin_modal())
+        observeEvent(input$admin_dismiss, dismiss_admin_modal(editing = editing, scout_mode = app_data$scout_mode))
 
         observeEvent(input$change_setter, {
             if (!is.null(input$change_setter)) {
@@ -3208,7 +3106,7 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$undo, {
             do_undo()
-            dismiss_admin_modal()
+            dismiss_admin_modal(editing = editing, scout_mode = app_data$scout_mode)
         })
 
         do_undo <- function() {
@@ -3561,7 +3459,7 @@ ov_scouter_server <- function(app_data) {
         ## seek to video time on startup
         if ("video_time" %in% names(app_data$dvw$plays2) && nrow(app_data$dvw$plays2) > 0) {
             temp_vt <- na.omit(app_data$dvw$plays2$video_time)
-            if (length(temp_vt) > 0) do_video("set_time", rebase_time(max(temp_vt), time_from = 1)) ## rebase here should not be necessary, unless somehow we've started on video 2
+            if (length(temp_vt) > 0) do_video("set_time", rebase_time(max(temp_vt), time_from = 1, rdata = rdata)) ## rebase here should not be necessary, unless somehow we've started on video 2
         }
 
         ## reports
