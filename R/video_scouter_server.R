@@ -2,7 +2,7 @@ ov_scouter_server <- function(app_data) {
     function(input, output, session) {
         debug <- 0L
         cstr <- function(z) capture.output(str(z))
-        have_warned_auto_save <- FALSE
+        app_data$have_warned_auto_save <- FALSE
         .am_in_server <- TRUE ## for eval_in_server and getsv functions
 
         ## the active UI element, used in typing mode to keep track of where the focus should be. Possible values "" (uninitialilzed), "scout_bar", "playslist"
@@ -39,6 +39,8 @@ ov_scouter_server <- function(app_data) {
 
         if (is.null(app_data$dvw$meta$match$regulation)) stop("dvw does not have regulation information")
         app_data$is_beach <- is_beach(app_data$dvw)
+
+        app_data$styling$scout_modal_width <- 100 - app_data$styling$review_pane_width
 
         atbl <- app_data$dvw$meta$attacks
         atbl <- bind_cols(atbl[, setdiff(names(atbl), c("start_x", "start_y"))], setNames(dv_index2xy(atbl$start_coordinate), c("start_x", "start_y")))
@@ -310,9 +312,9 @@ ov_scouter_server <- function(app_data) {
                     newcode2 <- sub("~+$", "", newcode2)
                     ridx <- playslist_mod$current_row()
                     if (editing$active %eq% "edit" && !is.null(ridx) && !is.na(ridx)) {
-                        crc <- get_current_rally_code(playslist_mod = playslist_mod, rdata = rdata, rally_codes = rally_codes) ## this is from rally_codes BUT this won't have the actual scout code unless it was a non-skill code, hrumph
+                        crc <- get_current_rally_code(playslist_mod = playslist_mod, rdata = rdata, rally_codes = rally_codes) ## NOTE this won't have the actual scout code unless it was a non-skill code
                         if (!is.null(crc)) {
-                            old_code <- if (is.null(crc$code) || is.na(crc$code)) rdata$dvw$plays2$code[ridx] else crc$code
+                            old_code <- if (is.null(crc$code) || is.na(crc$code)) codes_from_rc_rows(crc) else crc$code
                             ## user has changed EITHER input$code_entry or used the code_entry_guide
                             changed1 <- (!newcode1 %eq% old_code) && nzchar(newcode1)
                             changed2 <- (!newcode2 %eq% old_code) && nzchar(newcode2)
@@ -394,7 +396,7 @@ ov_scouter_server <- function(app_data) {
                             ## TODO warn
                         } else if (grepl("^[a\\*]?L", code)) {
                             ## starting lineup
-                            assign_lineup_from_manual(code, dvw = rdata$dvw)
+                            assign_lineup_from_manual(code, rdata = rdata, game_state = game_state, app_data = app_data)
                         } else if (grepl("^(>|\\*T|aT)", code)) { ## timeout, comment
                             newrow <- make_plays2(code, game_state = gs, rally_ended = FALSE, dvw = rdata$dvw)
                             newrow$time <- insert_clock_time
@@ -596,7 +598,7 @@ ov_scouter_server <- function(app_data) {
                         } else if (courtref_active()) {
                             ## do nothing
                         } else if (!is.null(editing$active) && editing$active %eq% "rally_review") {
-                            do_cancel_rally_review()
+                            do_cancel_rally_review(editing = editing, app_data = app_data)
                         } else if (is.null(editing$active) || !editing$active %in% "teams") {
                             if (grepl("scout_in", k$id) && "escape" %in% app_data$shortcuts$pause) {
                                 ## wackiness here if we want to use the escape key as a pause shortcut
@@ -615,7 +617,7 @@ ov_scouter_server <- function(app_data) {
                         if (!is.null(editing$active) && editing$active %eq% "rally_review") {
                             ## TODO we might have another race condition here where the text input does not update in the shiny server in time TODO CHECK
                             focus_to_modal_element("redit_ok", highlight_all = FALSE)
-                            apply_rally_review()
+                            apply_rally_review(editing = editing, rally_codes = rally_codes, game_state = game_state, input = input, rdata = rdata, app_data = app_data)
                         } else if (!is.null(editing$active) && !editing$active %eq% "teams") {
                             ## if editing, treat as update
                             ## but not for team editing, because pressing enter in the DT fires this too
@@ -790,7 +792,7 @@ ov_scouter_server <- function(app_data) {
                     (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(game_state$rally_started))) { ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
                     res <- handle_non_skill_code(code, process_rally_end = FALSE) ## FALSE so that this does not automatically handle end-of-rally ap, *p codes
                     if (code %in% c("*p", "ap")) {
-                        review_rally()
+                        review_rally(editing = editing, app_data = app_data, rally_codes = rally_codes)
                     }
                     if (!res$ok) {
                         ## TODO something
@@ -935,99 +937,14 @@ ov_scouter_server <- function(app_data) {
             cat("code is: "); print(codes)
             if (grepl("^[a\\*]?L", codes)) {
                 ## handle these here not in handle_scout_codes because the whitespace splitting behaviour is different
-                assign_lineup_from_manual(codes, dvw = rdata$dvw)
+                assign_lineup_from_manual(codes, rdata = rdata, game_state = game_state, app_data = app_data)
             } else {
                 handle_scout_codes(codes)
             }
         })
 
-        assign_lineup_from_manual <- function(code, dvw) {
-                lup <- lineup_preprocess(code, dvw = rdata$dvw) ## list(home = L, visiting = L) where L is a list with elements lineup, liberos, setter
-                ## apply
-                setnum <- if (is.null(game_state$set_number) || is.na(game_state$set_number)) {
-                              ## assume is set 1, probably needs something better
-                              1L
-                          } else {
-                              game_state$set_number
-                          }
-                for (this in c("home", "visiting")) {
-                    this_lup <- lup[[this]]
-                    if (!is.null(this_lup)) {
-                        hv <- if (this == "home") "*" else "a"
-                        ## TODO if libero is not specified, default to lineup libero? Unless that person is on court?
-                        for (i in seq_along(this_lup$lineup)) game_state[[paste0(this, "_p", i)]] <- this_lup$lineup[i]
-                        if (!app_data$is_beach) { ## if beach, not setter or liberos
-                            temp_sp <- which(this_lup$lineup == this_lup$setter) ## setter position
-                            ## the liberos go into game_state
-                            ## if the lineup did not specify liberos, but we have them on the roster, use them
-                            if (length(this_lup$liberos) < 1) {
-                                temp_libs <- get_liberos(game_state = game_state, team = hv, dvw = rdata$dvw) ## liberos from roster
-                                this_lup$liberos <- head(sort(setdiff(temp_libs, this_lup$lineup)), 2)
-                            }
-                            game_state[[paste0(substr(this, 1, 1), "t_lib1")]] <- if (length(this_lup$liberos) > 0) this_lup$liberos[1] else NA_integer_
-                            game_state[[paste0(substr(this, 1, 1), "t_lib2")]] <- if (length(this_lup$liberos) > 1) this_lup$liberos[2] else NA_integer_
-                            game_state[[paste0(this, "_setter_position")]] <- temp_sp
-                        }
-                        rdata$dvw <- set_lineup(rdata$dvw, set_number = setnum, team = hv, lineup = c(this_lup$lineup, na.omit(this_lup$liberos))) ## allocate the starting positions for set setnum in meta$players_h or meta$players_v
-                        if (!app_data$is_beach) {
-                            lineup_codes <- c(paste0(hv, "P", ldz2(this_lup$setter), ">LUp"), paste0(hv, "z", temp_sp, ">LUp"))
-                            print(lineup_codes)
-                            rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(rally_codes = lineup_codes, game_state = game_state, dvw = rdata$dvw)))
-                        }
-                    }
-                }
-        }
-
-        review_rally <- function() {
-            ## codes can be reviewed and edited at the end of the rally
-            editing$active <- "rally_review"
-            if (app_data$with_video) do_video("pause")
-            review_rally_modal(rally_codes())
-        }
-
-        observeEvent(input$redit_ok, apply_rally_review())
-        observeEvent(input$redit_cancel, do_cancel_rally_review)
-        do_cancel_rally_review <- function() {
-            editing$active <- NULL
-            removeModal()
-            if (app_data$with_video) do_video("play")
-            focus_to_scout_bar()
-        }
-        apply_rally_review <- function() {
-            editing$active <- NULL
-            removeModal()
-            rctxt0 <- codes_from_rc_rows(rally_codes()) ## the codes before review
-            ## run the reviewed codes through the interpreter
-            home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
-            visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
-            rctxt <- lapply(seq_along(rctxt0), function(i) ov_code_interpret(input[[paste0("rcedit_", i)]], attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num))
-            ##cat("edited codes:\n")
-            ##cat(str(rctxt))
-            ## may now have more (or less) codes than we started with
-            smth <- bind_rows(lapply(seq_along(rctxt), function(i) {
-                newcode <- rctxt[[i]] ## one or more codes, but some can be empty strings if the review text box was empty
-                newcode <- newcode[nzchar(newcode)]
-                if (length(newcode) < 1) return(NULL)
-                crc <- rally_codes()[i, ][rep(1, length(newcode)), ]
-                temp <- bind_rows(parse_code_minimal(newcode)) ## this might fail?
-                crc <- bind_cols(crc[, setdiff(names(crc), names(temp))], temp)[, names(crc)]
-                crc
-            }))
-            ## make sure details now match from one skill to the next
-            ## no, can't do this sequentially, because if we update e.g. an attack tempo during rally review, that will get overridden by the set tempo that precedes it
-            ## would need to do this as codes are edited
-            ## smth <- bind_rows(lapply(seq_len(nrow(smth)), function(i) {
-            ##     if (i < 2) smth[1, ] else transfer_scout_row_details(from = smth[i - 1, ], to = smth[i, ])
-            ## }))
-            ## cat(str(smth, max.level = 2))
-            rally_codes(smth) ## update
-            end_of_set <- rally_ended() ## process
-            ## end of point, pre-populate the scout box with the server team and number
-            if (!end_of_set) {
-                populate_server(game_state)
-                if (app_data$with_video) do_video("play")
-            }
-        }
+        observeEvent(input$redit_ok, apply_rally_review(editing = editing, rally_codes = rally_codes, game_state = game_state, input = input, rdata = rdata, app_data = app_data))
+        observeEvent(input$redit_cancel, do_cancel_rally_review(editing = editing, app_data = app_data))
 
         ## options
         ## TODO other prefs to add: scout_mode, season_dir, auto_save_dir
@@ -1466,21 +1383,8 @@ ov_scouter_server <- function(app_data) {
         ## rally_codes are the actions in the current rally
 
         ## modal things
-        ## styling
-        scout_modal_width <- 100 - app_data$styling$review_pane_width
         ## keep track of whether we have a modal up or not, so that pause behaviour can be modified
         scout_modal_active <- reactiveVal(FALSE)
-        show_scout_modal <- function(mui, with_review_pane = TRUE) {
-            scout_modal_active(TRUE)
-            showModal(mui)
-            if (with_review_pane && isTRUE(prefs$review_pane)) show_review_pane()
-        }
-        remove_scout_modal <- function() {
-            scout_modal_active(FALSE)
-            accept_fun(NULL)
-            removeModal()
-            if (isTRUE(prefs$review_pane)) hide_review_pane()
-        }
         mcols <- reactive({
             ##if (isTRUE(prefs$review_pane) || isTRUE(app_data$extra_ball_tracking)) 8L else 12L
             12L
@@ -1594,7 +1498,7 @@ ov_scouter_server <- function(app_data) {
                         input_var = "serve_error_type", as_radio = "blankable")
                     passer_buttons <- make_fat_radio_buttons(choices = pass_pl_opts$choices, selected = pass_pl_opts$selected, input_var = "pass_player")
                     accept_fun("do_assign_serve_outcome")
-                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = scout_modal_width, modal_halign = "left",
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = app_data$styling$scout_modal_width, modal_halign = "left",
                                                    tags$p(tags$strong("Serve type:")),
                                                    do.call(fixedRow, lapply(serve_type_buttons, function(but) column(if (mcols() / length(serve_type_buttons) >= 2) 2 else 1, but))),
                                                    tags$hr(),
@@ -1665,7 +1569,7 @@ ov_scouter_server <- function(app_data) {
                         ## current phase
                         ph <- if (nrow(rally_codes()) > 0) tail(make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)$phase, 1) else NA_character_
                         accept_fun("do_assign_c2")
-                        show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = scout_modal_width, modal_halign = "left",
+                        show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = app_data$styling$scout_modal_width, modal_halign = "left",
                                                        do.call(fixedRow, c(list(column(2, tags$strong(paste0(if (ph %eq% "Transition") "Dig" else "Reception", " quality")))), lapply(c2_pq_buttons, function(but) column(1, but)))),
                                                        tags$br(), tags$hr(),
                                                        tags$p(tags$strong("Second contact:")),
@@ -1773,7 +1677,7 @@ ov_scouter_server <- function(app_data) {
                     opp <- c(opp, Unknown = "Unknown")
                     opp_player_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c3_opp_player")
                     accept_fun("do_assign_c3")
-                    show_scout_modal(vwModalDialog(title = "Details: attack or freeball over", footer = NULL, width = scout_modal_width, modal_halign = "left",
+                    show_scout_modal(vwModalDialog(title = "Details: attack or freeball over", footer = NULL, width = app_data$styling$scout_modal_width, modal_halign = "left",
                                             do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
                                                                 if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", pickerInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))))),
                                             tags$br(),
@@ -1905,7 +1809,7 @@ ov_scouter_server <- function(app_data) {
                         do_video("play")
                     }  else {
                         accept_fun("do_assign_c1")
-                        show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = scout_modal_width, modal_halign = "left",
+                        show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = app_data$styling$scout_modal_width, modal_halign = "left",
                                                        tags$p(tags$strong("Attack outcome and hit type:")),
                                                        fixedRow(column(2, c1_buttons[1]), column(2, c1_buttons[2]), column(3, c1_buttons[3]),
                                                                 column(1, hit_type_buttons[1]), column(1, hit_type_buttons[2]), column(1, hit_type_buttons[3])),
@@ -1955,7 +1859,7 @@ ov_scouter_server <- function(app_data) {
                     digp <- c(digp, Unknown = "Unknown")
                     dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "f1_def_player")
                     accept_fun("do_assign_f1")
-                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = scout_modal_width, modal_halign = "left",
+                    show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = app_data$styling$scout_modal_width, modal_halign = "left",
                                             tags$p(tags$strong("Freeball outcome:")),
                                             do.call(fixedRow, lapply(f1_buttons, function(but) column(2, but))),
                                             tags$br(), tags$hr(),
@@ -1978,32 +1882,6 @@ ov_scouter_server <- function(app_data) {
                     cat("rally state: ", rally_state(), "\n")
                 }
             }
-        }
-
-        rally_ended <- function() {
-            ## add rally codes to scout object now
-            rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw)))
-            do_rally_end_things()
-            ## check for end of set
-            scores <- c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point)
-            end_of_set <- if (app_data$is_beach) {
-                              max(scores) >= 21 && abs(diff(scores)) >= 2
-                          } else {
-                              ((max(scores) >= 25 && game_state$set_number < 5) || (max(scores) >= 15 && game_state$set_number == 5)) && abs(diff(scores)) >= 2
-                          }
-            if (end_of_set && !have_asked_end_of_set()) {
-                show_scout_modal(
-                    vwModalDialog(title = "End of set", footer = NULL, width = scout_modal_width, modal_halign = "left",
-                                  paste0("Confirm end of set ", game_state$set_number, "?"),
-                                  tags$hr(),
-                                  fixedRow(column(2, actionButton("end_of_set_cancel", "Cancel", class = "cancel fatradio")),
-                                           column(2, offset = 8, actionButton("end_of_set_confirm", "Confirm", class = "continue fatradio")))
-                                  ), with_review_pane = FALSE)
-                do_video("pause")
-                rally_state("confirm end of set")
-                have_asked_end_of_set(TRUE)
-            }
-            end_of_set
         }
 
         observe({
@@ -2128,51 +2006,6 @@ ov_scouter_server <- function(app_data) {
                 }
             }
         })
-
-        do_rally_end_things <- function() {
-            ## update game_state
-            do_rot <- game_state$point_won_by != game_state$serving
-            if (game_state$point_won_by == "*") {
-                game_state$home_score_start_of_point <- game_state$home_score_start_of_point + 1L
-            } else {
-                game_state$visiting_score_start_of_point <- game_state$visiting_score_start_of_point + 1L
-            }
-            if (do_rot) {
-                if (game_state$point_won_by == "*") {
-                    game_state$home_setter_position <- rotpos(game_state$home_setter_position, n = length(pseq))
-                    temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]))
-                    for (i in pseq) game_state[[paste0("home_p", i)]] <- temp[i]
-                    poscode <- paste0("*z", game_state$home_setter_position)
-                } else {
-                    game_state$visiting_setter_position <- rotpos(game_state$visiting_setter_position, n = length(pseq))
-                    temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
-                    for (i in pseq) game_state[[paste0("visiting_p", i)]] <- temp[i]
-                    poscode <- paste0("az", game_state$visiting_setter_position)
-                }
-                rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw)))
-            }
-            ## reset for next rally
-            game_state$serving <- game_state$current_team <- game_state$point_won_by
-            game_state$rally_started <- FALSE
-            rally_codes(empty_rally_codes)
-            game_state$start_x <- game_state$start_y <- game_state$mid_x <- game_state$mid_y <- game_state$end_x <- game_state$end_y <- NA_real_
-            game_state$startxy_valid <- game_state$midxy_valid <- game_state$endxy_valid <- FALSE
-            game_state$current_time_uuid <- ""
-            game_state$point_won_by <- NA_character_
-            if (!is.null(app_data$auto_save_dir)) {
-                if (!dir.exists(app_data$auto_save_dir) && !have_warned_auto_save) {
-                    have_warned_auto_save <<- TRUE
-                    warning("auto-save dir does not exist, ignoring")
-                } else {
-                    tryCatch({
-                        temp_dvw_file <- file.path(app_data$auto_save_dir, paste0(save_file_basename(), "-live.dvw"))
-                        if (file.exists(temp_dvw_file)) unlink(temp_dvw_file)
-                        dv_write2(update_meta(rp2(rdata$dvw)), file = temp_dvw_file) ## TODO something about convert_cones here
-                    }, error = function(e) warning("could not auto-save file"))
-                }
-            }
-            rally_state("click serve start")
-        }
 
         ## for the playslist table, convert the rally codes into plays2 rows, and build plays from plays2
         observe({
@@ -2922,16 +2755,6 @@ ov_scouter_server <- function(app_data) {
         }
 
         review_pane_active <- reactiveVal(FALSE)
-        show_review_pane <- function() {
-            ## use the current video time from the main video
-            ## construct the playlist js by hand, because we need to inject the current video time
-            revsrc <- get_video_source_type(if (current_video_src() == 1L) app_data$video_src else app_data$video_src2, base_url = app_data$video_server_base_url)
-            pbrate <- if (!is.null(input$playback_rate) && input$playback_rate > 0) input$playback_rate * 1.4 else 1.4
-            dojs(paste0("var start_t=vidplayer.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", revsrc$src, "','start_time':start_t,'duration':4,'type':'", revsrc$type, "'}], 'review_player', '", revsrc$type, "', true); revpl.set_playback_rate(", pbrate, ");"))
-            js_show2("review_pane")
-            dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());")
-            review_pane_active(TRUE)
-        }
         observeEvent(list(input$rv_height, input$rv_width), {
             if ((length(input$rv_height) < 1 || is.na(input$rv_height) || input$rv_height <= 0 || length(input$rv_width) < 1 || is.na(input$rv_width) || input$rv_width <= 0) && review_pane_active()) {
                 dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());")
@@ -3001,11 +2824,6 @@ ov_scouter_server <- function(app_data) {
                 }, bg = "transparent", height = input$rv_height)
             }
         })
-        hide_review_pane <- function() {
-            js_hide2("review_pane")
-            dojs("revpl.video_stop();")
-            review_pane_active(FALSE)
-        }
 
         rv_clickdrag <- reactiveValues(mousedown = NULL, mousedown_time = NULL, closest_down = NULL, mouseup = NULL)
         last_rv_mouse_pos <- reactiveVal(NULL)
@@ -3203,8 +3021,10 @@ ov_scouter_server <- function(app_data) {
         show_delete_code_modal <- function() {
             ridx <- playslist_mod$current_row()
             if (!is.null(ridx) && !is.na(ridx)) {
+                thiscode <- tryCatch(codes_from_rc_rows(get_current_rally_code(playslist_mod = playslist_mod, rdata = rdata, rally_codes = rally_codes)), error = function(e) NULL)
                 showModal(modalDialog(title = "Delete current row", size = "l", footer = tags$div(actionButton("delete_commit", label = "Delete code (or press Enter)"), actionButton("cancel_back_to_playslist", label = "Cancel (or press Esc)")),
-                          tags$p(tags$strong("To delete:"), if (ridx > nrow(rdata$dvw$plays2)) isolate(rally_codes())$code[ridx - nrow(rdata$dvw$plays2)] else rdata$dvw$plays2$code[ridx])))
+                                      if (!is.null(thiscode)) tags$p(tags$strong("To delete:"), thiscode)
+                                      ))
                 focus_to_modal_element("delete_commit")
             }
         }

@@ -50,3 +50,29 @@ test_that("code interpretation works correctly", {
     ## non-skill codes
     check_code(ov_code_interpret("aT T ac3:2 c8.5 a2SM57.16="), c("aT", "*T", "ac3:2", "*c8.5", "a02SM#~~~57", "*16RM=~~~57"))
 })
+
+test_that("lineup code parsing works", {
+    expect_equal(ovscout2:::split_lineup_codes("L1 2 3 4 5s 6 aL 3 4 5p 6 7 10"), c("L1 2 3 4 5s 6", "aL 3 4 5p 6 7 10"))
+    expect_equal(ovscout2:::split_lineup_codes("L1 2 3 4 5s 6 aL3,4,5p,6,7,10"), c("L1 2 3 4 5s 6", "aL3,4,5p,6,7,10"))
+    expect_equal(ovscout2:::split_lineup_codes("L 1 2 3 4 5s 6 aL3,4,5p,6,7,10"), c("L 1 2 3 4 5s 6", "aL3,4,5p,6,7,10"))
+    expect_equal(ovscout2:::split_lineup_codes("  L1,2,3,4,5s,6 aL3,4,5p,6,7,10"), c("L1,2,3,4,5s,6", "aL3,4,5p,6,7,10"))
+    expect_equal(ovscout2:::split_lineup_codes("  L1,2,3,4,5s,6aL3,4,5p,6,7,10"), c("L1,2,3,4,5s,6", "aL3,4,5p,6,7,10")) ## not recommended, but we can cope with it!
+    expect_equal(ovscout2:::split_lineup_codes("  L1,2,3,4,5s,6 "), c("L1,2,3,4,5s,6"))
+
+
+    expect_equal(ovscout2:::lineup_preprocess("L1 2 3 4 5s 6 aL 3 4 5p 6 7 10 11", beach = FALSE),
+                 list(home = list(lineup = c(1L, 2L, 3L, 4L, 5L, 6L), setter = 5L, liberos = integer()),
+                      visiting = list(lineup = c(3L, 4L, 5L, 6L, 7L, 10L), setter = 5L, liberos = 11L)))
+    expect_equal(ovscout2:::lineup_preprocess(" L  1 2 3 4 5s 6 aL 3 4 5p 6 7 10 11", beach = FALSE),
+                 list(home = list(lineup = c(1L, 2L, 3L, 4L, 5L, 6L), setter = 5L, liberos = integer()),
+                      visiting = list(lineup = c(3L, 4L, 5L, 6L, 7L, 10L), setter = 5L, liberos = 11L)))
+    expect_warning(ovscout2:::lineup_preprocess("L1 2 3 4 5s 6 aL 3 4 5p 6 7 10 11", beach = TRUE), "invalid")
+    expect_warning(ovscout2:::lineup_preprocess("L 1 2 aL 3 4 5p 6 7 10 11", beach = TRUE), "invalid")
+    expect_warning(ovscout2:::lineup_preprocess("L aL 3 4 5p 6 7 10 11", beach = TRUE), "invalid")
+    expect_equal(ovscout2:::lineup_preprocess("L1 2 aL 3 4", beach = TRUE),
+                 list(home = list(lineup = c(1L, 2L), setter = NA_integer_, liberos = integer()),
+                      visiting = list(lineup = c(3L, 4L), setter = NA_integer_, liberos = integer())))
+    expect_equal(ovscout2:::lineup_preprocess("L1p 2 aL 3 4", beach = TRUE),
+                 list(home = list(lineup = c(1L, 2L), setter = NA_integer_, liberos = integer()),
+                      visiting = list(lineup = c(3L, 4L), setter = NA_integer_, liberos = integer())))
+})

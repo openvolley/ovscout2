@@ -28,22 +28,3 @@ get_scout_input_times <- function(scout_input_times) {
         NULL
     }
 }
-
-## the modal popup used to review the rally codes before accepting them
-review_rally_modal <- function(rcodes) {
-    rctxt <- codes_from_rc_rows(rcodes)
-    print(rctxt)
-    showModal(vwModalDialog(title = "Review rally codes", footer = NULL, width = 100,
-                            tags$p(tags$strong("Tab"), ", ", tags$strong("Shift-Tab"), "to move between code boxes.",
-                                   tags$strong("Enter"), "or", tags$strong("Continue"), "to accept all and start next rally.",
-                                   tags$strong("Esc"), "or", tags$strong("Cancel"), "to cancel the end of rally."),
-                            tags$p(tags$strong("Rally actions")),
-                            fluidRow(column(6, do.call(tagList, lapply(seq_along(rctxt), function(i) {
-                                textInput(paste0("rcedit_", i), label = NULL, value = rctxt[i])
-                            })))),
-                            tags$br(), tags$hr(),
-                            fixedRow(column(2, actionButton("redit_cancel", "Cancel", class = "cancel fatradio")),
-                                     column(2, offset = 8, actionButton("redit_ok", "Continue", class = "continue fatradio")))
-                            ))
-    focus_to_modal_element("rcedit_1")
-}

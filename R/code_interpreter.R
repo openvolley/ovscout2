@@ -390,3 +390,57 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
     }
     all_codes
 }
+
+## preprocess manual lineup input
+## take code of the form:
+## L 1,2,3,4,5s,6,7,8
+## where L is "L", "*L", or "aL", and the space after the "L" is optional. Jersey numbers are comma separated, and the "S" or "s" or "P" or "p" designates the setter
+lineup_preprocess <- function(code, beach) {
+    beach <- isTRUE(beach)
+    ## first check that we haven't been given both team lineups, e.g. "L1 2 3 4 5s 6 aL 3 4 5p 6 7 10"
+    codes <- split_lineup_codes(code)
+    unlist(lapply(codes, function(code) {
+        pnums <- strsplit(sub("^[a\\*]?L[[:space:]]*", "", code), split = "[[:space:],]+")[[1]]
+        spos <- grep("[sp]", pnums, ignore.case = TRUE)
+        out <- list()
+        if (beach || length(spos) == 1) {
+            pnums <- as.integer(sub("[sp]", "", pnums, ignore.case = TRUE))
+            lup <- list(lineup = if (beach) pnums else pnums[1:6],
+                        setter = if (beach) NA_integer_ else pnums[spos],
+                        liberos = if (beach) integer() else as.integer(na.omit(pnums[7:8])))
+            lup_ok <- TRUE
+            if (beach) {
+                if (length(lup$lineup) != 2) {
+                    lup_ok <- FALSE
+                    warning("lineup should be 2 players, ignoring")
+                }
+            } else {
+                if (length(lup$lineup) != 6) {
+                    lup_ok <- FALSE
+                    warning("lineup should be 6 players plus optionally libero(s), ignoring")
+                }
+            }
+            lup_ok <- lup_ok && !any(is.na(lup$lineup)) && !any(duplicated(lup$lineup))
+            if (!beach) lup_ok <- lup_ok && !is.na(lup$setter) && lup$setter %in% lup$lineup && !any(lup$liberos %in% lup$lineup)
+            if (!lup_ok) {
+                warning("lineup is invalid, ignoring")
+                ## cat(str(lup))
+                lup <- NULL
+            }
+            if (substr(code, 1, 1) == "a") {
+                ## 'twas visiting team lineup
+                out$visiting <- lup
+            } else {
+                out$home <- lup
+            }
+        } else {
+            warning("no setter, ignoring")
+        }
+        out
+    }), recursive = FALSE)
+}
+
+split_lineup_codes <- function(x) {
+    ii <- rbind(stringr::str_locate_all(x, "[a\\*]?L")[[1]], c(NA, NA))
+    stringr::str_trim(sapply(seq_len(nrow(ii) - 1), function(i) substr(x, ii[i, 1], min(nchar(x), ii[i+1, 1] - 1, na.rm = T))))
+}

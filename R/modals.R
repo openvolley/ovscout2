@@ -249,3 +249,62 @@ show_shortcuts <- function(app_data) {
             ##                                                         tags$li("[accept ball coordinates] to add coordinates to the currently selected item"))))
             ))
 }
+
+## the modal popup used to review the rally codes before accepting them
+review_rally_modal <- function(rcodes) {
+    rctxt <- codes_from_rc_rows(rcodes)
+    print(rctxt)
+    showModal(vwModalDialog(title = "Review rally codes", footer = NULL, width = 100,
+                            tags$p(tags$strong("Tab"), ", ", tags$strong("Shift-Tab"), "to move between code boxes.",
+                                   tags$strong("Enter"), "or", tags$strong("Continue"), "to accept all and start next rally.",
+                                   tags$strong("Esc"), "or", tags$strong("Cancel"), "to cancel the end of rally."),
+                            tags$p(tags$strong("Rally actions")),
+                            fluidRow(column(6, do.call(tagList, lapply(seq_along(rctxt), function(i) {
+                                textInput(paste0("rcedit_", i), label = NULL, value = rctxt[i])
+                            })))),
+                            tags$br(), tags$hr(),
+                            fixedRow(column(2, actionButton("redit_cancel", "Cancel", class = "cancel fatradio")),
+                                     column(2, offset = 8, actionButton("redit_ok", "Continue", class = "continue fatradio")))
+                            ))
+    focus_to_modal_element("rcedit_1")
+}
+
+show_scout_modal <- function(mui, with_review_pane = TRUE) {
+    scout_modal_active <- getsv("scout_modal_active")
+    prefs <- getsv("prefs")
+    scout_modal_active(TRUE)
+    showModal(mui)
+    if (with_review_pane && isTRUE(prefs$review_pane)) show_review_pane()
+}
+
+remove_scout_modal <- function() {
+    scout_modal_active <- getsv("scout_modal_active")
+    accept_fun <- getsv("accept_fun")
+    scout_modal_active(FALSE)
+    prefs <- getsv("prefs")
+    accept_fun(NULL)
+    removeModal()
+    if (isTRUE(prefs$review_pane)) hide_review_pane()
+}
+
+show_review_pane <- function() {
+    current_video_src <- getsv("current_video_src")
+    app_data <- getsv("app_data")
+    input <- getsv("input")
+    review_pane_active <- getsv("review_pane_active")
+    ## use the current video time from the main video
+    ## construct the playlist js by hand, because we need to inject the current video time
+    revsrc <- get_video_source_type(if (current_video_src() == 1L) app_data$video_src else app_data$video_src2, base_url = app_data$video_server_base_url)
+    pbrate <- if (!is.null(input$playback_rate) && input$playback_rate > 0) input$playback_rate * 1.4 else 1.4
+    dojs(paste0("var start_t=vidplayer.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", revsrc$src, "','start_time':start_t,'duration':4,'type':'", revsrc$type, "'}], 'review_player', '", revsrc$type, "', true); revpl.set_playback_rate(", pbrate, ");"))
+    js_show2("review_pane")
+    dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());")
+    review_pane_active(TRUE)
+}
+
+hide_review_pane <- function() {
+    review_pane_active <- getsv("review_pane_active")
+    js_hide2("review_pane")
+    dojs("revpl.video_stop();")
+    review_pane_active(FALSE)
+}
