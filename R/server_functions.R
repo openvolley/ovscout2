@@ -246,6 +246,79 @@ deal_with_pause <- function(scout_modal_active, video_state, editing, game_state
     }
 }
 
+## account for aspect ratios
+## the video overlay image (which receives the mouse clicks) will fill the whole video div element
+## but the actual video content can have a different aspect ratio, which means it will be letterboxed
+## direction "to_image" means we've taken unit coords in the outer (video div) space and are converting to inner video content space
+## direction "to_court" means we've taken unit coords in the inner video content space and are converting to outer (video div) space
+ar_fix_x <- function(x, direction = "to_image", input, current_video_src, app_data) {
+    eAR <- input$dv_width / input$dv_height
+    mAR <- if ((current_video_src() == 1L && is_youtube_url(app_data$video_src)) || (current_video_src() == 2L && is_youtube_url(app_data$video_src2))) {
+               ## the youtube player does not offer a way of querying the size but youtube videos are always 16:9
+               16 / 9
+           } else {
+               input$video_width / input$video_height
+           }
+    if (length(eAR) && length(mAR) && isTRUE(eAR > mAR)) {
+        ## element is wider than the actual media, we have letterboxing on the sides
+        visW <- mAR * input$dv_height
+        lw <- (input$dv_width - visW) / input$dv_width / 2 ## letterboxing each side as proportion of element (visible) width
+        if (direction == "to_image") lw + x * (1 - 2 * lw) else (x - lw) / (1 - 2 * lw) ## adjust x
+    } else {
+        x
+    }
+}
+ar_fix_y <- function(y, direction = "to_image", input, current_video_src, app_data) {
+    eAR <- input$dv_width / input$dv_height
+    mAR <- if ((current_video_src() == 1L && is_youtube_url(app_data$video_src)) || (current_video_src() == 2L && is_youtube_url(app_data$video_src2))) {
+               16 / 9 ## always 16:9 for youtube
+           } else {
+               input$video_width / input$video_height
+           }
+    if (length(eAR) && length(mAR) && isTRUE(mAR > eAR)) {
+        ## media is wider than the element, we have letterboxing on the top/bottom
+        visH <- input$dv_width / mAR
+        lh <- (input$dv_height - visH) / input$dv_height / 2 ## letterboxing top/bottom as proportion of element (visible) height
+        if (direction == "to_image") lh + y * (1 - 2 * lh) else (y - lh) / (1 - 2 * lh) ## adjust y
+    } else {
+        y
+    }
+}
+vid_to_crt <- function(obj, arfix = TRUE, detection_ref, input, current_video_src, app_data) {
+    courtxy <- data.frame(x = rep(NA_real_, length(obj$x)), y = rep(NA_real_, length(obj$x)))
+    if (!is.null(detection_ref()$court_ref) && length(obj$x) > 0) {
+        thisx <- obj$x; thisy <- obj$y
+        if (arfix) {
+            ## account for aspect ratios
+            thisx <- ar_fix_x(obj$x, direction = "to_court", input = input, current_video_src = current_video_src, app_data = app_data)
+            thisy <- ar_fix_y(obj$y, direction = "to_court", input = input, current_video_src = current_video_src, app_data = app_data)
+        }
+        courtxy <- ovideo::ov_transform_points(thisx, thisy, ref = detection_ref()$court_ref, direction = "to_court")
+    }
+    courtxy
+}
+crt_to_vid <- function(obj, arfix = TRUE, detection_ref, input, current_video_src, app_data) {
+    imagexy <- data.frame(image_x = rep(NA_real_, length(obj$x)), image_y = rep(NA_real_, length(obj$x)))
+    if (!is.null(detection_ref()$court_ref) && length(obj$x) > 0) {
+        imagexy <- setNames(ovideo::ov_transform_points(obj$x, obj$y, ref = detection_ref()$court_ref, direction = "to_image"), c("image_x", "image_y"))
+        if (arfix) {
+            ## account for aspect ratios
+            imagexy$image_x <- ar_fix_x(imagexy$image_x, input = input, current_video_src = current_video_src, app_data = app_data)
+            imagexy$image_y <- ar_fix_y(imagexy$image_y, input = input, current_video_src = current_video_src, app_data = app_data)
+        }
+    }
+    imagexy
+}
+
+retrieve_video_time <- function(id, video_times) {
+    id <- sub("@.*", "", id)
+    if (is_uuid(id)) {
+        if (nzchar(id) && id %in% names(video_times)) video_times[[id]] else NA_real_
+    } else {
+        id
+    }
+}
+
 ## ---
 ## functions related to dual-video mode
 

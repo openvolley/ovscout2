@@ -1004,44 +1004,6 @@ ov_scouter_server <- function(app_data) {
             if (app_data$scout_mode == "type") focus_to_scout_bar() ## TODO check
         })
 
-        ## account for aspect ratios
-        ## the video overlay image (which receives the mouse clicks) will fill the whole video div element
-        ## but the actual video content can have a different aspect ratio, which means it will be letterboxed
-        ## direction "to_image" means we've taken unit coords in the outer (video div) space and are converting to inner video content space
-        ## direction "to_court" means we've taken unit coords in the inner video content space and are converting to outer (video div) space
-        ar_fix_x <- function(x, direction = "to_image") {
-            eAR <- input$dv_width / input$dv_height
-            mAR <- if ((current_video_src() == 1L && is_youtube_url(app_data$video_src)) || (current_video_src() == 2L && is_youtube_url(app_data$video_src2))) {
-                       ## the youtube player does not offer a way of querying the size but youtube videos are always 16:9
-                       16 / 9
-                   } else {
-                       input$video_width / input$video_height
-                   }
-            if (length(eAR) && length(mAR) && isTRUE(eAR > mAR)) {
-                ## element is wider than the actual media, we have letterboxing on the sides
-                visW <- mAR * input$dv_height
-                lw <- (input$dv_width - visW) / input$dv_width / 2 ## letterboxing each side as proportion of element (visible) width
-                if (direction == "to_image") lw + x * (1 - 2 * lw) else (x - lw) / (1 - 2 * lw) ## adjust x
-            } else {
-                x
-            }
-        }
-        ar_fix_y <- function(y, direction = "to_image") {
-            eAR <- input$dv_width / input$dv_height
-            mAR <- if ((current_video_src() == 1L && is_youtube_url(app_data$video_src)) || (current_video_src() == 2L && is_youtube_url(app_data$video_src2))) {
-                       16 / 9 ## always 16:9 for youtube
-                   } else {
-                       input$video_width / input$video_height
-                   }
-            if (length(eAR) && length(mAR) && isTRUE(mAR > eAR)) {
-                ## media is wider than the element, we have letterboxing on the top/bottom
-                visH <- input$dv_width / mAR
-                lh <- (input$dv_height - visH) / input$dv_height / 2 ## letterboxing top/bottom as proportion of element (visible) height
-                if (direction == "to_image") lh + y * (1 - 2 * lh) else (y - lh) / (1 - 2 * lh) ## adjust y
-            } else {
-                y
-            }
-        }
         overlay_points <- reactiveVal(NULL)
         overlay_court_lines <- reactive({
             if (!is.null(detection_ref()$court_ref)) {
@@ -1064,14 +1026,14 @@ ov_scouter_server <- function(app_data) {
                     if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
                         oxy <- overlay_court_lines()
                         ## account for aspect ratios
-                        oxy$image_x <- ar_fix_x(oxy$image_x)
-                        oxy$xend <- ar_fix_x(oxy$xend)
-                        oxy$image_y <- ar_fix_y(oxy$image_y)
-                        oxy$yend <- ar_fix_y(oxy$yend)
+                        oxy$image_x <- ar_fix_x(oxy$image_x, input = input, current_video_src = current_video_src, app_data = app_data)
+                        oxy$xend <- ar_fix_x(oxy$xend, input = input, current_video_src = current_video_src, app_data = app_data)
+                        oxy$image_y <- ar_fix_y(oxy$image_y, input = input, current_video_src = current_video_src, app_data = app_data)
+                        oxy$yend <- ar_fix_y(oxy$yend, input = input, current_video_src = current_video_src, app_data = app_data)
                         cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour, unit = "npc")
                     }
                     if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
-                        ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
+                        ixy <- setNames(crt_to_vid(overlay_points(), detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data), c("x", "y"))
                         if (any(overlay_points()$valid)) {
                             cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.01, col = "white", fill_col = "dodgerblue", unit = "npc")
                         }
@@ -1091,14 +1053,14 @@ ov_scouter_server <- function(app_data) {
                     if (isTRUE(prefs$show_courtref) && !is.null(overlay_court_lines())) {
                         oxy <- overlay_court_lines()
                         ## account for aspect ratios
-                        oxy$image_x <- ar_fix_x(oxy$image_x)
-                        oxy$xend <- ar_fix_x(oxy$xend)
-                        oxy$image_y <- ar_fix_y(oxy$image_y)
-                        oxy$yend <- ar_fix_y(oxy$yend)
+                        oxy$image_x <- ar_fix_x(oxy$image_x, input = input, current_video_src = current_video_src, app_data = app_data)
+                        oxy$xend <- ar_fix_x(oxy$xend, input = input, current_video_src = current_video_src, app_data = app_data)
+                        oxy$image_y <- ar_fix_y(oxy$image_y, input = input, current_video_src = current_video_src, app_data = app_data)
+                        oxy$yend <- ar_fix_y(oxy$yend, input = input, current_video_src = current_video_src, app_data = app_data)
                         segments(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
                     }
                     if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
-                        ixy <- setNames(crt_to_vid(overlay_points()), c("x", "y"))
+                        ixy <- setNames(crt_to_vid(overlay_points(), detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data), c("x", "y"))
                         points(ixy$x[overlay_points()$valid], ixy$y[overlay_points()$valid], bg = "dodgerblue", pch = 21, col = "white", cex = 2.5)
                         points(ixy$x[!overlay_points()$valid], ixy$y[!overlay_points()$valid], bg = "firebrick", pch = 21, col = "white", cex = 2.5)
                     }
@@ -1106,31 +1068,6 @@ ov_scouter_server <- function(app_data) {
                 }, bg = "transparent", width = as.numeric(input$dv_width), height = as.numeric(input$dv_height))
             }
         })
-        vid_to_crt <- function(obj, arfix = TRUE) {
-            courtxy <- data.frame(x = rep(NA_real_, length(obj$x)), y = rep(NA_real_, length(obj$x)))
-            if (!is.null(detection_ref()$court_ref) && length(obj$x) > 0) {
-                thisx <- obj$x; thisy <- obj$y
-                if (arfix) {
-                    ## account for aspect ratios
-                    thisx <- ar_fix_x(obj$x, direction = "to_court")
-                    thisy <- ar_fix_y(obj$y, direction = "to_court")
-                }
-                courtxy <- ovideo::ov_transform_points(thisx, thisy, ref = detection_ref()$court_ref, direction = "to_court")
-            }
-            courtxy
-        }
-        crt_to_vid <- function(obj, arfix = TRUE) {
-            imagexy <- data.frame(image_x = rep(NA_real_, length(obj$x)), image_y = rep(NA_real_, length(obj$x)))
-            if (!is.null(detection_ref()$court_ref) && length(obj$x) > 0) {
-                imagexy <- setNames(ovideo::ov_transform_points(obj$x, obj$y, ref = detection_ref()$court_ref, direction = "to_image"), c("image_x", "image_y"))
-                if (arfix) {
-                    ## account for aspect ratios
-                    imagexy$image_x <- ar_fix_x(imagexy$image_x)
-                    imagexy$image_y <- ar_fix_y(imagexy$image_y)
-                }
-            }
-            imagexy
-        }
 
         ## use this function to set the coordinate in the current row (e.g. we are editing a row, and we've clicked a court location on the video pane or court diagram
         coord_edit_row <- reactiveVal(NULL) ## which row we are editing the coords of
@@ -1219,25 +1156,6 @@ ov_scouter_server <- function(app_data) {
             refocus_to_ui(active_ui()) ## we just clicked away from the active UI element, so go back to it
         }
 
-        set_code_edit_dialog <- function(which) {
-            if (is.null(which)) which <- "clear"
-            which <- match.arg(tolower(which), c("coord_click_start", "coord_click_mid", "coord_click_end", "clear"))
-            output$code_edit_dialog <- renderUI({
-                if (which == "coord_click_start") {
-                    tags$div(class = "alert alert-danger", "Click start coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
-                } else if (which == "coord_click_mid") {
-                    tags$div(class = "alert alert-danger", "Click mid coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
-                } else if (which == "coord_click_end") {
-                    tags$div(class = "alert alert-danger", "Click end coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
-                } else if (which == "clear") {
-                    NULL
-                } else {
-                    warning("unexpected set_code_edit_dialog value: ", which)
-                    NULL
-                }
-            })
-        }
-
         courtxy <- reactiveVal(list(x = NA_real_, y = NA_real_)) ## keeps track of click locations (in court x, y space)
         loop_trigger <- reactiveVal(0L)
         observeEvent(input$video_click, priority = 99, {
@@ -1246,7 +1164,7 @@ ov_scouter_server <- function(app_data) {
             ## calculate the normalized x,y coords
             this_click <- if (length(input$video_click) > 4) list(x = input$video_click[1] / input$video_click[3], y = 1 - input$video_click[2] / input$video_click[4])
             if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end"))) {
-                thisxy <- vid_to_crt(this_click)
+                thisxy <- vid_to_crt(this_click, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data)
                 if (is.null(editing$active) || editing$active %eq% "coord_click_start") {
                     playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
                     set_coord(which = "start", xy = thisxy) ## first click is the start coord
@@ -1276,7 +1194,7 @@ ov_scouter_server <- function(app_data) {
                     warning("invalid click time\n")
                     do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
                 }
-                if (rally_state() != app_data$click_to_start_msg) courtxy(vid_to_crt(this_click))
+                if (rally_state() != app_data$click_to_start_msg) courtxy(vid_to_crt(this_click, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data))
                 playslist_mod$redraw_select("last")
                 loop_trigger(loop_trigger() + 1L)
                 ## 6th element of input$video_click gives status of shift key during click
@@ -1317,11 +1235,6 @@ ov_scouter_server <- function(app_data) {
                 }
             }
         })
-        do_contact <- function() {
-            ## keyboard entry indicating a contact at this time
-            ## ask the browser for the current video time
-            dojs("Shiny.setInputValue('contact', [vidplayer.currentTime(), new Date().getTime()])")
-        }
         observeEvent(input$contact, {
             flash_screen() ## visual indicator that click has registered
             time_uuid <- uuid()
@@ -1370,14 +1283,6 @@ ov_scouter_server <- function(app_data) {
             this_uuid <- sub("@.*", "", sub(".*&", "", temp))
             if (nzchar(this_uuid)) video_times[[this_uuid]] <<- round(rebase_time(as.numeric(sub("&.+", "", temp)), time_from = this_timebase, rdata = rdata), 2) ## video times to 2 dec places
         })
-        retrieve_video_time <- function(id) {
-            id <- sub("@.*", "", id)
-            if (is_uuid(id)) {
-                if (nzchar(id) && id %in% names(video_times)) video_times[[id]] else NA_real_
-            } else {
-                id
-            }
-        }
 
         ## rally_codes is a reactive that returns a tibble with columns team, pnum, skill, tempo, eval, combo, target, sz, ez, esz, x_type, num_p, special, custom, t, start_x, start_y, end_x, end_y
         ## rally_codes are the actions in the current rally
@@ -1560,7 +1465,7 @@ ov_scouter_server <- function(app_data) {
                         seval <- rdata$options$compound_table %>% dplyr::filter(.data$skill == "S", .data$compound_skill == "R", .data$compound_code == passq) %>% pull(.data$code)
                         if (length(seval) != 1 || nchar(seval) != 1) seval <- "~"
                         rc$eval[rc$skill %eq% "S"] <- seval
-                        start_t <- retrieve_video_time(game_state$start_t)
+                        start_t <- retrieve_video_time(game_state$start_t, video_times = video_times)
                         ## note that the position gets assigned to the start coordinates, but end zone/subzone
                         rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = guessed_setter, skill = "E", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                         rally_state("click third contact")
@@ -1769,7 +1674,7 @@ ov_scouter_server <- function(app_data) {
                         sz <- "~"; szv <- FALSE ## default to unknown start zone
                         esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
                         rc <- rally_codes()
-                        end_t <- retrieve_video_time(game_state$end_t)
+                        end_t <- retrieve_video_time(game_state$end_t, video_times = video_times)
                         ## was the previous skill an attack, or one previous to that an attack with a block in between
                         ## the latter should not be possible, but keep the code in anyway
                         Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
@@ -2066,8 +1971,8 @@ ov_scouter_server <- function(app_data) {
                 sp <- if (!is.null(input$serve_preselect_player)) input$serve_preselect_player else if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                 ## serve type (tempo)
                 st <- if (!is.null(input$serve_type)) input$serve_type else default_skill_tempo("S")
-                start_t <- retrieve_video_time(game_state$start_t)
-                end_t <- retrieve_video_time(game_state$end_t)
+                start_t <- retrieve_video_time(game_state$start_t, video_times = video_times)
+                end_t <- retrieve_video_time(game_state$end_t, video_times = video_times)
                 Sidx <- which(rc$skill == "S")
                 if (input$serve_initial_outcome %eq% "=") {
                     ## serve error
@@ -2141,7 +2046,7 @@ ov_scouter_server <- function(app_data) {
             esz <- as.character(dv_xy2subzone(game_state$end_x, game_state$end_y))
             rc <- rally_codes()
             if (input$c1 %in% c("A#", "A=")) {
-                ##end_t <- retrieve_video_time(game_state$end_t)
+                ##end_t <- retrieve_video_time(game_state$end_t, video_times = video_times)
                 eval <- substr(input$c1, 2, 2)
                 ## find the attack, should be either the previous skill, or one previous to that with a block in between
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
@@ -2196,7 +2101,7 @@ ov_scouter_server <- function(app_data) {
                 rally_ended()
             } else if (input$c1 %eq% "A!") {
                 ## blocked for reattack
-                end_t <- retrieve_video_time(game_state$end_t)
+                end_t <- retrieve_video_time(game_state$end_t, video_times = video_times)
                 if (rc$skill[nrow(rc)] == "B") {
                     ## already a block skill (though this should not ever happen!). Delete it, to be replaced
                     rc <- head(rc, -1)
@@ -2314,7 +2219,7 @@ ov_scouter_server <- function(app_data) {
             } else {
                 ## D or D=
                 digp <- if (!is.null(input$c1_def_player)) input$c1_def_player else 0L
-                end_t <- retrieve_video_time(game_state$end_t)
+                end_t <- retrieve_video_time(game_state$end_t, video_times = video_times)
                 sz <- "~"; szv <- FALSE ## default to unknown start zone
                 ## was the previous skill an attack, or one previous to that an attack with a block in between
                 Aidx <- if (rc$skill[nrow(rc)] == "A") nrow(rc) else if (rc$skill[nrow(rc)] == "B" && rc$skill[nrow(rc) - 1] == "A") nrow(rc) - 1L else NA_integer_
@@ -2412,7 +2317,7 @@ ov_scouter_server <- function(app_data) {
                 ## FD, FD=, or aPR
                 digp <- if (!is.null(input$f1_def_player)) input$f1_def_player else 0L
                 was_f <- grepl("^F", input$f1) ## was a freeball dig or freeball dig error
-                end_t <- retrieve_video_time(game_state$end_t)
+                end_t <- retrieve_video_time(game_state$end_t, video_times = video_times)
                 if (!is.na(Fidx)) {
                     rc$eval[Fidx] <- if (input$f1 %eq% "FD=") "+" else "-"
                 }
@@ -2480,7 +2385,7 @@ ov_scouter_server <- function(app_data) {
             } else {
                 warning("unknown play phase for second contact, the scouted code will probably be wrong at this point")
             }
-            start_t <- retrieve_video_time(game_state$start_t)
+            start_t <- retrieve_video_time(game_state$start_t, video_times = video_times)
             ## possible values for input$c2 are: Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball attack" = "P2", "Freeball over" = "F", R= rec error
             ##                                   "Opp. dig" = "aF", error "aF=", "Opp. overpass attack" = "aPR"
             if (input$c2 %in% c("E", "E=", "PP", "P2", "F", "R=")) {
@@ -2568,7 +2473,7 @@ ov_scouter_server <- function(app_data) {
         do_assign_c3 <- function() {
             ## possible values for input$c3 are: an attack code, Other attack, "F" Freeball, "E=" set error (if not scouting transition sets), or in some cases "PP"
             ##    "Opp. dig" = "aF", "Opp. overpass attack" = "aPR"
-            start_t <- retrieve_video_time(game_state$start_t)
+            start_t <- retrieve_video_time(game_state$start_t, video_times = video_times)
             sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
             rc <- rally_codes()
             if (input$c3 %in% c("aPR", "aF", "aF=")) {
@@ -2777,7 +2682,7 @@ ov_scouter_server <- function(app_data) {
                         cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour, unit = "npc")
                     }
                     if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
-                        ixy <- setNames(crt_to_vid(overlay_points(), arfix = FALSE), c("x", "y"))
+                        ixy <- setNames(crt_to_vid(overlay_points(), arfix = FALSE, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data), c("x", "y"))
                         if (any(overlay_points()$valid)) {
                             cc$circles(x = ixy$x[overlay_points()$valid], y = ixy$y[overlay_points()$valid], r = 0.02, col = "white", fill_col = "dodgerblue", unit = "npc")
                         }
@@ -2815,7 +2720,7 @@ ov_scouter_server <- function(app_data) {
                         segments(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
                     }
                     if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
-                        ixy <- setNames(crt_to_vid(overlay_points(), arfix = FALSE), c("x", "y"))
+                        ixy <- setNames(crt_to_vid(overlay_points(), arfix = FALSE, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data), c("x", "y"))
                         ## points as blue, invalid points as red
                         points(ixy$x[overlay_points()$valid], ixy$y[overlay_points()$valid], bg = "dodgerblue", pch = 21, col = "white", cex = 2.5)
                         points(ixy$x[!overlay_points()$valid], ixy$y[!overlay_points()$valid], bg = "firebrick", pch = 21, col = "white", cex = 2.5)
@@ -2834,7 +2739,7 @@ ov_scouter_server <- function(app_data) {
                 if (!is.null(input$rv_hover)) {
                     px <- list(x = input$rv_hover$x, y = input$rv_hover$y)
                     ## find the closest point, using court space for the distance
-                    cpx <- vid_to_crt(px, arfix = FALSE)
+                    cpx <- vid_to_crt(px, arfix = FALSE, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data)
                     if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
                         closest <- which.min((overlay_points()$x - cpx$x[1])^2 + (overlay_points()$y - cpx$y[1])^2)
                         if (length(closest) < 1) closest <- NA_integer_
@@ -2879,7 +2784,7 @@ ov_scouter_server <- function(app_data) {
                     ##cat("was click\n")
                     px <- input$rv_click
                     ## find the closest point, using court space for the distance
-                    cpx <- vid_to_crt(px, arfix = FALSE)
+                    cpx <- vid_to_crt(px, arfix = FALSE, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data)
                     if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
                         closest <- which.min((overlay_points()$x - cpx$x[1])^2 + (overlay_points()$y - cpx$y[1])^2)
                         if (length(closest) < 1) closest <- NA_integer_
@@ -2895,7 +2800,7 @@ ov_scouter_server <- function(app_data) {
                     last_rv_refresh_time <<- now_time
                     if (!is.null(overlay_points()) && nrow(overlay_points()) > 0 && length(closest) && !is.na(closest)) {
                         ## convert px from image to court space
-                        px <- vid_to_crt(px, arfix = FALSE)
+                        px <- vid_to_crt(px, arfix = FALSE, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data)
                         op <- isolate(overlay_points())
                         op$x[closest] <- px$x
                         op$y[closest] <- px$y
