@@ -32,43 +32,9 @@ ov_scouter_server <- function(app_data) {
             if (length(d)) fs::file_delete(d)
         })
 
-        if (is.null(app_data$dvw$meta$more$scout) || is.na(app_data$dvw$meta$more$scout) || !nzchar(app_data$dvw$meta$more$scout)) app_data$dvw$meta$more$scout <- isolate(app_data$scout_name)
-
-        plays_cols_to_show <- c("error_icon", "video_time", "set_number", "code", "Score") ##"home_setter_position", "visiting_setter_position", "is_skill"
-        plays_cols_renames <- c(Set = "set_number")##, hs = "home_setter_position", as = "visiting_setter_position")
-
-        if (is.null(app_data$dvw$meta$match$regulation)) stop("dvw does not have regulation information")
-        app_data$is_beach <- is_beach(app_data$dvw)
-
-        app_data$styling$scout_modal_width <- 100 - app_data$styling$review_pane_width
-
-        atbl <- app_data$dvw$meta$attacks
-        atbl <- bind_cols(atbl[, setdiff(names(atbl), c("start_x", "start_y"))], setNames(dv_index2xy(atbl$start_coordinate), c("start_x", "start_y")))
-        app_data$dvw$meta$attacks <- atbl
-
-        if (app_data$options$attacks_by %eq% "codes") {
-            if (is.null(app_data$options$setter_dump_code)) app_data$options$setter_dump_code <- "PP"
-            if (is.null(app_data$options$second_ball_attack_code)) app_data$options$second_ball_attack_code <- "P2"
-        }
-
-        if (is.null(app_data$dvw$video2_offset)) {
-            ## keep the video2 details in app_data$dvw (and rdata$dvw), so it gets saved and reloaded in the .ovs file
-            if (is.null(app_data$video2_offset)) {
-                ## not provided as parm to ov_scouter call
-                app_data$dvw$video2_offset <- 0
-            } else {
-                app_data$dvw$video2_offset <- app_data$video2_offset
-            }
-        }
-        if (!is.null(app_data$video_src2)) app_data$dvw$video_file2 <- app_data$video_src2
-
-        if (app_data$scout_mode == "click") {
-            ## if we are click-scouting, we can only do attack directions by zones
-            app_data$dvw$meta$match$zones_or_cones <- "Z"
-        }
+        app_data <- startup_app_data(app_data, session = session)
         rdata <- reactiveValues(dvw = app_data$dvw, options = app_data$options)
         prefs <- reactiveValues(scout_name = app_data$scout_name, show_courtref = app_data$show_courtref, scoreboard = app_data$scoreboard, pause_on_type = app_data$pause_on_type, ball_path = app_data$ball_path, playlist_display_option = app_data$playlist_display_option, review_pane = app_data$review_pane)
-        if (!is.null(app_data$playback_rate) && isTRUE(app_data$playback_rate > 0)) updateSliderInput(session, "playback_rate", value = app_data$playback_rate)
 
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
@@ -77,17 +43,6 @@ ov_scouter_server <- function(app_data) {
         ## - change the #main_video height css to 85vh (click) or 50vh (typing)
         ## - change the active set of shortcuts
 
-        ## set up for typing mode
-        ## we can modify app_data$pause_on_type here without affecting the prefs reactive, so that it can be disabled if we aren't using video in this session but still retain it as a preference
-        if (!app_data$with_video) app_data$pause_on_type <- 0L
-        if (app_data$scout_mode == "type") {
-            ## send shortcuts to js
-            if (length(app_data$type_shortcuts) > 0) dojs(paste0("sk_shortcut_map = ", make_js_keymap(app_data$type_shortcuts), ";"))
-            if (length(app_data$remapping) > 0) dojs(paste0("sk_key_map = ", make_js_keymap(app_data$remapping), ";"))
-            app_data$shortcuts <- app_data$type_shortcuts ## this is the active set
-        } else {
-            app_data$shortcuts <- app_data$click_shortcuts ## this is the active set
-        }
         output$zones_cones <- renderUI({
             if (app_data$scout_mode == "type") {
                 tags$div(style = "float:right; font-size:small;", "You are scouting attack directions with:", if (rdata$dvw$meta$match$zones_or_cones %eq% "C") "cones" else if (rdata$dvw$meta$match$zones_or_cones %eq% "Z") "zones" else "unknown")
@@ -140,44 +95,14 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## initialize the game state
-        app_data$click_to_start_msg <- paste0(if (app_data$scout_mode != "type") "click or ", "unpause the video to start") ## this is a bit unnecessary since the rally state message isn't shown in type mode
         rally_state <- reactiveVal(app_data$click_to_start_msg)
         rally_codes <- reactiveVal(empty_rally_codes)
-        if ("game_state" %in% names(app_data$dvw) && !is.null(app_data$dvw$game_state)) {
-            ## saved as an rds, so re-use this
-            temp <- app_data$dvw$game_state
-        } else {
-            temp <- as.list(tail(app_data$dvw$plays2, 1))
-        }
-        if (!"serving" %in% names(temp) || is.na(temp$serving)) temp$serving <- "*" ## default to home team serving
-        temp$current_team <- temp$serving
-        temp$rally_started <- FALSE
-        temp$start_x <- temp$start_y <- temp$mid_x <- temp$mid_y <- temp$end_x <- temp$end_y <- NA_real_
-        temp$startxy_valid <- temp$midxy_valid <- temp$endxy_valid <- FALSE
-        temp$current_time_uuid <- ""
-        for (i in pseq) {
-            if (is.null(temp[[paste0("home_p", i)]])) temp[[paste0("home_p", i)]] <- NA_integer_
-            if (is.null(temp[[paste0("visiting_p", i)]])) temp[[paste0("visiting_p", i)]] <- NA_integer_
-        }
-        ## liberos
-        if (!"ht_lib1" %in% names(temp)) temp$ht_lib1 <- NA_integer_
-        if (!"ht_lib2" %in% names(temp)) temp$ht_lib2 <- NA_integer_
-        if (!"vt_lib1" %in% names(temp)) temp$vt_lib1 <- NA_integer_
-        if (!"vt_lib2" %in% names(temp)) temp$vt_lib2 <- NA_integer_
-        ## initial scores
-        ## if we haven't played any points yet, these will be NA
-        if (nrow(app_data$dvw$plays2) < 1 || !any(grepl("^[a\\*]p[[:digit:]]", app_data$dvw$plays2$code))) {
-            temp$home_score_start_of_point <- temp$visiting_score_start_of_point <- 0L
-        }
-        ## get the correct set_number
-        nsets <- grep("^\\*\\*[[:digit:]]set", app_data$dvw$plays2$code)
-        temp$set_number <- length(nsets) + 1L
-        if (!"home_team_end" %in% names(temp)) temp$home_team_end <- "upper" ## home team end defaults to upper
-        game_state <- do.call(reactiveValues, temp)
-
+        game_state <- init_game_state(app_data)
         if (app_data$scout_mode == "type") populate_server(game_state)
 
-        playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata, plays_cols_to_show = plays_cols_to_show, plays_cols_renames = plays_cols_renames,
+        playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata,
+                                    plays_cols_to_show = c("error_icon", "video_time", "set_number", "code", "Score"), ##"home_setter_position", "visiting_setter_position", "is_skill"
+                                    plays_cols_renames = c(Set = "set_number"), ##, hs = "home_setter_position", as = "visiting_setter_position")
                                     display_option = reactive(prefs$playlist_display_option))
         observeEvent(playslist_mod$clicked(), { if (isTRUE(playslist_mod$clicked() > 0)) focus_to_playslist() })
 
