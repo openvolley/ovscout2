@@ -287,7 +287,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$edit_code_insert, insert_data_row("above"))
         observeEvent(input$edit_code_edit_coords, {
             coord_edit_row(playslist_mod$current_row()) ## note the current row that we are editing the coords of
-            set_code_edit_dialog("coord_click_start")
+            output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_start"))
             editing$active <- "coord_click_start"
         })
 
@@ -1136,10 +1136,10 @@ ov_scouter_server <- function(app_data) {
             if (editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end")) {
                 clear_coord(which = sub("coord_click_", "", editing$active))
                 if (editing$active == "coord_click_start") {
-                    set_code_edit_dialog("coord_click_mid")
+                    output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_mid"))
                     editing$active <- "coord_click_mid"
                 } else if (editing$active == "coord_click_mid") {
-                    set_code_edit_dialog("coord_click_end")
+                    output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_end"))
                     editing$active <- "coord_click_end"
                 } else {
                     do_after_coord_edit()
@@ -1152,7 +1152,7 @@ ov_scouter_server <- function(app_data) {
         do_after_coord_edit <- function() {
             editing$active <- NULL
             coord_edit_row(NULL)
-            set_code_edit_dialog("clear")
+            output$code_edit_dialog <- renderUI(NULL)
             refocus_to_ui(active_ui()) ## we just clicked away from the active UI element, so go back to it
         }
 
@@ -1168,12 +1168,12 @@ ov_scouter_server <- function(app_data) {
                 if (is.null(editing$active) || editing$active %eq% "coord_click_start") {
                     playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
                     set_coord(which = "start", xy = thisxy) ## first click is the start coord
-                    set_code_edit_dialog("coord_click_mid")
+                    output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_mid"))
                     editing$active <- "coord_click_mid"
                 } else if (editing$active %eq% "coord_click_mid") {
                     playslist_mod$redraw_select("keep")
                     set_coord(which = "mid", xy = thisxy)
-                    set_code_edit_dialog("coord_click_end")
+                    output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_end"))
                     editing$active <- "coord_click_end"
                 } else if (editing$active %eq% "coord_click_end") {
                     playslist_mod$redraw_select("keep")
@@ -1211,12 +1211,12 @@ ov_scouter_server <- function(app_data) {
                     if (is.null(editing$active) || editing$active %eq% "coord_click_start") {
                         playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
                         set_coord(which = "start", xy = thisxy) ## first click is the start coord
-                        set_code_edit_dialog("coord_click_mid")
+                        output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_mid"))
                         editing$active <- "coord_click_mid"
                     } else if (editing$active %eq% "coord_click_mid") {
                         playslist_mod$redraw_select("keep")
                         set_coord(which = "mid", xy = thisxy)
-                        set_code_edit_dialog("coord_click_end")
+                        output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_end"))
                         editing$active <- "coord_click_end"
                     } else if (editing$active %eq% "coord_click_end") {
                         playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered

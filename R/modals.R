@@ -309,21 +309,19 @@ hide_review_pane <- function() {
     review_pane_active(FALSE)
 }
 
-set_code_edit_dialog <- function(which) {
+code_edit_dialog_content <- function(which) {
     if (is.null(which)) which <- "clear"
     which <- match.arg(tolower(which), c("coord_click_start", "coord_click_mid", "coord_click_end", "clear"))
-    output$code_edit_dialog <- renderUI({
-        if (which == "coord_click_start") {
-            tags$div(class = "alert alert-danger", "Click start coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
-        } else if (which == "coord_click_mid") {
-            tags$div(class = "alert alert-danger", "Click mid coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
-        } else if (which == "coord_click_end") {
-            tags$div(class = "alert alert-danger", "Click end coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
-        } else if (which == "clear") {
-            NULL
-        } else {
-            warning("unexpected set_code_edit_dialog value: ", which)
-            NULL
-        }
-    })
+    if (which == "coord_click_start") {
+        tags$div(class = "alert alert-danger", "Click start coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
+    } else if (which == "coord_click_mid") {
+        tags$div(class = "alert alert-danger", "Click mid coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
+    } else if (which == "coord_click_end") {
+        tags$div(class = "alert alert-danger", "Click end coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
+    } else if (which == "clear") {
+        NULL
+    } else {
+        warning("unexpected set_code_edit_dialog value: ", which)
+        NULL
+    }
 }
