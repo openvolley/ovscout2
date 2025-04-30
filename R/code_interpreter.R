@@ -1,7 +1,13 @@
-ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_table, home_setter_num = 0L, visiting_setter_num = 0L) {
+ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_table, home_setter_num = 0L, visiting_setter_num = 0L, serving_team) {
     if (missing(default_scouting_table) || is.null(default_scouting_table)) default_scouting_table <- ov_default_scouting_table()
     if (missing(compound_table) || is.null(compound_table)) compound_table <- ov_default_compound_table()
     if (missing(attack_table) || is.null(attack_table)) attack_table <- ov_default_attack_table()
+
+    if (missing(serving_team) || length(serving_team) != 1 || !serving_team %in% c("*", "a") || !nzchar(serving_team)) {
+        receiving_team <- NULL ## only used to assign the (reception) set action on a setter call that doesn't have an explicit team character (e.g. "k1" has no explicit team char and will be assigned to the receiving team but "ak1" has the team char)
+    } else {
+        receiving_team <- setdiff(c("*", "a"), serving_team)
+    }
 
     syntax_table <- tribble(~code_type, ~name, ~stx_id,  ~range, ~value_list,
                             "Main code", "team", "mc_te", 1, c("\\*", "a"),                                   # 1
@@ -44,7 +50,9 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
     all_codes <- NULL
     blank_code <- str_c(rep("~", 20))
     for (c in c_list) {
-        if (!nzchar(c)) {
+        if (!nzchar(c) || !grepl("[[:alpha:]]", sub("^a", "", c))) {
+            ## code has to have at least one alphabetic character (after the optional leading "a") to be valid, if it's e.g. just digits it's ambiguous
+            ## previously a number-only code was treated as default skill, tempo, evaluation (DH+) but as of May 2025 this is no longer the case
             int_code <- ""
         } else if (grepl("^(>|T|\\*T|aT|p|\\*p|ap|c|\\*c|ac|C|\\*C|aC|P|\\*P|aP)", c)) {
             ## this is not a skill code (timeout, sub, point assignment, setter position, comment) - leave as-is except for prepending "*" if needed
@@ -60,6 +68,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
             ## Reading from left to right
             cc_tmp <- c
             cmb <- FALSE
+            team_was_inferred <- FALSE
             for (i in 1:14) {
                 if (i %in% c(6, 7, 8) && cmb) next
                 if (i > 1) cc_tmp <- str_to_upper(cc_tmp)
@@ -113,7 +122,10 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     cc_tmp <- substr(cc_tmp, 2, nchar(cc_tmp)) ## strip leading ~
                 }
 
-                if (i == 1 && length(tmp) == 0) tmp <- "*"
+                if (i == 1 && length(tmp) == 0) {
+                    tmp <- "*"
+                    team_was_inferred <- TRUE
+                }
 
                 ## Special case of CMB
                 if (i == 6 && length(tmp) > 0) {
@@ -129,6 +141,8 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     }
                     if (tmp %in% paste0("K", c(0:9, toupper(letters)))) {
                         new_code[4] <- "E" ## setter call
+                        ## might need to adjust the team for the set skill
+                        if (team_was_inferred && length(receiving_team) == 1) new_code[1] <- receiving_team
                     }
                 }
 
@@ -197,8 +211,9 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                 }
                 if (i == 2) {
                     ## if the code has been entered with single-digit player numbers that aren't zero-padded, need to zero pad
-                    if (grepl("^[[:digit:]][^[:digit:]]", cc_tmp1)) cc_tmp1 <- str_c("0", cc_tmp1)
-                    if (grepl("^[[:digit:]][^[:digit:]]", cc_tmp2)) cc_tmp2 <- str_c("0", cc_tmp2)
+                    ## (check for single digit followed by non-digit or end-of-string, because in the second part of a compound code there might only be the player number and nothing else. Don't think this can happen in the first part of a compound code but do it there as well anyway, don't think it will hurt)
+                    if (grepl("^[[:digit:]]([^[:digit:]]|$)", cc_tmp1)) cc_tmp1 <- str_c("0", cc_tmp1)
+                    if (grepl("^[[:digit:]]([^[:digit:]]|$)", cc_tmp2)) cc_tmp2 <- str_c("0", cc_tmp2)
                 }
                 if (i == 5) {
                     value_list1 <- syntax_table$value_list[[i]]
@@ -271,14 +286,13 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     tmp2 <- tail(tmp2[!is.na(tmp2)], 1)
                 } else {
                     value_list1 <- value_list2 <- syntax_table$value_list[[i]]
-                    c_tmp1 <- str_sub(cc_tmp1, 1,length(syntax_table$range[[i]]))
+                    c_tmp1 <- str_sub(cc_tmp1, 1, length(syntax_table$range[[i]]))
                     tmp1 <- str_match(c_tmp1, value_list1)
                     tmp1 <- tail(tmp1[!is.na(tmp1)], 1)
-                    c_tmp2 <- str_sub(cc_tmp2, 1,length(syntax_table$range[[i]]))
+                    c_tmp2 <- str_sub(cc_tmp2, 1, length(syntax_table$range[[i]]))
                     tmp2 <- str_match(c_tmp2, value_list2)
                     tmp2 <- tail(tmp2[!is.na(tmp2)], 1)
                 }
-
                 if (length(tmp1) > 0) {
                     cc_tmp1 <- str_remove(cc_tmp1, tail(value_list1[str_detect(tmp1,  value_list1)], 1))
                 }

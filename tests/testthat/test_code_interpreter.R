@@ -7,9 +7,17 @@ test_that("code interpretation works correctly", {
         if (any(e20)) expect_equal(nchar(tocheck[e20]), rep(20L, sum(e20)))
         expect_equal(trim(tocheck), expected)
     }
+    expect_equal(ov_code_interpret(""), "")
+    expect_equal(ov_code_interpret("10"), "")
+    expect_equal(ov_code_interpret("+"), "")
+    expect_equal(ov_code_interpret("5!"), "")
+    expect_equal(ov_code_interpret("5!.3"), "")
     check_code(ov_code_interpret("a10BH-"), "a10BH-")
-    check_code(ov_code_interpret("a10/"), "a10DH/") ## default skill, skill_type
-    check_code(ov_code_interpret("a10"), "a10DH+") ## default skill, skill_type, eval
+    ## check_code(ov_code_interpret("a10/"), "a10DH/") ## default skill, skill_type
+    ## check_code(ov_code_interpret("a10"), "a10DH+") ## default skill, skill_type, eval
+    ## changed behaviour May 2025
+    expect_equal(ov_code_interpret("a10/"), "")
+    expect_equal(ov_code_interpret("a10"), "")
     check_code(ov_code_interpret("*2AT#45H2"), "*02AT#~~~45~H2")
     check_code(ov_code_interpret("*2AT#452"), "*02AT#~~~45~H2")
     check_code(ov_code_interpret("*2AT#45P2"), "*02AT#~~~45~P2")
@@ -31,10 +39,17 @@ test_that("code interpretation works correctly", {
     check_code(ov_code_interpret("2AH#.15B"), c("*02AH#", "a15BH="))
     check_code(ov_code_interpret("2AH#.15D"), c("*02AH#", "a15DH="))
     check_code(ov_code_interpret("2SQ1.5=4"), c("*02SQ#~~~14", "a05RQ=~~~14"))
+    check_code(ov_code_interpret("*05SM15.2"), c("*05SM-~~~15", "a02RM+~~~15"))
+    check_code(ov_code_interpret("*05SM15.2+"),c("*05SM-~~~15", "a02RM+~~~15"))
     check_code(ov_code_interpret("2X5#5S"), "*02AT#X5~45~H~S") ## Include special syntax
-    check_code(ov_code_interpret("a6ETKP"), "a06ET+KP") ## Setting?
-    check_code(ov_code_interpret("2EHKPF4"), "*02EH+KPF~4") ## Setting?
-    check_code(ov_code_interpret("2HK1"), "*02EH+K1") ## Setting?
+    check_code(ov_code_interpret("a6ETKP"), "a06ET+KP") ## Setting
+    check_code(ov_code_interpret("2EHKPF4"), "*02EH+KPF~4") ## Setting
+    check_code(ov_code_interpret("2HK1"), "*02EH+K1") ## Setting
+    check_code(ov_code_interpret("a2HK1"), "a02EH+K1") ## Setting
+    check_code(ov_code_interpret("aK1", visiting_setter_num = 2), "a02EH+K1") ## Setting
+    check_code(ov_code_interpret("k1", home_setter_num = 7, visiting_setter_num = 2, serving_team = "a"), "*07EH+K1") ## team is inferred for the set action
+    check_code(ov_code_interpret("*k1", home_setter_num = 7, visiting_setter_num = 2, serving_team = "a"), "*07EH+K1") ## explicit team assignment on setter call
+    check_code(ov_code_interpret("k1", home_setter_num = 7, visiting_setter_num = 2, serving_team = "*"), "a02EH+K1") ## team is inferred for the set action
     check_code(ov_code_interpret("a37ET-KZB9C2"), "a37ET-KZB~9C2") ## with a custom Kx setting code
     check_code(ov_code_interpret("*02EH+KPF4"), "*02EH+KPF~4") ## Check that a proper code is left unchanged (v1)
     check_code(ov_code_interpret("*05AT+X5~45~H2"), "*05AT+X5~45~H2")  ## Check that a proper code is left unchanged (v2)

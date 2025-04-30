@@ -823,7 +823,7 @@ ov_scouter_server <- function(app_data) {
                     visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
                     code <- augment_code_attack_details(code, game_state = game_state, opts = rdata$options) ## deal with code shorthands
                     ## add to rally codes
-                    newcode <- sub("~+$", "", ov_code_interpret(code, attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num))
+                    newcode <- sub("~+$", "", ov_code_interpret(code, attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num, serving_team = game_state$serving))
                     cat("code after interpretation:", newcode, "\n")
                     ## code can be length > 1 now, because the scout might have entered a compound code
                     ptemp <- parse_code_minimal(newcode) ## convert to a list of tibble row(s)
