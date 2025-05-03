@@ -928,6 +928,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
     ns <- session$ns
     htdata_edit <- reactiveVal(NULL)
     vtdata_edit <- reactiveVal(NULL)
+    role_choices <- c("outside", "opposite", "middle", "setter", "libero", "unknown")
 
     observeEvent(input$edit_teams_button, {
         editing$active <- "teams"
@@ -953,7 +954,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                         column(3, textInput(ns("ht_new_lastname"), label = "Last name:", placeholder = "Last name")),
                                                         column(3, textInput(ns("ht_new_firstname"), label = "First name:", placeholder = "First name")),
                                                         column(2, textInput(ns("ht_new_id"), label = "ID:", placeholder = "ID")),
-                                                        column(2, selectInput(ns("ht_new_role"), label = "Role", choices = c("", "libero", "outside", "opposite", "middle", "setter", "unknown"))),
+                                                        column(2, selectInput(ns("ht_new_role"), label = "Role", choices = c("", role_choices))),
                                                         ##column(1, selectInput(ns("ht_new_special"), label = "Special", choices = c("", "L", "C")))
                                                         ),
                                                fluidRow(column(2, offset = 10, actionButton_with_enter(ns("ht_add_player_button"), "Add player")))
@@ -975,7 +976,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                                                         column(3, textInput(ns("vt_new_lastname"), label = "Last name:", placeholder = "Last name")),
                                                         column(3, textInput(ns("vt_new_firstname"), label = "First name:", placeholder = "First name")),
                                                         column(2, textInput(ns("vt_new_id"), label = "ID:", placeholder = "ID")),
-                                                        column(2, selectInput(ns("vt_new_role"), label = "Role", choices = c("", "libero", "outside", "opposite", "middle", "setter", "unknown"))),
+                                                        column(2, selectInput(ns("vt_new_role"), label = "Role", choices = c("", role_choices))),
                                                         ##column(1, selectInput(ns("vt_new_special"), label = "Special", choices = c("", "L", "C")))
                                                         ),
                                                fluidRow(column(2, offset = 10, actionButton_with_enter(ns("vt_add_player_button"), "Add player")))
@@ -987,12 +988,50 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                               ))
     })
 
+    ## recursive function to inject onchange handler to select widget
+    add_onchange_to_select <- function(z, onchange) {
+        if (is.list(z) && "name" %in% names(z) && isTRUE(z$name == "select")) {
+            z$attribs$onchange <- onchange
+        } else {
+            ## call recursively on list children
+            list_child_idx <- vapply(z, is.list, FUN.VALUE = TRUE)
+            if (any(list_child_idx)) z[list_child_idx] <- lapply(z[list_child_idx], add_onchange_to_select, onchange = onchange)
+        }
+        z
+    }
+
+    team_data_add_role_pickers <- function(z, hv) {
+        hv <- match.arg(hv, c("h", "v")) ## hv should be "h" or "v"
+        z$role_pick <- sapply(seq_len(nrow(z)), function(i) {
+            this <- selectInput(inputId = ns(paste0(hv, "_role_", i)), label = NULL, choices = role_choices, selected = z$role[i])
+            this <- as.character(add_onchange_to_select(this, onchange = paste0("Shiny.setInputValue('", ns("rolepicker"), "', {'id': this.id, 'value': this.value }, { priority: 'event' });")))
+        })
+        z
+    }
+    observeEvent(input$rolepicker, {
+        if (!is.null(input$rolepicker) && all(c("id", "value") %in% names(input$rolepicker)) && editing$active %eq% "teams") {
+            temp <- stringr::str_match(input$rolepicker$id, ".+\\-([hv])_role_([[:digit:]]+)")
+            this_team <- temp[1, 2]
+            this_rownum <- suppressWarnings(as.numeric(temp[1, 3]))
+            this_data <- if (this_team %eq% "h") htdata_edit() else if (this_team %eq% "v") vtdata_edit() else NULL
+            if (!is.null(this_data) && !is.na(this_rownum) && isTRUE(this_rownum > 0 && this_rownum <= nrow(this_data))) {
+                this_val <- if (input$rolepicker$value %in% role_choices) input$rolepicker$value else "unknown"
+                this_data$role[this_rownum] <- this_val
+                this_data$special_role <- if (this_val %eq% "libero") "L" else NA_character_
+                htdata_edit(this_data)
+            }
+        }
+    })
+
     output$ht_edit_team <- DT::renderDataTable({
         if (is.null(htdata_edit())) htdata_edit(rdata$dvw$meta$players_h %>% dplyr::arrange(.data$number))
         if (!is.null(htdata_edit())) {
-            cols_to_hide <- which(!names(htdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role"))-1L ## 0-based because no row names ##"special_role"
-            cnames <- names(names_first_to_capital(htdata_edit()))
-            DT::datatable(htdata_edit(), rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE)), scroller = TRUE, scrollY = "35vh"))
+            tbl <- team_data_add_role_pickers(htdata_edit(), hv = "h")
+            cols_to_hide <- which(!names(tbl) %in% c("player_id", "number", "lastname", "firstname", "role_pick")) - 1L ## 0-based because no row names ##"special_role"
+            ## show the role_pick column not the role, but name it as "Role"
+            cnames <- names(names_first_to_capital(tbl))
+            cnames[cnames == "Role pick"] <- "Role"
+            DT::datatable(tbl, escape = FALSE, rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE)), scroller = TRUE, scrollY = "35vh"))
         } else {
             NULL
         }
@@ -1096,9 +1135,12 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
     output$vt_edit_team <- DT::renderDataTable({
         if (is.null(vtdata_edit())) vtdata_edit(rdata$dvw$meta$players_v %>% dplyr::arrange(.data$number))
         if (!is.null(vtdata_edit())) {
-            cols_to_hide <- which(!names(vtdata_edit()) %in% c("player_id", "number", "lastname", "firstname", "role"))-1L ## 0-based because no row names ## , "special_role"
-            cnames <- names(names_first_to_capital(vtdata_edit()))
-            DT::datatable(vtdata_edit(), rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE)), scroller = TRUE, scrollY = "35vh"))
+            tbl <- team_data_add_role_pickers(vtdata_edit(), hv = "v")
+            cols_to_hide <- which(!names(tbl) %in% c("player_id", "number", "lastname", "firstname", "role_pick")) - 1L ## 0-based because no row names ##"special_role"
+            ## show the role_pick column not the role, but name it as "Role"
+            cnames <- names(names_first_to_capital(tbl))
+            cnames[cnames == "Role pick"] <- "Role"
+            DT::datatable(tbl, escape = FALSE, rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE)), scroller = TRUE, scrollY = "35vh"))
         } else {
             NULL
         }
