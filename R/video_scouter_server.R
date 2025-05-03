@@ -38,11 +38,6 @@ ov_scouter_server <- function(app_data) {
 
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
-        ## maybe TODO add button to change scout mode from click (guided) to typing
-        ## when changing mode:
-        ## - change the #main_video height css to 85vh (click) or 50vh (typing)
-        ## - change the active set of shortcuts
-
         output$zones_cones <- renderUI({
             if (app_data$scout_mode == "type") {
                 tags$div(style = "float:right; font-size:small;", "You are scouting attack directions with:", if (rdata$dvw$meta$match$zones_or_cones %eq% "C") "cones" else if (rdata$dvw$meta$match$zones_or_cones %eq% "Z") "zones" else "unknown")
@@ -471,13 +466,10 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## exteral video control buttons
-        observeEvent(input$video_pause, deal_with_pause(scout_modal_active = scout_modal_active, video_state = video_state, editing = editing, game_state = game_state, rdata = rdata, app_data = app_data))
-        observeEvent(input$video_rew_10, do_video("rew", 10))
-        observeEvent(input$video_rew_2, do_video("rew", 2))
-        observeEvent(input$video_ff_2, do_video("ff", 2))
-        observeEvent(input$video_ff_10, do_video("ff", 10))
-        observeEvent(input$video_volume, if (!is.null(input$video_volume)) do_video("set_volume", input$video_volume))
-        observeEvent(input$video_toggle_mute, do_video("toggle_mute"))
+        ## observeEvent(input$video_rew_10, do_video("rew", 10))
+        ## observeEvent(input$video_rew_2, do_video("rew", 2))
+        ## observeEvent(input$video_ff_2, do_video("ff", 2))
+        ## observeEvent(input$video_ff_10, do_video("ff", 10))
 
         ## handling of keyboard events outside of the scout entry bar
         observeEvent(input$controlkey, {
@@ -804,7 +796,7 @@ ov_scouter_server <- function(app_data) {
                             rally_codes(bind_rows(rc, newrc)) ## start_x = NA_real_, start_y = NA_real_
                             ## update game state and other things
                             ## we also update rally_state here (even though in scout_mode = "type" we don't use them) because having them set will ease things if the scout switches from typing to clicking
-                            if (temp$skill %in% c("S", "R", "E", "A", "B", "D", "F")) game_state$rally_started <- TRUE ## technically only need to check serve here, but since the scout can enter arbitrary things we will just blanket all of them
+                            if (temp$skill %in% c("S", "R", "E", "A", "B", "D", "F")) update_game_state(rally_started = TRUE, set_started = TRUE) ## technically only need to check serve here, but since the scout can enter arbitrary things we will just blanket all of them
                             if (temp$skill %eq% "S") {
                                 update_game_state(serving = temp$team, current_team = other(temp$team))
                                 rally_state("click serve end")
@@ -1272,7 +1264,7 @@ ov_scouter_server <- function(app_data) {
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y, as_for_serve = TRUE)
                     ## video time might not have resolved yet if it is coming from the asynchronous handler, so add it after next click
                     rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
-                    update_game_state(current_team = other(game_state$serving), rally_started = TRUE)
+                    update_game_state(current_team = other(game_state$serving), rally_started = TRUE, set_started = TRUE)
                     rally_state("click serve end")
                 } else if (rally_state() == "click serve end") {
                     do_video("pause")
@@ -2740,7 +2732,14 @@ ov_scouter_server <- function(app_data) {
                 rally_state(restore_rally_state)
                 ## and the current team
                 game_state$current_team <- restore_current_team
-                if (nrow(rc) < 1) game_state$rally_started <- FALSE ## we've undone all actions, so the rally is back to it's pre-start state. This allows us to e.g. display the serve-switch and rotate buttons in the court diagram module
+                if (nrow(rc) < 1) {
+                    ## we've undone all actions, so the rally is back to it's pre-start state. This allows us to e.g. display the serve-switch and rotate buttons in the court diagram module
+                    game_state$rally_started <- FALSE
+                    if (!any(substr(rdata$dvw$plays2$code, 4, 4) %in% c("S", "R", "A", "B", "D", "E", "F"))) {
+                        ## rally_codes is now empty and there are no skill rows in plays2
+                        game_state$set_started <- FALSE
+                    }
+                }
                 ## rewind the video to the time of the last action, or if we've removed all actions then the prior time of the first one
                 if (nrow(rc) > 0) do_video("set_time", tail(rc$t, 1)) else if (length(restore_t) == 1 && !is.na(restore_t)) do_video("set_time", restore_t) else do_video("rew", 3)
             } else {
@@ -2765,27 +2764,35 @@ ov_scouter_server <- function(app_data) {
                     rcnull <- rcnull[!todrop]
                     ## AND strip the last non-NULL/NA rally_code row, this is the one we are undoing
                     ## but save its rally_state and current_team first
-                    restore_rally_state <- temp[[length(temp)]]$rally_state
-                    restore_current_team <- temp[[length(temp)]]$current_team
-                    p2keep[length(temp)] <- FALSE
-                    temp <- temp[-length(temp)]
-                    rcnull <- rcnull[-length(rcnull)]
-                    ## then everything back to the next NULL goes into rally_codes
-                    totake <- rep(FALSE, length(rcnull))
-                    for (i in rev(seq_along(rcnull))) { if (!rcnull[i]) totake[i] <- TRUE else break }
-                    new_rc <- bind_rows(temp[totake])
-                    p2keep[totake] <- FALSE
-                    ## set plays2
-                    rdata$dvw$plays2 <- p2[p2keep, ]
-                    ## set rally state
-                    rally_state(restore_rally_state)##tail(new_rc$rally_state, 1))
-                    ## set game state
-                    gs <- new_rc$game_state[[nrow(new_rc)]]
-                    for (nm in names(gs)) game_state[[nm]] <- gs[[nm]]
-                    game_state$current_team <- restore_current_team
-                    ## reset rally codes
-                    rally_codes(new_rc)
-                    do_video("set_time", tail(new_rc$t, 1))
+                    if (length(temp) < 1) {
+                        ## we've removed all skill rows. Maybe we have starting lineups only
+                        rdata$dvw$plays2 <- p2[p2keep, ]
+                        ## keep the current game_state, reset rally_codes to empty
+                        rally_codes(empty_rally_codes)
+                        update_game_state(rally_started = FALSE, set_started = FALSE)
+                    } else {
+                        restore_rally_state <- temp[[length(temp)]]$rally_state
+                        restore_current_team <- temp[[length(temp)]]$current_team
+                        p2keep[length(temp)] <- FALSE
+                        temp <- temp[-length(temp)]
+                        rcnull <- rcnull[-length(rcnull)]
+                        ## then everything back to the next NULL goes into rally_codes
+                        totake <- rep(FALSE, length(rcnull))
+                        for (i in rev(seq_along(rcnull))) { if (!rcnull[i]) totake[i] <- TRUE else break }
+                        new_rc <- bind_rows(temp[totake])
+                        p2keep[totake] <- FALSE
+                        ## set plays2
+                        rdata$dvw$plays2 <- p2[p2keep, ]
+                        ## set rally state
+                        rally_state(restore_rally_state)##tail(new_rc$rally_state, 1))
+                        ## set game state
+                        gs <- new_rc$game_state[[nrow(new_rc)]]
+                        for (nm in names(gs)) game_state[[nm]] <- gs[[nm]]
+                        game_state$current_team <- restore_current_team
+                        ## reset rally codes
+                        rally_codes(new_rc)
+                        do_video("set_time", tail(new_rc$t, 1))
+                    }
                 }
             }
             if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) overlay_points(head(overlay_points(), -1))
@@ -3033,7 +3040,7 @@ ov_scouter_server <- function(app_data) {
             filename = function() paste0(save_file_basename(), ".dvw"),
             content = function(file) {
                 tryCatch({
-                    dv_write2(update_meta(rp2(rdata$dvw)), file = file, convert_cones = isTRUE(input$dvw_save_with_cones))
+                    dv_write2(update_meta(rp2(rdata$dvw)), file = file, convert_cones = app_data$scout_mode != "type" && isTRUE(input$dvw_save_with_cones))
                     removeModal()
                 }, error = function(e) {
                     temp <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())

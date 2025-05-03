@@ -105,11 +105,15 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
                   } else {
                       game_state$set_number
                   }
-        tryCatch({
-            dvw <- dv_set_lineups(dvw, set_number = setnum, lineups = list(c(ht$lineup, na.omit(ht$liberos)), c(vt$lineup, na.omit(vt$liberos))), setters = c(ht$setter, vt$setter))
-        }, error = function(e) warning(conditionMessage(e)))
-        ## TODO, show some useful message to the user that the lineup operation failed
-        do_reparse <- TRUE
+        if (!isTRUE(game_state$set_started)) {
+            ## update the metadata and also plays2
+            tryCatch({
+                dvw <- dv_set_lineups(dvw, set_number = setnum, lineups = list(c(ht$lineup, na.omit(ht$liberos)), c(vt$lineup, na.omit(vt$liberos))), setters = c(ht$setter, vt$setter))
+            }, error = function(e) warning(conditionMessage(e)))
+            ## TODO, show some useful message to the user that the lineup operation failed
+            do_reparse <- TRUE
+        }
+        ## NOTE that if the set was in progress (set_started = TRUE) then only the game_state$Xt_libY values will be updated and the rest will be silently ignored TODO warn the user if they are editing lineups after the set has started?
     } else {
         warning("I don't know what to do with editing_active: ", editing_active)
     }

@@ -45,13 +45,10 @@ ov_scouter_ui <- function(app_data) {
                        plotOutputWithAttribs("review_overlay", width = "100%", height = "100%", click = "rv_click", hover = shiny::hoverOpts("rv_hover", delay = 50, delayType = "throttle"), onmouseup = "Shiny.setInputValue('did_rv_mouseup', new Date().getTime());", onmousedown = "Shiny.setInputValue('did_rv_mousedown', new Date().getTime());")),
               fluidRow(column(1, tags$div(id = "bsbar",
                                           if (app_data$with_video) {
-                                              introBox(actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward"), class = "leftbut"),
-                                                       actionButton("video_rew_2", label = "Back 2s", icon = icon("step-backward"), class = "leftbut"),
-                                                       actionButton("video_pause", label = "Pause", icon = icon("pause-circle"), class = "leftbut"),
-                                                       actionButton("video_ff_2", label = "Forward 2s", icon = icon("step-forward"), class = "leftbut"),
-                                                       actionButton("video_ff_10", label = "Forward 10s", icon = icon("step-forward"), class = "leftbut"),
-                                                       tags$div(class = "bareslider", sliderInput("video_volume", label = "Volume", min = 0, max = 1, value = 0, width = "100%", ticks = FALSE), style = "width:100%"),
-                                                       actionButton("video_toggle_mute", label = "Unmute", icon = icon("volume-mute"), class = "leftbut"),
+                                              introBox(## actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward"), class = "leftbut"),
+                                                       ## actionButton("video_rew_2", label = "Back 2s", icon = icon("step-backward"), class = "leftbut"),
+                                                       ## actionButton("video_ff_2", label = "Forward 2s", icon = icon("step-forward"), class = "leftbut"),
+                                                       ## actionButton("video_ff_10", label = "Forward 10s", icon = icon("step-forward"), class = "leftbut"),
                                                        sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1), data.step = 4, data.intro = "Video controls. Also can be controlled by keyboard shortcuts.")
                                           },
                                           introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),

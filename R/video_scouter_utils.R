@@ -149,7 +149,7 @@ sanitize_game_state <- function(gs) {
     ## not sure yet about
     ##gs$current_team
     ##gs$serving
-    ##gs$rally_started <- FALSE
+    ##gs$rally_started
     #gs$point_won_by <- NA_character_
     gs
 }
@@ -1274,7 +1274,7 @@ get_video_source_type <- function(src, base_url) {
 ## return value can take various forms (all returned invisibly):
 ## - if we are running without video: NULL
 ## - for "pause", "play", or "toggle_pause": the pause state after executing the command (logical)
-## - for "mute", "unmute", "toggle_mute", or "muted": the mute state (logical)
+## - for "mute", "unmute": the mute state (logical)
 ## - for everything else: NULL
 do_video_inner <- function(what, ..., video_state, rally_state, app_data, session, id = "main_video") {
     if (!app_data$with_video) return(invisible(NULL))
@@ -1325,28 +1325,29 @@ do_video_inner <- function(what, ..., video_state, rally_state, app_data, sessio
             dojs(paste0(getel, ".volume(", myargs[[1]], ");"))
         } else if (what == "mute") {
             dojs(paste0(getel, ".muted(true);"))
-            video_state$muted <- TRUE
+        ##    video_state$muted <- TRUE
             TRUE ## mute state
         } else if (what == "unmute") {
             dojs(paste0(getel, ".muted(false);"))
-            video_state$muted <- FALSE
+        ##    video_state$muted <- FALSE
             FALSE ## mute state
-        } else if (what == "muted") {
-            video_state$muted
-        } else if (what == "toggle_mute") {
-            if (video_state$muted) {
-                shiny::updateActionButton(session, "video_toggle_mute", label = "Mute")
-                ##do_video("unmute")
-                dojs(paste0(getel, ".muted(false);"))
-                video_state$muted <- FALSE
-                FALSE ## mute state
-            } else {
-                shiny::updateActionButton(session, "video_toggle_mute", label = "Unmute")
-                ##do_video("mute")
-                dojs(paste0(getel, ".muted(true);"))
-                video_state$muted <- TRUE
-                TRUE ## mute state
-            }
+        ## this no longer works because the button has been removed from the UI, just use the player controls
+        ## } else if (what == "muted") {
+        ##    video_state$muted
+        ## } else if (what == "toggle_mute") {
+        ##     if (video_state$muted) {
+        ##         shiny::updateActionButton(session, "video_toggle_mute", label = "Mute")
+        ##         ##do_video("unmute")
+        ##         dojs(paste0(getel, ".muted(false);"))
+        ##         video_state$muted <- FALSE
+        ##         FALSE ## mute state
+        ##     } else {
+        ##         shiny::updateActionButton(session, "video_toggle_mute", label = "Unmute")
+        ##         ##do_video("mute")
+        ##         dojs(paste0(getel, ".muted(true);"))
+        ##         video_state$muted <- TRUE
+        ##         TRUE ## mute state
+        ##     }
         } else {
             NULL
         }
