@@ -5,7 +5,8 @@ ov_video_ui_element <- function(app_data, yt) {
                               if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc")),
                               tags$video(id = "main_video", style = paste0("width:100%; height:", if (app_data$scout_mode == "type") 60 else 85, "vh;"), class = "video-js vjs-has-started", crossorigin = "anonymous", tags$p(class = "vjs-no-js", "This app cannot be used without a web browser that", tags$a(href = "https://videojs.com/html5-video-support/", target = "_blank", "supports HTML5 video")))
                               ),
-                     tags$canvas(id = "video_overlay_canvas", style = "position:absolute;", height = "400", width = "600"), plotOutput("video_overlay"), data.step = 3, data.intro = "Video of the game to scout."))
+                     tags$canvas(id = "video_overlay_canvas", style = "position:absolute;", height = "400", width = "600"), plotOutput("video_overlay"), data.step = 3, data.intro = "Video of the game to scout."),
+            tags$div(style = "height:32px;")) ## this is allowing for the video control bar to be placed below the video. The control bar is sized at 3em relative to the bar font size (10px)
 }
 
 
@@ -102,10 +103,9 @@ ov_scouter_ui <- function(app_data) {
                               } else {
                                   ## click interface
                                   tagList(ov_video_ui_element(app_data, yt),
-                                          ## tags$div(style = "height:3.1em;"),
                                           fluidRow(column(12, uiOutput("serve_preselect"))))
                               },
-                              tags$div(style = "height: 14px;"),
+                              tags$div(style = "height: 8px;"),
                               if (app_data$scout_mode == "type") {
                                   if (app_data$with_video) {
                                       fluidRow(

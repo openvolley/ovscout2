@@ -9,10 +9,19 @@ mod_courtref_ui <- function(id, yt = FALSE, video_url, button_label = "Court ref
                      if (!show_frame_image) HTML(paste0("<video id=\"", ns("cr_player"), "\" style=\"width:100%; height:70vh;\" class=\"video-js vjs-has-started\" crossorigin=\"anonymous\" data-setup='{ ", if (yt) "\"techOrder\": [\"youtube\"], ", "\"controls\": true, \"autoplay\": false, \"loop\": true, \"preload\": \"auto\", \"liveui\": true, \"muted\": true, \"sources\": [{", if (yt) " \"type\": \"video/youtube\", ", "\"src\": \"", video_url, "\"}] }'>\n",
                                                         "<p class=\"vjs-no-js\">This app cannot be used without a web browser that <a href=\"https://videojs.com/html5-video-support/\" target=\"_blank\">supports HTML5 video</a></p></video>")),
                      plotOutputWithAttribs(ns("srplot"),
-                                           click = ns("sr_plot_click"), hover = shiny::hoverOpts(ns("sr_plot_hover"), delay = 50, delayType = "throttle"), onmouseup = paste0("Shiny.setInputValue('", ns("did_sr_plot_mouseup"), "', new Date().getTime());"), onmousedown = paste0("Shiny.setInputValue('", ns("did_sr_plot_mousedown"), "', new Date().getTime());"), style = "margin-top:-600px; position:relative; z-index:9999;")##,
+                                           click = ns("sr_plot_click"), hover = shiny::hoverOpts(ns("sr_plot_hover"), delay = 50, delayType = "throttle"), onmouseup = paste0("Shiny.setInputValue('", ns("did_sr_plot_mouseup"), "', new Date().getTime());"), onmousedown = paste0("Shiny.setInputValue('", ns("did_sr_plot_mousedown"), "', new Date().getTime());"), style = "margin-top:-600px; position:relative; z-index:9999;")
                      ),
             ## instantiate the player
-            if (!show_frame_image) tags$head(tags$script(HTML(paste0("$(document).on('shiny:sessioninitialized', function() { ", jsns("crpl"), " = videojs('", ns("cr_player"), "'); ", jsns("crpl"), ".ready(function() {", "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());", "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());", resize_observer(ns("cr_player"), fun = paste0("console.log('resizing'); ", "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());", "Shiny.setInputValue('", ns("cr_height"), "', ", jsns("crpl"), ".currentHeight());", "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());", "var voff = $('#", ns("cr_player"), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"), nsfun = jsns, as = "string"), "});  });"))))
+            if (!show_frame_image) tags$head(tags$script(HTML(
+              paste0("$(document).on('shiny:sessioninitialized', function() { ", jsns("crpl"), " = videojs('", ns("cr_player"), "'); ",
+                     jsns("crpl"), ".ready(function() {",
+                     "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());",
+                     "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());",
+                     resize_observer(ns("cr_player"), fun = paste0(
+                       "Shiny.setInputValue('", ns("cr_media_height"), "', ", jsns("crpl"), ".videoHeight());",
+                       "Shiny.setInputValue('", ns("cr_height"), "', ", jsns("crpl"), ".currentHeight());",
+                       "Shiny.setInputValue('", ns("cr_media_width"), "', ", jsns("crpl"), ".videoWidth());",
+                       "var voff = $('#", ns("cr_player"), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"), nsfun = jsns, as = "string"), "});  });"))))
             )
 }
 
@@ -196,6 +205,7 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
                        ## plot in 0,1 norm coords
                        asp <- if (!is.null(crimg()$height) && !is.na(crimg()$height) && crimg()$height > 0 && !is.null(crimg()$width) && !is.na(crimg()$width) && crimg()$width > 0) crimg()$height/crimg()$width else 9/16
                        p <- ggplot2::ggplot(mapping = aes(x = .data$image_x, y = .data$image_y)) + ggplot2::coord_fixed(ratio = asp, xlim = c(0, 1), ylim = c(0, 1), expand = FALSE)
+                       ## p <- p + geom_segment(data = data.frame(x = c(0, 1, 1, 0), y = c(0, 0, 1, 1), xend = c(1, 1, 0, 0), yend = c(0, 1, 1, 0)), aes(x = x, y = y, xend = xend, yend = yend), col = "green") ## to see the plotting area for debugging
                        if (show_frame_image) p <- p + ggplot2::annotation_custom(grid::rasterGrob(crimg()$image), xmin = 0, xmax = 1, ymin = 0, ymax = 1)
                        ## convert our crvt (edited ref data) into the court overlay data to plot
                        crox <- tryCatch({
@@ -332,7 +342,7 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
     })
     last_refresh_time <- NA_real_
     observe({
-        px <- last_mouse_pos() ##c(input$sr_plot_hover$x, input$sr_plot_hover$y)
+        px <- last_mouse_pos()
         if (!is.null(px) && !is.null(sr_clickdrag$mousedown) && was_mouse_drag(sr_clickdrag)) {
             ##cat("was drag\n")
             ## did previously click, so now dragging a point

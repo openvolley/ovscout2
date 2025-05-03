@@ -345,6 +345,7 @@ deal_with_pause <- function(scout_modal_active, video_state, editing, game_state
 ## but the actual video content can have a different aspect ratio, which means it will be letterboxed
 ## direction "to_image" means we've taken unit coords in the outer (video div) space and are converting to inner video content space
 ## direction "to_court" means we've taken unit coords in the inner video content space and are converting to outer (video div) space
+## eAR = element aspect ratio (of the video element), mAR = media aspect ratio
 ar_fix_x <- function(x, direction = "to_image", input, current_video_src, app_data) {
     eAR <- input$dv_width / input$dv_height
     mAR <- if ((current_video_src() == 1L && is_youtube_url(app_data$video_src)) || (current_video_src() == 2L && is_youtube_url(app_data$video_src2))) {
