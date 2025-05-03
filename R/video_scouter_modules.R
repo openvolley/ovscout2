@@ -1018,7 +1018,13 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 this_val <- if (input$rolepicker$value %in% role_choices) input$rolepicker$value else "unknown"
                 this_data$role[this_rownum] <- this_val
                 this_data$special_role <- if (this_val %eq% "libero") "L" else NA_character_
-                htdata_edit(this_data)
+                if (this_team %eq% "h") {
+                    retain_scroll(ns("ht_edit_team"))
+                    htdata_edit(this_data)
+                } else {
+                    retain_scroll(ns("vt_edit_team"))
+                    vtdata_edit(this_data)
+                }
             }
         }
     })
@@ -1031,18 +1037,20 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
             ## show the role_pick column not the role, but name it as "Role"
             cnames <- names(names_first_to_capital(tbl))
             cnames[cnames == "Role pick"] <- "Role"
-            DT::datatable(tbl, escape = FALSE, rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE)), scroller = TRUE, scrollY = "35vh"))
+            scrollposvar <- gsub("[\\-]+", "_", ns("ht_edit_team_scrollpos"))
+            DT::datatable(tbl, escape = FALSE, rownames = FALSE, colnames = cnames, selection = "single",
+                          callback = DT::JS(paste0("if (", scrollposvar, " && ", scrollposvar, " >= 0) { table.one('draw', function () { document.querySelector('#' + '", ns("ht_edit_team"), "' + ' .dataTables_scrollBody').scrollTop = ", scrollposvar, "; }); }")),
+                          editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE)), scroller = TRUE, scrollY = "35vh"))
         } else {
             NULL
         }
     }, server = TRUE)
 
-    ht_edit_team_proxy <- DT::dataTableProxy("ht_edit_team")
     observeEvent(input$ht_edit_team_cell_edit, {
         info <- input$ht_edit_team_cell_edit
         isolate(temp <- htdata_edit())
         temp[info$row, info$col+1L] <- DT::coerceValue(info$value, temp[[info$row, info$col+1L]]) ## no row names so +1 on col indices
-        DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+        retain_scroll(ns("ht_edit_team"))
         htdata_edit(temp)
     })
     output$ht_delete_player_ui <- renderUI({
@@ -1057,7 +1065,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         if (!is.null(ridx)) {
             temp <- htdata_edit()
             temp <- temp[-ridx, ]
-            DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+            retain_scroll(ns("ht_edit_team"))
             htdata_edit(temp)
         }
     })
@@ -1103,7 +1111,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 newrow <- tibble(number = as.numeric(input$ht_new_number), player_id = input$ht_new_id, lastname = input$ht_new_lastname, firstname = input$ht_new_firstname, role = if (nzchar(input$ht_new_role)) input$ht_new_role else NA_character_, special_role = if (input$ht_new_role %eq% "libero") "L" else NA_character_) %>% ##(if (nzchar(input$ht_new_special)) input$ht_new_special else NA_character_)
                     mutate(name = paste(.data$firstname, .data$lastname))
                 temp <- bind_rows(htdata_edit(), newrow) %>% dplyr::arrange(.data$number)
-                DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+                retain_scroll(ns("ht_edit_team"))
                 htdata_edit(temp)
                 ## clear inputs
                 updateTextInput(session, "ht_new_number", value = "")
@@ -1122,13 +1130,13 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         newrows <- tibble(number = num_to_add, player_id = paste0("HOM-P", ldz2(.data$number)), lastname = paste0("Home", ldz2(.data$number)), firstname = "Player", role = NA_character_, special_role = NA_character_) %>%
             mutate(name = paste(.data$firstname, .data$lastname))
         temp <- bind_rows(htdata_edit(), newrows) %>% dplyr::arrange(.data$number)
-        DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+        retain_scroll(ns("ht_edit_team"))
         htdata_edit(temp)
     })
 
     observeEvent(input$ht_undo_faststart_players, {
         temp <- remove_players_not_played(roster = htdata_edit(), plays = rdata$dvw$plays2, home_visiting = "h", faststart_only = TRUE) %>% dplyr::arrange(.data$number)
-        DT::replaceData(ht_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+        retain_scroll(ns("ht_edit_team"))
         htdata_edit(temp)
     })
 
@@ -1140,17 +1148,19 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
             ## show the role_pick column not the role, but name it as "Role"
             cnames <- names(names_first_to_capital(tbl))
             cnames[cnames == "Role pick"] <- "Role"
-            DT::datatable(tbl, escape = FALSE, rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE)), scroller = TRUE, scrollY = "35vh"))
+            scrollposvar <- gsub("[\\-]+", "_", ns("vt_edit_team_scrollpos"))
+            DT::datatable(tbl, escape = FALSE,
+                          callback = DT::JS(paste0("if (", scrollposvar, " && ", scrollposvar, " >= 0) { table.one('draw', function () { document.querySelector('#' + '", ns("vt_edit_team"), "' + ' .dataTables_scrollBody').scrollTop = ", scrollposvar, "; }); }")),
+                          rownames = FALSE, colnames = cnames, selection = "single", editable = TRUE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE, columnDefs = list(list(targets = cols_to_hide, visible = FALSE)), scroller = TRUE, scrollY = "35vh"))
         } else {
             NULL
         }
     }, server = TRUE)
-    vt_edit_team_proxy <- DT::dataTableProxy("vt_edit_team")
     observeEvent(input$vt_edit_team_cell_edit, {
         info <- input$vt_edit_team_cell_edit
         isolate(temp <- vtdata_edit())
         temp[info$row, info$col+1L] <- DT::coerceValue(info$value, temp[[info$row, info$col+1L]]) ## no row names so +1 on col indices
-        DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+        retain_scroll(ns("vt_edit_team"))
         vtdata_edit(temp)
     })
     output$vt_delete_player_ui <- renderUI({
@@ -1165,7 +1175,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         if (!is.null(ridx)) {
             temp <- vtdata_edit()
             temp <- temp[-ridx, ]
-            DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+            retain_scroll(ns("vt_edit_team"))
             vtdata_edit(temp)
         }
     })
@@ -1176,7 +1186,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 newrow <- tibble(number = as.numeric(input$vt_new_number), player_id = input$vt_new_id, lastname = input$vt_new_lastname, firstname = input$vt_new_firstname, role = if (nzchar(input$vt_new_role)) input$vt_new_role else NA_character_, special_role = if (input$vt_new_role %eq% "libero") "L" else NA_character_) %>% ## if (nzchar(input$vt_new_special)) input$vt_new_special else NA_character_)
                     mutate(name = paste(.data$firstname, .data$lastname))
                 temp <- bind_rows(vtdata_edit(), newrow) %>% dplyr::arrange(.data$number)
-                DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+                retain_scroll(ns("vt_edit_team"))
                 vtdata_edit(temp)
                 ## clear inputs
                 updateTextInput(session, "vt_new_number", value = "")
@@ -1195,13 +1205,13 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
         newrows <- tibble(number = num_to_add, player_id = paste0("VIS-P", ldz2(.data$number)), lastname = paste0("Visiting", ldz2(.data$number)), firstname = "Player", role = NA_character_, special_role = NA_character_) %>%
             mutate(name = paste(.data$firstname, .data$lastname))
         temp <- bind_rows(vtdata_edit(), newrows) %>% dplyr::arrange(.data$number)
-        DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+        retain_scroll(ns("vt_edit_team"))
         vtdata_edit(temp)
     })
 
     observeEvent(input$vt_undo_faststart_players, {
         temp <- remove_players_not_played(roster = vtdata_edit(), plays = rdata$dvw$plays2, home_visiting = "v", faststart_only = TRUE) %>% dplyr::arrange(.data$number)
-        DT::replaceData(vt_edit_team_proxy, temp, resetPaging = FALSE, rownames = FALSE)
+        retain_scroll(ns("vt_edit_team"))
         vtdata_edit(temp)
     })
 

@@ -44,6 +44,12 @@ js_hide2 <- function(id) dojs(paste0("var el=$('#", id, "'); el.hide();"))
 js_disable <- function(id) dojs(paste0("$('#", id, "').attr('disabled', 'disabled');"))
 js_enable <- function(id) dojs(paste0("$('#", id, "').removeAttr('disabled');"))
 
+## call this before issuing a DT::renderDataTable with a vertical scroller, to set the scroll position on first draw. It can be used to retain the scroll position when re-drawing the table
+retain_scroll <- function(tbl_id) {
+    ## save the current scroll position to a var
+    dojs(paste0(gsub("[\\-]+", "_", tbl_id), "_scrollpos = $('#", tbl_id, " .dataTables_scrollBody').scrollTop();"))
+}
+
 names_first_to_capital <- function(x, fun) {
     setNames(x, var2fc(if (missing(fun)) names(x) else vapply(names(x), fun, FUN.VALUE = "", USE.NAMES = FALSE)))
 }
