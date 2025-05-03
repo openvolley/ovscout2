@@ -7,3 +7,10 @@ video.loading { background: black; }
 /* align the video controls below the video content */
 .vjs-control-bar { visibility: visible !important; opacity: 1 !important; bottom: -3.1em !important; background-color: rgba(7, 20, 30, 1) !important; }
 .video-js .vjs-big-play-button { display: none; }
+
+.bareslider { display:inline-block; margin-left:4px; margin-right:4px;}
+.bareslider .irs-max, .bareslider .irs-min, .bareslider .irs-single, .bareslider .irs-from, .bareslider .irs-to { display:none; }
+.bareslider .irs-handle { top:0px; }
+.bareslider .irs-line { top:7px;}
+.bareslider .irs-bar {top:8px;}
+#bsbar .btn { width:100%; margin-bottom:2px;}
