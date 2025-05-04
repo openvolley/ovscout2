@@ -309,11 +309,11 @@ code_edit_dialog_content <- function(which) {
     if (is.null(which)) which <- "clear"
     which <- match.arg(tolower(which), c("coord_click_start", "coord_click_mid", "coord_click_end", "clear"))
     if (which == "coord_click_start") {
-        tags$div(class = "alert alert-danger", "Click start coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
+        tags$div(class = "alert alert-danger", "Click start location or", actionButton("edit_coord_clear", "No location"), "or", actionButton("edit_coord_cancel", "Cancel"))
     } else if (which == "coord_click_mid") {
-        tags$div(class = "alert alert-danger", "Click mid coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
+        tags$div(class = "alert alert-danger", "Click mid location or", actionButton("edit_coord_clear", "No location"), "or", actionButton("edit_coord_cancel", "Cancel"))
     } else if (which == "coord_click_end") {
-        tags$div(class = "alert alert-danger", "Click end coordinate or", actionButton("edit_coord_clear", "No coordinate"), "or", actionButton("edit_coord_cancel", "Cancel"))
+        tags$div(class = "alert alert-danger", "Click end location or", actionButton("edit_coord_clear", "No location"), "or", actionButton("edit_coord_cancel", "Cancel"))
     } else if (which == "clear") {
         NULL
     } else {
