@@ -1999,7 +1999,7 @@ ov_scouter_server <- function(app_data) {
                               } else {
                                   rc$sz[Aidx] ## keep same
                               }
-                        temp <- update_code_trow(rc[Aidx, ], eval = eval, sz = sz, ez = esz[1], esz = esz[2], special = if (!is.null(input$attack_error_type)) input$attack_error_type else "~", start_x = game_state$start_x, start_y = game_state$start_y, mid_x = game_state$mid_x, mid_y = game_state$mid_y, end_x = game_state$end_x, end_y = game_state$end_y, start_zone_valid = TRUE, game_state = game_state)
+                        temp <- update_code_trow(rc[Aidx, ], eval = eval, sz = sz, ez = esz[1], esz = esz[2], special = if (!is.null(input$attack_error_type)) input$attack_error_type else "~", start_x = game_state$start_x, start_y = game_state$start_y, mid_x = mid_xy[1], mid_y = mid_xy[2], end_x = game_state$end_x, end_y = game_state$end_y, start_zone_valid = TRUE, game_state = game_state)
                         rc[Aidx, ] <- temp
                         ##cat("but maybe could be: \n"); print(dplyr::glimpse(temp))
                         ##cat("all equal?\n"); print(all.equal(rc[Aidx, ], temp))
