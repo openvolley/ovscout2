@@ -311,8 +311,6 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     ## shortcuts for click mode
     click_scts <- ov_default_click_shortcuts()
     for (nm in names(click_shortcuts)) click_scts[[nm]] <- click_shortcuts[[nm]]
-    ## previously we allowed multiple shortcut keys per shortcut, but now only one
-    for (nm in names(click_scts)) { if (length(click_scts[[nm]]) > 1) click_scts[[nm]] <- click_scts[[nm]][1] }
     ## shortcuts for typing mode
     type_scts <- ov_default_type_shortcuts()
     for (nm in names(type_shortcuts)) type_scts[[nm]] <- type_shortcuts[[nm]]

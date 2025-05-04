@@ -37,3 +37,4 @@ h2, h3, h4 {font-weight: bold;}
 .undobut { background-color: orange; } .undobut:hover, .undobut:active { background-color: #fed8b1; }
 #teamlists-htroster-remove { list-style-type:none; padding:0; }
 
+.notuc { text-transform:none; } /* where needed to turn off uppercase on buttons */

@@ -35,7 +35,7 @@ function insertTextAtCursor(text) {
 // scouting key remapping, to make input from one key give different text in the input box
 var sk_key_map = {}; // set from the shiny server on startup
 function sk_mapkey(ev) {
-    var ckey = ev.ctrlKey + "|" + ev.altKey + "|" + ev.shiftKey + "|" + ev.metaKey + "|" + ev.key.toLowerCase();
+    var ckey = ev.ctrlKey + "|" + ev.altKey + "|" + ev.shiftKey + "|" + ev.metaKey + "|" + ev.key; // unclear if this should be ev.key.toLowerCase() or not TODO check/fix
     console.log("ckey: " + ckey);
     return sk_key_map[ckey];
 };
@@ -43,7 +43,7 @@ function sk_mapkey(ev) {
 // scouting shortcuts, so that key combinations in the input box can trigger actions in the server code
 var sk_shortcut_map = {}; // set from the shiny server on startup
 function sk_mapshortcut(ev) {
-    var ckey = ev.ctrlKey + "|" + ev.altKey + "|" + ev.shiftKey + "|" + ev.metaKey + "|" + ev.key.toLowerCase();
+    var ckey = ev.ctrlKey + "|" + ev.altKey + "|" + ev.shiftKey + "|" + ev.metaKey + "|" + ev.key;
     return sk_shortcut_map[ckey];
 };
 

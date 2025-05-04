@@ -481,55 +481,60 @@ ov_scouter_server <- function(app_data) {
                 ## NOW for "#" we get ky == "#" plus mycmd[3] == "true" (shift)
                 if ((k$class %eq% "modal-open" || grepl("scedit-modal", k$class)) && !is.null(editing$active) && editing$active %eq% "edit_shortcuts") {
                     sc_newvalue(key_as_text(k))
-                    if (!ky %in% c("Alt", "Shift", "Meta", "Control")) output$scedit_out <- renderUI(tags$code(key_as_text(k)))
+                    if (!tolower(ky) %in% c("alt", "shift", "meta", "control")) output$scedit_out <- renderUI(tags$code(key_as_text(k)))
                 } else if (grepl("playslist-tbl-i", k$id)) {
                     ## key pressed in playslist table
-                    if (tolower(ky) %in% app_data$playstable_shortcuts$edit_code) {
+                    if (is_shortcut(k, app_data$playstable_shortcuts$edit_code)) {
                         edit_data_row()
-                    } else if (tolower(ky) %in% app_data$playstable_shortcuts$delete_code) {
+                    } else if (is_shortcut(k, app_data$playstable_shortcuts$delete_code)) {
                         delete_data_row()
-                    } else if (tolower(ky) %in% app_data$playstable_shortcuts$insert_code) {
+                    } else if (is_shortcut(k, app_data$playstable_shortcuts$insert_code)) {
                         insert_data_row("above")
-                    } else if (tolower(ky) %in% c(app_data$playstable_shortcuts$up, app_data$playstable_shortcuts$down)) {
+                    } else if (is_shortcut(k, c(app_data$playstable_shortcuts$up, app_data$playstable_shortcuts$down))) {
                         ## navigate up/down in playslist table
-                        playslist_mod$select(playslist_mod$current_row() + if (tolower(ky) == app_data$playstable_shortcuts$up) -1L else 1L)
-                    } else if (tolower(ky) %eq% app_data$playstable_shortcuts$switch_windows && app_data$scout_mode == "type") {
+                        playslist_mod$select(playslist_mod$current_row() + if (is_shortcut(k, app_data$playstable_shortcuts$up)) -1L else 1L)
+                    } else if (is_shortcut(k, app_data$playstable_shortcuts$switch_windows) && app_data$scout_mode == "type") {
                         focus_to_scout_bar() ## go to scout bar
                         playslist_mod$redraw_select("last") ## change redraw behaviour (keep the last row selected, including when new row added)
                         playslist_mod$select_last() ## select last row
-                    } else if (ky %in% app_data$playstable_shortcuts$go_to_time) {
+                    } else if (is_shortcut(k, app_data$playstable_shortcuts$go_to_time)) {
                         ## video go to currently-selected event
                         ridx <- playslist_mod$current_row()
-                        vt <- if (!is.na(ridx) && !is.na(ridx)) rdata$dvw$plays2$video_time[ridx] else NA
-                        if (!is.null(vt) && !is.na(vt)) {
-                            if (debug > 1) cat("jumping to video time: ", vt, "\n")
-                            do_video("set_time", rebase_time(vt, time_to = current_video_src(), time_from = 1, rdata = rdata)) ## TODO check that this works when viewing video 2
+                        if (!is.na(ridx)) {
+                            vt <- if (ridx <= nrow(rdata$dvw$plays2)) {
+                                      rdata$dvw$plays2$video_time[ridx]
+                                  } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
+                                      rally_codes()$t[ridx - nrow(rdata$dvw$plays2)]
+                                  } else {
+                                      NA
+                                  }
+                            if (!is.na(vt)) {
+                                if (debug > 1) cat("jumping to video time: ", vt, "\n")
+                                do_video("set_time", rebase_time(vt, time_to = current_video_src(), time_from = 1, rdata = rdata)) ## TODO check that this works when viewing video 2
+                            }
                         }
                     }
                 } else {
-                    if (ky %eq% "Escape") {
-                        ## esc
-                        if (isTRUE(scout_modal_active())) {
-                            ## if we have a scouting modal showing, treat this as cancel and rewind
-                            do_cancel_rew()
-                        } else if (courtref_active()) {
-                            ## do nothing
-                        } else if (!is.null(editing$active) && editing$active %eq% "rally_review") {
-                            do_cancel_rally_review(editing = editing, app_data = app_data)
-                        } else if (is.null(editing$active) || !editing$active %in% "teams") {
-                            if (grepl("scout_in", k$id) && "escape" %in% app_data$shortcuts$pause) {
-                                ## wackiness here if we want to use the escape key as a pause shortcut
-                                ## let the scout shortcut code handle it
-                            } else {
-                                do_unpause <- !is.null(editing$active) && editing$active %eq% "admin" && app_data$with_video
-                                do_focus_to_playslist <- !is.null(editing$active) && editing$active %in% c("delete", "edit") && app_data$scout_mode == "type"
-                                editing$active <- NULL
-                                removeModal()
-                                if (do_unpause) do_video("play")
-                                if (do_focus_to_playslist) focus_to_playslist()
-                            }
-                        }
-                    } else if (ky %eq% "Enter") {
+                    ## escape does some special things, but can also be used in shortcuts, yuck. Check all the special things first
+                    if (tolower(ky) %eq% "escape" && isTRUE(scout_modal_active())) {
+                        ## if we have a scouting modal showing, treat this as cancel and rewind
+                        do_cancel_rew()
+                    } else if (tolower(ky) %eq% "escape" && courtref_active()) {
+                        ## do nothing
+                    } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% "rally_review") {
+                        do_cancel_rally_review(editing = editing, app_data = app_data)
+                    } else if (tolower(ky) %eq% "escape" && app_data$scout_mode == "type" && grepl("scout_in", k$id) && "escape" %in% tolower(app_data$shortcuts$pause)) {
+                        ## wackiness here if we want to use the escape key as a pause shortcut in typing mode
+                        ## let the scout shortcut code handle it
+                    } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && !editing$active %in% "teams") {
+                        ## escape from editing modal
+                        do_unpause <- editing$active %eq% "admin" && app_data$with_video
+                        do_focus_to_playslist <- !is.null(editing$active) && editing$active %in% c("delete", "edit") && app_data$scout_mode == "type"
+                        editing$active <- NULL
+                        removeModal()
+                        if (do_unpause) do_video("play")
+                        if (do_focus_to_playslist) focus_to_playslist()
+                    } else if (tolower(ky) %eq% "enter") {
                         ## enter
                         if (!is.null(editing$active) && editing$active %eq% "rally_review") {
                             ## TODO we might have another race condition here where the text input does not update in the shiny server in time TODO CHECK
@@ -566,47 +571,53 @@ ov_scouter_server <- function(app_data) {
                             if (!is.null(accept_fun())) try(get(accept_fun(), mode = "function")())
                         }
                         ## need to stop this propagating to the browser, else it risks e.g. re-firing the most recently used button - done in UI code
-                    } else if (ky %in% app_data$shortcuts$hide_popup) {
+                    } else if (is_shortcut(k, app_data$shortcuts$hide_popup)) {
                         ## temporarily hide the modal, so the video can be seen
                         ## but only for the admin, lineup modal or the ones that pop up during the rally, not the editing modals for teams or rosters
                         if (is.null(editing$active) || editing$active %in% c("admin", "change starting lineup")) hide_popup(review_pane_active())
-                    } else if (ky %in% c(app_data$shortcuts$pause, app_data$shortcuts$pause_no_popup)) {
+                    } else if (is_shortcut(k, c(app_data$shortcuts$pause, app_data$shortcuts$pause_no_popup))) {
                         ## only accept this if we are not doing a courtref, not editing, or it's the admin modal being shown
                         if ((is.null(editing$active) || editing$active %eq% "admin") && !courtref_active()) {
                             ## video pause/unpause
                             ## Q (uppercase) does just pause, with no admin modal
-                            deal_with_pause(scout_modal_active = scout_modal_active, video_state = video_state, editing = editing, game_state = game_state, rdata = rdata, app_data = app_data, show_modal = !ky %in% app_data$shortcuts$pause_no_popup)
+                            deal_with_pause(scout_modal_active = scout_modal_active, video_state = video_state, editing = editing, game_state = game_state, rdata = rdata, app_data = app_data, show_modal = !is_shortcut(k, app_data$shortcuts$pause_no_popup))
                         }
-                    } else if (ky %eq% "Tab") {
-                        if (grepl("scout_in", k$id)) {
-                            ## tab from scout bar, go to playslist table
-                            ## currently handled in switch_windows shortcut below, TODO rationalize this
-                        } else if (app_data$scout_mode == "type" && is.null(editing$active)) {
-                            ## otherwise (noting that we are not in a modal and not in the playslist table here) if we are in typing mode, switch to the input bar
-                            focus_to_scout_bar()
-                        }
+                    } else if (tolower(ky) %eq% "tab" && grepl("scout_in", k$id)) {
+                        ## tab from scout bar, go to playslist table
+                        ## currently handled in switch_windows shortcut below, TODO can we rationalize the handling of scout-mode shortcuts into this block of code?
+                    } else if (tolower(ky) %eq% "tab" && app_data$scout_mode == "type" && is.null(editing$active)) {
+                        ## otherwise (noting that we are not in a modal and not in the playslist table here) if we are in typing mode, switch to the input bar
+                        focus_to_scout_bar()
                     } else if (is.null(editing$active) && !courtref_active()) {
                         ## none of these should be allowed to happen if we are e.g. editing lineups or teams or doing the court ref
-                        if (ky %in% app_data$shortcuts$undo) {
+                        if (is_shortcut(k, app_data$shortcuts$undo)) {
                             ## undo
                             do_undo()
-                        } else if (ky %in% app_data$shortcuts$switch_video) {
+                        } else if (is_shortcut(k, app_data$shortcuts$switch_video)) {
                             ## switch video
                             do_switch_video(have_second_video = have_second_video, current_video_src = current_video_src, rdata = rdata, app_data = app_data, video_state = video_state)
-                        } else if (ky %in% app_data$shortcuts$contact) {
+                        } else if (is_shortcut(k, app_data$shortcuts$contact)) {
                             ## player contact with the ball
                             do_contact()
-                        } else if (ky %in% app_data$shortcuts$video_faster) {
+                        } else if (is_shortcut(k, app_data$shortcuts$video_faster)) {
                             ## update the slider, and the observer will see it and send the video command
                             if (!is.null(input$playback_rate) && !is.na(input$playback_rate)) updateSliderInput(session, "playback_rate", value = input$playback_rate + 0.1)
-                        } else if (ky %in% app_data$shortcuts$video_slower) {
+                        } else if (is_shortcut(k, app_data$shortcuts$video_slower)) {
                             if (!is.null(input$playback_rate) && !is.na(input$playback_rate) && isTRUE(input$playback_rate > 0.1)) updateSliderInput(session, "playback_rate", value = max(input$playback_rate - 0.1, 0.1, na.rm = TRUE))
-                        } else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)", names(app_data$shortcuts))])) {
+                        } else if (is_shortcut(k, unlist(app_data$shortcuts[grepl("^video_(forward|rewind)", names(app_data$shortcuts))]))) {
                             if (is.null(editing$active)) {
                                 ## video forward/backward nav
                                 ## same as for other ovscout interface, although the fine control is not needed here?
-                                vidcmd <- if (ky %in% unlist(app_data$shortcuts[grepl("^video_rewind", names(app_data$shortcuts))])) "rew" else "ff"
-                                dur <- if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_10", names(app_data$shortcuts))])) 10 else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_0.1", names(app_data$shortcuts))])) 0.1 else if (ky %in% unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_1_30", names(app_data$shortcuts))])) 1/30 else 2
+                                vidcmd <- if (is_shortcut(k, unlist(app_data$shortcuts[grepl("^video_rewind", names(app_data$shortcuts))]))) "rew" else "ff"
+                                dur <- if (is_shortcut(k, unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_10", names(app_data$shortcuts))]))) {
+                                           10
+                                       } else if (is_shortcut(k, unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_0.1", names(app_data$shortcuts))]))) {
+                                           0.1
+                                       } else if (is_shortcut(k, unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_1_30", names(app_data$shortcuts))]))) {
+                                           1/30
+                                       } else {
+                                           2
+                                       }
                                 do_video(vidcmd, dur)
                             }
                         }
@@ -618,7 +629,7 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(input$controlkeyup)) {
                 k <- decode_keypress(input$controlkeyup, debug)
                 if (debug > 2) cat("control key up: ", cstr(k), "\n")
-                if (k$key %in% app_data$shortcuts$hide_popup) {
+                if (is_shortcut(k, app_data$shortcuts$hide_popup)) {
                     ## z
                     ## re-show the modal after temporarily hiding
                     unhide_popup(review_pane_active())

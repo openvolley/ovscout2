@@ -156,6 +156,9 @@ ov_default_scouting_table <- function() {
 #'
 #' `ov_default_click_shortcuts` apply when `using scout_mode = "click"`, and `ov_default_type_shortcuts` apply when `using scout_mode = "type"`
 #'
+#' Shortcuts should be defined in terms of the printable representation of the key (e.g. "a", "$", "H", "Escape", "Enter"). See <https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values> for guidance. Shortcuts can optionally use modifier keys: "Ctrl-x" means pressing the control key and x simultaneously; similarly Alt-x, Meta-x, Shift-x.
+#' Be aware that some keys are hard-coded for specific functionality and might cause problems if you use them as shortcuts (e.g. "Enter", "Tab"), and some keys have browser-level or operating-system-level handling that cannot be overridden.
+#'
 #' @return A named list
 #'
 #' @export
@@ -170,9 +173,8 @@ ov_default_shortcuts <- function(scout_mode = "click") {
     scout_mode <- match.arg(scout_mode, c("click", "type"))
     if (scout_mode == "click") {
         list(hide_popup = c("z", "Z"),
-             pause = c("q", "0"),
-             pause_no_popup = c("Q"),
-             ##go_to_time = c("g", "G", "#"), ## moved to playstable_shortcuts
+             pause = c("q", "0", "Escape"),
+             pause_no_popup = c("Q", "Alt-Escape"),
              undo = c("u", "U"),
              switch_video = c("s"),
              contact = c("w"), ## TODO reconsider this
@@ -188,28 +190,25 @@ ov_default_shortcuts <- function(scout_mode = "click") {
              video_slower = "<"
              )
     } else {
-        ## shortcuts in typing mode can use modifier keys: Ctrl-x is ctrl and x, ditto Alt-x, Meta-x, Shift-x
-        ## NOTE that the actual key should be lower case here (but not the modifiers Ctrl-, Alt-, Shift-, or Meta-)
         list(hide_popup = c(),
-             pause = "escape",
-             pause_no_popup = "Alt-escape",
-             ##go_to_time = c(), ## moved to playstable_shortcuts
+             pause = "Escape",
+             pause_no_popup = "Alt-Escape",
              undo = "Ctrl-a",
              switch_video = c(),
              contact = c(), ## not used
              video_rewind_1_30 = c(),
              video_rewind_0.1 = c(),
-             video_rewind_2 = "Ctrl-arrowleft",
-             video_rewind_10 = "Alt-arrowleft", ## NB C-A-arrows don't work for some reason, even though at least some C-A-otherkeys do
+             video_rewind_2 = "Ctrl-ArrowLeft",
+             video_rewind_10 = "Alt-ArrowLeft", ## NB C-A-arrows don't work for some reason, even though at least some C-A-otherkeys do
              video_forward_1_30 = c(),
              video_forward_0.1 = c(),
-             video_forward_2 = "Ctrl-arrowright",
-             video_forward_10 = "Alt-arrowright",
+             video_forward_2 = "Ctrl-ArrowRight",
+             video_forward_10 = "Alt-ArrowRight",
              video_faster = c(),
              video_slower = c(),
-             assign_point_top = "Ctrl-arrowup",
-             assign_point_bottom = "Ctrl-arrowdown",
-             switch_windows = "tab",
+             assign_point_top = "Ctrl-ArrowUp",
+             assign_point_bottom = "Ctrl-ArrowDown",
+             switch_windows = "Tab",
              save_file = "Ctrl-s"
              )
     }
@@ -221,12 +220,12 @@ ov_default_playstable_shortcuts <- function() {
     ## same default shortcuts regardless of scout mode
     ## shortcuts here can use modifier keys: Ctrl-x is ctrl and x, ditto Alt-x, Meta-x, Shift-x
     ## NOTE that the actual key should be lower case here (but not the modifiers Ctrl-, Alt-, Shift-, or Meta-)
-    list(edit_code = "enter",
-         delete_code = "delete",
-         insert_code = "insert",
-         up = "arrowup",
-         down = "arrowdown",
-         switch_windows = "tab",
+    list(edit_code = "Enter",
+         delete_code = "Delete",
+         insert_code = "Insert",
+         up = "ArrowUp",
+         down = "ArrowDown",
+         switch_windows = "Tab",
          go_to_time = "g"
          )
 }

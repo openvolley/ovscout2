@@ -274,7 +274,19 @@ decode_keypress <- function(k, debug = 0) {
 }
 
 ## takes a decoded keypress object from the preceding function
-key_as_text <- function(k) paste0(if (k$ctrl) "Ctrl-", if (k$alt) "Alt-", if (k$shift) "Shift-", if (k$meta) "Meta-", tolower(k$key))
+## note that prior to 2025-05-04 the key component was converted to lower case, but not so any more
+key_as_text <- function(k) paste0(if (k$ctrl) "Ctrl-", if (k$alt) "Alt-", if (k$shift) "Shift-", if (k$meta) "Meta-", k$key)
+
+## takes a decoded keypress object from `decode_keypress` and a shortcut and returns TRUE if it matches any of the entries in sc
+is_shortcut <- function(k, sc) {
+    as_txt <- key_as_text(k)
+    ## we first look for a match on the full key representation with modifiers (e.g. "Alt-ArrowRight")
+    ## e.g. if sc is "Alt-ArrowRight" and we press just "ArrowRight", don't want a match
+    if (any(as_txt == sc, na.rm = TRUE)) return(TRUE)
+    ## if that fails, look for an exact match in the printed representation (ignoring modifiers, e.g. "$") but only if the shortcut has no modifier
+    sc <- sc[!grepl("(Ctrl|Alt|Shift|Meta)\\-", sc)]
+    any(k$key == sc, na.rm = TRUE)
+}
 
 ## action button that will click itself if you press enter on it, saves handling that keypress elsewhere
 actionButton_with_enter <- function(...) actionButton(..., onKeyDown = "if (event.keyCode == 13) { this.click(); }")

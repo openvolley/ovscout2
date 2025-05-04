@@ -183,7 +183,7 @@ show_shortcuts <- function(app_data) {
         bb <- paste0(sctype, sc) ## the prefix is a horrible hack so that we can distinguish playslist shortcuts from general ones in the edit handler
         sc_list <- if (sctype == "PL") app_data$playstable_shortcuts else if (sctype == "TY") app_data$type_shortcuts else app_data$click_shortcuts
         names(bb) <- if (is.null(sc_list[[sc]])) "no shortcut" else sc_list[[sc]]
-        tags$span(txt, make_fat_buttons(choices = bb, input_var = "scedit", class = "scedit"))
+        tags$span(txt, make_fat_buttons(choices = bb, input_var = "scedit", class = "scedit notuc"))
     }
     showModal(
         vwModalDialog(title = "Keyboard shortcuts", easyClose = FALSE,
@@ -199,17 +199,15 @@ show_shortcuts <- function(app_data) {
                                     tags$li(show_sc("video_rewind_2", "backward 2s"), show_sc("video_rewind_10", "backward 10s"), tags$br(),
                                             show_sc("video_rewind_0.1", "backwards 0.1s"), show_sc("video_rewind_1_30", "backwards 1 frame")),
                                     tags$li(show_sc("pause", "pause video")),
-                                    ##tags$li(show_sc("go_to_time", "go to currently-selected event")), ##^^^ TODO shouldn't this be in PL shortcuts?
-                                    tags$li(show_sc("switch_video", "switch videos (if two available)")),
                                     tags$li(show_sc("video_faster", "increase video playback speed")),
                                     tags$li(show_sc("video_slower", "decrease video playback speed")),
                                     tags$li(show_sc("switch_video", "switch video source (if using two videos)")))),
                      column(4, ## type_shortcuts
-                            tags$p(tags$strong("'Type' mode shortcuts"), tags$br(), "These apply when the cursor is in the scouting input bar when using typing scout mode."),
+                            tags$p(tags$strong("'Type' mode shortcuts"), tags$br(), "These apply when the cursor is in the scouting input bar when using typing scout mode. Don't use ordinary keys as shortcuts here, because they will typically be used during normal typing. Use modified keys (e.g. Ctrl-something, Alt-something)."),
                             tags$ul(tags$li(show_sc("pause", "pause", sctype = "TY")),
                                     tags$li(show_sc("pause_no_popup", "pause (without the admin popup)", sctype = "TY")),
                                     tags$li(show_sc("undo", "undo last rally action", sctype = "TY")),
-                                    tags$li(show_sc("switch_windows", "switch to plays list (typing mode only)", sctype = "TY"))),
+                                    tags$li(show_sc("switch_windows", "switch to plays list", sctype = "TY"))),
                             tags$p("Video controls in 'type' mode"),
                             tags$ul(tags$li(show_sc("video_forward_2", "forward 2s", sctype = "TY"),
                                             show_sc("video_forward_10", "forward 10s", sctype = "TY"), tags$br(),
@@ -220,8 +218,6 @@ show_shortcuts <- function(app_data) {
                                             show_sc("video_rewind_0.1", "backwards 0.1s", sctype = "TY"),
                                             show_sc("video_rewind_1_30", "backwards 1 frame", sctype = "TY")),
                                     tags$li(show_sc("pause", "pause video", sctype = "TY")),
-                                    ##tags$li(show_sc("go_to_time", "go to currently-selected event", sctype = "TY")), ##^^^ TODO shouldn't this be in PL shortcuts?
-                                    tags$li(show_sc("switch_video", "switch videos (if two available)", sctype = "TY")),
                                     tags$li(show_sc("video_faster", "increase video playback speed", sctype = "TY")),
                                     tags$li(show_sc("video_slower", "decrease video playback speed", sctype = "TY")),
                                     tags$li(show_sc("switch_video", "switch video source (if using two videos)", sctype = "TY")))),
@@ -232,8 +228,8 @@ show_shortcuts <- function(app_data) {
                                     tags$li(show_sc("edit_code", "edit selected code", sctype = "PL")),
                                     tags$li(show_sc("delete_code", "delete selected code", sctype = "PL")),
                                     tags$li(show_sc("insert_code", "insert new code above selected row", sctype = "PL")),
-                                    tags$li(show_sc("switch_windows", "switch to scouting bar input (typing mode only)", sctype = "PL"))##,
-                                    ## TODO seek video to time of currently selected event
+                                    tags$li(show_sc("go_to_time", "seek video to the time of the selected row", sctype = "PL")),
+                                    tags$li(show_sc("switch_windows", "switch to scouting bar input (typing mode only)", sctype = "PL"))
                                     )))
             ## none of these are relevant yet
             ##fluidRow(column(6, tags$strong("Keyboard controls"),
