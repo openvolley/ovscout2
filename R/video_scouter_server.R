@@ -427,7 +427,7 @@ ov_scouter_server <- function(app_data) {
                         if (!is.na(game_state$vt_lib2) && game_state$vt_lib2 >= 0 && !is.null(game_state[[paste0("visiting_p", pp)]]) && game_state[[paste0("visiting_p", pp)]] %eq% game_state$vt_lib2) ltxt <- c(ltxt, "Visiting team libero 2 is also listed in the on-court lineup.")
                     }
                 }
-                lineups_ok <- if (length(ltxt)) paste(ltxt, sep = " ") else TRUE
+                lineups_ok <- if (length(ltxt) > 0) paste(ltxt, sep = " ") else TRUE
             }
             courtref_ok <- video_media_ok <- TRUE
             if (app_data$with_video) {
@@ -1848,7 +1848,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$end_of_set_confirm, {
             game_state$set_number <- game_state$set_number + 1L ## should be incremented in this plays2 line
             rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number - 1L, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
-            update_game_state(home_score_start_of_point = 0L, visiting_score_start_of_point = 0L, home_team_end = other_end(game_state$home_team_end)) ## for 5th set, the user can change this if needed via the gui
+            update_game_state(home_score_start_of_point = 0L, visiting_score_start_of_point = 0L, home_team_end = other_end(game_state$home_team_end), set_started = FALSE, rally_started = FALSE) ## for 5th set, the user can change this if needed via the gui
             if ((!app_data$is_beach && game_state$set_number < 5) || (app_data$is_beach && game_state$set_number < 3)) {
                 ## serving team is the one that did not serve first in the previous set
                 temp <- rdata$dvw$plays2[rdata$dvw$plays2$set_number %eq% (game_state$set_number - 1L), ]
@@ -1946,7 +1946,10 @@ ov_scouter_server <- function(app_data) {
                     }
                 } else if (input$c1 %in% c("B#")) {
                     ## for block kill and "actual" end convention, the end point should be the net (block) location or the ball landing location. In either of these cases we'll use mid_xy as the block location
-                    if (rdata$options$end_convention %eq% "actual") mid_xy <- infer_mid_coords(game_state = game_state)
+                    if (rdata$options$end_convention %eq% "actual") {
+                        mid_xy <- infer_mid_coords(game_state = game_state)
+                        game_state$midxy_valid <- !any(is.na(mid_xy))
+                    }
                 }
                 ## for block fault B/ it isn't clear what the scout will have entered for the attack end point, so leave mid_xy as NA
             }
@@ -2242,6 +2245,7 @@ ov_scouter_server <- function(app_data) {
                     ## aPR
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                     rally_state("click attack end point")
+                    game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                 }
             }
             if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
@@ -2561,6 +2565,7 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(input$substitution)) show_substitution_pane()
         })
         show_substitution_pane <- function(sub_code) {
+            do_video("pause")
             if (missing(sub_code)) sub_code <- isolate(input$substitution)
             show_substitution_modal(sub_code = sub_code, game_state = game_state, dvw = rdata$dvw)
         }
