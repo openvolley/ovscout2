@@ -1092,38 +1092,69 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling, key_i
         pid
     }
 
-    observeEvent(input$ht_add_player_button, do_add_ht_player())
-    do_add_ht_player <- function() {
-        chk <- list(input$ht_new_id, input$ht_new_number, input$ht_new_lastname, input$ht_new_firstname)
-        if (!any(vapply(chk, is_nnn, FUN.VALUE = TRUE))) {
+    observeEvent(input$ht_add_player_button, do_add_player(hv = "h"))
+    do_add_player <- function(newvals, hv) {
+        hv <- match.arg(hv, c("h", "v"))
+        if (missing(newvals)) {
+            newvals <- if (hv == "h") {
+                           list(id = input$ht_new_id, number = input$ht_new_number, lastname = input$ht_new_lastname, firstname = input$ht_new_firstname, role = input$ht_new_role)
+                       } else {
+                           list(id = input$vt_new_id, number = input$vt_new_number, lastname = input$vt_new_lastname, firstname = input$vt_new_firstname, role = input$vt_new_role)
+                       }
+        }
+        if (!any(vapply(newvals[c("id", "number", "lastname", "firstname")], is_nnn, FUN.VALUE = TRUE)) && !(nzchar(str_trim(newvals$number)) && is.na(suppressWarnings(as.numeric(newvals$number))))) {
+            ## don't proceed if the number is non-empty but invalid (not numeric) or any of the id, number, lastname, firstname is NA or NULL (but can be empty)
             try({
-                newpid <- auto_player_id(input$ht_new_id, input$ht_new_lastname, input$ht_new_firstname, hv = "h")
-                newrow <- tibble(number = as.numeric(input$ht_new_number), player_id = newpid, lastname = input$ht_new_lastname, firstname = input$ht_new_firstname, role = if (nzchar(input$ht_new_role)) input$ht_new_role else NA_character_, special_role = if (input$ht_new_role %eq% "libero") "L" else NA_character_) %>% ##(if (nzchar(input$ht_new_special)) input$ht_new_special else NA_character_)
+                newpid <- auto_player_id(newvals$id, newvals$lastname, newvals$firstname, hv = hv)
+                newrow <- tibble(number = as.numeric(newvals$number), player_id = newpid, lastname = newvals$lastname, firstname = newvals$firstname, role = if (nzchar(newvals$role)) newvals$role else NA_character_, special_role = if (newvals$role %eq% "libero") "L" else NA_character_) %>% ##(if (nzchar(newvals$special)) newvals$special else NA_character_)
                     mutate(name = paste(.data$firstname, .data$lastname))
-                temp <- bind_rows(htdata_edit(), newrow) %>% dplyr::arrange(.data$number)
-                retain_scroll(ns("ht_edit_team"))
-                htdata_edit(temp)
+                temp <- bind_rows(if (hv == "h") htdata_edit() else vtdata_edit(), newrow) %>% dplyr::arrange(.data$number)
+                if (hv == "h") {
+                    retain_scroll(ns("ht_edit_team"))
+                    htdata_edit(temp)
+                } else {
+                    retain_scroll(ns("vt_edit_team"))
+                    vtdata_edit(temp)
+                }
                 ## clear inputs
-                updateTextInput(session, "ht_new_number", value = "")
-                updateTextInput(session, "ht_new_id", value = "")
-                updateTextInput(session, "ht_new_lastname", value = "")
-                updateTextInput(session, "ht_new_firstname", value = "")
-                updateSelectInput(session, "ht_new_role", selected = "")
-                ##updateSelectInput(session, "ht_new_special", selected = "")
+                updateTextInput(session, paste0(hv, "t_new_number"), value = "")
+                updateTextInput(session, paste0(hv, "t_new_id"), value = "")
+                updateTextInput(session, paste0(hv, "t_new_lastname"), value = "")
+                updateTextInput(session, paste0(hv, "t_new_firstname"), value = "")
+                updateSelectInput(session, paste0(hv, "t_new_role"), selected = "")
+                ##updateSelectInput(session, paste0(hv, "t_new_special"), selected = "")
                 ## focus to number box
-                focus_to_element(ns("ht_new_number"))
+                focus_to_element(ns(paste0(hv, "t_new_number")))
             })
         }
     }
+
+    observeEvent(input$add_ht_player_enter, {
+        do_add_player(input$add_ht_player_enter, hv = "h")
+    })
+    observeEvent(input$add_vt_player_enter, {
+        ## parse it
+        do_add_player(input$add_vt_player_enter, hv = "v")
+    })
 
     observeEvent(key_in(), {
         req(key_in())
         if (grepl("team_editor\\-ht_new_", key_in()$id)) {
             ## in one of the new player entry boxes, treat as accept player
-            ## TODO need to force the text in these boxes to be fully propagated first
-            do_add_ht_player()
+            ## need to force the text in these boxes to be fully propagated first, otherwise the player can be added before the updated inputs have propagated into the Shiny session
+            dojs(paste0("Shiny.setInputValue('", ns("add_ht_player_enter"), "', {",
+                        "number: $('#", ns("ht_new_number"), "').val(), ",
+                        "id: $('#", ns("ht_new_id"), "').val(), ",
+                        "lastname: $('#", ns("ht_new_lastname"), "').val(), ",
+                        "firstname: $('#", ns("ht_new_firstname"), "').val(), ",
+                        "role: $('#", ns("ht_new_role"), "').val() });"))
         } else if (grepl("team_editor\\-vt_new_", key_in()$id)) {
-            do_add_vt_player()
+            dojs(paste0("Shiny.setInputValue('", ns("add_vt_player_enter"), "', {",
+                        "number: $('#", ns("vt_new_number"), "').val(), ",
+                        "id: $('#", ns("vt_new_id"), "').val(), ",
+                        "lastname: $('#", ns("vt_new_lastname"), "').val(), ",
+                        "firstname: $('#", ns("vt_new_firstname"), "').val(), ",
+                        "role: $('#", ns("vt_new_role"), "').val() });"))
         }
     })
 
@@ -1181,29 +1212,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling, key_i
             vtdata_edit(temp)
         }
     })
-    observeEvent(input$vt_add_player_button, do_add_vt_player())
-    do_add_vt_player <- function() {
-        chk <- list(input$vt_new_id, input$vt_new_number, input$vt_new_lastname, input$vt_new_firstname)
-        if (!any(vapply(chk, is_nnn, FUN.VALUE = TRUE))) {
-            try({
-                newpid <- auto_player_id(input$vt_new_id, input$vt_new_lastname, input$vt_new_firstname, hv = "v")
-                newrow <- tibble(number = as.numeric(input$vt_new_number), player_id = newpid, lastname = input$vt_new_lastname, firstname = input$vt_new_firstname, role = if (nzchar(input$vt_new_role)) input$vt_new_role else NA_character_, special_role = if (input$vt_new_role %eq% "libero") "L" else NA_character_) %>% ## if (nzchar(input$vt_new_special)) input$vt_new_special else NA_character_)
-                    mutate(name = paste(.data$firstname, .data$lastname))
-                temp <- bind_rows(vtdata_edit(), newrow) %>% dplyr::arrange(.data$number)
-                retain_scroll(ns("vt_edit_team"))
-                vtdata_edit(temp)
-                ## clear inputs
-                updateTextInput(session, "vt_new_number", value = "")
-                updateTextInput(session, "vt_new_id", value = "")
-                updateTextInput(session, "vt_new_lastname", value = "")
-                updateTextInput(session, "vt_new_firstname", value = "")
-                updateSelectInput(session, "vt_new_role", selected = "")
-                ##updateSelectInput(session, "vt_new_special", selected = "")
-                ## focus to number box
-                focus_to_element(ns("vt_new_number"))
-            })
-        }
-    }
+    observeEvent(input$vt_add_player_button, do_add_player(hv = "v"))
     observeEvent(input$vt_faststart_players, {
         num_to_add <- setdiff(1:99, vtdata_edit()$number)
         newrows <- tibble(number = num_to_add, player_id = paste0("VIS-P", ldz2(.data$number)), lastname = paste0("Visiting", ldz2(.data$number)), firstname = "Player", role = NA_character_, special_role = NA_character_) %>%
