@@ -149,7 +149,8 @@ ov_scouter_server <- function(app_data) {
 
         ## match, team, and lineup data editing
         match_data_edit_mod <- callModule(mod_match_data_edit, id = "match_data_editor", rdata = rdata, editing = editing, app_data = app_data)
-        team_edit_mod <- callModule(mod_team_edit, id = "team_editor", rdata = rdata, editing = editing, styling = app_data$styling)
+        team_edit_key_in <- reactiveVal(NULL)
+        team_edit_mod <- callModule(mod_team_edit, id = "team_editor", rdata = rdata, editing = editing, styling = app_data$styling, key_in = team_edit_key_in)
         team_select_mod <- callModule(mod_team_select, id = "team_selector", rdata = rdata, editing = editing, app_data = app_data)
         lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, video_state = video_state, styling = app_data$styling)
 
@@ -540,6 +541,8 @@ ov_scouter_server <- function(app_data) {
                             ## TODO we might have another race condition here where the text input does not update in the shiny server in time TODO CHECK
                             focus_to_modal_element("redit_ok", highlight_all = FALSE)
                             apply_rally_review(editing = editing, rally_codes = rally_codes, game_state = game_state, input = input, rdata = rdata, app_data = app_data)
+                        } else if (!is.null(editing$active) && editing$active %eq% "teams") {
+                            team_edit_key_in(c(k, list(blah = R.utils::System$currentTimeMillis()))) ## add timestamp to ensure every event is a unique trigger, not sure if this is actually needed?
                         } else if (!is.null(editing$active) && !editing$active %eq% "teams") {
                             ## if editing, treat as update
                             ## but not for team editing, because pressing enter in the DT fires this too

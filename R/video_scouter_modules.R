@@ -924,7 +924,7 @@ mod_team_edit_ui <- function(id) {
     actionButton(ns("edit_teams_button"), "Edit teams", icon = icon("users"), class = "leftbut")
 }
 
-mod_team_edit <- function(input, output, session, rdata, editing, styling) {
+mod_team_edit <- function(input, output, session, rdata, editing, styling, key_in) {
     ns <- session$ns
     htdata_edit <- reactiveVal(NULL)
     vtdata_edit <- reactiveVal(NULL)
@@ -1003,7 +1003,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
     team_data_add_role_pickers <- function(z, hv) {
         hv <- match.arg(hv, c("h", "v")) ## hv should be "h" or "v"
         z$role_pick <- sapply(seq_len(nrow(z)), function(i) {
-            this <- selectInput(inputId = ns(paste0(hv, "_role_", i)), label = NULL, choices = role_choices, selected = z$role[i])
+            this <- selectInput(inputId = ns(paste0(hv, "_role_", i)), label = NULL, choices = c("", role_choices), selected = if (z$role[i] %in% role_choices) z$role[i] else "unknown")
             this <- as.character(add_onchange_to_select(this, onchange = paste0("Shiny.setInputValue('", ns("rolepicker"), "', {'id': this.id, 'value': this.value }, { priority: 'event' });")))
         })
         z
@@ -1069,14 +1069,17 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
             htdata_edit(temp)
         }
     })
-    observe({
-        ## fill in player ID automatically
-        if (!is.null(input$ht_new_id) && !is.null(input$ht_new_lastname) && !is.null(input$ht_new_firstname) &&
-            !nzchar(input$ht_new_id) && nzchar(input$ht_new_lastname) && nzchar(input$ht_new_firstname)) {
-            pid <- toupper(paste0(substr(input$ht_new_lastname, 1, 3), "-", substr(input$ht_new_firstname, 1, 3)))
-            ## check that this is unique
-            isolate({
-                if (pid %in% htdata_edit()$player_id) {
+    auto_player_id <- function(new_id, new_lastname, new_firstname, hv) {
+        pid <- new_id
+        isolate({
+            if (!is.null(new_id) && !is.null(new_lastname) && !is.null(new_firstname) &&
+                !nzchar(new_id) && nzchar(new_lastname) && nzchar(new_firstname)) {
+                pid <- toupper(paste0(substr(gsub("[[:punct:]]+", "", new_lastname), 1, 3),
+                                      "-",
+                                      substr(gsub("[[:punct:]]+", "", new_firstname), 1, 3)))
+                ## check that this is unique
+                curr <- if (hv == "h") htdata_edit() else vtdata_edit()
+                if (pid %in% curr$player_id) {
                     pid0 <- pid
                     for (ii in 1:9) {
                         pid <- paste0(pid0, ii)
@@ -1084,31 +1087,18 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                     }
                     if (pid %in% htdata_edit()$player_id) pid <- "" ## can't figure it out
                 }
-            })
-            updateTextInput(session, "ht_new_id", value = pid)
-        }
-        if (!is.null(input$vt_new_id) && !is.null(input$vt_new_lastname) && !is.null(input$vt_new_firstname) &&
-            !nzchar(input$vt_new_id) && nzchar(input$vt_new_lastname) && nzchar(input$vt_new_firstname)) {
-            pid <- toupper(paste0(substr(input$vt_new_lastname, 1, 3), "-", substr(input$vt_new_firstname, 1, 3)))
-            ## check that this is unique
-            isolate({
-                if (pid %in% vtdata_edit()$player_id) {
-                    pid0 <- pid
-                    for (ii in 1:9) {
-                        pid <- paste0(pid0, ii)
-                        if (!pid %in% vtdata_edit()$player_id) break
-                    }
-                    if (pid %in% vtdata_edit()$player_id) pid <- "" ## can't figure it out
-                }
-            })
-            updateTextInput(session, "vt_new_id", value = pid)
-        }
-    })
-    observeEvent(input$ht_add_player_button, {
+            }
+        })
+        pid
+    }
+
+    observeEvent(input$ht_add_player_button, do_add_ht_player())
+    do_add_ht_player <- function() {
         chk <- list(input$ht_new_id, input$ht_new_number, input$ht_new_lastname, input$ht_new_firstname)
         if (!any(vapply(chk, is_nnn, FUN.VALUE = TRUE))) {
             try({
-                newrow <- tibble(number = as.numeric(input$ht_new_number), player_id = input$ht_new_id, lastname = input$ht_new_lastname, firstname = input$ht_new_firstname, role = if (nzchar(input$ht_new_role)) input$ht_new_role else NA_character_, special_role = if (input$ht_new_role %eq% "libero") "L" else NA_character_) %>% ##(if (nzchar(input$ht_new_special)) input$ht_new_special else NA_character_)
+                newpid <- auto_player_id(input$ht_new_id, input$ht_new_lastname, input$ht_new_firstname, hv = "h")
+                newrow <- tibble(number = as.numeric(input$ht_new_number), player_id = newpid, lastname = input$ht_new_lastname, firstname = input$ht_new_firstname, role = if (nzchar(input$ht_new_role)) input$ht_new_role else NA_character_, special_role = if (input$ht_new_role %eq% "libero") "L" else NA_character_) %>% ##(if (nzchar(input$ht_new_special)) input$ht_new_special else NA_character_)
                     mutate(name = paste(.data$firstname, .data$lastname))
                 temp <- bind_rows(htdata_edit(), newrow) %>% dplyr::arrange(.data$number)
                 retain_scroll(ns("ht_edit_team"))
@@ -1124,7 +1114,19 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 focus_to_element(ns("ht_new_number"))
             })
         }
+    }
+
+    observeEvent(key_in(), {
+        req(key_in())
+        if (grepl("team_editor\\-ht_new_", key_in()$id)) {
+            ## in one of the new player entry boxes, treat as accept player
+            ## TODO need to force the text in these boxes to be fully propagated first
+            do_add_ht_player()
+        } else if (grepl("team_editor\\-vt_new_", key_in()$id)) {
+            do_add_vt_player()
+        }
     })
+
     observeEvent(input$ht_faststart_players, {
         num_to_add <- setdiff(1:99, htdata_edit()$number)
         newrows <- tibble(number = num_to_add, player_id = paste0("HOM-P", ldz2(.data$number)), lastname = paste0("Home", ldz2(.data$number)), firstname = "Player", role = NA_character_, special_role = NA_character_) %>%
@@ -1179,11 +1181,13 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
             vtdata_edit(temp)
         }
     })
-    observeEvent(input$vt_add_player_button, {
+    observeEvent(input$vt_add_player_button, do_add_vt_player())
+    do_add_vt_player <- function() {
         chk <- list(input$vt_new_id, input$vt_new_number, input$vt_new_lastname, input$vt_new_firstname)
         if (!any(vapply(chk, is_nnn, FUN.VALUE = TRUE))) {
             try({
-                newrow <- tibble(number = as.numeric(input$vt_new_number), player_id = input$vt_new_id, lastname = input$vt_new_lastname, firstname = input$vt_new_firstname, role = if (nzchar(input$vt_new_role)) input$vt_new_role else NA_character_, special_role = if (input$vt_new_role %eq% "libero") "L" else NA_character_) %>% ## if (nzchar(input$vt_new_special)) input$vt_new_special else NA_character_)
+                newpid <- auto_player_id(input$vt_new_id, input$vt_new_lastname, input$vt_new_firstname, hv = "v")
+                newrow <- tibble(number = as.numeric(input$vt_new_number), player_id = newpid, lastname = input$vt_new_lastname, firstname = input$vt_new_firstname, role = if (nzchar(input$vt_new_role)) input$vt_new_role else NA_character_, special_role = if (input$vt_new_role %eq% "libero") "L" else NA_character_) %>% ## if (nzchar(input$vt_new_special)) input$vt_new_special else NA_character_)
                     mutate(name = paste(.data$firstname, .data$lastname))
                 temp <- bind_rows(vtdata_edit(), newrow) %>% dplyr::arrange(.data$number)
                 retain_scroll(ns("vt_edit_team"))
@@ -1199,7 +1203,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling) {
                 focus_to_element(ns("vt_new_number"))
             })
         }
-    })
+    }
     observeEvent(input$vt_faststart_players, {
         num_to_add <- setdiff(1:99, vtdata_edit()$number)
         newrows <- tibble(number = num_to_add, player_id = paste0("VIS-P", ldz2(.data$number)), lastname = paste0("Visiting", ldz2(.data$number)), firstname = "Player", role = NA_character_, special_role = NA_character_) %>%
