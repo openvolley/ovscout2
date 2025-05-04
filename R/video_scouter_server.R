@@ -3006,7 +3006,7 @@ ov_scouter_server <- function(app_data) {
             } else {
                 this_sc <- sub("^(PL|TY|CL)", "", input$scedit)
                 showModal(vwModalDialog(title = "Modify Keyboard shortcut", easyClose = FALSE, width = "50%", class = "scedit-modal", footer = NULL,
-                                        tags$h4("Shortcut for:", this_sc, if (sctype == "PL") " (in plays list)" else if (sctype == "TY") " (in 'type' mode)" else " in 'click' mode"),
+                                        tags$h4("Shortcut for:", sub("@.*", "", this_sc), if (sctype == "PL") " (in plays list)" else if (sctype == "TY") " (in 'type' mode)" else " in 'click' mode"),
                                         uiOutput("scedit_out"),
                                         tags$hr(),
                                         fixedRow(column(2, actionButton("scedit_cancel", "Cancel", class = "cancel fatradio")),
@@ -3015,8 +3015,15 @@ ov_scouter_server <- function(app_data) {
                 output$scedit_out <- renderUI({
                     this_sc <- sub("^(PL|TY|CL)", "", input$scedit)
                     sctype <- substr(input$scedit, 1, 2) ##if (grepl("^PL", input$scedit)) "PL" else ""
-                    cat("out this_sc is:", cstr(this_sc), "\n")
-                    tags$code(app_data[[if (sctype == "PL") "playstable_shortcuts" else if (sctype == "TY") "type_shortcuts" else "click_shortcuts"]][[this_sc]])
+                    if (grepl("@", this_sc)) {
+                        ## this was a shortcut with multiple keys assigned
+                        scnum <- as.numeric(sub(".*@", "", this_sc))
+                        this_sc <- sub("@.*", "", this_sc)
+                    } else {
+                        scnum <- 1
+                    }
+                    cat("out this_sc is: ", cstr(this_sc), ", scnum is:", scnum, "\n", sep = "")
+                    tags$code(app_data[[if (sctype == "PL") "playstable_shortcuts" else if (sctype == "TY") "type_shortcuts" else "click_shortcuts"]][[this_sc]][scnum])
                 })
             }
         })
@@ -3029,8 +3036,15 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(sc_to_edit()) && !is.null(sc_newvalue())) {
                 this_sc <- sub("^(PL|TY|CL)", "", sc_to_edit())
                 this_sclist <- if (grepl("^PL", sc_to_edit())) "playstable_shortcuts" else if (grepl("^TY", sc_to_edit())) "type_shortcuts" else "click_shortcuts"
-                cat("setting app_data$", this_sclist, "$", this_sc, " to: ", sc_newvalue(), "\n", sep = "")
-                app_data[[this_sclist]][[this_sc]] <<- sc_newvalue()
+                if (grepl("@", this_sc)) {
+                    ## this was a shortcut with multiple keys assigned
+                    scnum <- as.numeric(sub(".*@", "", this_sc))
+                    this_sc <- sub("@.*", "", this_sc)
+                } else {
+                    scnum <- 1
+                }
+                cat("setting app_data$", this_sclist, "$", this_sc, "[", scnum, "] to: ", sc_newvalue(), "\n", sep = "")
+                app_data[[this_sclist]][[this_sc]][scnum] <<- sc_newvalue()
             }
             ## TODO transfer these to the active app_data$shortcuts object
             ## TODO save to prefs file

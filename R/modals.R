@@ -182,6 +182,8 @@ show_shortcuts <- function(app_data) {
         ## sctype is CL for click mode, TY for typing mode, PL for playslist shortcuts
         bb <- paste0(sctype, sc) ## the prefix is a horrible hack so that we can distinguish playslist shortcuts from general ones in the edit handler
         sc_list <- if (sctype == "PL") app_data$playstable_shortcuts else if (sctype == "TY") app_data$type_shortcuts else app_data$click_shortcuts
+        ## if we have multiple shortcuts, number them by "@n" suffix
+        if (length(sc_list[[sc]]) > 1) bb <- paste0(rep(bb, length(sc_list[[sc]])), "@", seq_len(length(sc_list[[sc]])))
         names(bb) <- if (is.null(sc_list[[sc]])) "no shortcut" else sc_list[[sc]]
         tags$span(txt, make_fat_buttons(choices = bb, input_var = "scedit", class = "scedit notuc"))
     }
