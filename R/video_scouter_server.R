@@ -144,7 +144,12 @@ ov_scouter_server <- function(app_data) {
         editing <- reactiveValues(active = NULL)
 
         observeEvent(input$playback_rate, {
-            if (!is.null(input$playback_rate)) do_video("playback_rate", input$playback_rate)
+            if (!is.null(input$playback_rate)) {
+                do_video("playback_rate", input$playback_rate)
+                app_data$play_overlap <- max(app_data$play_overlap0, app_data$play_overlap * input$playback_rate)
+            } else {
+                app_data$play_overlap <- app_data$play_overlap0
+            }
         })
 
         ## match, team, and lineup data editing
@@ -1279,7 +1284,7 @@ ov_scouter_server <- function(app_data) {
                     ## video time might not have resolved yet if it is coming from the asynchronous handler, so add it after next click
                     rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     update_game_state(current_team = other(game_state$serving), rally_started = TRUE, set_started = TRUE)
-                    rally_state("click serve end")
+                    rally_state("click serve end") ## no rewind on this
                 } else if (rally_state() == "click serve end") {
                     do_video("pause")
                     ## click was the end-of-serve position, either error or reception
@@ -1388,7 +1393,7 @@ ov_scouter_server <- function(app_data) {
                         ## note that the position gets assigned to the start coordinates, but end zone/subzone
                         rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = guessed_setter, skill = "E", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                         rally_state("click third contact")
-                        do_video("play")
+                        do_video("play") ## no rewind on shift-click
                     } else {
                         ## current phase
                         ph <- if (nrow(rally_codes()) > 0) tail(make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)$phase, 1) else NA_character_
@@ -1624,7 +1629,7 @@ ov_scouter_server <- function(app_data) {
                         }
                         rally_codes(rc)
                         rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
-                        do_video("play")
+                        do_video("play") ## no rewind on shift-click
                     }  else {
                         accept_fun("do_assign_c1")
                         show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = app_data$styling$scout_modal_width, modal_halign = "left",

@@ -1287,7 +1287,10 @@ do_video_inner <- function(what, ..., video_state, rally_state, app_data, sessio
             if (rally_state() == "click serve start") rally_state(app_data$click_to_start_msg)
             TRUE ## paused state
         } else if (what == "play") {
-            dojs(paste0(getel, ".play(); pause_on_type = ", app_data$pause_on_type, ";")) ## re-enable, it would have been disabled while the modal was showing
+            dojs(paste0(
+                if (isTRUE(myargs$with_rewind)) paste0(getel, ".currentTime(", getel, ".currentTime() - ", app_data$play_overlap, ");"),
+                getel, ".play();",
+                "pause_on_type = ", app_data$pause_on_type, ";")) ## re-enable, it would have been disabled while the modal was showing
             video_state$paused <- FALSE
             if (rally_state() == app_data$click_to_start_msg) rally_state("click serve start")
             FALSE ## not paused state

@@ -67,6 +67,10 @@ startup_app_data <- function(app_data, session) {
         app_data$shortcuts <- app_data$click_shortcuts ## this is the active set
     }
     app_data$click_to_start_msg <- paste0(if (app_data$scout_mode != "type") "click or ", "unpause the video to start") ## this is a bit unnecessary since the rally state message isn't shown in type mode
+
+    ## app_data$play_overlap gives the duration (in seconds) to rewind the video after entering data. We'll scale this by the video replay speed, so keep the original setting
+    app_data$play_overlap0 <- app_data$play_overlap
+
     app_data
 }
 
