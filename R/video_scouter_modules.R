@@ -39,30 +39,35 @@ mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE) {
 
 mod_courtrot2_ui <- function(id, styling) {
     ns <- NS(id)
-    tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;} .crhbut { background-color:", styling$h_court_colour, "; margin-top:2px; } .crhbut:hover, .crhbut:active { margin-top:2px; background-color:", styling$h_court_light_colour, "; } .crvbut { background-color:", styling$v_court_colour, "; margin-top:2px; } .crvbut:hover, .crvbut:active { margin-top:2px; background-color:", styling$v_court_light_colour, "; }"))),
+    jsns <- ns4js(ns)
+    tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;} .crbut, .crbut:hover { font-size:11px; padding:4px; } .crhbut { background-color:", styling$h_court_colour, "; margin-top:2px; } .crhbut:hover, .crhbut:active { margin-top:2px; background-color:", styling$h_court_light_colour, "; } .crvbut { background-color:", styling$v_court_colour, "; margin-top:2px; } .crvbut:hover, .crvbut:active { margin-top:2px; background-color:", styling$v_court_light_colour, "; }"))),
             tags$div(style = "border-radius: 4px; padding: 4px;",
                      fluidRow(
                      column(2,
-                            actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")), class = "crhbut", title = "Rotate"),
-                            actionButton(ns("p1pt_home"), tags$span("Home", tags$br(), icon("plus")), class = "crhbut", title = "+1 point"),
-                            actionButton(ns("m1pt_home"), tags$span("Home", tags$br(), icon("minus")), class = "crhbut", title = "-1 point"),
-                            actionButton(ns("timeout_home"), tags$span("Home", tags$br(), icon("t")), class = "crhbut", title = "Timeout"),
-                            actionButton(ns("substitution_home"), tags$span("Home", tags$br(), icon("right-left")), class = "crhbut", title = "Substitution")
+                            actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")), class = "crbut crhbut", title = "Rotate"),
+                            actionButton(ns("p1pt_home"), tags$span("Home", tags$br(), icon("plus")), class = "crbut crhbut", title = "+1 point"),
+                            actionButton(ns("m1pt_home"), tags$span("Home", tags$br(), icon("minus")), class = "crbut crhbut", title = "-1 point"),
+                            actionButton(ns("timeout_home"), tags$span("Home", tags$br(), icon("t")), class = "crbut crhbut", title = "Timeout"),
+                            actionButton(ns("substitution_home"), tags$span("Home", tags$br(), icon("right-left")), class = "crbut crhbut", title = "Substitution")
                          ),
-                     column(8, plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:46vh; width:36vh;")),
+                     column(7, id = ns("court_inset_holder"), plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:46vh; width:100%;")),
                      column(2,
-                            actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")), class = "crvbut", title = "Rotate"),
-                            actionButton(ns("p1pt_visiting"), tags$span("Visiting", tags$br(), icon("plus")), class = "crvbut", title = "+1 point"),
-                            actionButton(ns("m1pt_visiting"), tags$span("Visiting", tags$br(), icon("minus")), class = "crvbut", title = "-1 point"),
-                            actionButton(ns("timeout_visiting"), tags$span("Visiting", tags$br(), icon("t")), class = "crvbut", title = "Timeout"),
-                            actionButton(ns("substitution_visiting"), tags$span("Visiting", tags$br(), icon("right-left")), class = "crvbut", title = "Substitution")
+                            actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")), class = "crbut crvbut", title = "Rotate"),
+                            actionButton(ns("p1pt_visiting"), tags$span("Visiting", tags$br(), icon("plus")), class = "crbut crvbut", title = "+1 point"),
+                            actionButton(ns("m1pt_visiting"), tags$span("Visiting", tags$br(), icon("minus")), class = "crbut crvbut", title = "-1 point"),
+                            actionButton(ns("timeout_visiting"), tags$span("Visiting", tags$br(), icon("t")), class = "crbut crvbut", title = "Timeout"),
+                            actionButton(ns("substitution_visiting"), tags$span("Visiting", tags$br(), icon("right-left")), class = "crbut crvbut", title = "Substitution")
                      ),
                      ),
                      fluidRow(
                          column(2, offset = 2, actionButton(ns("switch_serving"), HTML("Switch<br />serving team"))),
                          column(1, offset = 4, actionButton(ns("court_inset_swap"), label = tags$span(style = "font-size:150%;", "\u21f5"), class = "iconbut", title = "Flip court diagram")) ## flip court diagram
                      ),
-                     ))
+                     ),
+            tags$script(HTML(paste0("$(document).on('shiny:sessioninitialized', function() {",
+                                    resize_observer(ns("court_inset_holder"), fun = paste0("Shiny.setInputValue('", ns("court_inset_width"), "', $('#", ns("court_inset_holder"), "').width());"), nsfun = jsns, debounce = 100, as = "string"),
+                                    "});")))
+            )
 }
 
 mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, rally_state, current_video_src, styling, with_ball_path = function() FALSE) {
@@ -514,6 +519,16 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
             }
         }
     }
+
+    ## scale the court inset section to maximize screen usage
+    observe({
+        if (is.null(input$court_inset_width) || input$court_inset_width < 1) {
+            dojs(paste0("Shiny.setInputValue('", ns("court_inset_width"), "', $('#", ns("court_inset_holder"), "').width());"))
+            invalidateLater(200)
+        } else {
+            dojs(paste0("$('#", ns("court_inset"), "').height(", round(input$court_inset_width * 4/3), ");"))
+        }
+    })
 
     ## keep track of the digest of the rally_codes() object so that we can trigger the plot update when it has actually changed AND only if we are showing ball coords
     rally_codes_digest <- reactiveVal("")

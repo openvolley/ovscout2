@@ -85,7 +85,7 @@ ov_scouter_ui <- function(app_data) {
                                                    actionButton("show_shortcuts", tags$span(icon("keyboard"), HTML("Keyboard<br />shortcuts")), class = "leftbut"),
                                                    data.step = 7, data.intro = "Set general preferences, and see the keyboard shortcuts.")
                                           )),
-                       column(8 + (app_data$scout_mode == "type"), style = "padding-right:2px;",
+                       column(9 + (app_data$scout_mode == "type"), style = "padding-right:2px;",
                               if (app_data$scout_mode == "type") {
                                   if (app_data$with_video) {
                                       fluidRow(column(7, ov_video_ui_element(app_data, yt)),
@@ -123,7 +123,7 @@ ov_scouter_ui <- function(app_data) {
                                   introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")
                               }
                               ),
-                       column(3 - (app_data$scout_mode == "type"), style = "padding-left:5px; padding-right:5px",
+                       column(2 - (app_data$scout_mode == "type"), style = "padding-left:5px; padding-right:5px",
                               if (app_data$scout_mode != "type") introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
                               uiOutput("problem_ui"),
                               tags$div(id = "code_edit_buttons", style = "height:34px;",
