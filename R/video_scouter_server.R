@@ -2562,7 +2562,7 @@ ov_scouter_server <- function(app_data) {
                 names(other_sp) <- player_nums_to(other_sp, team = game_state$serving, dvw = rdata$dvw)
                 serve_player_buttons <- make_fat_radio_buttons(choices = sort(other_sp), selected = sp, input_var = "serve_preselect_player")
                 ## default serve type is either the most common serve type by this player, or the default serve type
-                st_default <- get_player_serve_type(px = rdata$dvw$plays, serving_player_num = sp, game_state = game_state, opts = rdata$options)
+                st_default <- get_player_serve_type(px2 = rdata$dvw$plays2, serving_player_num = sp, gs = game_state, opts = rdata$options)
                 if (is.na(st_default)) st_default <- default_skill_tempo("S")
                 chc <- rdata$options$skill_tempo_map %>% dplyr::filter(.data$skill == "Serve") %>% mutate(tempo = sub(" serve", "", .data$tempo))
                 chc <- setNames(chc$tempo_code, chc$tempo)

@@ -1,18 +1,22 @@
 ## a player's most common serve type
-## px is a plays object
-get_player_serve_type <- function(px, serving_player_num, game_state, opts) {
-    if (is.null(px)) return(NA_character_)
-    out <- dplyr::select(dplyr::filter(px, .data$skill == "Serve" & .data$team == game_state$serving & .data$player_number == serving_player_num), .data$skill_type)
-    ## reverse-map serve description to code, e.g. Jump serve back to "Q"
-    chc <- dplyr::filter(opts$skill_tempo_map, .data$skill == "Serve")
-    chc <- setNames(chc$tempo_code, chc$tempo)
-    out$stype <- do.call(dplyr::recode, c(list(out$skill_type), as.list(chc)))
-    ## was previously hard-coded
-    ##out <- mutate(out, stype = case_when(.data$skill_type %eq% "Float serve" ~ "H",
-    ##                                     .data$skill_type %eq% "Topspin serve" ~ "T",
-    ##                                     .data$skill_type %eq% "Jump-float serve" ~ "M",
-    ##                                     .data$skill_type %eq% "Jump serve" ~ "Q"))
-    out <- dplyr::arrange(dplyr::count(out, .data$stype), desc(.data$n))
+## px2 is the dvw$plays2 object, or px is a plays object (but if we can, work from plays2, we don't need to build plays from it first)
+get_player_serve_type <- function(px = NULL, px2 = NULL, serving_player_num, gs, opts) {
+    if (is.null(px) && (is.null(px2) || nrow(px2) < 1)) return(NA_character_)
+    if (!missing(px2)) {
+        ## out <- bind_rows(px2$rally_codes) %>% dplyr::filter(.data$skill == "S", .data$team == gs$serving, .data$pnum == serving_player_num) %>% dplyr::rename(stype = "tempo") %>% dplyr::count(.data$stype) %>% dplyr::arrange(desc(.data$n))
+        ## extracting just the vectors we need is faster than bind_rows'ing everything
+        skl <- unlist(sapply(px2$rally_codes, function(z) z$skill))
+        tm <- unlist(sapply(px2$rally_codes, function(z) z$team))
+        pnm <- unlist(sapply(px2$rally_codes, function(z) z$pnum))
+        tmpo <- unlist(sapply(px2$rally_codes, function(z) z$tempo))
+        out <- tibble(stype = tmpo[which(skl == "S" & tm == gs$serving & pnm == serving_player_num)]) %>% dplyr::count(.data$stype) %>% dplyr::arrange(desc(.data$n))
+    } else {
+        out <- dplyr::filter(px, .data$skill == "Serve", .data$team == gs$serving, .data$player_number == serving_player_num) %>% dplyr::count(.data$skill_type) %>% dplyr::arrange(desc(.data$n))
+        ## reverse-map serve description to code, e.g. Jump serve back to "Q"
+        chc <- dplyr::filter(opts$skill_tempo_map, .data$skill == "Serve")
+        chc <- setNames(chc$tempo_code, chc$tempo)
+        out$stype <- do.call(dplyr::recode, c(list(out$skill_type), as.list(chc)))
+    }
     if (nrow(out) > 0) out$stype[1] else NA_character_
 }
 
