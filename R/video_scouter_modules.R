@@ -50,7 +50,7 @@ mod_courtrot2_ui <- function(id, styling) {
                             actionButton(ns("timeout_home"), tags$span("Home", tags$br(), icon("t")), class = "crbut crhbut", title = "Timeout"),
                             actionButton(ns("substitution_home"), tags$span("Home", tags$br(), icon("right-left")), class = "crbut crhbut", title = "Substitution")
                          ),
-                     column(7, id = ns("court_inset_holder"), plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "height:46vh; width:100%;")),
+                     column(7, id = ns("court_inset_holder"), plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "aspect-ratio:0.75; width:100%;")),
                      column(2,
                             actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")), class = "crbut crvbut", title = "Rotate"),
                             actionButton(ns("p1pt_visiting"), tags$span("Visiting", tags$br(), icon("plus")), class = "crbut crvbut", title = "+1 point"),
@@ -63,10 +63,7 @@ mod_courtrot2_ui <- function(id, styling) {
                          column(2, offset = 2, actionButton(ns("switch_serving"), HTML("Switch<br />serving team"))),
                          column(1, offset = 4, actionButton(ns("court_inset_swap"), label = tags$span(style = "font-size:150%;", "\u21f5"), class = "iconbut", title = "Flip court diagram")) ## flip court diagram
                      ),
-                     ),
-            tags$script(HTML(paste0("$(document).on('shiny:sessioninitialized', function() {",
-                                    resize_observer(ns("court_inset_holder"), fun = paste0("Shiny.setInputValue('", ns("court_inset_width"), "', $('#", ns("court_inset_holder"), "').width());"), nsfun = jsns, debounce = 100, as = "string"),
-                                    "});")))
+                     )
             )
 }
 
@@ -519,16 +516,6 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
             }
         }
     }
-
-    ## scale the court inset section to maximize screen usage
-    observe({
-        if (is.null(input$court_inset_width) || input$court_inset_width < 1) {
-            dojs(paste0("Shiny.setInputValue('", ns("court_inset_width"), "', $('#", ns("court_inset_holder"), "').width());"))
-            invalidateLater(200)
-        } else {
-            dojs(paste0("$('#", ns("court_inset"), "').height(", round(input$court_inset_width * 4/3), ");"))
-        }
-    })
 
     ## keep track of the digest of the rally_codes() object so that we can trigger the plot update when it has actually changed AND only if we are showing ball coords
     rally_codes_digest <- reactiveVal("")
