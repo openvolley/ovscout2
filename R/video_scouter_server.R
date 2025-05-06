@@ -1097,7 +1097,7 @@ ov_scouter_server <- function(app_data) {
             flash_screen() ## visual indicator that click has registered
             ## calculate the normalized x,y coords
             this_click <- if (length(input$video_click) > 4) list(x = input$video_click[1] / input$video_click[3], y = 1 - input$video_click[2] / input$video_click[4])
-            if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end"))) {
+            if (!is.null(editing$active) && editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end")) {
                 thisxy <- vid_to_crt(this_click, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data)
                 if (is.null(editing$active) || editing$active %eq% "coord_click_start") {
                     playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
@@ -1140,7 +1140,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(court_inset$click(), {
             if (!is.na(court_inset$click()$x) && !is.na(court_inset$click()$y)) {
                 flash_screen() ## visual indicator that click has registered
-                if (app_data$scout_mode == "type" || (!is.null(editing$active) && editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end"))) {
+                if (!is.null(editing$active) && editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end")) {
                     thisxy <- court_inset$click()
                     if (is.null(editing$active) || editing$active %eq% "coord_click_start") {
                         playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
