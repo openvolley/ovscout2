@@ -219,10 +219,21 @@ rally_ended <- function() {
                                       column(2, offset = 8, actionButton("end_of_set_confirm", "Confirm", class = "continue fatradio")))
                              ), with_review_pane = FALSE)
         do_video("pause")
-        rally_state("confirm end of set")
+        set_rally_state("confirm end of set")
         have_asked_end_of_set(TRUE)
     }
     end_of_set
+}
+
+set_rally_state <- function(what) {
+    if (isTRUE(what %in% c("click serve end", "click freeball end point", "click second contact", "click third contact", "click attack end point"))) {
+        dojs("pause_main_video_on_click = true;")
+    } else {
+        ## "click serve start" "click serve end" "click freeball end point" "click second contact" "click third contact" "click attack end point" "fix required information before scouting can begin" "confirm end of set" app_data$click_to_start_msg
+        dojs("pause_main_video_on_click = false;")
+    }
+    rally_state <- getsv("rally_state")
+    rally_state(what)
 }
 
 do_rally_end_things <- function(game_state, app_data, rdata, rally_codes, rally_state) {
@@ -269,7 +280,7 @@ do_rally_end_things <- function(game_state, app_data, rdata, rally_codes, rally_
             }, error = function(e) warning("could not auto-save file"))
         }
     }
-    rally_state("click serve start")
+    set_rally_state("click serve start")
 }
 
 

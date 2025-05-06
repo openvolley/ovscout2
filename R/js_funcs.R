@@ -80,6 +80,15 @@ build_ovscout2_js <- function(app_data) {
                       player_constructor_js(id = "main_video", app_data = app_data),
                       if (isTRUE(app_data$live)) "vidplayer_near_end_fun();", ## if live, attach the vidplayer_near_end_fun
                       resize_observer("main_video", fun = "$('#video_overlay').css('height', $('#main_video').innerHeight() + 'px'); document.getElementById('video_overlay_canvas').height = $('#main_video').innerHeight(); document.getElementById('video_overlay').style.width = $('#main_video').innerWidth() + 'px'; document.getElementById('video_overlay_canvas').width = $('#main_video').innerWidth(); Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); document.getElementById('video_overlay').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px'; document.getElementById('video_overlay_canvas').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px';", debounce = 100, as = "string"), ";",
+                      "pause_main_video_on_click = false;",
+                      if (app_data$scout_mode != "type") {
+                          paste0("$('#video_overlay').on('click', () => {",
+                                 "    if (pause_main_video_on_click) {",
+                                 "        vidplayer.pause();",
+                                 "        pause_on_type = 0;",
+                                 "    }",
+                                 "});")
+                      },
                       ## vidplayer.on('loadedmetadata', () => { console.log('METADATA READY'); }); vidplayer.on('ready', () => { console.log('ONREADY') });
                       "});", sep = "\n")
     }
