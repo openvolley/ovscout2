@@ -9,7 +9,8 @@ get_player_serve_type <- function(px = NULL, px2 = NULL, serving_player_num, gs,
         tm <- unlist(sapply(px2$rally_codes, function(z) z$team))
         pnm <- unlist(sapply(px2$rally_codes, function(z) z$pnum))
         tmpo <- unlist(sapply(px2$rally_codes, function(z) z$tempo))
-        out <- tibble(stype = tmpo[which(skl == "S" & tm == gs$serving & pnm == serving_player_num)]) %>% dplyr::count(.data$stype) %>% dplyr::arrange(desc(.data$n))
+        out <- tibble(stype = tmpo[which(skl == "S" & tm == gs$serving & pnm == serving_player_num)])
+        if (nrow(out) > 0) out <- out %>% dplyr::count(.data$stype) %>% dplyr::arrange(desc(.data$n))
     } else {
         out <- dplyr::filter(px, .data$skill == "Serve", .data$team == gs$serving, .data$player_number == serving_player_num) %>% dplyr::count(.data$skill_type) %>% dplyr::arrange(desc(.data$n))
         ## reverse-map serve description to code, e.g. Jump serve back to "Q"
