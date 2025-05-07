@@ -378,9 +378,9 @@ transfer_scout_row_details <- function(from, to, tempo = TRUE, num_p = TRUE, pos
         }
         if (pos) {
             if ((from$skill %eq% "S" && to$skill %eq% "R") || (from$skill %eq% "R" && to$skill %eq% "S")) {
-                to$start_zone <- from$start_zone
-                to$end_zone <- from$end_zone
-                to$end_subzone <- from$end_subzone
+                to$sz <- from$sz
+                to$ez <- from$ez
+                to$esz <- from$esz
             }
             ## dig location could in principle come from attack end location but that depends on whether the file is using zones or cones
             ##  and also whether the scout is scouting attacks with intended direction (end zone) or actual (after deflection off block)

@@ -354,7 +354,7 @@ ov_scouter_server <- function(app_data) {
                             newrc <- bind_rows(lapply(ptemp, function(temp) {
                                 if (!is.null(temp)) {
                                     ## should not be NULL, that's only for non-skill rows
-                                    code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, start_zone_valid = TRUE, endxy_valid = TRUE, t = insert_video_time, time = insert_clock_time, rally_state = insert_rs, game_state = gs, default_scouting_table = rdata$options$default_scouting_table)
+                                    code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, x_type = temp$x_type, num_p = temp$num_p, special = temp$special, custom = temp$custom, start_zone_valid = TRUE, endxy_valid = TRUE, t = insert_video_time, time = insert_clock_time, rally_state = insert_rs, game_state = gs, default_scouting_table = rdata$options$default_scouting_table)
                                 }
                             }))
                             ## TODO check row updating here
@@ -803,7 +803,7 @@ ov_scouter_server <- function(app_data) {
                         if (!is.null(temp)) {
                             ## should not be NULL, that's only for non-skill rows
                             rc <- rally_codes()
-                            newrc <- code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, start_zone_valid = TRUE, endxy_valid = TRUE, t = this_video_time, time = this_clock_time, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)
+                            newrc <- code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, x_type = temp$x_type, num_p = temp$num_p, special = temp$special, custom = temp$custom, start_zone_valid = TRUE, endxy_valid = TRUE, t = this_video_time, time = this_clock_time, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)
                             ## update the preceding rally_codes rows if new info has been provided
                             prev_touch <- NULL
                             nrc <- nrow(rc)
