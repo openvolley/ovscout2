@@ -15,6 +15,17 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
     plays_do_rename <- function(z) names_first_to_capital(dplyr::rename(z, plays_cols_renames))
     selected_row <- reactiveVal(NULL)
 
+    ## we want a copy of rdata$dvw$plays that doesn't get invalidated every time rdata$dvw gets invalidated (this is the actual reactive object)
+    plays_hash <- ""
+    plays_quiet <- reactiveVal(NULL)
+    observe({
+        this_hash <- rlang::hash(rdata$dvw$plays)
+        if (this_hash != plays_hash) {
+            plays_hash <- this_hash
+            plays_quiet(rdata$dvw$plays)
+        }
+    })
+
     js_with_retry <- function(f, need_n_rows = 1, tries = 10) {
         tries_var <- jsns("tries")
         fn_var <- jsns("retryfn")
@@ -102,7 +113,7 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
     }
     select_last <- function(scroll = TRUE) {
         ## helper function to scroll to last row
-        select(nrow(rdata$dvw$plays), scroll = scroll)
+        select(nrow(plays_quiet()), scroll = scroll)
     }
 
     scroll_to <- function(i) {
@@ -116,13 +127,13 @@ mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, pla
     unselect <- function(scroll_to_end = FALSE) {
         selected_row(NULL)
         dojs(paste0("var rows=document.querySelectorAll('#", ns("tbl"), " table tbody tr'); rows.forEach(row => { row.classList.remove('", ns("selected"), "')});"))
-        if (scroll_to_end) scroll_to(nrow(rdata$dvw$plays))
+        if (scroll_to_end) scroll_to(nrow(plays_quiet()))
     }
 
     redraw_select <- reactiveVal("last")
     observe({
-        ## set data initially, and replace it whenever dvw$plays changes
-        set_data(rdata$dvw$plays, selected = isolate(redraw_select()), display_as = display_option())
+        ## set data initially, and replace it whenever plays_quiet() changes
+        set_data(plays_quiet(), selected = isolate(redraw_select()), display_as = display_option())
     })
 
     list(scroll_playslist = scroll_to, current_row = selected_row, select = select, select_last = select_last, unselect = unselect, redraw_select = redraw_select, clicked = was_clicked)
