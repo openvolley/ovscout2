@@ -1033,7 +1033,10 @@ ov_scouter_server <- function(app_data) {
                         rdata$dvw$plays2$rally_codes[[ridx]][[xcol]] <- xy$x
                         rdata$dvw$plays2$rally_codes[[ridx]][[ycol]] <- xy$y
                         rdata$dvw$plays2[[ccol]][ridx] <- dv_xy2index(as.numeric(xy$x), as.numeric(xy$y))
-                        temp_nr <- nrow(rdata$dvw$plays2); temp_skill <- rdata$dvw$plays2$skill ## for checking `around`, below
+                        temp_nr <- nrow(rdata$dvw$plays2)
+                        temp_skill <- sapply(seq_len(temp_nr), function(i) {
+                            if (!is.null(rdata$dvw$plays2$rally_codes[[i]])) rdata$dvw$plays2$rally_codes[[i]]$skill else NA_character_
+                        }) ## for checking `around`, below
                     } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
                         ## editing in the current rally that is not yet part of plays2
                         rc <- rally_codes()
@@ -1045,7 +1048,8 @@ ov_scouter_server <- function(app_data) {
                         rc$game_state[[ridx]][xcol] <- xy$x
                         rc$game_state[[ridx]][ycol] <- xy$y
                         rally_codes(rc)
-                        temp_nr <- nrow(rc); temp_skill <- rc$skill ## for checking `around`, below
+                        temp_nr <- nrow(rc)
+                        temp_skill <- rc$skill ## for checking `around`, below
                     }
                     if (around) {
                         if (isTRUE(temp_skill[ridx] == "S" && ridx < temp_nr && temp_skill[ridx + 1] == "R") ||
