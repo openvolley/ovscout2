@@ -2030,42 +2030,14 @@ ov_scouter_server <- function(app_data) {
                         esz <- as.character(dv_xy2subzone(game_state$end_x, if (isTRUE((game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower"))) 3.55 else 3.45))
                     }
                     rc$x_type[Aidx] <- check_hit_type(input$hit_type) ## update hit type if needed
-                    if (FALSE) {
-                        sz <- rc$sz[Aidx] ## default to existing start zone
-                        if (isTRUE(game_state$startxy_valid)) {
-                            ## update start pos, it may have been edited by the user
-                            if (!rdata$options$attacks_by %eq% "codes") {
-                                ## don't change start zone if using attack combo codes
-                                sz <- as.character(adjusted_backrow_pos(game_state = game_state)$zone) ## preceding skill was attack, so use adjusted zone
-                            }
-                            rc$sz[Aidx] <- sz
-                            rc$start_x[Aidx] <- game_state$start_x
-                            rc$start_y[Aidx] <- game_state$start_y
-                        }
-                        if (isTRUE(game_state$endxy_valid)) {
-                            rc$ez[Aidx] <- esz[1]
-                            rc$esz[Aidx] <- esz[2]
-                            rc$end_x[Aidx] <- game_state$end_x
-                            rc$end_y[Aidx] <- game_state$end_y
-                        }
-                        rc$mid_x[Aidx] <- mid_xy[1]
-                        rc$mid_y[Aidx] <- mid_xy[2]
-                        rc$eval[Aidx] <- eval
-                        if (!is.null(input$attack_error_type)) rc$special[Aidx] <- input$attack_error_type
-                        ##cat("revised A row is: \n"); print(dplyr::glimpse(rc[Aidx, ]))
-                    } else {
-                        ## that can be replaced by
-                        ## update start pos, it may have been edited by the user, but don't change start zone if using attack combo codes
-                        sz <- if (isTRUE(game_state$startxy_valid) && !rdata$options$attacks_by %eq% "codes") {
-                                  as.character(adjusted_backrow_pos(game_state = game_state)$zone) ## preceding skill was attack, so use adjusted zone
-                              } else {
-                                  rc$sz[Aidx] ## keep same
-                              }
-                        temp <- update_code_trow(rc[Aidx, ], eval = eval, sz = sz, ez = esz[1], esz = esz[2], special = if (!is.null(input$attack_error_type)) input$attack_error_type else "~", start_x = game_state$start_x, start_y = game_state$start_y, mid_x = mid_xy[1], mid_y = mid_xy[2], end_x = game_state$end_x, end_y = game_state$end_y, start_zone_valid = TRUE, game_state = game_state)
-                        rc[Aidx, ] <- temp
-                        ##cat("but maybe could be: \n"); print(dplyr::glimpse(temp))
-                        ##cat("all equal?\n"); print(all.equal(rc[Aidx, ], temp))
-                    }
+                    ## update start pos, it may have been edited by the user, but don't change start zone if using attack combo codes
+                    sz <- if (isTRUE(game_state$startxy_valid) && !rdata$options$attacks_by %eq% "codes") {
+                              as.character(adjusted_backrow_pos(game_state = game_state)$zone) ## preceding skill was attack, so use adjusted zone
+                          } else {
+                              rc$sz[Aidx] ## keep same
+                          }
+                    temp <- update_code_trow(rc[Aidx, ], eval = eval, sz = sz, ez = esz[1], esz = esz[2], special = if (!is.null(input$attack_error_type)) input$attack_error_type else "~", start_x = game_state$start_x, start_y = game_state$start_y, mid_x = mid_xy[1], mid_y = mid_xy[2], end_x = game_state$end_x, end_y = game_state$end_y, start_zone_valid = TRUE, game_state = game_state)
+                    rc[Aidx, ] <- temp
                     rally_codes(rc)
                 }
                 ## "current" team here is the digging team
