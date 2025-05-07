@@ -2,13 +2,16 @@
 % Please edit documentation in R/defaults.R
 \name{ov_default_setter_calls_table}
 \alias{ov_default_setter_calls_table}
-\title{Default setter calls table}
+\title{Default setter calls table (where the setter has instructed the middle hitter to run)}
 \usage{
-ov_default_setter_calls_table()
+ov_default_setter_calls_table(data_type = "indoor")
+}
+\arguments{
+\item{data_type}{string: "indoor", "beach". The returned table will be empty for "beach"}
 }
 \value{
 A tibble
 }
 \description{
-Default setter calls table
+Default setter calls table (where the setter has instructed the middle hitter to run)
 }

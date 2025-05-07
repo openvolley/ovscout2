@@ -24,7 +24,18 @@ h2, h3, h4 {font-weight: bold;}
 #c3_other_outer.active { background-color:#d5d5d5; }
 
 
-.fatradio { height:7vh; width:100%; }
+.fatradio { height:7vh; width:100%; padding:3px; }
+.fill-2 { width:45%; margin-left:2px; margin-right:2px; }
+.fill-3 { width:30%; margin-left:2px; margin-right:2px; }
+.fill-4 { width:22.5%; margin-left:2px; margin-right:2px; }
+.fill-5 { width:18%; margin-left:2px; margin-right:2px; }
+.fill-6 { width:15%; margin-left:2px; margin-right:2px; }
+.fill-7 { width:13%; margin-left:2px; margin-right:2px; }
+.fill-8 { width:11.5%; margin-left:2px; margin-right:2px; }
+.fill-9 { width:10%; margin-left:2px; margin-right:2px; }
+.fill-10 { width:9%; margin-left:2px; margin-right:2px; }
+.fill-11 { width:8%; margin-left:2px; margin-right:2px; }
+.fill-12 { width:7.5%; margin-left:2px; margin-right:2px; }
 .scedit { height:auto; width:auto; }
 
 /* buttons in left hand pane */

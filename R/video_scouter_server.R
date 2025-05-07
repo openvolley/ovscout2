@@ -905,6 +905,8 @@ ov_scouter_server <- function(app_data) {
                               nblockers = input$scopts_nblockers,
                               default_nblockers = as.numeric(input$scopts_default_nblockers),
                               transition_sets = input$scopts_transition_sets,
+                              set_quality = input$scopts_set_quality,
+                              setter_calls = input$scopts_setter_calls,
                               attacks_by = input$scopts_attacks_by,
                               zones_cones = input$scopts_zones_cones,
                               team_system = input$scopts_team_system,
@@ -1357,7 +1359,6 @@ ov_scouter_server <- function(app_data) {
                     sxy$start_end <- "start"
                     overlay_points(sxy)
                     ## popup
-                    ## TODO maybe also setter call here
                     ## allow user to override auto-assigned reception quality
                     passq <- guess_pass_quality(game_state, dvw = rdata$dvw)
                     c2_pq_buttons <- make_fat_radio_buttons(choices = c(Overpass = "/", Poor = "-", OK = "!", Good = "+", Perfect = "#"), selected = passq, input_var = "c2_pq")
@@ -1369,6 +1370,16 @@ ov_scouter_server <- function(app_data) {
                         stop("setter for beach")
                         ## choose the player who didn't pass
                     }
+                    ## current phase
+                    ph <- if (nrow(rally_codes()) > 0) tail(make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)$phase, 1) else NA_character_
+                    ## setter calls, if we are using them
+                    c2_sk_buttons <- if (nrow(rdata$options$setter_calls_table) > 0 && ((ph %eq% "Reception" && rdata$options$setter_calls == "reception") || rdata$options$setter_calls == "both")) {
+                                         make_fat_radio_buttons(choices = setNames(rdata$options$setter_calls_table$code,
+                                                                                   paste0(rdata$options$setter_calls_table$description, "<br />(", rdata$options$setter_calls_table$code, ")")),
+                                                                selected = NA, input_var = "c2_sk", class = paste0("fill-", nrow(rdata$options$setter_calls_table)))
+                                     } else {
+                                         NULL
+                                     }
                     ##guessed_setter <- guess_setter_options(pass_quality = passq, game_state = game_state, dvw = rdata$dvw)
                     guessed_setter <- get_setter(game_state) ## setter on court
                     sp <- c(sort(get_players(game_state, dvw = rdata$dvw)), sort(get_liberos(game_state, dvw = rdata$dvw)))
@@ -1395,11 +1406,11 @@ ov_scouter_server <- function(app_data) {
                         set_rally_state("click third contact")
                         do_video("play") ## no rewind on shift-click
                     } else {
-                        ## current phase
-                        ph <- if (nrow(rally_codes()) > 0) tail(make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)$phase, 1) else NA_character_
                         accept_fun("do_assign_c2")
                         show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = app_data$styling$scout_modal_width, modal_halign = "left",
-                                                       do.call(fixedRow, c(list(column(2, tags$strong(paste0(if (ph %eq% "Transition") "Dig" else "Reception", " quality")))), lapply(c2_pq_buttons, function(but) column(1, but)))),
+                                                       do.call(fixedRow, c(list(column(1, style = "text-align:right;", tags$strong(if (ph %eq% "Transition") "Dig" else "Reception", tags$br(), "quality"))),
+                                                                           lapply(c2_pq_buttons, function(but) column(1, but)),
+                                                                           if (length(c2_sk_buttons) > 0) list(column(1, style = "text-align:right;", tags$strong("Setter", tags$br(), "call")), column(5, c2_sk_buttons)))),
                                                        tags$br(), tags$hr(),
                                                        tags$p(tags$strong("Second contact:")),
                                                        do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(if (mcols() < 12) 1 else 2, but))),
@@ -1432,6 +1443,13 @@ ov_scouter_server <- function(app_data) {
                     ## popup
                     ## current phase
                     ph <- if (nrow(rally_codes()) > 0) tail(make_plays2(rally_codes(), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)$phase, 1) else NA_character_
+                    ## set quality of previous contact
+                    do_sq <- isTRUE(rdata$options$set_quality) && isTRUE(ph == "Reception" || rdata$options$transition_sets)
+                    sq_buttons <- if (do_sq) {
+                                      make_fat_radio_buttons(choices = c(Perfect = "#", Good = "+", OK = "!", Poor = "-"), input_var = "c3_sq", selected = NA, class = "setq", as_radio = "blankable")
+                                  } else {
+                                      NULL
+                                  }
                     if (rdata$options$attacks_by %eq% "codes") {
                         atk <- guess_attack(game_state, dvw = rdata$dvw, opts = rdata$options, system = rdata$options$team_system)
                         ac <- atk$code
@@ -1469,7 +1487,7 @@ ov_scouter_server <- function(app_data) {
                         attack_pl_opts <- guess_attack_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     }
                     n_ac <- length(ac)
-                    ## always offer set error option
+                    ## we might not make an attack, it might be a freeball over or set error instead
                     n_ac2 <- 2L
                     ac <- c(ac, "Freeball over" = "F", "Set error" = "E=")
                     if (nrow(rally_codes()) > 0 && tail(rally_codes()$skill, 1) %eq% "E") {
@@ -1477,10 +1495,19 @@ ov_scouter_server <- function(app_data) {
                         n_ac2 <- n_ac2 + 1L
                     }
                     c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aF", "Opp. dig error" = "aF=", "Opp. overpass attack" = "aPR")), input_var = "c3")
+                    ## change the id of the first button (the initially-selected attack code). If the user clicks "Set error" but then clicks a set quality, the set error needs to be de-selected and an attack code chosen. We'll default back to the initial selection in that case, so give it a known ID
+                    c3_buttons[[1]]$attribs$id <- "c3_ac_default"
+                    if (do_sq) {
+                        ## move set error button to sq_buttons so it can be shown alongside them
+                        this <- c3_buttons[[n_ac + 2]] ## the set error button is the (n_ac + 2)th button in c3_buttons
+                        sq_buttons <- c(sq_buttons, list(this))
+                        c3_buttons <- c3_buttons[setdiff(seq_along(c3_buttons), n_ac + 2)]
+                        n_ac2 <- n_ac2 - 1L
+                    }
+                    ## add classes to make the button widths correct
+                    c3_buttons[seq_len(n_ac)] <- lapply(c3_buttons[seq_len(n_ac)], function(b) { b$attribs$class <- paste(b$attribs$class, paste0("fill-", n_ac)); b })
                     fatradio_class_uuids$c3 <- attr(c3_buttons, "class")
-                    hit_type_buttons <- make_fat_radio_buttons(
-                        choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"),
-                        input_var = "hit_type")
+                    hit_type_buttons <- make_fat_radio_buttons(choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"), input_var = "hit_type")
                     fatradio_class_uuids$hit_type <- attr(hit_type_buttons, "class")
                     ap <- sort(attack_pl_opts$choices)
                     names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
@@ -1504,12 +1531,16 @@ ov_scouter_server <- function(app_data) {
                     opp_player_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c3_opp_player")
                     accept_fun("do_assign_c3")
                     show_scout_modal(vwModalDialog(title = "Details: attack or freeball over", footer = NULL, width = app_data$styling$scout_modal_width, modal_halign = "left",
-                                            do.call(fixedRow, c(lapply(c3_buttons[seq_len(n_ac)], function(but) column(1, but)),
-                                                                if (rdata$options$attacks_by %eq% "codes") list(column(1, tags$div(id = "c3_other_outer", pickerInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))))),
+                                            if (do_sq) do.call(fixedRow, c(list(column(1, style = "text-align:right;", tags$strong("Set quality"))),
+                                                                           lapply(sq_buttons, function(z) column(2, z)))),
+                                            if (do_sq) tags$br(),
+                                            fixedRow(column(1, style = "text-align:right;", tags$strong("Attack")),
+                                                     column(10 - (rdata$options$attacks_by %eq% "codes"), c3_buttons[seq_len(n_ac)]),
+                                                     if (rdata$options$attacks_by %eq% "codes") column(1, tags$div(id = "c3_other_outer", pickerInput("c3_other_attack", label = NULL, choices = ac_others, selected = "Choose other", width = "100%")))),
                                             tags$br(),
                                             ## hit type and then the freeball over, set error, setter dump buttons, shift them to the right
-                                            fixedRow(column(1, hit_type_buttons[1]), column(1, hit_type_buttons[2]), column(1, hit_type_buttons[3]),
-                                                     column(2, offset = 2, c3_buttons[n_ac + 1L]), column(2, c3_buttons[n_ac + 2L]), if (n_ac2 > 2) column(2, c3_buttons[n_ac + 3L])),
+                                            fixedRow(column(2, hit_type_buttons[[1]]), column(2, hit_type_buttons[[2]]), column(2, hit_type_buttons[[3]]),
+                                                     column(2, style = "border-left:2px solid #777;", c3_buttons[[n_ac + 1L]]), if (n_ac2 > 1) column(2, c3_buttons[[n_ac + 2L]]), if (n_ac2 > 2) column(2, c3_buttons[[n_ac + 3L]])),
                                             tags$br(),
                                             tags$div(id = "c3_pl_ui", tags$p("by player"), tags$br(),
                                                      do.call(fixedRow, lapply(attacker_buttons, function(but) column(1, but)))
@@ -1548,9 +1579,8 @@ ov_scouter_server <- function(app_data) {
                         input_var = "c1")
                     ## allow the possibility to change the hit type
                     htype <- check_hit_type(input$hit_type) ## the currently-selected hit type, default to "H" if not assigned
-                    hit_type_buttons <- make_fat_radio_buttons(
-                        choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"),
-                        selected = htype, input_var = "hit_type")
+                    hit_type_buttons <- make_fat_radio_buttons(choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"),
+                                                               selected = htype, input_var = "hit_type")
                     fatradio_class_uuids$hit_type <- attr(hit_type_buttons, "class")
                     ae_buttons <- make_fat_radio_buttons(
                         choices = c("Out long" = "O", "Out side" = "S", "In net" = "N", "Net contact" = "I", Antenna = "A", "Other/referee call" = "Z"),
@@ -1804,13 +1834,20 @@ ov_scouter_server <- function(app_data) {
                 dojs("$('#c3_other_outer').addClass('active');")
             }
         })
+        observeEvent(input$c3_sq, {
+            ## if set quality was chosen, can't have set error selected. Choose the first attack option in that case
+            if (!is.null(input$c3_sq) && !is.null(input$c3) && input$c3 %eq% "E=") dojs("$('#c3_a3_default').click()")
+        })
         observeEvent(input$c3, {
             if (!is.null(input$c3)) {
                 ## if an 'other' attack isn't selected, set its style as unselected
                 if (!input$c3 %in% attack_other_opts()) dojs("$('#c3_other_outer').removeClass('active');")
                 if (input$c3 %eq% "E=") {
+                    ## if we choose set error then the set quality should be de-selected
+                    ##dojs("$('#sq_outer button').removeClass('active')")
+                    dojs("$('.setq').removeClass('active')")
                     ## hide the blockers and opposition players selections
-                    js_hide2("c3_bl_ui"); js_hide2("c3_opp_pl_ui")
+                    js_hide2("c3_bl_ui"); js_hide2("c3_opp_pl_ui");
                     ## if we've already scouted the set (i.e. in reception phase, or we are scouting transition sets) then also hide the player selector because it won't be used
                     if (length(rally_codes()$skill) > 0 && tail(rally_codes()$skill, 1) %eq% "E") js_hide2("c3_pl_ui") else js_show2("c3_pl_ui")
                 } else {
@@ -2323,7 +2360,8 @@ ov_scouter_server <- function(app_data) {
             if (input$c2 %in% c("E", "E=", "PP", "P2", "F", "R=")) {
                 sp <- input$c2_player
                 if (input$c2 == "E") {
-                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "E", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
+                    cmb <- if (((ph %eq% "Reception" && rdata$options$setter_calls == "reception") || rdata$options$setter_calls == "both") && !is.null(input$c2_sk)) input$c2_sk else NA ## setter call
+                    rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "E", combo = cmb, ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
                     set_rally_state("click third contact")
                 } else if (input$c2 == "E=") {
                     ## set error
@@ -2335,9 +2373,10 @@ ov_scouter_server <- function(app_data) {
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
                     ## although we use PP and P2 in the R code here, we can use different combo codes in the dvw, following rdata$options$setter_dump_code and rdata$options$second_ball_attack_code
                     trg <- if (input$c2 == "PP") "S" else "~"
-                    ## update target in the preceding set row, if there was one
-                    ##if (tail(rc$skill, 1) == "E") rc$target[nrow(rc)] <- trg
-                    ## these only seem to be populated when setter calls are used TODO
+                    ## update target in the preceding set row, if there was one, and if it has a setter call
+                    ## BUT for click-scouting, we are not inserting a set when there is a setter dump, just the attack code (so we can't record a setter call in that case, either)
+                    ## so this will never happen (until that is changed/resolved)
+                    if (tail(rc$skill, 1) %eq% "E" && !is.na(tail(rc$combo, 1)) && !tail(rc$combo, 1) %eq% "~~") rc$target[nrow(rc)] <- trg
                     cmb <- if (input$c2 == "PP") rdata$options$setter_dump_code else rdata$options$second_ball_attack_code
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = cmb, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     set_rally_state("click attack end point")
@@ -2518,10 +2557,14 @@ ov_scouter_server <- function(app_data) {
                 if (nchar(tempo) != 1) tempo <- "~" ## double-fallback
                 if (nchar(targ) != 1 || targ %eq% "-") targ <- "~"
                 ## update target in the preceding set row, if there was one
-                ##if (tail(rc$skill, 1) == "E") rc$target[nrow(rc)] <- targ
-                ## these only seem to be populated when setter calls are used TODO
-                ## update set tempo
-                if (tail(rc$skill, 1) == "E" && tempo != "~") rc[nrow(rc), ] <- update_code_trow(rc[nrow(rc), ], tempo = tempo, game_state = game_state)
+                if (tail(rc$skill, 1) == "E") {
+                    ## update set tempo, evaluation, and target (if setter call was used)
+                    u_rgs <- list()
+                    if (!is.na(rc$combo[nrow(rc)]) && !rc$combo[nrow(rc)] %eq% "~~" && targ != "~" && !is.na(targ)) u_rgs$target <- targ
+                    if (tempo != "~" & !is.na(tempo)) u_rgs$tempo <- tempo
+                    if (!is.null(input$c3_sq)) u_rgs$eval <- input$c3_sq
+                    if (length(u_rgs) > 0) rc[nrow(rc), ] <- do.call(update_code_trow, c(list(rc[nrow(rc), ], game_state = game_state), u_rgs))
+                }
                 nb <- input$nblockers
                 if (is.null(nb) || !nb %in% 0:3) nb <- "~"
                 rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = ap, skill = "A", tempo = tempo, combo = ac, sz = sz, x_type = if (!is.null(input$hit_type) && input$hit_type %in% c("H", "P", "T")) input$hit_type else "~", num_p = nb, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, start_zone_valid = szvalid, default_scouting_table = rdata$options$default_scouting_table)))

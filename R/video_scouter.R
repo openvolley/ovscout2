@@ -305,9 +305,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     }
 
     ## same with shortcuts
-    
     ## TODO populate shortcuts from saved_opts$click_shortcuts etc
-    
     ## shortcuts for click mode
     click_scts <- ov_default_click_shortcuts()
     for (nm in names(click_shortcuts)) click_scts[[nm]] <- click_shortcuts[[nm]]
@@ -318,8 +316,18 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     pt_scts <- ov_default_playstable_shortcuts()
     for (nm in names(playstable_shortcuts)) pt_scts[[nm]] <- playstable_shortcuts[[nm]]
 
-    ## attack_table in options overrides the one in the file if we started from an empty dvw. Also if we have no attack table, we need one
+    ## attack/setter calls tables in options overrides the ones in the file if we started from an empty dvw. Also if we have no attack/setter call table, we need one
+    ## note that functions like guess_attack_code_prior work from the dvw$meta$attacks table, not from opts
     if (dvw_from_empty || is.null(dvw$meta$attacks)) dvw$meta$attacks <- opts$attack_table
+    if (dvw_from_empty || is.null(dvw$meta$sets)) dvw$meta$sets <- opts$setter_calls_table
+
+    if (nrow(opts$setter_calls_table) > 0 && !all(grepl("^K.$", opts$setter_calls_table$code))) {
+        stop("setter call codes must be two characters Kx")
+    }
+    if (nrow(opts$attack_table) > 0 && !all(nchar(opts$attack_table$code) == 2)) { ## TODO change this to check that the attack combo code starts with allowable character? [XVLPCWYJZ] Q? G?
+        stop("attack combination codes must be two characters")
+    }
+    ## TODO check that the second-ball attack code and the setter dump code appear in the attacks table?
 
     ## finally the shiny app
     app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = with_video, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, scouting_options_file = scouting_opts_file, click_shortcuts = click_scts, type_shortcuts = type_scts, playstable_shortcuts = pt_scts, remapping = key_remapping, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout_name = scout_name, show_courtref = show_courtref, scout_mode = scout_mode)
@@ -515,6 +523,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 #' @param nblockers logical: scout the number of blockers on each attack?
 #' @param default_nblockers integer: if `nblockers` is TRUE, what number of blockers should we default to? If `NA`, no default
 #' @param transition_sets logical: scout sets in transition? If `FALSE`, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted
+#' @param set_quality logical: are we assessing set quality? If `FALSE` sets will be classified as "error", "overpass set", or "positive" for all other sets
 #' @param attacks_by string: "codes" (X5, V5, etc) or "tempo" (high, medium, quick)
 #' @param zones_cones string: record attack directions as "Z"ones or "C"ones (ignored when scouting in 'click' mode, which always uses zones. But after click-scouting you can export your dvw with attack directions as cones, if you wish)
 #' @param team_system string: the assumed system that teams are using to assign e.g. passing and hitting responsibilities
@@ -525,22 +534,32 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 #' @param default_scouting_table tibble: the table of scouting defaults (skill type and evaluation)
 #' @param compound_table tibble: the table of compound codes
 #' @param attack_table tibble: table of attack codes (X5, V5, etc) as returned by [ov_default_attack_table()] or [ov_simplified_attack_table()]
+#' @param setter_calls string: either "none", "reception" (setter calls in reception phase only), or "both" (setter calls in reception and transition)
+#' @param setter_calls_table tibble: table of setter calls (where the setter instructs the middle to run) as returned by [ov_default_setter_calls_table()]
 #'
 #' @return A named list
 #'
 #' @export
-ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, attacks_by = "codes", zones_cones = "Z", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR", default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), attack_table = ov_simplified_attack_table()) {
+ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, default_nblockers = NA, transition_sets = FALSE, set_quality = FALSE, attacks_by = "codes", zones_cones = "Z", team_system = "SHM3", setter_dump_code = "PP", second_ball_attack_code = "P2", overpass_attack_code = "PR", default_scouting_table = ov_default_scouting_table(), compound_table = ov_default_compound_table(), attack_table = ov_simplified_attack_table(), setter_calls = "none", setter_calls_table = ov_default_setter_calls_table()) {
     end_convention <- match.arg(end_convention, c("actual", "intended"))
     assert_that(is.flag(nblockers), !is.na(nblockers))
     if (is.null(default_nblockers)) default_nblockers <- NA
     assert_that(default_nblockers %in% c(NA, 1:4))
     assert_that(is.flag(transition_sets), !is.na(transition_sets))
+    assert_that(is.flag(set_quality), !is.na(set_quality))
     attacks_by <- match.arg(attacks_by, c("codes", "tempo"))
     zones_cones <- match.arg(zones_cones, c("Z", "C"))
     team_system <- match.arg(team_system, c("SHM3"))
     assert_that(is.string(setter_dump_code))
     assert_that(is.string(second_ball_attack_code))
     assert_that(is.string(overpass_attack_code))
+    assert_that(is.string(setter_calls))
+    setter_calls <- if (!nzchar(setter_calls) || is.na(setter_calls)) "none" else tolower(setter_calls)
+    setter_calls <- match.arg(setter_calls, c("none", "reception", "both"))
+    if (setter_calls == "both" && !transition_sets) {
+        warning("cannot use setter calls in transition if transition_sets is FALSE, using setter calls on reception only")
+        setter_calls <- "reception"
+    }
     skill_tempo_map <- tribble(~skill, ~tempo_code, ~tempo,
                                "Serve", "Q", "Jump serve",
                                "Serve", "M", "Jump-float serve",
@@ -551,7 +570,7 @@ ov_scouting_options <- function(end_convention = "actual", nblockers = TRUE, def
     if (!is.data.frame(attack_table) || !all(c("code", "description", "type", "set_type", "attacker_position", "start_coordinate") %in% names(attack_table)) || nrow(attack_table) < 1) {
         stop("attack_table does not appear to be valid. It should be a tibble or data.frame as returned by e.g. ov_default_attack_table()")
     }
-    list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, attacks_by = attacks_by, zones_cones = zones_cones, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code, default_scouting_table = default_scouting_table, compound_table = compound_table, attack_table = attack_table)
+    list(end_convention = end_convention, nblockers = nblockers, default_nblockers = default_nblockers, transition_sets = transition_sets, set_quality = set_quality, attacks_by = attacks_by, zones_cones = zones_cones, team_system = team_system, skill_tempo_map = skill_tempo_map, setter_dump_code = setter_dump_code, second_ball_attack_code = second_ball_attack_code, overpass_attack_code = overpass_attack_code, default_scouting_table = default_scouting_table, compound_table = compound_table, attack_table = attack_table, setter_calls = setter_calls, setter_calls_table = setter_calls_table)
 }
 
 

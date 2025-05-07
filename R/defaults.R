@@ -72,20 +72,25 @@ ov_simplified_attack_table <- function() {
                                     "XP", "X0", "X5", "X6", "X8"))
 }
 
-#' Default setter calls table
+#' Default setter calls table (where the setter has instructed the middle hitter to run)
 #'
+#' @param data_type string: "indoor", "beach". The returned table will be empty for "beach"
 #' @return A tibble
 #'
 #' @export
-ov_default_setter_calls_table <- function() {
-    dplyr::tribble(~code, ~X2, ~description, ~X4, ~colour, ~start_coordinate, ~mid_coordinate, ~end_coordinate, ~path, ~path_colour, ~X11,
-                   "K1", NA, "Front Quick", NA, 16711680L, 3949L, 4454L, 4958L, NA_character_, NA_integer_, NA,
-                   "K2", NA, "Back Quick", NA, 16711680L, 3864L, 4278L, 4974L, NA_character_, NA_integer_, NA,
-                   "K7", NA, "Seven", NA, 16711680L, 3923L, 4426L, 4930L, NA_character_, NA_integer_, NA,
-                   "KC", NA, "Quick in 3", NA, 16711680L, 3849L, 4449L, 5049L, NA_character_, NA_integer_, NA,
-                   "KM", NA, "Shifted to 2", NA, 16711680L, 0L, 0L, 0L, "4924,5524,5530,6332,6312,5012,5024", 12632256L, NA,
-                   "KP", NA, "Shifted to 4", NA, 16711680L, 0L, 0L, 0L, "5457,5057,5557,5552,6352,6364,5377,5077,5058,5058", 12632256L, NA,
-                   "KE", NA, "No First Tempo", NA, 0L, 0L, 0L, 0L, "5858,5826,6426,6458,6458", 12632256L, NA)
+ov_default_setter_calls_table <- function(data_type = "indoor") {
+    data_type <- match.arg(data_type, c("indoor", "beach"))
+    if (data_type == "beach") {
+        tibble(code = character(), X2 = logical(), description = character(), X4 = logical(), colour = character(), start_coordinate = integer(),
+               mid_coordinate = integer(), end_coordinate = integer(), path = character(), path_colour = character(), X11 = logical())
+    } else {
+        tribble(~code, ~X2, ~description, ~X4, ~colour, ~start_coordinate, ~mid_coordinate, ~end_coordinate, ~path, ~path_colour, ~X11,
+                "K1", NA, "Front quick", NA, 16711680L, 3949L, 4454L, 4958L, NA_character_, NA_integer_, NA,
+                "K2", NA, "Back quick", NA, 16711680L, 3864L, 4278L, 4974L, NA_character_, NA_integer_, NA,
+                "K7", NA, "B-quick (shoot)", NA, 16711680L, 3923L, 4426L, 4930L, NA_character_, NA_integer_, NA,
+                ## "KC", NA, "Quick in 3", NA, 16711680L, 3849L, 4449L, 5049L, NA_character_, NA_integer_, NA,
+                "KE", NA, "No first tempo", NA, 0L, 0L, 0L, 0L, "5858,5826,6426,6458,6458", 12632256L, NA)
+    }
 }
 
 #' Default winning symbols table

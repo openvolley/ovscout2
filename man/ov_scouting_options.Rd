@@ -9,6 +9,7 @@ ov_scouting_options(
   nblockers = TRUE,
   default_nblockers = NA,
   transition_sets = FALSE,
+  set_quality = FALSE,
   attacks_by = "codes",
   zones_cones = "Z",
   team_system = "SHM3",
@@ -17,7 +18,9 @@ ov_scouting_options(
   overpass_attack_code = "PR",
   default_scouting_table = ov_default_scouting_table(),
   compound_table = ov_default_compound_table(),
-  attack_table = ov_simplified_attack_table()
+  attack_table = ov_simplified_attack_table(),
+  setter_calls = "none",
+  setter_calls_table = ov_default_setter_calls_table()
 )
 }
 \arguments{
@@ -28,6 +31,8 @@ ov_scouting_options(
 \item{default_nblockers}{integer: if \code{nblockers} is TRUE, what number of blockers should we default to? If \code{NA}, no default}
 
 \item{transition_sets}{logical: scout sets in transition? If \code{FALSE}, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted}
+
+\item{set_quality}{logical: are we assessing set quality? If \code{FALSE} sets will be classified as "error", "overpass set", or "positive" for all other sets}
 
 \item{attacks_by}{string: "codes" (X5, V5, etc) or "tempo" (high, medium, quick)}
 
@@ -49,6 +54,10 @@ ov_scouting_options(
 \item{compound_table}{tibble: the table of compound codes}
 
 \item{attack_table}{tibble: table of attack codes (X5, V5, etc) as returned by \code{\link[=ov_default_attack_table]{ov_default_attack_table()}} or \code{\link[=ov_simplified_attack_table]{ov_simplified_attack_table()}}}
+
+\item{setter_calls}{string: either "none", "reception" (setter calls in reception phase only), or "both" (setter calls in reception and transition)}
+
+\item{setter_calls_table}{tibble: table of setter calls (where the setter instructs the middle to run) as returned by \code{\link[=ov_default_setter_calls_table]{ov_default_setter_calls_table()}}}
 }
 \value{
 A named list
