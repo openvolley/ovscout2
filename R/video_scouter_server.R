@@ -1871,8 +1871,7 @@ ov_scouter_server <- function(app_data) {
         ## for the playslist table, convert the rally codes into plays2 rows, and build plays from plays2 (rdata$dvw$plays is only used by the playslist module)
         ## note that building the full plays object is slow, so take some care to minimize how often we do it
         rdp2_hash <- reactive({
-            tm <- system.time(rlang::hash(rdata$dvw$plays2))
-            ## cat("recalculating rdp2_hash (time:", tm[3], ")\n")
+            rlang::hash(rdata$dvw$plays2)
         })
         observe({
             ## only update when rally_codes() changes, or when rdata$dvw$plays2 changes
@@ -1881,15 +1880,13 @@ ov_scouter_server <- function(app_data) {
             if (!isTRUE(editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end"))) {
                 ## don't do this during coord edits, it's not necessary and slows the edit process down
                 isolate({
-                    tm <- system.time({
-                        temp_rally_plays2 <- if (nrow(rally_codes()) > 0) make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw) else NULL
-                        ##print(dplyr::glimpse(temp_rally_plays2))
-                        ##print(temp_rally_plays2$phase)
-                        ##cat(str(rdata$dvw$plays2))
-                        rdata$dvw$plays <- plays2_to_plays(rp2(bind_rows(rdata$dvw$plays2, temp_rally_plays2)), dvw = rdata$dvw, evaluation_decoder = app_data$evaluation_decoder)
-                    })
+                    temp_rally_plays2 <- if (nrow(rally_codes()) > 0) make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw) else NULL
+                    ##print(dplyr::glimpse(temp_rally_plays2))
+                    ##print(temp_rally_plays2$phase)
+                    ##cat(str(rdata$dvw$plays2))
+                    rdata$dvw$plays <- plays2_to_plays(rp2(bind_rows(rdata$dvw$plays2, temp_rally_plays2)), dvw = rdata$dvw, evaluation_decoder = app_data$evaluation_decoder)
                 })
-                ## cat("rc hash:", rlang::hash(rally_codes()), "- recalculating all plays (time:", tm[3], ")\n")
+                ## cat("rc hash:", rlang::hash(rally_codes()), "- recalculating all plays\n")
             }
         }, priority = -10)
 
