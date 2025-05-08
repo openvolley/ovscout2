@@ -944,6 +944,10 @@ ov_scouter_server <- function(app_data) {
             for (nm in names(thisprefs)) prefs[[nm]] <- thisprefs[[nm]]
             ## apply any that require immediate action
             if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- prefs$scout_name
+            if (app_data$scout_mode == "type" && !is.null(prefs$pause_on_type)) {
+                app_data$pause_on_type <- prefs$pause_on_type
+                dojs(paste0("pause_on_type = ", prefs$pause_on_type))
+            }
 
             ## save scouting options
             tryCatch({ saveRDS(this_opts, file = app_data$scouting_options_file) }, error = function(e) warning("could not save scouting convention preferences to file"))
