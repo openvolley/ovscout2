@@ -180,7 +180,7 @@ game_state_make_substitution <- function(game_state, team, player_out, player_in
     game_state
 }
 
-plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
+plays2_to_plays <- function(plays2, dvw, evaluation_decoder, starting_point_id = 0L) {
     pseq <- seq_len(if (is_beach(dvw)) 2L else 6L)
     if (is.null(plays2) || nrow(plays2) < 1) {
         out <- tibble(code = character(), skill = character(), home_setter_position = integer(), visiting_setter_position = integer(), home_team_score = integer(), visiting_team_score = integer(), phase = character(), set_number = integer(), video_time = numeric(), error_icon = character(), start_coordinate_x = numeric(), start_coordinate_y = numeric(), mid_coordinate_x = numeric(), mid_coordinate_y = numeric(), end_coordinate_x = numeric(), end_coordinate_y = numeric())
@@ -190,29 +190,29 @@ plays2_to_plays <- function(plays2, dvw, evaluation_decoder) {
         }
         return(out)
     }
-    out <- bind_cols(mutate(datavolley:::parse_code(plays2$code, meta = dvw$meta, evaluation_decoder = evaluation_decoder, file_type = if (is_beach(dvw)) "beach" else "indoor")$plays,
-                            home_setter_position = plays2$home_setter_position,
-                            visiting_setter_position = plays2$visiting_setter_position,
-                            home_team_score = plays2$home_score_start_of_point, ## TODO FIX
-                            visiting_team_score = plays2$visiting_score_start_of_point, ## TODO FIX
-                            phase = if ("phase" %in% names(plays2)) plays2$phase else NA_character_,
-                            set_number = plays2$set_number,
-                            video_time = plays2$video_time),
-                     setNames(dv_index2xy(plays2$start_coordinate), c("start_coordinate_x", "start_coordinate_y")),
-                     setNames(dv_index2xy(plays2$mid_coordinate), c("mid_coordinate_x", "mid_coordinate_y")),
-                     setNames(dv_index2xy(plays2$end_coordinate), c("end_coordinate_x", "end_coordinate_y")))
+    out <- datavolley:::parse_code(plays2$code, meta = dvw$meta, evaluation_decoder = evaluation_decoder, file_type = if (is_beach(dvw)) "beach" else "indoor")$plays %>%
+        mutate(home_setter_position = plays2$home_setter_position,
+               visiting_setter_position = plays2$visiting_setter_position,
+               home_team_score = plays2$home_score_start_of_point, ## TODO FIX
+               visiting_team_score = plays2$visiting_score_start_of_point, ## TODO FIX
+               phase = if ("phase" %in% names(plays2)) plays2$phase else NA_character_,
+               set_number = plays2$set_number,
+               video_time = plays2$video_time) %>%
+        bind_cols(setNames(dv_index2xy(plays2$start_coordinate), c("start_coordinate_x", "start_coordinate_y")),
+                  setNames(dv_index2xy(plays2$mid_coordinate), c("mid_coordinate_x", "mid_coordinate_y")),
+                  setNames(dv_index2xy(plays2$end_coordinate), c("end_coordinate_x", "end_coordinate_y")))
     ##code team player_number player_name player_id skill skill_type evaluation_code evaluation attack_code
     ##attack_description set_code set_description set_type start_zone end_zone end_subzone end_cone skill_subtype num_players
     ##num_players_numeric special_code timeout end_of_set substitution point home_team_score visiting_team_score
     ##home_setter_position visiting_setter_position custom_code file_line_number
     ## add point_id
-    pid <- 0
-    temp_point_id <- rep(NA, nrow(out))
+    pid <- if (!is.null(starting_point_id) && !is.na(starting_point_id)) starting_point_id else 0L
+    temp_point_id <- rep(NA_integer_, nrow(out))
     temp_point_id[1] <- pid
-    temp_timeout <- rep(FALSE, nrow(out))##out$timeout
+    temp_timeout <- rep(FALSE, nrow(out))
     if (nrow(out) > 1) {
         for (k in 2:nrow(out)) {
-            if (isTRUE(out$point[k-1]) || temp_timeout[k] || temp_timeout[k-1]) pid <- pid+1
+            if (isTRUE(out$point[k - 1]) || temp_timeout[k] || temp_timeout[k-1]) pid <- pid + 1L
             temp_point_id[k] <- pid
         }
     }
