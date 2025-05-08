@@ -2829,6 +2829,7 @@ ov_scouter_server <- function(app_data) {
                     } else {
                         restore_rally_state <- temp[[length(temp)]]$rally_state
                         restore_current_team <- temp[[length(temp)]]$current_team
+                        restore_gs <- temp[[length(temp)]]$game_state[[1]]
                         p2keep[length(temp)] <- FALSE
                         temp <- temp[-length(temp)]
                         rcnull <- rcnull[-length(rcnull)]
@@ -2842,7 +2843,17 @@ ov_scouter_server <- function(app_data) {
                         ## set rally state
                         set_rally_state(restore_rally_state)
                         ## set game state
-                        gs <- new_rc$game_state[[nrow(new_rc)]]
+                        if (nrow(new_rc) < 1) {
+                            ## we have no rally_codes (for the current rally), which means that we undid a one-action rally (e.g. serve error)
+                            ## so we use the game_state of the code we are removing BUT discard some stuff
+                            restore_gs$start_x <- restore_gs$start_y <- restore_gs$mid_x <- restore_gs$mid_y <- restore_gs$end_x <- restore_gs$end_y <- NA_real_
+                            restore_gs$startxy_valid <- restore_gs$midxy_valid <- restore_gs$endxy_valid <- FALSE
+                            restore_gs$current_time_uuid <- ""
+                            restore_gs$t <- restore_gs$end_t <- NULL
+                            gs <- restore_gs ## this will restore e.g. player positions, scores, serving team
+                        } else {
+                            gs <- new_rc$game_state[[nrow(new_rc)]]
+                        }
                         for (nm in names(gs)) game_state[[nm]] <- gs[[nm]]
                         game_state$current_team <- restore_current_team
                         ## reset rally codes
