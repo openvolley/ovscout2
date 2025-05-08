@@ -8,7 +8,7 @@ ov_scouter_server <- function(app_data) {
         ## the active UI element, used in typing mode to keep track of where the focus should be. Possible values "" (uninitialilzed), "scout_bar", "playslist"
         active_ui <- reactiveVal("")
         if (debug > 0) observeEvent(active_ui(), cat("active_ui:", active_ui(), "\n"))
-        observeEvent(input$scout_in_click, focus_to_scout_bar())
+        observeEvent(input$do_focus_to_scout_bar, focus_to_scout_bar())
 
         extra_db_con <- NULL
         if (!is.null(app_data$extra_db)) {
@@ -890,7 +890,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$just_cancel, {
             editing$active <- NULL
             removeModal()
-            if (app_data$scout_mode == "type") focus_to_scout_bar() ## TODO check
+            if (app_data$scout_mode == "type") focus_to_scout_bar()
         })
         observeEvent(input$prefs_save, {
             thisprefs <- list(scout_name = if (is.null(input$prefs_scout) || is.na(input$prefs_scout)) "" else input$prefs_scout,
@@ -3101,7 +3101,9 @@ ov_scouter_server <- function(app_data) {
             show_shortcuts(app_data)
         })
 
-        observeEvent(input$general_help, introjs(session, options = list("nextLabel" = "Next", "prevLabel" = "Previous", "skipLabel" = "Skip")))
+        observeEvent(input$general_help, introjs(session, options = list("nextLabel" = "Next", "prevLabel" = "Previous", "skipLabel" = "Skip"),
+                                                 events = list(oncomplete = I("Shiny.setInputValue('do_focus_to_scout_bar', true, { priority: 'event' });"),
+                                                               onexit = I("Shiny.setInputValue('do_focus_to_scout_bar', true, { priority: 'event' });"))))
         observeEvent(input$show_shortcuts, show_shortcuts(app_data))
 
         ## TODO @param key_remapping list: a named list of key remappings, with entries as per [ov_default_key_remapping()]
@@ -3128,6 +3130,7 @@ ov_scouter_server <- function(app_data) {
                     show_save_error_modal(msg = temp$error_message, ovs_ok = temp$ok, tempfile_name = temp$filename)
                     NULL
                 })
+                if (app_data$scout_mode == "type") focus_to_scout_bar()
             }
         )
         ## ask about exporting with cones

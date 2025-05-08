@@ -107,7 +107,7 @@ ov_scouter_ui <- function(app_data) {
                                   if (app_data$with_video) {
                                       fluidRow(
                                           column(1, actionButton("pt_home", "(*) Pt", width = "100%", class = "homebut", style = "height: 72px;") ),
-                                          column(5, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")), tags$input(id = "scout_in", type = "text", onclick = "Shiny.setInputValue('scout_in_click', true, { priority: 'event' })")),
+                                          column(5, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")), tags$input(id = "scout_in", type = "text", onclick = "Shiny.setInputValue('do_focus_to_scout_bar', true, { priority: 'event' })")),
                                                  uiOutput("zones_cones")),
                                           column(1, actionButton("pt_away", "(a) Pt", width = "100%", class = "visbut", style = "height:72px;") ),
                                           column(1, actionButton("undoType", "Undo", width = "100%", class = "undobut", style = "height:72px;")),

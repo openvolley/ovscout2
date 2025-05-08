@@ -190,7 +190,7 @@ show_shortcuts <- function(app_data) {
         tags$span(txt, make_fat_buttons(choices = bb, input_var = "scedit", class = "scedit notuc"))
     }
     showModal(
-        vwModalDialog(title = "Keyboard shortcuts", easyClose = FALSE,
+        vwModalDialog(title = "Keyboard shortcuts", easyClose = FALSE, footer = NULL,
             fluidRow(column(4, ## click_shortcuts
                             tags$p(tags$strong("'Click' mode shortcuts"), tags$br(), "These apply when using 'click' scout mode."),
                             tags$ul(tags$li(show_sc("pause", "pause")),
@@ -234,7 +234,7 @@ show_shortcuts <- function(app_data) {
                                     tags$li(show_sc("insert_code", "insert new code above selected row", sctype = "PL")),
                                     tags$li(show_sc("go_to_time", "seek video to the time of the selected row", sctype = "PL")),
                                     tags$li(show_sc("switch_windows", "switch to scouting bar input (typing mode only)", sctype = "PL"))
-                                    )))
+                                    ))),
             ## none of these are relevant yet
             ##fluidRow(column(6, tags$strong("Keyboard controls"),
             ##         tags$ul(tags$li("[r or 5] sync selected event video time"),
@@ -247,6 +247,9 @@ show_shortcuts <- function(app_data) {
             ##                 )),
             ##                tags$strong("Ball coordinates"), tags$ul(tags$li("[left-click the court inset] register the start/mid/end ball positions"),
             ##                                                         tags$li("[accept ball coordinates] to add coordinates to the currently selected item"))))
+            tags$br(),
+            tags$hr(),
+            fixedRow(column(2, actionButton("just_cancel", "Cancel", class = "cancel fatradio")))
             ))
 }
 
