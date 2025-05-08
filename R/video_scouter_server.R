@@ -345,33 +345,39 @@ ov_scouter_server <- function(app_data) {
                             home_setter_num <- game_state[[paste0("home_p", game_state$home_setter_position)]]
                             visiting_setter_num <- game_state[[paste0("visiting_p", game_state$visiting_setter_position)]]
                             newcode <- sub("~+$", "", ov_code_interpret(code, attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num))
-                            cat("code after interpretation:", newcode, "\n")
-                            ## code can be length > 1 now, because code might have been a compound code
-                            ptemp <- parse_code_minimal(newcode) ## convert to a list of tibble row(s)
+                            newcode <- newcode[nzchar(newcode)] ## discard empty codes
+                            if (length(newcode) < 1) {
+                                ## code can be empty if the code was invalid (empty string after interpreter applied)
+                                warning("empty code after interpretation, was '", code, "' an invalid code?")
+                            } else {
+                                cat("code after interpretation:", newcode, "\n")
+                                ## code can be length > 1 now, because code might have been a compound code
+                                ptemp <- parse_code_minimal(newcode) ## convert to a list of tibble row(s)
                                 ## this has to be added to plays2 OR rally codes, depending on the insertion point
                                 ## remember that the playstable is showing plays2 with rally_codes converted to plays2 format and appended
                                 ## in either case, convert to rally_codes format first
-                            newrc <- bind_rows(lapply(ptemp, function(temp) {
-                                if (!is.null(temp)) {
-                                    ## should not be NULL, that's only for non-skill rows
-                                    code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, x_type = temp$x_type, num_p = temp$num_p, special = temp$special, custom = temp$custom, start_zone_valid = TRUE, endxy_valid = TRUE, t = insert_video_time, time = insert_clock_time, rally_state = insert_rs, game_state = gs, default_scouting_table = rdata$options$default_scouting_table)
+                                newrc <- bind_rows(lapply(ptemp, function(temp) {
+                                    if (!is.null(temp)) {
+                                        ## should not be NULL, that's only for non-skill rows
+                                        code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, x_type = temp$x_type, num_p = temp$num_p, special = temp$special, custom = temp$custom, start_zone_valid = TRUE, endxy_valid = TRUE, t = insert_video_time, time = insert_clock_time, rally_state = insert_rs, game_state = gs, default_scouting_table = rdata$options$default_scouting_table)
+                                    }
+                                }))
+                                ## TODO check row updating here
+                                if (insert_ridx <= nrow(rdata$dvw$plays2)) {
+                                    newrow <- make_plays2(newrc, game_state = gs, rally_ended = FALSE, dvw = rdata$dvw)
+                                    temp <- bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
+                                                      newrow,
+                                                      rdata$dvw$plays2[insert_ridx:nrow(rdata$dvw$plays2), ])
+                                    ## update surrounding rows
+                                    temp <- transfer_scout_details(from_row = newrow, to_df = temp, row_idx = insert_ridx, dvw = rdata$dvw)
+                                    rdata$dvw$plays2 <- rp2(temp)
+                                } else {
+                                    rc <- rally_codes()
+                                    rcidx <- insert_ridx - nrow(rdata$dvw$plays2)
+                                    rc <- bind_rows(rc[seq_len(rcidx - 1L), ], newrc, rc[rcidx:nrow(rc), ])
+                                    ## update surrounding rows and update rally_codes()
+                                    rally_codes(transfer_scout_details(from_row = newrc, to_df = rc, row_idx = rcidx, dvw = rdata$dvw))
                                 }
-                            }))
-                            ## TODO check row updating here
-                            if (insert_ridx <= nrow(rdata$dvw$plays2)) {
-                                newrow <- make_plays2(newrc, game_state = gs, rally_ended = FALSE, dvw = rdata$dvw)
-                                temp <- bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
-                                                  newrow,
-                                                  rdata$dvw$plays2[insert_ridx:nrow(rdata$dvw$plays2), ])
-                                ## update surrounding rows
-                                temp <- transfer_scout_details(from_row = newrow, to_df = temp, row_idx = insert_ridx, dvw = rdata$dvw)
-                                rdata$dvw$plays2 <- rp2(temp)
-                            } else {
-                                rc <- rally_codes()
-                                rcidx <- insert_ridx - nrow(rdata$dvw$plays2)
-                                rc <- bind_rows(rc[seq_len(rcidx - 1L), ], newrc, rc[rcidx:nrow(rc), ])
-                                ## update surrounding rows and update rally_codes()
-                                rally_codes(transfer_scout_details(from_row = newrc, to_df = rc, row_idx = rcidx, dvw = rdata$dvw))
                             }
                         }
                     }
@@ -759,108 +765,114 @@ ov_scouter_server <- function(app_data) {
                     code <- augment_code_attack_details(code, game_state = game_state, opts = rdata$options) ## deal with code shorthands
                     ## add to rally codes
                     newcode <- sub("~+$", "", ov_code_interpret(code, attack_table = rdata$options$attack_table, compound_table = rdata$options$compound_table, default_scouting_table = rdata$options$default_scouting_table, home_setter_num = home_setter_num, visiting_setter_num = visiting_setter_num, serving_team = game_state$serving))
-                    cat("code after interpretation:", newcode, "\n")
-                    ## code can be length > 1 now, because the scout might have entered a compound code
-                    ptemp <- parse_code_minimal(newcode) ## convert to a list of tibble row(s)
-                    this_clock_time <- time_but_utc()
-                    this_video_time <- NA_real_
-                    ## use clock and video times from the input$scout_input_times time-logged keypresses if we can
-                    this_keypress_times <- NULL ## default
-                    if (!is.null(keypress_times)) {
-                        ## TODO check case sensitivity on this, if we use e.g. 'a' but remap it to 'A' via the key remapping
-                        this_skill <- if (length(ptemp) > 0) ptemp[[1]]$skill else NA_character_ ## for compound codes, we use the first one
-                        if (this_skill %eq% "E") {
-                            ## set skill, so need to look for either the "E" key or "K" key for a setter call
-                            if (any(tolower(keypress_times[[i]]$key) %eq% "e")) {
-                                this_keypress_times <- keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% "e", ]
-                            } else if (any(tolower(keypress_times[[i]]$key) %eq% "k")) {
-                                ## setter call
-                                this_keypress_times <- keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% "k", ]
+                    newcode <- newcode[nzchar(newcode)]
+                    if (length(newcode) < 1) {
+                        ## code can be empty if the code was invalid (empty string after interpreter applied)
+                        warning("empty code after interpretation, was '", code, "' an invalid code?")
+                    } else {
+                        cat("code after interpretation:", newcode, "\n")
+                        ## code can be length > 1 now, because the scout might have entered a compound code
+                        ptemp <- parse_code_minimal(newcode) ## convert to a list of tibble row(s)
+                        this_clock_time <- time_but_utc()
+                        this_video_time <- NA_real_
+                        ## use clock and video times from the input$scout_input_times time-logged keypresses if we can
+                        this_keypress_times <- NULL ## default
+                        if (!is.null(keypress_times)) {
+                            ## TODO check case sensitivity on this, if we use e.g. 'a' but remap it to 'A' via the key remapping
+                            this_skill <- if (length(ptemp) > 0) ptemp[[1]]$skill else NA_character_ ## for compound codes, we use the first one
+                            if (this_skill %eq% "E") {
+                                ## set skill, so need to look for either the "E" key or "K" key for a setter call
+                                if (any(tolower(keypress_times[[i]]$key) %eq% "e")) {
+                                    this_keypress_times <- keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% "e", ]
+                                } else if (any(tolower(keypress_times[[i]]$key) %eq% "k")) {
+                                    ## setter call
+                                    this_keypress_times <- keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% "k", ]
+                                }
+                            } else if (this_skill %eq% "A") {
+                                ## look for either the "A" key or combo code
+                                cmb_idx <- NULL
+                                if (is.data.frame(rdata$options$attack_table) && nrow(rdata$options$attack_table) > 0) {
+                                    temp <- na.omit(stringr::str_locate(tolower(paste0(keypress_times[[i]]$key, collapse = "")), tolower(rdata$options$attack_table$code))[, 1])
+                                    if (length(temp) > 0) cmb_idx <- temp[1]
+                                }
+                                if (any(tolower(keypress_times[[i]]$key) %eq% "a")) {
+                                    this_keypress_times <- keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% "a", ]
+                                } else if (length(cmb_idx) == 1) {
+                                    ## attack combo code
+                                    this_keypress_times <- keypress_times[[i]][cmb_idx, ]
+                                }
+                            } else {
+                                ## match key to skill
+                                this_keypress_times <- keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% tolower(this_skill), ]
                             }
-                        } else if (this_skill %eq% "A") {
-                            ## look for either the "A" key or combo code
-                            cmb_idx <- NULL
-                            if (is.data.frame(rdata$options$attack_table) && nrow(rdata$options$attack_table) > 0) {
-                                temp <- na.omit(stringr::str_locate(tolower(paste0(keypress_times[[i]]$key, collapse = "")), tolower(rdata$options$attack_table$code))[, 1])
-                                if (length(temp) > 0) cmb_idx <- temp[1]
-                            }
-                            if (any(tolower(keypress_times[[i]]$key) %eq% "a")) {
-                                this_keypress_times <- keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% "a", ]
-                            } else if (length(cmb_idx) == 1) {
-                                ## attack combo code
-                                this_keypress_times <- keypress_times[[i]][cmb_idx, ]
-                            }
-                        } else {
-                            ## match key to skill
-                            this_keypress_times <- keypress_times[[i]][tolower(keypress_times[[i]]$key) %eq% tolower(this_skill), ]
                         }
-                    }
-                    if (!is.null(this_keypress_times) && nrow(this_keypress_times) == 1) {
-                        this_clock_time <- this_keypress_times$time
-                        this_video_time <- this_keypress_times$video_time
-                    }
-                    for (temp in ptemp) {
-                        if (!is.null(temp)) {
-                            ## should not be NULL, that's only for non-skill rows
-                            rc <- rally_codes()
-                            newrc <- code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, x_type = temp$x_type, num_p = temp$num_p, special = temp$special, custom = temp$custom, start_zone_valid = TRUE, endxy_valid = TRUE, t = this_video_time, time = this_clock_time, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)
-                            ## update the preceding rally_codes rows if new info has been provided
-                            prev_touch <- NULL
-                            nrc <- nrow(rc)
-                            if (nrc > 0) {
-                                rc[nrc, ] <- transfer_scout_row_details(from = newrc, to = rc[nrc, ])
-                                ## equivalently but less efficiently rc <- transfer_scout_details(from_row = newrc, to_df = rc, row_idx = nrc + 1L, which = -1L, dvw = rdata$dvw)
-                                prev_touch <- rc[nrc, ]
-                            }
-                            rally_codes(bind_rows(rc, newrc)) ## start_x = NA_real_, start_y = NA_real_
-                            ## update game state and other things
-                            ## we also update rally_state here (even though in scout_mode = "type" we don't use them) because having them set will ease things if the scout switches from typing to clicking
-                            if (temp$skill %in% c("S", "R", "E", "A", "B", "D", "F")) update_game_state(rally_started = TRUE, set_started = TRUE) ## technically only need to check serve here, but since the scout can enter arbitrary things we will just blanket all of them
-                            if (temp$skill %eq% "S") {
-                                update_game_state(serving = temp$team, current_team = other(temp$team))
-                                set_rally_state("click serve end")
-                            } else if (temp$skill %eq% "R") {
-                                ## if R/ then current team is the serving team, otherwise it's the receiving team
-                                if (temp$eval %eq% "/") {
-                                    update_game_state(current_team = game_state$serving)
-                                    set_rally_state("click freeball end point") ## we would treat next contact as a freeball dig if we were click-scouting
-                                } else {
-                                    update_game_state(current_team = other(game_state$serving))
-                                    set_rally_state("click second contact")
+                        if (!is.null(this_keypress_times) && nrow(this_keypress_times) == 1) {
+                            this_clock_time <- this_keypress_times$time
+                            this_video_time <- this_keypress_times$video_time
+                        }
+                        for (temp in ptemp) {
+                            if (!is.null(temp)) {
+                                ## should not be NULL, that's only for non-skill rows
+                                rc <- rally_codes()
+                                newrc <- code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, x_type = temp$x_type, num_p = temp$num_p, special = temp$special, custom = temp$custom, start_zone_valid = TRUE, endxy_valid = TRUE, t = this_video_time, time = this_clock_time, rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)
+                                ## update the preceding rally_codes rows if new info has been provided
+                                prev_touch <- NULL
+                                nrc <- nrow(rc)
+                                if (nrc > 0) {
+                                    rc[nrc, ] <- transfer_scout_row_details(from = newrc, to = rc[nrc, ])
+                                    ## equivalently but less efficiently rc <- transfer_scout_details(from_row = newrc, to_df = rc, row_idx = nrc + 1L, which = -1L, dvw = rdata$dvw)
+                                    prev_touch <- rc[nrc, ]
                                 }
-                            } else if (temp$skill %eq% "E") {
-                                set_rally_state("click third contact")
-                            } else if (temp$skill %eq% "A") {
-                                set_rally_state("click attack end point")
-                                if (!temp$eval %eq% "!") {
-                                    ## next touch will be by other team
-                                    update_game_state(current_team = other(game_state$current_team))
-                                    ## this is a bit out of whack with the click-scouting flow, because in that we would already have clicked the attack end point before assigning the ! outcome. Needs testing TODO
-                                }
-                            } else if (temp$skill %eq% "B") {
-                                set_rally_state("click attack end point")
-                                if (!temp$eval %eq% "!") {
-                                    ## blocked back to the attacking team. With some scouts B- would also indicate this
-                                    update_game_state(current_team = other(game_state$current_team))
-                                }
-                            } else if (temp$skill %eq% "D") {
-                                if (!temp$eval %eq% "/") {
-                                    set_rally_state("click freeball end point")
-                                    update_game_state(current_team = other(game_state$current_team))
-                                } else if (isTRUE(rdata$options$transition_sets)) {
-                                    set_rally_state("click second contact")
-                                } else {
+                                rally_codes(bind_rows(rc, newrc)) ## start_x = NA_real_, start_y = NA_real_
+                                ## update game state and other things
+                                ## we also update rally_state here (even though in scout_mode = "type" we don't use them) because having them set will ease things if the scout switches from typing to clicking
+                                if (temp$skill %in% c("S", "R", "E", "A", "B", "D", "F")) update_game_state(rally_started = TRUE, set_started = TRUE) ## technically only need to check serve here, but since the scout can enter arbitrary things we will just blanket all of them
+                                if (temp$skill %eq% "S") {
+                                    update_game_state(serving = temp$team, current_team = other(temp$team))
+                                    set_rally_state("click serve end")
+                                } else if (temp$skill %eq% "R") {
+                                    ## if R/ then current team is the serving team, otherwise it's the receiving team
+                                    if (temp$eval %eq% "/") {
+                                        update_game_state(current_team = game_state$serving)
+                                        set_rally_state("click freeball end point") ## we would treat next contact as a freeball dig if we were click-scouting
+                                    } else {
+                                        update_game_state(current_team = other(game_state$serving))
+                                        set_rally_state("click second contact")
+                                    }
+                                } else if (temp$skill %eq% "E") {
                                     set_rally_state("click third contact")
-                                }
-                            } else if (temp$skill %eq% "F") {
-                                ## freeball. If the opposing team made the preceding touch then it's a freeball dig
-                                try({
-                                    if (!is.null(prev_touch) && isTRUE(prev_touch$team != temp$team)) {
-                                        ## this was a freeball dig
+                                } else if (temp$skill %eq% "A") {
+                                    set_rally_state("click attack end point")
+                                    if (!temp$eval %eq% "!") {
+                                        ## next touch will be by other team
+                                        update_game_state(current_team = other(game_state$current_team))
+                                        ## this is a bit out of whack with the click-scouting flow, because in that we would already have clicked the attack end point before assigning the ! outcome. Needs testing TODO
+                                    }
+                                } else if (temp$skill %eq% "B") {
+                                    set_rally_state("click attack end point")
+                                    if (!temp$eval %eq% "!") {
+                                        ## blocked back to the attacking team. With some scouts B- would also indicate this
                                         update_game_state(current_team = other(game_state$current_team))
                                     }
-                                })
-                            } ## game_state$current_team will remain as it is unless changed above
+                                } else if (temp$skill %eq% "D") {
+                                    if (!temp$eval %eq% "/") {
+                                        set_rally_state("click freeball end point")
+                                        update_game_state(current_team = other(game_state$current_team))
+                                    } else if (isTRUE(rdata$options$transition_sets)) {
+                                        set_rally_state("click second contact")
+                                    } else {
+                                        set_rally_state("click third contact")
+                                    }
+                                } else if (temp$skill %eq% "F") {
+                                    ## freeball. If the opposing team made the preceding touch then it's a freeball dig
+                                    try({
+                                        if (!is.null(prev_touch) && isTRUE(prev_touch$team != temp$team)) {
+                                            ## this was a freeball dig
+                                            update_game_state(current_team = other(game_state$current_team))
+                                        }
+                                    })
+                                } ## game_state$current_team will remain as it is unless changed above
+                            }
                         }
                     }
                 }
@@ -3125,15 +3137,15 @@ ov_scouter_server <- function(app_data) {
                 tryCatch({
                     dv_write2(update_meta(rp2(rdata$dvw)), file = file, convert_cones = app_data$scout_mode != "type" && isTRUE(input$dvw_save_with_cones))
                     removeModal()
+                    if (app_data$scout_mode == "type") focus_to_scout_bar()
                 }, error = function(e) {
                     temp <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())
                     show_save_error_modal(msg = temp$error_message, ovs_ok = temp$ok, tempfile_name = temp$filename)
                     NULL
                 })
-                if (app_data$scout_mode == "type") focus_to_scout_bar()
             }
         )
-        ## ask about exporting with cones
+        ## ask about exporting with cones (note that this is only offered with click scouting)
         observeEvent(input$ask_save_dvw_button, show_save_dvw_modal())
 
         output$save_rds_button <- downloadHandler(
@@ -3154,6 +3166,7 @@ ov_scouter_server <- function(app_data) {
                     })
                     out$detection_refs <- dr
                     saveRDS(out, file)
+                    if (app_data$scout_mode == "type") focus_to_scout_bar()
                 }, error = function(e) {
                     temp <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())
                     show_save_error_modal(msg = temp$error_message, ovs_ok = temp$ok, tempfile_name = temp$filename)
