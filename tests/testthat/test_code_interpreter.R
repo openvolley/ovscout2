@@ -29,6 +29,7 @@ test_that("code interpretation works correctly", {
     check_code(ov_code_interpret("*5X55H2"), "*05AT+X5~45~H2")
     check_code(ov_code_interpret("a12SM.2#78"), c("a12SM-~~~78", "*02RM#~~~78"))
     check_code(ov_code_interpret("*2X5.15=5H4"), c("*02AT#X5~45~H4", "a15BT=~~~~5~~4"))
+    check_code(ov_code_interpret("x8.11d/"), c("*~~AT+X8~9", "a11DT/")) ## rotation unknown so no attack player number
     check_code(ov_code_interpret("2AT#452"), "*02AT#~~~45~H2")
     check_code(ov_code_interpret("2AT#45t1"), "*02AT#~~~45~T1")
     check_code(ov_code_interpret("2X5#.15"), c("*02AT#X5~4", "a15BT=")) ## block error is the default on attack kill

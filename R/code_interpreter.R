@@ -327,12 +327,17 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     if (tmp1 %in% attack_table$code) {
                         cmb <- TRUE
                         new_code_1[4] <- "A"
-                        if(new_code_2[4] == "~") new_code_2[4] <- unique(compound_table$compound_skill[compound_table$skill == "A" & compound_table$default_compound_skills])
-                        if (new_code_2[6] != "~") new_code_1[6]  <- compound_table$code[compound_table$compound_code == new_code_2[6] & compound_table$skill == new_code_1[4] & compound_table$compound_skill == new_code_2[4]]
-                        if (new_code_1[6] != "~") new_code_2[6]  <- compound_table$compound_code[compound_table$code == new_code_1[6] & compound_table$compound_skill == new_code_2[4] & compound_table$skill == new_code_1[4]]
+                        if (new_code_2[4] == "~") new_code_2[4] <- unique(compound_table$compound_skill[compound_table$skill == "A" & compound_table$default_compound_skills])
+                        if (new_code_2[6] != "~") {
+                            this  <- compound_table$code[compound_table$compound_code == new_code_2[6] & compound_table$skill == new_code_1[4] & compound_table$compound_skill == new_code_2[4]]
+                            if (length(this) >= 1) new_code_1[6] <- this[1]
+                        } else if (new_code_1[6] != "~") {
+                            this <- compound_table$compound_code[compound_table$code == new_code_1[6] & compound_table$compound_skill == new_code_2[4] & compound_table$skill == new_code_1[4]]
+                            if (length(this) >= 1) new_code_2[6]  <- this[1]
+                        }
                         new_code_1[5] <- attack_table$type[attack_table$code == tmp1]
                         new_code_2[5] <- attack_table$type[attack_table$code == tmp1]
-                                        #cc_tmp1 <- str_remove(cc_tmp1, syntax_table$value_list[[5]][str_detect(csp[1], syntax_table$value_list[[5]])])
+                        ##cc_tmp1 <- str_remove(cc_tmp1, syntax_table$value_list[[5]][str_detect(csp[1], syntax_table$value_list[[5]])])
                         new_code_1[9] <- "~"## should not have target in attack codes, only set codes (?) ## attack_table$set_type[attack_table$code == tmp1]
                         new_code_1[10] <- attack_table$attacker_position[attack_table$code == tmp1]
                     }
