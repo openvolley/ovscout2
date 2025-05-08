@@ -443,8 +443,11 @@ ov_scouter_server <- function(app_data) {
             courtref_ok <- video_media_ok <- TRUE
             if (app_data$with_video) {
                 ## check courtref
-                courtref_ok <- !is.null(detection_ref1()$court_ref)
-                if (have_second_video && courtref_ok && is.null(detection_ref2()$court_ref)) courtref_ok <- "Use the 'Video setup' button to define the court reference for video 2."
+                if (app_data$scout_mode != "type") {
+                    ## court ref is optional in type mode
+                    courtref_ok <- !is.null(detection_ref1()$court_ref)
+                    if (have_second_video && courtref_ok && is.null(detection_ref2()$court_ref)) courtref_ok <- "Use the 'Video setup' button to define the court reference for video 2."
+                }
                 ## check video media. Need to know the dv_width and height and the video_width and height. BUT we don't get video width and height with youtube, so don't wait for it
                 video_media_ok <- !is.null(input$dv_width) && !is.null(input$dv_height) && !is.na(input$dv_width) && !is.na(input$dv_height) && input$dv_width > 0 && input$dv_height > 0
                 video_media_ok <- video_media_ok &&
@@ -1112,47 +1115,55 @@ ov_scouter_server <- function(app_data) {
         loop_trigger <- reactiveVal(0L)
         observeEvent(input$video_click, priority = 99, {
             ## when video clicked, get the corresponding video time and trigger the loop
-            flash_screen() ## visual indicator that click has registered
-            ## calculate the normalized x,y coords
-            this_click <- if (length(input$video_click) > 4) list(x = input$video_click[1] / input$video_click[3], y = 1 - input$video_click[2] / input$video_click[4])
-            if (!is.null(editing$active) && editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end")) {
-                thisxy <- vid_to_crt(this_click, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data)
-                if (is.null(editing$active) || editing$active %eq% "coord_click_start") {
-                    playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
-                    set_coord(which = "start", xy = thisxy) ## first click is the start coord
-                    output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_mid"))
-                    editing$active <- "coord_click_mid"
-                } else if (editing$active %eq% "coord_click_mid") {
-                    playslist_mod$redraw_select("keep")
-                    set_coord(which = "mid", xy = thisxy)
-                    output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_end"))
-                    editing$active <- "coord_click_end"
-                } else if (editing$active %eq% "coord_click_end") {
-                    playslist_mod$redraw_select("keep")
-                    set_coord(which = "end", xy = thisxy)
-                }
+            if (!courtref_active() || is.null(detection_ref())) {
+                ## no detection ref set up, can't process a video click
+                output$no_court_ref_ui <- renderUI({
+                    dojs("setTimeout(() => { $('#no_court_ref_ui').empty() }, 3000);") ## clear it after delay
+                    tags$div(class = "alert alert-danger", "No court reference has been defined. Click the court diagram instead.")
+                })
             } else {
-                ## video time
-                time_uuid <- uuid()
-                game_state$current_time_uuid <- time_uuid
-                click_time <- as.numeric(input$video_click[5])
-                if (!is.na(click_time) && click_time >= 0) {
-                    ## got the video time as part of the click packet, stash it
-                    this_timebase <- current_video_src()
-                    if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- 1
-                    video_times[[time_uuid]] <<- round(rebase_time(click_time, time_from = this_timebase, rdata = rdata), 2) ## video times to 2 dec places
+                flash_screen() ## visual indicator that click has registered
+                ## calculate the normalized x,y coords
+                this_click <- if (length(input$video_click) > 4) list(x = input$video_click[1] / input$video_click[3], y = 1 - input$video_click[2] / input$video_click[4])
+                if (!is.null(editing$active) && editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end")) {
+                    thisxy <- vid_to_crt(this_click, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data)
+                    if (is.null(editing$active) || editing$active %eq% "coord_click_start") {
+                        playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
+                        set_coord(which = "start", xy = thisxy) ## first click is the start coord
+                        output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_mid"))
+                        editing$active <- "coord_click_mid"
+                    } else if (editing$active %eq% "coord_click_mid") {
+                        playslist_mod$redraw_select("keep")
+                        set_coord(which = "mid", xy = thisxy)
+                        output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_end"))
+                        editing$active <- "coord_click_end"
+                    } else if (editing$active %eq% "coord_click_end") {
+                        playslist_mod$redraw_select("keep")
+                        set_coord(which = "end", xy = thisxy)
+                    }
                 } else {
-                    ## invalid time received, ask again
-                    warning("invalid click time\n")
-                    do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
+                    ## video time
+                    time_uuid <- uuid()
+                    game_state$current_time_uuid <- time_uuid
+                    click_time <- as.numeric(input$video_click[5])
+                    if (!is.na(click_time) && click_time >= 0) {
+                        ## got the video time as part of the click packet, stash it
+                        this_timebase <- current_video_src()
+                        if (length(this_timebase) != 1 || !this_timebase %in% c(1, 2)) this_timebase <- 1
+                        video_times[[time_uuid]] <<- round(rebase_time(click_time, time_from = this_timebase, rdata = rdata), 2) ## video times to 2 dec places
+                    } else {
+                        ## invalid time received, ask again
+                        warning("invalid click time\n")
+                        do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
+                    }
+                    if (rally_state() != app_data$click_to_start_msg) courtxy(vid_to_crt(this_click, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data))
+                    playslist_mod$redraw_select("last")
+                    loop_trigger(loop_trigger() + 1L)
+                    ## 6th element of input$video_click gives status of shift key during click
+                    shiftclick <- (length(input$video_click) > 5) && isTRUE(input$video_click[6] > 0)
+                    process_action(shiftclick)
+                    ## TODO MAYBE also propagate the click to elements below the overlay?
                 }
-                if (rally_state() != app_data$click_to_start_msg) courtxy(vid_to_crt(this_click, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data))
-                playslist_mod$redraw_select("last")
-                loop_trigger(loop_trigger() + 1L)
-                ## 6th element of input$video_click gives status of shift key during click
-                shiftclick <- (length(input$video_click) > 5) && isTRUE(input$video_click[6] > 0)
-                process_action(shiftclick)
-                ## TODO MAYBE also propagate the click to elements below the overlay?
             }
         })
         observeEvent(court_inset$click(), {

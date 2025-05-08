@@ -125,7 +125,7 @@ ov_scouter_ui <- function(app_data) {
                               ),
                        column(2, style = "padding-left:5px; padding-right:5px",
                               if (app_data$scout_mode != "type") introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
-                              uiOutput("problem_ui"),
+                              uiOutput("problem_ui"), uiOutput("no_court_ref_ui"),
                               tags$div(id = "code_edit_buttons", style = "height:34px;",
                                        actionButton("edit_code_insert", class = "cebut", label = tags$span(icon("plus")), title = "Insert new code above current"),
                                        actionButton("edit_code_delete", class = "cebut", label = tags$span(icon("trash-can")), title = "Delete current"),
