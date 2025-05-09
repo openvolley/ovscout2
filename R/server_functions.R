@@ -83,31 +83,42 @@ init_game_state <- function(app_data) {
     }
     if (!"serving" %in% names(temp) || is.na(temp$serving)) temp$serving <- "*" ## default to home team serving
     temp$current_team <- temp$serving
-    temp$rally_started <- FALSE
     if (!"set_started" %in% names(temp)) temp$set_started <- FALSE
-    temp$start_x <- temp$start_y <- temp$mid_x <- temp$mid_y <- temp$end_x <- temp$end_y <- NA_real_
-    temp$startxy_valid <- temp$midxy_valid <- temp$endxy_valid <- FALSE
-    temp$current_time_uuid <- ""
+    temp <- reset_game_state(temp, app_data = app_data)
+    if (!"home_team_end" %in% names(temp)) temp$home_team_end <- "upper" ## home team end defaults to upper
+    do.call(reactiveValues, temp)
+}
+
+reset_game_state <- function(gs, app_data, reset_lineups = FALSE, ...) {
+    ## if reset_lineups is FALSE, the existing ones will be used if they are present; if TRUE they will be reset to NAs
+    gs$rally_started <- FALSE
+    gs$start_x <- gs$start_y <- gs$mid_x <- gs$mid_y <- gs$end_x <- gs$end_y <- NA_real_
+    gs$startxy_valid <- gs$midxy_valid <- gs$endxy_valid <- FALSE
+    gs$current_time_uuid <- ""
     pseq <- if (app_data$is_beach) 1:2 else 1:6
     for (i in pseq) {
-        if (is.null(temp[[paste0("home_p", i)]])) temp[[paste0("home_p", i)]] <- NA_integer_
-        if (is.null(temp[[paste0("visiting_p", i)]])) temp[[paste0("visiting_p", i)]] <- NA_integer_
+        if (reset_lineups || is.null(gs[[paste0("home_p", i)]])) gs[[paste0("home_p", i)]] <- NA_integer_
+        if (reset_lineups || is.null(gs[[paste0("visiting_p", i)]])) gs[[paste0("visiting_p", i)]] <- NA_integer_
     }
     ## liberos
-    if (!"ht_lib1" %in% names(temp)) temp$ht_lib1 <- NA_integer_
-    if (!"ht_lib2" %in% names(temp)) temp$ht_lib2 <- NA_integer_
-    if (!"vt_lib1" %in% names(temp)) temp$vt_lib1 <- NA_integer_
-    if (!"vt_lib2" %in% names(temp)) temp$vt_lib2 <- NA_integer_
+    if (reset_lineups || !"ht_lib1" %in% names(gs)) gs$ht_lib1 <- NA_integer_
+    if (reset_lineups || !"ht_lib2" %in% names(gs)) gs$ht_lib2 <- NA_integer_
+    if (reset_lineups || !"vt_lib1" %in% names(gs)) gs$vt_lib1 <- NA_integer_
+    if (reset_lineups || !"vt_lib2" %in% names(gs)) gs$vt_lib2 <- NA_integer_
     ## initial scores
     ## if we haven't played any points yet, these will be NA
     if (nrow(app_data$dvw$plays2) < 1 || !any(grepl("^[a\\*]p[[:digit:]]", app_data$dvw$plays2$code))) {
-        temp$home_score_start_of_point <- temp$visiting_score_start_of_point <- 0L
+        gs$home_score_start_of_point <- gs$visiting_score_start_of_point <- 0L
     }
     ## get the correct set_number
     nsets <- grep("^\\*\\*[[:digit:]]set", app_data$dvw$plays2$code)
-    temp$set_number <- length(nsets) + 1L
-    if (!"home_team_end" %in% names(temp)) temp$home_team_end <- "upper" ## home team end defaults to upper
-    do.call(reactiveValues, temp)
+    gs$set_number <- length(nsets) + 1L
+    ## any extra assignments?
+    dots <- list(...)
+    if (length(dots) > 0) {
+        for (nm in names(dots)) gs[[nm]] <- dots[[nm]]
+    }
+    gs
 }
 
 ## function to populate the team character and player number of the serving player in the scout typing entry box

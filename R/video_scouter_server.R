@@ -497,6 +497,9 @@ ov_scouter_server <- function(app_data) {
                 if ((k$class %eq% "modal-open" || grepl("scedit-modal", k$class)) && !is.null(editing$active) && editing$active %eq% .C_editing_shortcut) {
                     sc_newvalue(key_as_text(k))
                     if (!tolower(ky) %in% c("alt", "shift", "meta", "control")) output$scedit_out <- renderUI(tags$code(key_as_text(k)))
+                } else if (is_shortcut(k, app_data$shortcuts$save_file)) {
+                    dojs("$('#save_rds_button')[0].click();")
+                    ## saves, but in firefox at least the download dropdown dialog is shown. Programmatically focusing back to the scout bar does not seem to get rid of it. But you can press escape to dismiss it
                 } else if (grepl("playslist-tbl-i", k$id)) {
                     ## key pressed in playslist table
                     if (is_shortcut(k, app_data$playstable_shortcuts$edit_code)) {
@@ -542,7 +545,7 @@ ov_scouter_server <- function(app_data) {
                         editing$active <- NULL
                         removeModal()
                         if (app_data$scout_mode == "type") focus_to_scout_bar()
-                    } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && !editing$active %eq% .C_teams) {
+                    } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && !editing$active %in% c(.C_teams, .C_admin)) {
                         ## escape from editing modal or from showing shortcuts
                         do_unpause <- editing$active %eq% .C_admin && app_data$with_video
                         do_focus_to_playslist <- !is.null(editing$active) && editing$active %in% c(.C_delete, .C_edit) && app_data$scout_mode == "type"
@@ -629,19 +632,11 @@ ov_scouter_server <- function(app_data) {
                             if (!is.null(input$playback_rate) && !is.na(input$playback_rate) && isTRUE(input$playback_rate > 0.1)) updateSliderInput(session, "playback_rate", value = max(input$playback_rate - 0.1, 0.1, na.rm = TRUE))
                         } else if (is_shortcut(k, unlist(app_data$shortcuts[grepl("^video_(forward|rewind)", names(app_data$shortcuts))]))) {
                             if (is.null(editing$active)) {
-                                ## video forward/backward nav
-                                ## same as for other ovscout interface, although the fine control is not needed here?
-                                vidcmd <- if (is_shortcut(k, unlist(app_data$shortcuts[grepl("^video_rewind", names(app_data$shortcuts))]))) "rew" else "ff"
-                                dur <- if (is_shortcut(k, unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_10", names(app_data$shortcuts))]))) {
-                                           10
-                                       } else if (is_shortcut(k, unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_0.1", names(app_data$shortcuts))]))) {
-                                           0.1
-                                       } else if (is_shortcut(k, unlist(app_data$shortcuts[grepl("^video_(forward|rewind)_1_30", names(app_data$shortcuts))]))) {
-                                           1/30
-                                       } else {
-                                           2
-                                       }
-                                do_video(vidcmd, dur)
+                                ## video forward/backward
+                                this <- as_shortcut(k, unlist(app_data$shortcuts[grepl("^video_(forward|rewind)", names(app_data$shortcuts))]))
+                                by <- sub("^_", "", sub("[^[:digit:]]+", "", this))
+                                by <- if (by %eq% "1_30") 1/30 else as.numeric(by)
+                                do_video(if (grepl("forward", this)) "ff" else "rew", by)
                             }
                         }
                     }
@@ -661,6 +656,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## deal with what's being typed into the scout entry box
+        ## be careful not to duplicate what's being handled in the controlkey code block above. A shortcut in the scout bar (like Ctrl-A for undo) will potentially trigger both here and above
         observeEvent(input$scout_shortcut, {
             if (!is.null(input$scout_shortcut)) {
                 if (debug > 2) cat("scout shortcut:", input$scout_shortcut, "\n")
@@ -682,9 +678,6 @@ ov_scouter_server <- function(app_data) {
                             }
                         }
                     }
-                } else if (input$scout_shortcut %in% c("video_forward_2", "video_forward_10", "video_rewind_2", "video_rewind_10")) {
-                    by <- as.numeric(sub("[^[:digit:]]+", "", input$scout_shortcut))
-                    do_video(if (grepl("forward", input$scout_shortcut)) "ff" else "rew", by)
                 } else if (input$scout_shortcut %in% c("assign_point_top", "assign_point_bottom")) {
                     ## any code remaining in the scout bar should be applied before actually ending the rally and assigning the point
                     rally_won_code <- if (input$scout_shortcut == "assign_point_top") {
@@ -695,15 +688,10 @@ ov_scouter_server <- function(app_data) {
                     ## add this to the end of whatever is in the scout bar (which might be empty) and process the lot
                     dojs(paste0("Shiny.setInputValue('scout_input_leftovers', scout_in_el.val() + ' ", rally_won_code, "', { priority: 'event' });"))
                     ## and then things are handled in the observeEvent(input$scout_input_leftovers, { ... }) block below
-                } else if (input$scout_shortcut %in% c("undo")) {
-                    do_undo()
                 } else if (input$scout_shortcut %in% c("switch_windows")) {
                     ## switch to the playslist table
                     focus_to_playslist()
                     playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
-                } else if (input$scout_shortcut %eq% "save_file") {
-                    dojs("$('#save_rds_button')[0].click();")
-                    ## saves, but in firefox at least the download dropdown dialog is shown. Programmatically focusing back to the scout bar does not seem to get rid of it. But you can press escape to dismiss it
                 }
             }
         })
@@ -2853,10 +2841,11 @@ ov_scouter_server <- function(app_data) {
                 ## game_state is a list, and will be NULL or NA for non-skill rows (?)
                 ## so when undoing, remove the last row in plays2 AND all preceding rows with NULL game_state??
                 p2 <- rdata$dvw$plays2
+                ## TODO FIX undoing a rally (with point assigned) with no skills in it will undo that plus go into the previous rally
                 if (!is.null(p2) && nrow(p2) > 0) {
-                    p2keep <- rep(TRUE, nrow(p2))
+                    p2keep <- rep(TRUE, nrow(p2)) ## rows of plays2 to keep
                     temp <- p2$rally_codes
-                    ## strip the trailing rows that have NULL or NA rally_code entries, these will be non-skill rows
+                    ## strip the trailing rows that have NULL or NA rally_code entries, these will be non-skill rows like the point assignment
                     rcnull <- vapply(temp, function(z) is.null(z) || all(is.na(z)), FUN.VALUE = TRUE)
                     ## but note that if we've started from a partially-scouted dvw file, we won't have rally_codes saved in plays2
                     ## so if we have a skill code, treat this as not-undoable
@@ -2869,22 +2858,26 @@ ov_scouter_server <- function(app_data) {
                     ## AND strip the last non-NULL/NA rally_code row, this is the one we are undoing
                     ## but save its rally_state and current_team first
                     if (length(temp) < 1) {
-                        ## we've removed all skill rows. Maybe we have starting lineups only
+                        ## we've removed all rows. Most likely we had starting lineups only and nothing else, and they have been removed
                         rdata$dvw$plays2 <- p2[p2keep, ]
-                        ## keep the current game_state, reset rally_codes to empty
+                        ## reset rally_codes to empty
                         rally_codes(empty_rally_codes)
-                        update_game_state(rally_started = FALSE, set_started = FALSE)
+                        ## reset parts of (most of) game_state
+                        game_state <- reset_game_state(game_state, app_data = app_data, reset_lineups = TRUE, set_started = FALSE)
                     } else {
                         restore_rally_state <- temp[[length(temp)]]$rally_state
                         restore_current_team <- temp[[length(temp)]]$current_team
                         restore_gs <- temp[[length(temp)]]$game_state[[1]]
+                        ## undo the last code, which will be a skill code
                         p2keep[length(temp)] <- FALSE
                         temp <- temp[-length(temp)]
                         rcnull <- rcnull[-length(rcnull)]
-                        ## then everything back to the next NULL goes into rally_codes
+                        ## then everything back to the next NULL goes into rally_codes. If there are none, rally_codes will be empty
                         totake <- rep(FALSE, length(rcnull))
                         for (i in rev(seq_along(rcnull))) { if (!rcnull[i]) totake[i] <- TRUE else break }
                         new_rc <- bind_rows(temp[totake])
+                        ## p2keep is the length of the original nrows of p2
+                        ## totake is length that minus the trailing non-skill rows minus the first skill row
                         p2keep[totake] <- FALSE
                         ## set plays2
                         rdata$dvw$plays2 <- p2[p2keep, ]
@@ -2899,6 +2892,7 @@ ov_scouter_server <- function(app_data) {
                             restore_gs$current_time_uuid <- ""
                             restore_gs$t <- restore_gs$end_t <- NULL
                             gs <- restore_gs ## this will restore e.g. player positions, scores, serving team
+                            ## TODO check what happens if we have un-did the lineup rows of the second or later set (so we have rows in plays2, but it's the start of a new set)
                         } else {
                             gs <- new_rc$game_state[[nrow(new_rc)]]
                         }

@@ -288,6 +288,19 @@ is_shortcut <- function(k, sc) {
     any(k$key == sc, na.rm = TRUE)
 }
 
+## per the above, but returns the actual shortcut name(s) that match (or NULL)
+as_shortcut <- function(k, sc) {
+    as_txt <- key_as_text(k)
+    ## we first look for a match on the full key representation with modifiers (e.g. "Alt-ArrowRight")
+    ## e.g. if sc is "Alt-ArrowRight" and we press just "ArrowRight", don't want a match
+    if (any(as_txt == sc, na.rm = TRUE)) return(names(sc[which(as_txt == sc)]))
+    ## if that fails, look for an exact match in the printed representation (ignoring modifiers, e.g. "$") but only if the shortcut has no modifier
+    sc <- sc[!grepl("(Ctrl|Alt|Shift|Meta)\\-", sc)]
+    if (any(k$key == sc, na.rm = TRUE)) return(names(sc[which(k$key == sc)]))
+    NULL
+}
+
+
 ## action button that will click itself if you press enter on it, saves handling that keypress elsewhere
 actionButton_with_enter <- function(...) actionButton(..., onKeyDown = "if (event.keyCode == 13) { this.click(); }")
 
