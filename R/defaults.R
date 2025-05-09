@@ -137,7 +137,12 @@ ov_default_compound_table <- function() {
                    "A", "D", "-", "!", FALSE,
                    "A", "D", "+", "-", FALSE,
                    "A", "D", "+", "/", FALSE,
-                   "A", "D", "#", "=", FALSE)
+                   "A", "D", "#", "=", FALSE,
+                   ## add freeball-over to freeball-dig combinations, noting that these are not standard in e.g. DV
+                   "F", "F", "+", "-", TRUE,
+                   "F", "F", "!", "!", TRUE,
+                   "F", "F", "-", "#", TRUE,
+                   "F", "F", "-", "+", TRUE)
 }
 
 

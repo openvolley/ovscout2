@@ -362,9 +362,11 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     if (i == 3) {
                         tmp1 <- "~"
                         tmp2 <- "~"
+                    } else if (i == 4) {
+                        tmp1 <- tmp2 <- default_scouting_table$tempo[default_scouting_table$skill == new_code_1[4]] ## default tempo for the first skill
                     } else if (i == 5) {
-                        tmp2 <- default_scouting_table$evaluation_code[default_scouting_table$skill == new_code_2[4]]
-                        tmp1 <- compound_table$code[compound_table$compound_code == tmp2 & compound_table$skill == new_code_1[4]]
+                        tmp2 <- default_scouting_table$evaluation_code[default_scouting_table$skill == new_code_2[4]] ## default evaluation for the second skill
+                        tmp1 <- compound_table$code[compound_table$compound_code == tmp2 & compound_table$skill == new_code_1[4] & compound_table$compound_skill == new_code_2[4]] ## the corresponding eval for the first skill
                     }
                 }
 
@@ -375,7 +377,10 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                     tmp2 <- str_c(rep("~", length(syntax_table$range[[i]])), collapse = "")
                 }
                 if (length(tmp2) == 0 && length(tmp1) == 0) next
-
+                if (length(tmp1) > 1) {
+                    ## the second of the compound values can map to more than one of the first. Probably should not happen but silently use the first
+                    tmp1 <- tmp1[1]
+                }
                 if (str_count(tmp1) == length(syntax_table$range[[i]])) {
                     ttmp1 <- unlist(str_split(tmp1, ""))
                     new_code_1[syntax_table$range[[i]]] <- ttmp1

@@ -18,6 +18,8 @@ test_that("code interpretation works correctly", {
     ## changed behaviour May 2025
     expect_equal(ov_code_interpret("a10/"), "")
     expect_equal(ov_code_interpret("a10"), "")
+    check_code(ov_code_interpret("01A.5"), c("*01AH-", "a05BH+"))
+    check_code(ov_code_interpret("01F.5"), c("*01FH-", "a05FH+")) ## freeball-over to freeball-dig combo
     check_code(ov_code_interpret("*2AT#45H2"), "*02AT#~~~45~H2")
     check_code(ov_code_interpret("*2AT#452"), "*02AT#~~~45~H2")
     check_code(ov_code_interpret("*2AT#45P2"), "*02AT#~~~45~P2")
