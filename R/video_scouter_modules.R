@@ -839,11 +839,12 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
                                   footer = tags$div(actionButton("edit_cancel", label = "Cancel", class = "cancel"))))
         } else {
             team_Table(team_table)
+            choices <- c(list("No team selected" = "..."), as.list(setNames(team_table$team_id, team_table$team)))
             showModal(modalDialog(title = "Choose teams", size = "m",
                                   tabsetPanel(
                                       tabPanel("Home team",
                                                fluidRow(
-                                                   column(4, selectInput(ns("home_team_select"), "Select home team", team_table$team_id, multiple=FALSE, selectize=FALSE)),
+                                                   column(4, selectInput(ns("home_team_select"), "Select home team", choices = choices, multiple = FALSE, selectize = FALSE)),
                                                    column(4, textInput(ns("ht_select_id"), label = "Team ID:", value = "")),
                                                    column(4, textInput(ns("ht_select_name"), label = "Team name:", value = ""))),
                                                fluidRow(
@@ -856,7 +857,7 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
                                                )),
                                       tabPanel("Visiting team",
                                                fluidRow(
-                                                   column(4, selectInput(ns("visiting_team_select"), "Select visiting team", team_table$team_id, multiple=FALSE, selectize=FALSE)),
+                                                   column(4, selectInput(ns("visiting_team_select"), "Select visiting team", choices = choices, multiple = FALSE, selectize = FALSE)),
                                                    column(4, textInput(ns("vt_select_id"), label = "Team ID:", value = "")),
                                                    column(4, textInput(ns("vt_select_name"), label = "Team name:", value = ""))),
                                                fluidRow(
@@ -882,21 +883,23 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
     })
 
     observe({
+        htnull <- is.null(input$home_team_select) || isTRUE(input$home_team_select == "...")
         updateTextInput(session, "ht_select_id", value = input$home_team_select)
-        updateTextInput(session, "ht_select_name", value = team_Table()$team[team_Table()$team_id %eq% input$home_team_select])
-        updateTextInput(session, "ht_select_coach", value = team_Table()$coach[team_Table()$team_id %eq% input$home_team_select])
-        updateTextInput(session, "ht_select_assistant", value = team_Table()$assistant[team_Table()$team_id %eq% input$home_team_select])
+        updateTextInput(session, "ht_select_name", value = if (htnull) "" else team_Table()$team[team_Table()$team_id %eq% input$home_team_select])
+        updateTextInput(session, "ht_select_coach", value = if (htnull) "" else team_Table()$coach[team_Table()$team_id %eq% input$home_team_select])
+        updateTextInput(session, "ht_select_assistant", value = if (htnull) "" else team_Table()$assistant[team_Table()$team_id %eq% input$home_team_select])
 
+        vtnull <- is.null(input$visiting_team_select) || isTRUE(input$visiting_team_select == "...")
         updateTextInput(session, "vt_select_id", value = input$visiting_team_select)
-        updateTextInput(session, "vt_select_name", value = team_Table()$team[team_Table()$team_id %eq% input$visiting_team_select])
-        updateTextInput(session, "vt_select_coach", value = team_Table()$coach[team_Table()$team_id %eq% input$visiting_team_select])
-        updateTextInput(session, "vt_select_assistant", value = team_Table()$assistant[team_Table()$team_id %eq% input$visiting_team_select])
+        updateTextInput(session, "vt_select_name", value = if (vtnull) "" else team_Table()$team[team_Table()$team_id %eq% input$visiting_team_select])
+        updateTextInput(session, "vt_select_coach", value = if (vtnull) "" else team_Table()$coach[team_Table()$team_id %eq% input$visiting_team_select])
+        updateTextInput(session, "vt_select_assistant", value = if (vtnull) "" else team_Table()$assistant[team_Table()$team_id %eq% input$visiting_team_select])
 
     })
 
     output$ht_select_team <- DT::renderDataTable({
         if (is.null(team_Table())) htdata_select(rdata$dvw$meta$players_h)
-        if (!is.null(team_Table())) {
+        if (!is.null(team_Table()) && !is.null(input$home_team_select) && !isTRUE(input$home_team_select == "...")) {
             pth <- team_Table()$player_table[team_Table()$team_id %eq% input$home_team_select][[1]]
             htdata_select(pth)
             DT::datatable(pth, rownames = FALSE, colnames = var2fc(colnames(pth)), selection = "none", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
@@ -907,7 +910,7 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
 
     output$vt_select_team <- DT::renderDataTable({
         if (is.null(team_Table())) vtdata_select(rdata$dvw$meta$players_v)
-        if (!is.null(team_Table())) {
+        if (!is.null(team_Table()) && !is.null(input$visiting_team_select) && !isTRUE(input$visiting_team_select == "...")) {
             ptv <- team_Table()$player_table[team_Table()$team_id %eq% input$visiting_team_select][[1]]
             vtdata_select(ptv)
             DT::datatable(ptv, rownames = FALSE, colnames = var2fc(colnames(ptv)), selection = "none", editable = FALSE, options = list(lengthChange = FALSE, sDom = '<"top">t<"bottom">rlp', paging = FALSE, ordering = FALSE))
