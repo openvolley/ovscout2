@@ -538,8 +538,9 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
                 ## all coords are recorded relative to video1 orientation, so we don't care which video is showing
                 if (!is.null(current_plays_row())) {
                     ## plot the selected action
-                    toplot <- temp_rally_plays2[current_plays_row() - offs, ]$rally_codes[[1]]
-                    if (!is.null(toplot)) {
+                    toplot <- temp_rally_plays2[current_plays_row() - offs, ]$rally_codes
+                    if (length(toplot) > 0 && length(toplot[[1]]) > 0) {
+                        toplot <- toplot[[1]]
                         segxy <- bind_rows(toplot %>% dplyr::select(x = "start_x", y = "start_y"),
                                            toplot %>% dplyr::select(x = "mid_x", y = "mid_y"),
                                            toplot %>% dplyr::select(x = "end_x", y = "end_y"))
