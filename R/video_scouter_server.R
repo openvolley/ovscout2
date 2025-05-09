@@ -1955,6 +1955,17 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$assign_serve_outcome, do_assign_serve_outcome())
 
+        ## general listener for change of focus, so we can coerce it back to the scout bar if appropriate
+        observeEvent(input$focus_check, {
+            ## cat("focus:"); cat(str(input$focus_check), "\n")
+            ## if we are focused in the scout bar or playlist or other elements with an ID, the id will be set
+            ## if we are showing a modal, the class will be populated (e.g. "modal-open")
+            if (isTRUE(input$focus_check$is_body) && !nzchar(input$focus_check$id) && length(input$focus_check$class) < 1 && app_data$scout_mode == "type") {
+                ## we are focused nowhere?
+                focus_to_scout_bar()
+            }
+        })
+
         do_assign_serve_outcome <- function() {
             if (is.null(input$serve_initial_outcome)) {
                 ## wtf? should not happen
