@@ -12,8 +12,6 @@
 .C_coord_click_mid <- "coord_click_mid"
 .C_coord_click_end <- "coord_click_end"
 
-## don't change these, they are kinda-hard-coded:
-## editing$active <- paste0("insert ", where)
 .C_insert_above <- "insert above"
 .C_insert_below <- "insert below"
 

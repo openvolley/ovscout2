@@ -2931,7 +2931,7 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(ridx) && !is.na(ridx)) {
                 ##if (where == "above" && ridx > 1) ridx <- ridx-1L ## we are inserting above the selected row, so use the previous row to populate this one
                 ## otherwise (if inserting below) use the current row (ridx) as the template
-                editing$active <- paste0("insert ", where)
+                editing$active <- if (where == "above") .C_insert_above else .C_insert_below
                 show_manual_code_modal(editing$active, dvw = rdata$dvw)
             }
         }
