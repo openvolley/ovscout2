@@ -5,7 +5,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
     if (is.null(editing_active)) {
         ## not triggered from current editing activity, huh?
         warning("code_make_change entered but editing not active")
-    } else if (editing_active %eq% "teams") {
+    } else if (editing_active %eq% .C_teams) {
         ## update from all the input$ht_edit_name/id/coach/assistant inputs
         te_ns <- function(id) paste0("team_editor-", id) ## to reference the UI elements in the team_editor module. Note the hard-coding of the 'team_editor' id
         htidx <- which(dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
@@ -22,7 +22,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$teams$assistant[vtidx] <- input[[te_ns("vt_edit_assistant")]]
         if (!is.null(vtdata_edit)) dvw$meta$players_v <- make_players(vtdata_edit)
         do_reparse <- TRUE
-    } else if (editing_active %eq% "select_teams") {
+    } else if (editing_active %eq% .C_select_teams) {
         ts_ns <- function(id) paste0("team_selector-", id) ## to reference the UI elements in the team_selector module. Note the hard-coding of the 'team_selector' id
         ## Home team
         htidx <- which(dvw$meta$teams$home_away_team %eq% "*")
@@ -39,7 +39,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$teams$assistant[vtidx] <- input[[ts_ns("vt_select_assistant")]]
         if (!is.null(vtdata_select)) dvw$meta$players_v <- make_players(vtdata_select) %>% mutate(X3 = .data$X3 + nrow(dvw$meta$players_h))
         do_reparse <- TRUE
-    } else if (editing_active %eq% "match_data") {
+    } else if (editing_active %eq% .C_match_data) {
         md_ns <- function(id) paste0("match_data_editor-", id) ## to reference the UI elements in the match_data_editor module. Note the hard-coding of the 'match_data_editor' id
         dvw$meta$match$date <- input[[md_ns("match_edit_date")]]
         dvw$meta$match$time <- tryCatch(lubridate::hms(input[[md_ns("match_edit_time")]]), error = function(e) lubridate::as.period(NA))
@@ -56,7 +56,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         null2na <- function(z) if (length(z) < 1) NA_character_ else z
         dvw$meta$comments <- tibble(comment_1 = null2na(input[[md_ns("edit_comments1")]]), comment_2 = null2na(input[[md_ns("edit_comments2")]]), comment_3 = null2na(input[[md_ns("edit_comments3")]]), comment_4 = null2na(input[[md_ns("edit_comments4")]]))
         do_reparse <- TRUE
-    } else if (editing_active %eq% "change starting lineup") {
+    } else if (editing_active %eq% .C_change_starting_lineup) {
         le_ns <- function(id) paste0("lineup_editor-", id) ## to reference the UI elements in the lineup_editor module. Note the hard-coding of the 'lineup_editor' id
         beach <- is_beach(dvw)
         pseq <- if (beach) 1:2 else 1:6

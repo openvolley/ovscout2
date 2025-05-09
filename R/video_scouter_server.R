@@ -66,7 +66,7 @@ ov_scouter_server <- function(app_data) {
         ## maybe side-by-side still frames would be even better (though difficult to do with remote videos)
         observeEvent(input$v2_offset, {
             prevsrc <- get_video_source_type(if (preview_video_src() == 1L) app_data$video_src else app_data$video_src2, base_url = app_data$video_server_base_url)
-            editing$active <- "video offset"
+            editing$active <- .C_video_offset
             show_video_setup_modal(prevsrc = prevsrc, dvw = rdata$dvw)
             dojs("videojs('video_preview');")
 
@@ -102,7 +102,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(playslist_mod$clicked(), { if (isTRUE(playslist_mod$clicked() > 0)) focus_to_playslist() })
 
         ## court inset showing rotation and team lists
-        court_inset <- callModule(mod_courtrot2_base, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, rally_state = rally_state, current_video_src = current_video_src, styling = app_data$styling, with_ball_path = reactive(prefs$ball_path), current_plays_row = reactive(playslist_mod$current_row()))
+        court_inset <- callModule(mod_courtrot2_base, id = "courtrot", rdata = rdata, game_state = game_state, rally_codes = rally_codes, current_video_src = current_video_src, styling = app_data$styling, with_ball_path = reactive(prefs$ball_path), current_plays_row = reactive(playslist_mod$current_row()))
 
         ## handle court module home team buttons
         ## note that these should only be available to the user if there is not a rally in progress
@@ -160,12 +160,12 @@ ov_scouter_server <- function(app_data) {
         lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, video_state = video_state, styling = app_data$styling)
 
         observeEvent(input$edit_cancel, {
-            do_focus_to_playslist <- !is.null(editing$active) && editing$active %eq% "edit" && app_data$scout_mode == "type" ## if cancelled editing a code, return to playslist
-            if (!is.null(editing$active) && editing$active %in% "teams") {
+            do_focus_to_playslist <- !is.null(editing$active) && editing$active %eq% .C_edit && app_data$scout_mode == "type" ## if cancelled editing a code, return to playslist
+            if (!is.null(editing$active) && editing$active %eq% .C_teams) {
                 team_edit_mod$htdata_edit(NULL)
                 team_edit_mod$vtdata_edit(NULL)
             }
-            if (!is.null(editing$active) && editing$active %in% "select_teams") {
+            if (!is.null(editing$active) && editing$active %eq% .C_select_teams) {
                 team_select_mod$htdata_select(NULL)
                 team_select_mod$vtdata_select(NULL)
             }
@@ -214,13 +214,13 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$edit_code_edit_coords, {
             coord_edit_row(playslist_mod$current_row()) ## note the current row that we are editing the coords of
             output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_start"))
-            editing$active <- "coord_click_start"
+            editing$active <- .C_coord_click_start
         })
 
         do_edit_commit <- function(newcode1, newcode2) {
             if (!is.null(editing$active)) {
                 dismiss_modal <- TRUE
-                if (editing$active %in% c("edit", "insert above", "insert below")) {
+                if (editing$active %in% c(.C_edit, .C_insert_above, .C_insert_below)) {
                     ## user has changed EITHER input$code_entry or used the code_entry_guide
                     ## infer code from code_entry_guide elements
                     if (missing(newcode1)) {
@@ -237,7 +237,7 @@ ov_scouter_server <- function(app_data) {
                     newcode1 <- sub("~+$", "", newcode1) ## trim trailing ~'s
                     newcode2 <- sub("~+$", "", newcode2)
                     ridx <- playslist_mod$current_row()
-                    if (editing$active %eq% "edit" && !is.null(ridx) && !is.na(ridx)) {
+                    if (editing$active %eq% .C_edit && !is.null(ridx) && !is.na(ridx)) {
                         crc <- get_current_rally_code(playslist_mod = playslist_mod, rdata = rdata, rally_codes = rally_codes) ## NOTE this won't have the actual scout code unless it was a non-skill code
                         if (!is.null(crc)) {
                             old_code <- if (is.null(crc$code) || is.na(crc$code)) codes_from_rc_rows(crc) else crc$code
@@ -280,10 +280,10 @@ ov_scouter_server <- function(app_data) {
                                 }
                             }
                         }
-                    } else if (editing$active %in% c("insert above", "insert below") && !is.null(ridx) && !is.na(ridx)) {
+                    } else if (editing$active %in% c(.C_insert_above, .C_insert_below) && !is.null(ridx) && !is.na(ridx)) {
                         ## inserting new code above or below
                         ## note that we are either inserting into the plays2 dataframe, or into rally_codes (the current rally). The playslist shows both (latter appended to former)
-                        if (editing$active == "insert above") {
+                        if (editing$active == .C_insert_above) {
                             insert_ridx <- ridx
                         } else {
                             insert_ridx <- ridx + 1L ## this can be one greater than the current row count of plays2 plus rally_codes, in which case it will be appended to rally_codes
@@ -460,7 +460,7 @@ ov_scouter_server <- function(app_data) {
             meta_is_valid(ok)
             output$problem_ui <- renderUI({
                 if (!ok) {
-                    set_rally_state("fix required information before scouting can begin")
+                    set_rally_state(.C_fix_required_info)
                     tags$div(class = "alert alert-info",
                              tags$h2("Information needed"),
                              tags$ul(
@@ -474,7 +474,7 @@ ov_scouter_server <- function(app_data) {
                              tags$p("Scouting cannot start until this information has been entered.")
                              )
                 } else {
-                    if (rally_state() == "fix required information before scouting can begin") set_rally_state(if (video_state$paused) app_data$click_to_start_msg else "click serve start")
+                    if (rally_state() == .C_fix_required_info) set_rally_state(if (video_state$paused) app_data$click_to_start_msg else .C_click_serve_start)
                     NULL
                 }
             })
@@ -494,7 +494,7 @@ ov_scouter_server <- function(app_data) {
                 ## PREVIOUSLY we get the ascii code for the base key (i.e. upper-case letter, or number) AND the modifier
                 ## so for "#" we'd get ky == utf8ToInt("3") (which is 51) plus mycmd[3] == "true" (shift)
                 ## NOW for "#" we get ky == "#" plus mycmd[3] == "true" (shift)
-                if ((k$class %eq% "modal-open" || grepl("scedit-modal", k$class)) && !is.null(editing$active) && editing$active %eq% "edit_shortcuts") {
+                if ((k$class %eq% "modal-open" || grepl("scedit-modal", k$class)) && !is.null(editing$active) && editing$active %eq% .C_editing_shortcut) {
                     sc_newvalue(key_as_text(k))
                     if (!tolower(ky) %in% c("alt", "shift", "meta", "control")) output$scedit_out <- renderUI(tags$code(key_as_text(k)))
                 } else if (grepl("playslist-tbl-i", k$id)) {
@@ -531,37 +531,43 @@ ov_scouter_server <- function(app_data) {
                     }
                 } else {
                     ## escape does some special things, but can also be used in shortcuts, yuck. Check all the special things first
-                    if (tolower(ky) %eq% "escape" && isTRUE(scout_modal_active())) {
+                    if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% .C_confirm_end_of_set) {
+                        do_end_of_set_cancel()
+                    } else if (tolower(ky) %eq% "escape" && isTRUE(scout_modal_active())) {
                         ## if we have a scouting modal showing, treat this as cancel and rewind
                         do_cancel_rew()
-                    } else if (tolower(ky) %eq% "escape" && courtref_active()) {
-                        ## do nothing
-                    } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% "rally_review") {
+                    } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% .C_rally_review) {
                         do_cancel_rally_review(editing = editing, app_data = app_data)
-                    } else if (tolower(ky) %eq% "escape" && app_data$scout_mode == "type" && grepl("scout_in", k$id) && "escape" %in% tolower(app_data$shortcuts$pause)) {
-                        ## wackiness here if we want to use the escape key as a pause shortcut in typing mode
-                        ## let the scout shortcut code handle it
-                    } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && !editing$active %in% "teams") {
-                        ## escape from editing modal
-                        do_unpause <- editing$active %eq% "admin" && app_data$with_video
-                        do_focus_to_playslist <- !is.null(editing$active) && editing$active %in% c("delete", "edit") && app_data$scout_mode == "type"
+                    } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% .C_preferences) {
+                        editing$active <- NULL
+                        removeModal()
+                        if (app_data$scout_mode == "type") focus_to_scout_bar()
+                    } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && !editing$active %eq% .C_teams) {
+                        ## escape from editing modal or from showing shortcuts
+                        do_unpause <- editing$active %eq% .C_admin && app_data$with_video
+                        do_focus_to_playslist <- !is.null(editing$active) && editing$active %in% c(.C_delete, .C_edit) && app_data$scout_mode == "type"
                         editing$active <- NULL
                         removeModal()
                         if (do_unpause) do_video("play")
-                        if (do_focus_to_playslist) focus_to_playslist()
+                        if (do_focus_to_playslist) focus_to_playslist() else if (app_data$scout_mode == "type") focus_to_scout_bar()
+                    } else if (tolower(ky) %eq% "escape" && app_data$scout_mode == "type" && grepl("scout_in", k$id) && "escape" %in% tolower(app_data$shortcuts$pause)) {
+                        ## wackiness here if we want to use the escape key as a pause shortcut in typing mode
+                        ## let the scout shortcut code handle it
                     } else if (tolower(ky) %eq% "enter") {
                         ## enter
-                        if (!is.null(editing$active) && editing$active %eq% "rally_review") {
+                        if (!is.null(editing$active) && editing$active %eq% .C_rally_review) {
                             ## TODO we might have another race condition here where the text input does not update in the shiny server in time TODO CHECK
                             focus_to_modal_element("redit_ok", highlight_all = FALSE)
                             apply_rally_review(editing = editing, rally_codes = rally_codes, game_state = game_state, input = input, rdata = rdata, app_data = app_data)
-                        } else if (!is.null(editing$active) && editing$active %eq% "teams") {
+                        } else if (!is.null(editing$active) && editing$active %eq% .C_teams) {
                             team_edit_key_in(c(k, list(blah = R.utils::System$currentTimeMillis()))) ## add timestamp to ensure every event is a unique trigger, not sure if this is actually needed?
-                        } else if (!is.null(editing$active) && !editing$active %eq% "teams") {
+                        } else if (!is.null(editing$active) && editing$active %eq% .C_confirm_end_of_set) {
+                            do_end_of_set_confirm()
+                        } else if (!is.null(editing$active) && !editing$active %eq% .C_teams) {
                             ## if editing, treat as update
                             ## but not for team editing, because pressing enter in the DT fires this too
                             ## if this is the code editing modal, we need to focus out of the text entry box first otherwise changes there won't be seen in the corresponding input$xyz variable
-                            if (editing$active %in% c("insert below", "insert above", "edit")) {
+                            if (editing$active %in% c(.C_insert_below, .C_insert_above, .C_edit)) {
                                 ## if the user has pressed enter quickly after editing text in the code_entry field (without tabbing out of that, or clicking on the commit button) the input$code_entry variable will not have been updated
                                 ## workaround: manually collect all the inputs and send them in a different input variable, and then
                                 ##   trigger do_edit_commit on that (yuck)
@@ -580,7 +586,7 @@ ov_scouter_server <- function(app_data) {
                                                                            'num_players': $('#code_entry_num_players').val(),
                                                                            'special': $('#code_entry_special').val(),
                                                                            'custom': $('#code_entry_custom').val() });")
-                            } else if (editing$active %eq% "delete") {
+                            } else if (editing$active %eq% .C_delete) {
                                 do_delete_code()
                             }
                         } else if (isTRUE(scout_modal_active())) {
@@ -591,10 +597,10 @@ ov_scouter_server <- function(app_data) {
                     } else if (is_shortcut(k, app_data$shortcuts$hide_popup)) {
                         ## temporarily hide the modal, so the video can be seen
                         ## but only for the admin, lineup modal or the ones that pop up during the rally, not the editing modals for teams or rosters
-                        if (is.null(editing$active) || editing$active %in% c("admin", "change starting lineup")) hide_popup(review_pane_active())
+                        if (is.null(editing$active) || editing$active %in% c(.C_admin, .C_change_starting_lineup)) hide_popup(review_pane_active())
                     } else if (is_shortcut(k, c(app_data$shortcuts$pause, app_data$shortcuts$pause_no_popup))) {
                         ## only accept this if we are not doing a courtref, not editing, or it's the admin modal being shown
-                        if ((is.null(editing$active) || editing$active %eq% "admin") && !courtref_active()) {
+                        if ((is.null(editing$active) || editing$active %eq% .C_admin) && !courtref_active()) {
                             ## video pause/unpause
                             ## Q (uppercase) does just pause, with no admin modal
                             deal_with_pause(scout_modal_active = scout_modal_active, video_state = video_state, editing = editing, game_state = game_state, rdata = rdata, app_data = app_data, show_modal = !is_shortcut(k, app_data$shortcuts$pause_no_popup))
@@ -661,7 +667,7 @@ ov_scouter_server <- function(app_data) {
                 if (input$scout_shortcut %in% c("pause", "pause_no_popup")) {
                     ## handle pause here rather than in the main keydown code, because by default we want to use the escape key as a pause shortcut
                     if (!courtref_active()) {
-                        if (!is.null(editing$active) && editing$active %eq% "admin") {
+                        if (!is.null(editing$active) && editing$active %eq% .C_admin) {
                             dismiss_admin_modal(editing = editing, scout_mode = app_data$scout_mode)
                         } else {
                             if (video_state$paused) {
@@ -670,7 +676,7 @@ ov_scouter_server <- function(app_data) {
                             } else {
                                 do_video("pause")
                                 if (input$scout_shortcut == "pause") {
-                                    editing$active <- "admin"
+                                    editing$active <- .C_admin
                                     show_admin_modal(game_state = game_state, dvw = rdata$dvw)
                                 }
                             }
@@ -832,39 +838,39 @@ ov_scouter_server <- function(app_data) {
                                 if (temp$skill %in% c("S", "R", "E", "A", "B", "D", "F")) update_game_state(rally_started = TRUE, set_started = TRUE) ## technically only need to check serve here, but since the scout can enter arbitrary things we will just blanket all of them
                                 if (temp$skill %eq% "S") {
                                     update_game_state(serving = temp$team, current_team = other(temp$team))
-                                    set_rally_state("click serve end")
+                                    set_rally_state(.C_click_serve_end)
                                 } else if (temp$skill %eq% "R") {
                                     ## if R/ then current team is the serving team, otherwise it's the receiving team
                                     if (temp$eval %eq% "/") {
                                         update_game_state(current_team = game_state$serving)
-                                        set_rally_state("click freeball end point") ## we would treat next contact as a freeball dig if we were click-scouting
+                                        set_rally_state(.C_click_freeball_end) ## we would treat next contact as a freeball dig if we were click-scouting
                                     } else {
                                         update_game_state(current_team = other(game_state$serving))
-                                        set_rally_state("click second contact")
+                                        set_rally_state(.C_click_second)
                                     }
                                 } else if (temp$skill %eq% "E") {
-                                    set_rally_state("click third contact")
+                                    set_rally_state(.C_click_third)
                                 } else if (temp$skill %eq% "A") {
-                                    set_rally_state("click attack end point")
+                                    set_rally_state(.C_click_attack_end)
                                     if (!temp$eval %eq% "!") {
                                         ## next touch will be by other team
                                         update_game_state(current_team = other(game_state$current_team))
                                         ## this is a bit out of whack with the click-scouting flow, because in that we would already have clicked the attack end point before assigning the ! outcome. Needs testing TODO
                                     }
                                 } else if (temp$skill %eq% "B") {
-                                    set_rally_state("click attack end point")
+                                    set_rally_state(.C_click_attack_end)
                                     if (!temp$eval %eq% "!") {
                                         ## blocked back to the attacking team. With some scouts B- would also indicate this
                                         update_game_state(current_team = other(game_state$current_team))
                                     }
                                 } else if (temp$skill %eq% "D") {
                                     if (!temp$eval %eq% "/") {
-                                        set_rally_state("click freeball end point")
+                                        set_rally_state(.C_click_freeball_end)
                                         update_game_state(current_team = other(game_state$current_team))
                                     } else if (isTRUE(rdata$options$transition_sets)) {
-                                        set_rally_state("click second contact")
+                                        set_rally_state(.C_click_second)
                                     } else {
-                                        set_rally_state("click third contact")
+                                        set_rally_state(.C_click_third)
                                     }
                                 } else if (temp$skill %eq% "F") {
                                     ## freeball. If the opposing team made the preceding touch then it's a freeball dig
@@ -899,7 +905,7 @@ ov_scouter_server <- function(app_data) {
         ## TODO other prefs to add: scout_mode, season_dir, auto_save_dir
         ## not playback_rate, that's set directly by the slider but saved along with the other prefs anyway
         observeEvent(input$preferences, {
-            editing$active <- "preferences"
+            editing$active <- .C_preferences
             show_prefcuts_modal(prefs = prefs, opts = rdata$options)
         })
         observeEvent(input$just_cancel, {
@@ -1092,14 +1098,14 @@ ov_scouter_server <- function(app_data) {
             }
         }
         observeEvent(input$edit_coord_clear, {
-            if (editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end")) {
+            if (editing$active %in% c(.C_coord_click_start, .C_coord_click_mid, .C_coord_click_end)) {
                 clear_coord(which = sub("coord_click_", "", editing$active))
-                if (editing$active == "coord_click_start") {
+                if (editing$active == .C_coord_click_start) {
                     output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_mid"))
-                    editing$active <- "coord_click_mid"
-                } else if (editing$active == "coord_click_mid") {
+                    editing$active <- .C_coord_click_mid
+                } else if (editing$active == .C_coord_click_mid) {
                     output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_end"))
-                    editing$active <- "coord_click_end"
+                    editing$active <- .C_coord_click_end
                 } else {
                     do_after_coord_edit()
                 }
@@ -1129,19 +1135,19 @@ ov_scouter_server <- function(app_data) {
                 flash_screen() ## visual indicator that click has registered
                 ## calculate the normalized x,y coords
                 this_click <- if (length(input$video_click) > 4) list(x = input$video_click[1] / input$video_click[3], y = 1 - input$video_click[2] / input$video_click[4])
-                if (!is.null(editing$active) && editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end")) {
+                if (!is.null(editing$active) && editing$active %in% c(.C_coord_click_start, .C_coord_click_mid, .C_coord_click_end)) {
                     thisxy <- vid_to_crt(this_click, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data)
-                    if (is.null(editing$active) || editing$active %eq% "coord_click_start") {
+                    if (is.null(editing$active) || editing$active %eq% .C_coord_click_start) {
                         playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
                         set_coord(which = "start", xy = thisxy) ## first click is the start coord
                         output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_mid"))
-                        editing$active <- "coord_click_mid"
-                    } else if (editing$active %eq% "coord_click_mid") {
+                        editing$active <- .C_coord_click_mid
+                    } else if (editing$active %eq% .C_coord_click_mid) {
                         playslist_mod$redraw_select("keep")
                         set_coord(which = "mid", xy = thisxy)
                         output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_end"))
-                        editing$active <- "coord_click_end"
-                    } else if (editing$active %eq% "coord_click_end") {
+                        editing$active <- .C_coord_click_end
+                    } else if (editing$active %eq% .C_coord_click_end) {
                         playslist_mod$redraw_select("keep")
                         set_coord(which = "end", xy = thisxy)
                     }
@@ -1173,19 +1179,19 @@ ov_scouter_server <- function(app_data) {
         observeEvent(court_inset$click(), {
             if (!is.na(court_inset$click()$x) && !is.na(court_inset$click()$y)) {
                 flash_screen() ## visual indicator that click has registered
-                if (!is.null(editing$active) && editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end")) {
+                if (!is.null(editing$active) && editing$active %in% c(.C_coord_click_start, .C_coord_click_mid, .C_coord_click_end)) {
                     thisxy <- court_inset$click()
-                    if (is.null(editing$active) || editing$active %eq% "coord_click_start") {
+                    if (is.null(editing$active) || editing$active %eq% .C_coord_click_start) {
                         playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
                         set_coord(which = "start", xy = thisxy) ## first click is the start coord
                         output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_mid"))
-                        editing$active <- "coord_click_mid"
-                    } else if (editing$active %eq% "coord_click_mid") {
+                        editing$active <- .C_coord_click_mid
+                    } else if (editing$active %eq% .C_coord_click_mid) {
                         playslist_mod$redraw_select("keep")
                         set_coord(which = "mid", xy = thisxy)
                         output$code_edit_dialog <- renderUI(code_edit_dialog_content("coord_click_end"))
-                        editing$active <- "coord_click_end"
-                    } else if (editing$active %eq% "coord_click_end") {
+                        editing$active <- .C_coord_click_end
+                    } else if (editing$active %eq% .C_coord_click_end) {
                         playslist_mod$redraw_select("keep") ## keep whatever row is selected when the table is re-rendered
                         ## end coord
                         set_coord(which = "end", xy = thisxy)
@@ -1279,7 +1285,7 @@ ov_scouter_server <- function(app_data) {
             naidx <- is.na(xy$x) | is.na(xy$y)
             xy$valid[naidx] <- FALSE
             xy$x[naidx] <- 2.0
-            if (rally_state() == "click serve start") {
+            if (rally_state() == .C_click_serve_start) {
                 ## point on baseline
                 xy$y[naidx] <- if ((game_state$current_team == "*" && game_state$home_team_end == "upper") || (game_state$current_team == "a" && game_state$home_team_end == "lower")) 6.5 else 0.5
             } else {
@@ -1297,13 +1303,13 @@ ov_scouter_server <- function(app_data) {
         ## single click the video to register a tag location, or starting ball coordinates
         process_action <- function(was_shift_click = FALSE) {
             if (app_data$scout_mode == "type") return(process_action_type_mode(was_shift_click = was_shift_click))
-            if (loop_trigger() > 0 && rally_state() != "fix required information before scouting can begin") {
+            if (loop_trigger() > 0 && rally_state() != .C_fix_required_info) {
                 if (rally_state() == app_data$click_to_start_msg) {
                     if (meta_is_valid()) {
                         do_video("play")
-                        set_rally_state("click serve start")
+                        set_rally_state(.C_click_serve_start)
                     }
-                } else if (rally_state() == "click serve start") {
+                } else if (rally_state() == .C_click_serve_start) {
                     ## click was the serve position
                     sxy <- resolve_courtxy()
                     update_game_state(start_x = sxy$x[1], start_y = sxy$y[1], start_t = game_state$current_time_uuid, startxy_valid = sxy$valid[1])
@@ -1317,8 +1323,8 @@ ov_scouter_server <- function(app_data) {
                     ## video time might not have resolved yet if it is coming from the asynchronous handler, so add it after next click
                     rally_codes(bind_rows(rally_codes(), code_trow(team = game_state$serving, pnum = sp, skill = "S", tempo = st, sz = sz, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     update_game_state(current_team = other(game_state$serving), rally_started = TRUE, set_started = TRUE)
-                    set_rally_state("click serve end") ## no rewind on this
-                } else if (rally_state() == "click serve end") {
+                    set_rally_state(.C_click_serve_end) ## no rewind on this
+                } else if (rally_state() == .C_click_serve_end) {
                     do_video("pause")
                     ## click was the end-of-serve position, either error or reception
                     sxy <- resolve_courtxy()
@@ -1379,7 +1385,7 @@ ov_scouter_server <- function(app_data) {
                                                    fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
                                                             column(2, offset = 8, actionButton("assign_serve_outcome", "Continue", class = "continue fatradio")))
                                                    ))
-                } else if (rally_state() == "click second contact") {
+                } else if (rally_state() == .C_click_second) {
                     ## set (play continues), setter dump, set error, P2 attack, or freeball over (by the receiving team)
                     ## or PR, dig/freeball dig by opposition
                     ## we get a clue if it's the receiving/digging team or their opposition by the side of the court that has been clicked
@@ -1434,7 +1440,7 @@ ov_scouter_server <- function(app_data) {
                         start_t <- retrieve_video_time(game_state$start_t, video_times = video_times)
                         ## note that the position gets assigned to the start coordinates, but end zone/subzone
                         rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = guessed_setter, skill = "E", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
-                        set_rally_state("click third contact")
+                        set_rally_state(.C_click_third)
                         do_video("play") ## no rewind on shift-click
                     } else {
                         accept_fun("do_assign_c2")
@@ -1462,7 +1468,7 @@ ov_scouter_server <- function(app_data) {
                                                                 column(2, offset = 8, actionButton("assign_c2", "Continue", class = "continue fatradio")))
                                                        ))
                     }
-                } else if (rally_state() == "click third contact") {
+                } else if (rally_state() == .C_click_third) {
                     ## attack, freeball over (by the setting team)
                     ## or dig/freeball dig by on overset, or PR
                     do_video("pause")
@@ -1590,7 +1596,7 @@ ov_scouter_server <- function(app_data) {
                                             fixedRow(column(2, actionButton("cancelrew", "Cancel and rewind", class = "cancel fatradio")),
                                                      column(2, offset = 8, actionButton("assign_c3", "Continue", class = "continue fatradio")))
                                             ))
-                } else if (rally_state() == "click attack end point") {
+                } else if (rally_state() == .C_click_attack_end) {
                     ## dig, dig error (attack kill), attack error, blocked, blocked for replay, block touch (attack kill)
                     ## or block touch and play continues
                     ## allow attack kill with no dig error?
@@ -1689,7 +1695,7 @@ ov_scouter_server <- function(app_data) {
                             rc <- bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "D", eval = eval, tempo = tempo, sz = sz, ez = esz[1], esz = esz[2], t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, start_zone_valid = szv, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table))
                         }
                         rally_codes(rc)
-                        set_rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
+                        set_rally_state(if (isTRUE(rdata$options$transition_sets)) .C_click_second else .C_click_third)
                         do_video("play") ## no rewind on shift-click
                     }  else {
                         accept_fun("do_assign_c1")
@@ -1720,7 +1726,7 @@ ov_scouter_server <- function(app_data) {
                                                                 column(2, offset = 8, actionButton("assign_c1", "Continue", class = "continue fatradio")))
                                                        ))
                     }
-                } else if (rally_state() == "click freeball end point") {
+                } else if (rally_state() == .C_click_freeball_end) {
                     ## freeball dig, freeball dig error, freeball error (in theory could be blocked, blocked for replay, block touch (freeball kill))
                     do_video("pause")
                     ## click was the dig or freeball end
@@ -1904,7 +1910,7 @@ ov_scouter_server <- function(app_data) {
             ## only update when rally_codes() changes, or when rdata$dvw$plays2 changes
             ## TODO make sure there's nothing in game_state that matters here
             blah <- list(rally_codes(), rdp2_hash())
-            if (!isTRUE(editing$active %in% c("coord_click_start", "coord_click_mid", "coord_click_end"))) {
+            if (!isTRUE(editing$active %in% c(.C_coord_click_start, .C_coord_click_mid, .C_coord_click_end))) {
                 ## don't do this during coord edits, it's not necessary and slows the edit process down
                 isolate({
                     temp_rally_plays2 <- if (nrow(rally_codes()) > 0) make_plays2(rally_codes(), game_state = game_state, dvw = rdata$dvw) else NULL
@@ -1931,7 +1937,8 @@ ov_scouter_server <- function(app_data) {
             remove_scout_modal()
         })
 
-        observeEvent(input$end_of_set_confirm, {
+        observeEvent(input$end_of_set_confirm, do_end_of_set_confirm())
+        do_end_of_set_confirm <- function() {
             game_state$set_number <- game_state$set_number + 1L ## should be incremented in this plays2 line
             rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(paste0("**", game_state$set_number - 1L, "set"), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
             update_game_state(home_score_start_of_point = 0L, visiting_score_start_of_point = 0L, home_team_end = other_end(game_state$home_team_end), set_started = FALSE, rally_started = FALSE) ## for 5th set, the user can change this if needed via the gui
@@ -1944,15 +1951,18 @@ ov_scouter_server <- function(app_data) {
             ## update match metadata
             rdata$dvw <- update_meta(rp2(rdata$dvw))
             remove_scout_modal()
-            set_rally_state("click serve start")
+            editing$active <- NULL
+            set_rally_state(.C_click_serve_start)
             have_asked_end_of_set(FALSE) ## reset
-        })
-        observeEvent(input$end_of_set_cancel, {
+        }
+        observeEvent(input$end_of_set_cancel, do_end_of_set_cancel())
+        do_end_of_set_cancel <- function() {
+            editing$active <- NULL
             do_video("play")
             remove_scout_modal()
-            set_rally_state("click serve start")
-        })
-
+            set_rally_state(.C_click_serve_start)
+            if (app_data$scout_mode == "type") focus_to_scout_bar()
+        }
         observeEvent(input$assign_serve_outcome, do_assign_serve_outcome())
 
         ## general listener for change of focus, so we can coerce it back to the scout bar if appropriate
@@ -2016,10 +2026,10 @@ ov_scouter_server <- function(app_data) {
                         rc[Sidx, ] <- update_code_trow(rc[Sidx, ], pnum = ldz(sp), tempo = st, ez = esz[1], esz = esz[2], t = start_t, end_x = game_state$end_x, end_y = game_state$end_y, game_state = game_state)
                     }
                     rally_codes(bind_rows(rc, code_trow(team = other(game_state$serving), pnum = pp, skill = "R", tempo = st, sz = sz, ez = esz[1], esz = esz[2], t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, end_x = game_state$end_x, end_y = game_state$end_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
-                    set_rally_state("click second contact")
+                    set_rally_state(.C_click_second)
                     do_video("rew", app_data$play_overlap)
                 }
-                if (rally_state() != "confirm end of set") do_video("play")
+                if (rally_state() != .C_confirm_end_of_set) do_video("play")
             }
         }
 
@@ -2122,7 +2132,7 @@ ov_scouter_server <- function(app_data) {
                                       if (!input$c1_cover_player %eq% "No cover dig") code_trow(team = other(game_state$current_team), pnum = if (!is_nnn(input$c1_cover_player)) input$c1_cover_player else 0L, skill = "D", eval = default_skill_eval("D"), sz = sz, ez = esz[1], esz = esz[2], x_type = "C", t = end_t, start_x = game_state$start_x, start_y = game_state$start_y, mid_x = mid_xy[1], mid_y = mid_xy[2], end_x = game_state$end_x, end_y = game_state$end_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table) ## startxy_valid = game_state$startxy_valid, ## TODO check if we need to set *_valid here
                                       ))
                 game_state$current_team <- other(game_state$current_team) ## attacking team now playing
-                set_rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
+                set_rally_state(if (isTRUE(rdata$options$transition_sets)) .C_click_second else .C_click_third)
             } else if (input$c1 %eq% "B/") {
                 if (rc$skill[nrow(rc)] == "B") {
                     ## already a block skill (though this should not ever happen!). Delete it, to be replaced
@@ -2254,11 +2264,11 @@ ov_scouter_server <- function(app_data) {
                     game_state$point_won_by <- other(game_state$current_team)
                     rally_ended()
                 } else {
-                    set_rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
+                    set_rally_state(if (isTRUE(rdata$options$transition_sets)) .C_click_second else .C_click_third)
                 }
             }
-            if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
-            if (rally_state() != "confirm end of set") {
+            if (rally_state() != .C_rally_ended) do_video("rew", app_data$play_overlap)
+            if (rally_state() != .C_confirm_end_of_set) {
                 remove_scout_modal()
                 do_video("play")
             }
@@ -2308,17 +2318,17 @@ ov_scouter_server <- function(app_data) {
                         rally_ended()
                     } else {
                         ## FD
-                        set_rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
+                        set_rally_state(if (isTRUE(rdata$options$transition_sets)) .C_click_second else .C_click_third)
                     }
                 } else {
                     ## aPR
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = digp, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = esz[1], t = end_t, start_x = game_state$end_x, start_y = game_state$end_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, startxy_valid = game_state$endxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
-                    set_rally_state("click attack end point")
+                    set_rally_state(.C_click_attack_end)
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                 }
             }
-            if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
-            if (rally_state() != "confirm end of set") {
+            if (rally_state() != .C_rally_ended) do_video("rew", app_data$play_overlap)
+            if (rally_state() != .C_confirm_end_of_set) {
                 remove_scout_modal()
                 do_video("play")
             }
@@ -2373,7 +2383,7 @@ ov_scouter_server <- function(app_data) {
                 if (input$c2 == "E") {
                     cmb <- if (((ph %eq% "Reception" && rdata$options$setter_calls == "reception") || rdata$options$setter_calls == "both") && !is.null(input$c2_sk)) input$c2_sk else NA ## setter call
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "E", combo = cmb, ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
-                    set_rally_state("click third contact")
+                    set_rally_state(.C_click_third)
                 } else if (input$c2 == "E=") {
                     ## set error
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "E", eval = "=", ez = esz[1], esz = esz[2], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, endxy_valid = game_state$startxy_valid, default_scouting_table = rdata$options$default_scouting_table)))
@@ -2390,7 +2400,7 @@ ov_scouter_server <- function(app_data) {
                     if (tail(rc$skill, 1) %eq% "E" && !is.na(tail(rc$combo, 1)) && !tail(rc$combo, 1) %eq% "~~") rc$target[nrow(rc)] <- trg
                     cmb <- if (input$c2 == "PP") rdata$options$setter_dump_code else rdata$options$second_ball_attack_code
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = cmb, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
-                    set_rally_state("click attack end point")
+                    set_rally_state(.C_click_attack_end)
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                 } else if (input$c2 == "F") {
                     ## freeball over
@@ -2398,7 +2408,7 @@ ov_scouter_server <- function(app_data) {
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "F", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     ## TODO add end pos to this on next contact
                     game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
-                    set_rally_state("click freeball end point")
+                    set_rally_state(.C_click_freeball_end)
                 } else if (input$c2 == "R=") {
                     ## delayed reception error (e.g. shanked pass)
                     ## just adjust the S & R evaluations and end the point
@@ -2424,7 +2434,7 @@ ov_scouter_server <- function(app_data) {
                 op <- if (!is.null(input$c2_opp_player)) input$c2_opp_player else 0L
                 ## esz here actually came from start_x and start_y above
                 rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = esz[1], t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
-                set_rally_state("click attack end point")
+                set_rally_state(.C_click_attack_end)
             } else if (input$c2 %in% c("aF", "aF=")) {
                 ## opposition dig on overpass
                 ## adjust the prior skill, if it was a dig or reception then evaluation is "/"
@@ -2440,11 +2450,11 @@ ov_scouter_server <- function(app_data) {
                     rally_ended()
                 } else {
                     game_state$current_team <- other(game_state$current_team)
-                    set_rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
+                    set_rally_state(if (isTRUE(rdata$options$transition_sets)) .C_click_second else .C_click_third)
                 }
             }
-            if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
-            if (rally_state() != "confirm end of set") {
+            if (rally_state() != .C_rally_ended) do_video("rew", app_data$play_overlap)
+            if (rally_state() != .C_confirm_end_of_set) {
                 remove_scout_modal()
                 do_video("play")
             }
@@ -2471,7 +2481,7 @@ ov_scouter_server <- function(app_data) {
                 ## opposition overpass attack
                 op <- if (!is.null(input$c3_opp_player)) input$c3_opp_player else 0L
                 rally_codes(bind_rows(rc, code_trow(team = other(game_state$current_team), pnum = op, skill = "A", tempo = "O", combo = rdata$options$overpass_attack_code, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
-                set_rally_state("click attack end point")
+                set_rally_state(.C_click_attack_end)
             } else if (input$c3 %in% c("aF", "aF=")) {
                 ## opposition dig on overpass
                 op <- if (!is.null(input$c3_opp_player)) input$c3_opp_player else 0L
@@ -2481,14 +2491,14 @@ ov_scouter_server <- function(app_data) {
                     rally_ended()
                 } else {
                     game_state$current_team <- other(game_state$current_team)
-                    set_rally_state(if (isTRUE(rdata$options$transition_sets)) "click second contact" else "click third contact")
+                    set_rally_state(if (isTRUE(rdata$options$transition_sets)) .C_click_second else .C_click_third)
                 }
             } else if (input$c3 == "F") {
                 ## freeball over
                 rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = if (!is.null(input$c3_player)) input$c3_player else 0L, skill = "F", sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                 ## TODO add end pos to this on next contact
                 game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
-                set_rally_state("click freeball end point")
+                set_rally_state(.C_click_freeball_end)
             } else if (input$c3 == "PP") {
                 ## setter dump
                 ## if we are in reception phase, or we are scouting transition sets, then we are changing the previously-scouted set to a setter dump
@@ -2514,10 +2524,10 @@ ov_scouter_server <- function(app_data) {
                 }
                 rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = rdata$options$setter_dump_code, sz = asz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rs, game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                 ## if we are replacing a set with dump, this was clicked in "third contact" context, but the clicked location is actually now the first contact of other team after setter dump
-                set_rally_state("click attack end point")
+                set_rally_state(.C_click_attack_end)
                 game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
                 if (replace_set_with_dump) return(process_action()) ## jump straight to the c1 modal
-                set_rally_state("click attack end point")
+                set_rally_state(.C_click_attack_end)
             } else if (input$c3 == "E=") {
                 ## set error
                 ## this is the third contact, so we should modify the existing set if we have scouted a set
@@ -2579,11 +2589,11 @@ ov_scouter_server <- function(app_data) {
                 nb <- input$nblockers
                 if (is.null(nb) || !nb %in% 0:3) nb <- "~"
                 rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = ap, skill = "A", tempo = tempo, combo = ac, sz = sz, x_type = if (!is.null(input$hit_type) && input$hit_type %in% c("H", "P", "T")) input$hit_type else "~", num_p = nb, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, start_zone_valid = szvalid, default_scouting_table = rdata$options$default_scouting_table)))
-                set_rally_state("click attack end point")
+                set_rally_state(.C_click_attack_end)
                 game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
             }
-            if (rally_state() != "rally ended") do_video("rew", app_data$play_overlap)
-            if (rally_state() != "confirm end of set") {
+            if (rally_state() != .C_rally_ended) do_video("rew", app_data$play_overlap)
+            if (rally_state() != .C_confirm_end_of_set) {
                 remove_scout_modal()
                 do_video("play")
             }
@@ -2599,7 +2609,7 @@ ov_scouter_server <- function(app_data) {
 
         ## handle the pre-selection of serve player and type
         observeEvent(list(rally_state(), game_state$serving, game_state$home_p1, game_state$visiting_p1), {
-            if (rally_state() == "click serve start") {
+            if (rally_state() == .C_click_serve_start) {
                 ## show the serve player and tempo pre-select buttons
                 do_serve_preselect()
             } else {
@@ -2927,7 +2937,7 @@ ov_scouter_server <- function(app_data) {
         }
 
         delete_data_row <- function() {
-            editing$active <- "delete"
+            editing$active <- .C_delete
             show_delete_code_modal()
         }
 
@@ -2968,7 +2978,7 @@ ov_scouter_server <- function(app_data) {
         }
 
         edit_data_row <- function() {
-            editing$active <- "edit"
+            editing$active <- .C_edit
             show_manual_code_modal(editing$active, ridx = playslist_mod$current_row(), dvw = rdata$dvw)
         }
 
@@ -3082,7 +3092,7 @@ ov_scouter_server <- function(app_data) {
         sc_to_edit <- reactiveVal(NULL)
         sc_newvalue <- reactiveVal(NULL)
         observeEvent(input$scedit, {
-            editing$active <- "edit_shortcuts"
+            editing$active <- .C_editing_shortcut
             ## TODO validate the shortcut?
             sc_to_edit(input$scedit)
             ## playslist or general shortcut?
@@ -3116,7 +3126,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$scedit_cancel, {
             sc_to_edit(NULL)
             sc_newvalue(NULL)
-            show_shortcuts(app_data)
+            show_shortcuts(app_data, editing = editing)
         })
         observeEvent(input$scedit_save, {
             if (!is.null(sc_to_edit()) && !is.null(sc_newvalue())) {
@@ -3136,13 +3146,13 @@ ov_scouter_server <- function(app_data) {
             ## TODO save to prefs file
             sc_to_edit(NULL)
             sc_newvalue(NULL)
-            show_shortcuts(app_data)
+            show_shortcuts(app_data, editing = editing)
         })
 
         observeEvent(input$general_help, introjs(session, options = list("nextLabel" = "Next", "prevLabel" = "Previous", "skipLabel" = "Skip"),
                                                  events = list(oncomplete = I("Shiny.setInputValue('do_focus_to_scout_bar', true, { priority: 'event' });"),
                                                                onexit = I("Shiny.setInputValue('do_focus_to_scout_bar', true, { priority: 'event' });"))))
-        observeEvent(input$show_shortcuts, show_shortcuts(app_data))
+        observeEvent(input$show_shortcuts, show_shortcuts(app_data, editing = editing))
 
         ## TODO @param key_remapping list: a named list of key remappings, with entries as per [ov_default_key_remapping()]
 
@@ -3222,7 +3232,7 @@ ov_scouter_server <- function(app_data) {
             }
         })
         observeEvent(input$mr_generate, {
-            editing$active <- "match report"
+            editing$active <- .C_match_report
             ov2_generate_match_report(dvw = rdata$dvw, app_data = app_data)
         })
 

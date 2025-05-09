@@ -67,7 +67,7 @@ mod_courtrot2_ui <- function(id, styling) {
             )
 }
 
-mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, rally_state, current_video_src, styling, with_ball_path = function() FALSE) {
+mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, current_video_src, styling, with_ball_path = function() FALSE) {
     ns <- session$ns
     beach <- is_beach(isolate(rdata$dvw))
     pseq <- if (beach) 1:2 else 1:6
@@ -301,7 +301,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
 }
 
 ## base plotting instead of ggplot
-mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_codes, rally_state, current_video_src, styling, with_ball_path = function() FALSE, current_plays_row = function() NULL) {
+mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_codes, current_video_src, styling, with_ball_path = function() FALSE, current_plays_row = function() NULL) {
     ns <- session$ns
     beach <- is_beach(isolate(rdata$dvw))
     pseq <- if (beach) 1:2 else 1:6
@@ -588,7 +588,7 @@ mod_match_data_edit <- function(input, output, session, rdata, editing, app_data
     styling <- app_data$styling
     ns <- session$ns
     observeEvent(input$edit_match_data_button, {
-        editing$active <- "match_data"
+        editing$active <- .C_match_data
         match_time <- if (!is.na(rdata$dvw$meta$match$time)) {
                           as.POSIXct(rdata$dvw$meta$match$time, origin = "1970-01-01")
                       } else {
@@ -632,7 +632,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
     beach <- is_beach(isolate(rdata$dvw))
     pseq <- if (beach) 1:2 else 1:6
     observeEvent(input$edit_lineup_button, {
-        editing$active <- "change starting lineup"
+        editing$active <- .C_change_starting_lineup
         ## pause video
         dojs("vidplayer.pause();") ##dojs("document.getElementById('main_video').pause();")
         video_state$paused <- TRUE
@@ -827,7 +827,7 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
 
 
     observeEvent(input$select_teams_button, {
-        editing$active <- "select_teams"
+        editing$active <- .C_select_teams
         season_dir <- if (is.null(app_data$season_dir) || !dir.exists(app_data$season_dir)) dchoose(caption = "Choose season directory") else app_data$season_dir
         withProgress({
             team_table <- get_teams_from_dvw_dir(season_dir)
@@ -932,7 +932,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling, key_i
     role_choices <- c("outside", "opposite", "middle", "setter", "libero", "unknown")
 
     observeEvent(input$edit_teams_button, {
-        editing$active <- "teams"
+        editing$active <- .C_teams
         htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
         vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
         ## NB the edit and cancel buttons are global, not namespaced by ns()
@@ -1010,7 +1010,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling, key_i
         z
     }
     observeEvent(input$rolepicker, {
-        if (!is.null(input$rolepicker) && all(c("id", "value") %in% names(input$rolepicker)) && editing$active %eq% "teams") {
+        if (!is.null(input$rolepicker) && all(c("id", "value") %in% names(input$rolepicker)) && editing$active %eq% .C_teams) {
             temp <- stringr::str_match(input$rolepicker$id, ".+\\-([hv])_role_([[:digit:]]+)")
             this_team <- temp[1, 2]
             this_rownum <- suppressWarnings(as.numeric(temp[1, 3]))

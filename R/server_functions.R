@@ -144,7 +144,7 @@ get_current_rally_code <- function(playslist_mod, rdata, rally_codes) {
 
 review_rally <- function(editing, app_data, rally_codes) {
     ## codes can be reviewed and edited at the end of the rally
-    editing$active <- "rally_review"
+    editing$active <- .C_rally_review
     if (app_data$with_video) do_video("pause")
     review_rally_modal(rally_codes())
 }
@@ -219,17 +219,19 @@ rally_ended <- function() {
                                       column(2, offset = 8, actionButton("end_of_set_confirm", "Confirm", class = "continue fatradio")))
                              ), with_review_pane = FALSE)
         do_video("pause")
-        set_rally_state("confirm end of set")
+        set_rally_state(.C_confirm_end_of_set)
+        editing <- getsv("editing")
+        editing$active <- .C_confirm_end_of_set
         have_asked_end_of_set(TRUE)
     }
     end_of_set
 }
 
 set_rally_state <- function(what) {
-    if (isTRUE(what %in% c("click serve end", "click freeball end point", "click second contact", "click third contact", "click attack end point"))) {
+    if (isTRUE(what %in% c(.C_click_serve_end, .C_click_freeball_end, .C_click_second, .C_click_third, .C_click_attack_end))) {
         dojs("pause_main_video_on_click = true;")
     } else {
-        ## "click serve start" "click serve end" "click freeball end point" "click second contact" "click third contact" "click attack end point" "fix required information before scouting can begin" "confirm end of set" app_data$click_to_start_msg
+        ## .C_click_serve_start .C_fix_required info .C_confirm_end_of_set app_data$click_to_start_msg
         dojs("pause_main_video_on_click = false;")
     }
     rally_state <- getsv("rally_state")
@@ -280,7 +282,7 @@ do_rally_end_things <- function(game_state, app_data, rdata, rally_codes, rally_
             }, error = function(e) warning("could not auto-save file"))
         }
     }
-    set_rally_state("click serve start")
+    set_rally_state(.C_click_serve_start)
 }
 
 
@@ -353,7 +355,7 @@ deal_with_pause <- function(scout_modal_active, video_state, editing, game_state
             if (is.null(editing$active)) {
                 ## just unpause
                 do_video("play")
-            } else if (editing$active %eq% "admin") {
+            } else if (editing$active %eq% .C_admin) {
                 ## otherwise, and only if we have the admin modal showing, dismiss it and unpause
                 dismiss_admin_modal(editing = editing, scout_mode = app_data$scout_mode)
             }
@@ -361,7 +363,7 @@ deal_with_pause <- function(scout_modal_active, video_state, editing, game_state
             ## not paused, so pause and show admin modal
             do_video("pause")
             if (show_modal) {
-                editing$active <- "admin"
+                editing$active <- .C_admin
                 show_admin_modal(game_state = game_state, dvw = rdata$dvw)
             }
         }

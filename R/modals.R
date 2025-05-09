@@ -179,7 +179,7 @@ show_prefcuts_modal <- function(prefs, opts) {
        ))
 }
 
-show_shortcuts <- function(app_data) {
+show_shortcuts <- function(app_data, editing) {
     show_sc <- function(sc, txt, sctype = "CL") {
         ## sctype is CL for click mode, TY for typing mode, PL for playslist shortcuts
         bb <- paste0(sctype, sc) ## the prefix is a horrible hack so that we can distinguish playslist shortcuts from general ones in the edit handler
@@ -189,6 +189,7 @@ show_shortcuts <- function(app_data) {
         names(bb) <- if (is.null(sc_list[[sc]])) "no shortcut" else sc_list[[sc]]
         tags$span(txt, make_fat_buttons(choices = bb, input_var = "scedit", class = "scedit notuc"))
     }
+    editing$active <- .C_editing_shortcuts
     showModal(
         vwModalDialog(title = "Keyboard shortcuts", easyClose = FALSE, footer = NULL,
             fluidRow(column(4, ## click_shortcuts
@@ -249,7 +250,7 @@ show_shortcuts <- function(app_data) {
             ##                                                         tags$li("[accept ball coordinates] to add coordinates to the currently selected item"))))
             tags$br(),
             tags$hr(),
-            fixedRow(column(2, actionButton("just_cancel", "Cancel", class = "cancel fatradio")))
+            fixedRow(column(2, actionButton("just_cancel", "Dismiss", class = "cancel fatradio")))
             ))
 }
 
