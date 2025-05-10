@@ -521,7 +521,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 #'
 #' @param end_convention string: either "actual" or "intended". Is the end coordinate of an attack or serve the actual end location (where the ball contacted the floor or out of bounds area), or the intended one. The actual might differ from the intended if there is a block touch or the ball hit the net. If "actual", and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing)
 #' @param nblockers logical: scout the number of blockers on each attack?
-#' @param default_nblockers integer: if `nblockers` is TRUE, what number of blockers should we default to? If `NA`, no default
+#' @param default_nblockers integer: if `nblockers` is TRUE, what number of blockers should we default to? If `NA`, no default. Having a default value might speed up the data entry process very slightly but it is not recommended because it's easy to forget to update it on each attack and then your data will include default-valued entries that you can't easily distinguish from genuine ones that you actually entered
 #' @param transition_sets logical: scout sets in transition? If `FALSE`, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted
 #' @param set_quality logical: are we assessing set quality? If `FALSE` sets will be classified as "error", "overpass set", or "positive" for all other sets
 #' @param attacks_by string: "codes" (X5, V5, etc) or "tempo" (high, medium, quick)

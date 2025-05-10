@@ -28,7 +28,7 @@ ov_scouting_options(
 
 \item{nblockers}{logical: scout the number of blockers on each attack?}
 
-\item{default_nblockers}{integer: if \code{nblockers} is TRUE, what number of blockers should we default to? If \code{NA}, no default}
+\item{default_nblockers}{integer: if \code{nblockers} is TRUE, what number of blockers should we default to? If \code{NA}, no default. Having a default value might speed up the data entry process very slightly but it is not recommended because it's easy to forget to update it on each attack and then your data will include default-valued entries that you can't easily distinguish from genuine ones that you actually entered}
 
 \item{transition_sets}{logical: scout sets in transition? If \code{FALSE}, just the endpoint of each attack (i.e. the dig) and the subsequent counter-attack are scouted}
 

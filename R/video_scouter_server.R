@@ -1387,7 +1387,7 @@ ov_scouter_server <- function(app_data) {
                     ## popup
                     ## allow user to override auto-assigned reception quality
                     passq <- guess_pass_quality(game_state, dvw = rdata$dvw)
-                    c2_pq_buttons <- make_fat_radio_buttons(choices = c(Overpass = "/", Poor = "-", OK = "!", Good = "+", Perfect = "#"), selected = passq, input_var = "c2_pq")
+                    c2_pq_buttons <- make_fat_radio_buttons(choices = c(Overpass = "/", Poor = "-", OK = "!", Good = "+", Perfect = "#"), selected = passq, input_var = "c2_pq", class = "c2-pq-but")
                     c2_buttons <- make_fat_radio_buttons(
                         choices = c(Set = "E", "Set error" = "E=", "Setter dump" = "PP", "Second-ball<br />attack" = "P2", "Freeball over" = "F", "Reception error<br />(serve ace)" = "R=", ## rcv team actions
                                     "Opp. dig" = "aF", "Opp. dig error" = "aF=", "Opp. overpass attack" = "aPR"), ## opp actions
@@ -1402,7 +1402,7 @@ ov_scouter_server <- function(app_data) {
                     c2_sk_buttons <- if (nrow(rdata$options$setter_calls_table) > 0 && ((ph %eq% "Reception" && rdata$options$setter_calls == "reception") || rdata$options$setter_calls == "both")) {
                                          make_fat_radio_buttons(choices = setNames(rdata$options$setter_calls_table$code,
                                                                                    paste0(rdata$options$setter_calls_table$description, "<br />(", rdata$options$setter_calls_table$code, ")")),
-                                                                selected = NA, input_var = "c2_sk", class = paste0("fill-", nrow(rdata$options$setter_calls_table)))
+                                                                selected = NA, input_var = "c2_sk", class = paste("c2-sk-but", paste0("fill-", nrow(rdata$options$setter_calls_table))))
                                      } else {
                                          NULL
                                      }
@@ -1434,9 +1434,9 @@ ov_scouter_server <- function(app_data) {
                     } else {
                         accept_fun("do_assign_c2")
                         show_scout_modal(vwModalDialog(title = "Details", footer = NULL, width = app_data$styling$scout_modal_width, modal_halign = "left",
-                                                       do.call(fixedRow, c(list(column(1, style = "text-align:right;", tags$strong(if (ph %eq% "Transition") "Dig" else "Reception", tags$br(), "quality"))),
+                                                       do.call(fixedRow, c(list(column(1, style = "text-align:right;", class = "c2-pq-but", tags$strong(if (ph %eq% "Transition") "Dig" else "Reception", tags$br(), "quality"))),
                                                                            lapply(c2_pq_buttons, function(but) column(1, but)),
-                                                                           if (length(c2_sk_buttons) > 0) list(column(1, style = "text-align:right;", tags$strong("Setter", tags$br(), "call")), column(5, c2_sk_buttons)))),
+                                                                           if (length(c2_sk_buttons) > 0) list(column(1, style = "text-align:right;", class = "c2-sk-but", tags$strong("Setter", tags$br(), "call")), column(5, c2_sk_buttons)))),
                                                        tags$br(), tags$hr(),
                                                        tags$p(tags$strong("Second contact:")),
                                                        do.call(fixedRow, lapply(c2_buttons[1:6], function(but) column(if (mcols() < 12) 1 else 2, but))),
@@ -1774,7 +1774,21 @@ ov_scouter_server <- function(app_data) {
         })
 
         observe({
-            if (!is.null(input$c2) && input$c2 %eq% "R=") js_hide2("c2_more_ui") else js_show2("c2_more_ui")
+            if (!is.null(input$c2) && input$c2 %eq% "R=") {
+                js_hide2("c2_more_ui") ## player details for second contact, irrelevant
+                deselect_fatradio_buttons(".c2-pq-but", hide = TRUE) ## hide. TODO make sure we can't get conflicting pass quality recorded
+            } else {
+                js_show2("c2_more_ui")
+                dojs("$('.c2-pq-but').show();")
+            }
+            if ((!is.null(input$c2) && input$c2 %in% c("R=", "F", "aF", "aF=", "aPR")) || (!is.null(input$c2_pq) && input$c2_pq %in% c("/", "-"))) {
+                ## don't record a setter call on these
+                ## also P2 maybe, but it's ambiguous. We could use P2 for a second-ball spike by the setter, in which case we might still want a setter call recorded. Same dilemma as PP
+                deselect_fatradio_buttons(".c2-sk-but", hide = TRUE)
+                dojs(paste0("Shiny.setInputValue('c2_sk', '');"))
+            } else {
+                dojs("$('.c2-sk-but').show();")
+            }
         })
 
         observe({
@@ -1856,7 +1870,7 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(input$c3_other_attack) && !input$c3_other_attack %eq% "Choose other") {
                 dojs(paste0("Shiny.setInputValue('c3', '", input$c3_other_attack, "');"))
                 ## set the other c3 button styles as unselected, and this as selected
-                if (!is.null(fatradio_class_uuids$c3)) dojs(paste0("$('.", fatradio_class_uuids$c3, "').removeClass('active');"))
+                if (!is.null(fatradio_class_uuids$c3)) deselect_fatradio_buttons(paste0(".", fatradio_class_uuids$c3))
                 dojs("$('#c3_other_outer').addClass('active');")
             }
         })
@@ -1867,11 +1881,10 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$c3, {
             if (!is.null(input$c3)) {
                 ## if an 'other' attack isn't selected, set its style as unselected
-                if (!input$c3 %in% attack_other_opts()) dojs("$('#c3_other_outer').removeClass('active');")
+                if (!input$c3 %in% attack_other_opts()) deselect_fatradio_buttons("#c3_other_outer")
                 if (input$c3 %eq% "E=") {
                     ## if we choose set error then the set quality should be de-selected
-                    ##dojs("$('#sq_outer button').removeClass('active')")
-                    dojs("$('.setq').removeClass('active')")
+                    deselect_fatradio_buttons(".setq")
                     ## hide the blockers and opposition players selections
                     js_hide2("c3_bl_ui"); js_hide2("c3_opp_pl_ui");
                     ## if we've already scouted the set (i.e. in reception phase, or we are scouting transition sets) then also hide the player selector because it won't be used

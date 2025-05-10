@@ -64,6 +64,7 @@ startup_app_data <- function(app_data, session) {
         if (length(app_data$remapping) > 0) dojs(paste0("sk_key_map = ", make_js_keymap(app_data$remapping), ";"))
         app_data$shortcuts <- app_data$type_shortcuts ## this is the active set
     } else {
+        if (length(app_data$click_shortcuts) > 0) dojs(paste0("ck_shortcut_map = ", make_js_keymap(app_data$click_shortcuts), ";"))
         app_data$shortcuts <- app_data$click_shortcuts ## this is the active set
     }
     app_data$click_to_start_msg <- paste0(if (app_data$scout_mode != "type") "click or ", "unpause the video to start") ## this is a bit unnecessary since the rally state message isn't shown in type mode

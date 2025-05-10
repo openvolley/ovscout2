@@ -1092,6 +1092,11 @@ make_fat_buttons <- function(choices, selected, input_var, as_radio = "", ...) {
     attr(buts, "class") <- cls
     buts
 }
+## helper function to clear the visual selection from a fatradio group
+## NOTE that this only changes the visual style, you'll still need to issue a Shiny.setInputValue(...) to change the actual input
+deselect_fatradio_buttons <- function(jquery_selector, hide = FALSE) {
+    dojs(paste0("$('", jquery_selector, "').removeClass('active');", if (hide) paste0("$('", jquery_selector, "').hide();")))
+}
 
 plotOutputWithAttribs <- function(outputId, width = "100%", height = "400px", click = NULL, dblclick = NULL, hover = NULL, brush = NULL, inline = FALSE, ...) {
     out <- shiny::plotOutput(outputId = outputId, width = width, height = height, click = click, dblclick = dblclick, hover = hover, brush = brush, inline = inline)
