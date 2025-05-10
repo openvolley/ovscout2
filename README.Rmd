@@ -23,19 +23,28 @@ knitr::opts_chunk$set(
 
 ## About
 
-This R package provides a Shiny app for scouting volleyball data files. At this stage it is entirely experimental. Beware!
+This R package provides a Shiny app for scouting volleyball data files.
 
 ![](man/figures/ovscout2-screenshot.png)
 
-## Principles
+Scouting can be done either with a guided point-and-click interface, or by typing.
 
-- scouting is always done from video, even when scouting a live match (though this is probably not actually possible yet). The hope is that we can make the user interface fast enough to be "nearly real time" - while the scout might lag behind the real action at times, they can catch up at the ends of rallies or other breaks in play
-- by registering the corners of the court before scouting, we can map the court image to real-world court space. Clicking a location on the video can then be converted to its corresponding court coordinates. With a touch-screen device, this click interface can be reasonably fast
-- the scouting process avoids unnecessarily asking for information (e.g. information that can be inferred by other means, such as the player next to serve), and tries to pre-fill as much information as it can at each data entry step. It will learn a team's patterns of play, so that it can suggest the most likely player to have attacked, passed or dug a certain ball
+## Click-scouting principles
 
-This software is intended for scouts who do not have access to professional scouting software or who aren't proficient with the keyboard interface that they typically use. `ovscout2` is an alternative to the many available tablet- and phone-based scouting apps that also use a click interface, but `ovscout2` provides more complete match data that is fully dvw compatible, and yet (we hope) remains easy to use. It is unlikely to replace professional scouting software used by scouts who can already capture match data in real time.
+- scouting is always done from video, even when scouting a live match (though this is technically a bit tricky to set up). The hope is that the scouting process is fast enough to be "nearly real time" - while the scout might lag behind the real action at times, they can catch up at the ends of rallies or other breaks in play
+- by registering the corners of the court before scouting, we can map the court image to real-world court space. Clicking a location on the video can then be converted to its corresponding court coordinates
+- each ball touch is registered by clicking its location on screen. With a touch-screen device, this click interface can be reasonably fast
+- to make the process faster and easier the app tries to pre-fill as much information as it can at each data entry step. It will learn a team's patterns of play, so that it can suggest the most likely player to have attacked, passed or dug a certain ball
 
-## Features
+## Scouting by typing
+
+- similar to the scouting interface through commercial software such as DataVolley or VolleyStation
+- allows fast data entry, and can be used without a video if desired (this allows live matches can be scouted in real time by a scout who is physically present at the arena, without having to muck around with live video feeds)
+- BUT type-scouting comes with a steep learning curve, which is why the click-scouting interface exists.
+
+This software is intended for scouts who do not have access to commercial scouting software. The click-scouting interface is for users who aren't proficient with the keyboard interface. `ovscout2` is an alternative to the many available tablet- and phone-based scouting apps that also use a click interface, but `ovscout2` provides more complete match data that is fully dvw compatible and can be used for advanced statistical analysis, and yet (we hope) remains easy to use. It is unlikely to replace professional scouting software used by scouts who can already capture match data in real time.
+
+## Features of click-scouting
 
 - a guided scouting interface that is easy to learn and ensures consistent data collection
 - the interface can be tailored for simple or advanced scouting, with more details in the latter

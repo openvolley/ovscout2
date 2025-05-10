@@ -1,15 +1,16 @@
-`ovscout2` is a free, open-source R/Shiny app for scouting volleyball matches. It provides industry-standard dvw files that can be used with the [openvolley](https://openvolley.org) suite of R packages, or with any other volleyball analytics software that takes dvw files as inputs.
+ovscout2 is a free, open-source R/Shiny app for scouting volleyball matches. It provides industry-standard dvw files that can be used with the [openvolley](https://openvolley.org) suite of R packages, or with any other volleyball analytics software that takes dvw files as inputs.
 
-The app requires that you have a video of the match *from a fixed view point* (i.e. the camera does not move for the duration of the match, or at the very least it only moves occasionally). Such videos are usually taken from the "scout viewpoint" &mdash; behind one end of the court, at a reasonable height so that the entire court is clearly visible and players on court do not tend to occlude each other.
+The app offers two modes of scouting: using a guided point-and-click interface, or by typing.
 
-The app is writen in R, but you do not necessarily need to be an R user to be able to use it. We provide script files to launch the app from the command line &mdash; see the [Standalone] section below for installation and startup.
+Click-scouting is very easy to learn but still delivers high-quality scout files. It requires that you have a video of the match *from a fixed view point* (i.e. the camera does not move for the duration of the match, or at the very least it only moves occasionally). Such videos are usually taken from the "scout viewpoint" &mdash; behind one end of the court, at a reasonable height so that the entire court is clearly visible and players on court do not tend to occlude each other.
 
+The app is writen in R, but you do not need to be an R user to be able to use it. We provide script files to launch the app from the command line &mdash; see the [Standalone] section below for installation and startup.
 
 # Installation
 
 The app can be run on Windows, Linux, or Mac systems. It is possible to run the app on a laptop or desktop and connect to it with a tablet or similar touch device to do the actual scouting. See [Device considerations] below.
 
-You need to be online for installation. The app initially needs to download and install some additional R packages (quite a few, in fact). Once the app has been installed and run once, it can be used offline thereafter if necessary.
+You need to be online for installation. The app initially needs to download and install some additional R packages (quite a few, in fact). Once the app has been installed and run once, it can be used offline thereafter.
 
 Also see the "Other system utilities" section, below.
 
@@ -19,7 +20,7 @@ The standalone installer allows you to run the app without having to do anything
 
 ### Windows
 
-1. Download <https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-win-x64.zip> and unzip it to a convenient location.
+1. Download <https://github.com/openvolley/ovscout2/releases/latest/download/ovscout2-win-x64.zip> and unzip it to a convenient location.
 
 1. Run the `ov_scouter.bat` or `ov_scouter_demo.bat` file. The first run will take quite some time, because it will install a number of additional R packages. Subsequent startups will be much faster (it checks for updates on each startup, so might reinstall some packages on occasion).
 
@@ -29,9 +30,9 @@ The standalone installer allows you to run the app without having to do anything
 
 1. On Mac, you will also need to install XQuartz: <https://www.xquartz.org/>
 
-1. Optionally install 'Other system utilities' (see below)
+1. Optionally install "Other system utilities" (see below)
 
-1. Download <https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-unix-x64.zip> and unzip it to a convenient location.
+1. Download <https://github.com/openvolley/ovscout2/releases/latest/download/ovscout2-unix-x64.zip> and unzip it to a convenient location.
 
 1. Run the `ov_scouter` or `ov_scouter_demo` script. The first run will take quite some time, because it will install a number of additional R packages. Subsequent startups will be much faster (it checks for updates on each startup, so might reinstall some packages on occasion).
 
@@ -39,20 +40,20 @@ The standalone installer allows you to run the app without having to do anything
 
 1. [Install R](https://cran.r-project.org/) and [RStudio](https://www.rstudio.com/products/rstudio/download/).
 
-1. Optionally install `lighttpd` (see 'Other system utilities' below)
+1. Optionally install `lighttpd` (see "Other system utilities" below)
 
 1. From RStudio:
 
-```{r eval = FALSE}
-install.packages("ovscout2", repos = c("https://openvolley.r-universe.dev",
-                                       "https://cloud.r-project.org"))
-
-## or
-
-## install.packages("remotes") ## if needed
-remotes::install_github("openvolley/ovscout2")
-
-```
+    ```{r eval = FALSE}
+    install.packages("ovscout2", repos = c("https://openvolley.r-universe.dev",
+                                           "https://cloud.r-project.org"))
+    ```
+    or
+    ```{r eval = FALSE}
+    install.packages("remotes") ## only needed once
+    remotes::install_github("openvolley/ovscout2")
+    ```
+\newpage
 
 ## Other system utilities
 
@@ -63,13 +64,13 @@ Two other system utilities are recommended but not required. Note that the stand
 1. [lighttpd](https://www.lighttpd.net/) is a lightweight web server that is used to play the match video (when using a local video file). Install (from within R, on Windows only) using `ovscout2::ov_install_lighttpd()` or manually from <http://lighttpd.dtech.hu/> (for Windows) or via your package manager for other operating systems (see <https://redmine.lighttpd.net/projects/lighttpd/wiki/GetLighttpd>).
   If `lighttpd` is not installed, the app falls back to [servr](https://github.com/yihui/servr) but this is a little slower and less responsive than `lighttpd`.
 
-# Startup and usage
+# Startup
 
 Some of startup options are the same regardless of whether you are using the standalone version or starting the app from within R:
 
 - the "season directory" is a folder containing dvw files from other matches. If you are scouting a new match and you provide a season directory, you can choose teams from other matches for the new match. This saves having to re-enter team and player details. The season directory will also be used as the starting point when selecting a video file
 
-- the video file is required
+- the video file is required for click-scouting, and optional for type-scouting
 
 - you can also optionally provide a .dvw or .ovs file (i.e. a partially-scouted file that you wish to continue scouting). If you do not provide a dvw file, the app creates a new, empty match file.
 
@@ -81,7 +82,7 @@ Options controlling the app behaviour and scouting preferences can be changed vi
 
 ## Startup &mdash; from R
 
-In each session you first need to load the `ovscout2` package:
+In each session you first need to load the ovscout2 package:
 
 ```{r eval = FALSE}
 library(ovscout2)
@@ -130,48 +131,81 @@ Listening on http://192.168.1.11:5017
 Open a browser on the tablet and enter `http://192.168.1.11:5017` in the address bar.
 
 
+# Shortcuts
+
+^^^
+
 # Preferences
 
 There are a number of options available that alter the behaviour or appearance of the app. These can be set (if you are starting the app from within R) via parameters to the `ov_scouter()` function. Most can also be set via the "Preferences" button in the app (others will be added in due course):
 
 - `auto_save_dir` is a directory into which the scouted file will be saved (in .dvw format) after each rally. You can use this to e.g. provide live file updates to be used by the coaching bench
+
 - `scoreboard` - show the scoreboard in the top right-hand corner of the video screen (true by default)
+
 - `ball_path` - show the ball path on the court diagram (false by default, because it slows the app down a little)
+
 - `review_pane` - show the video review pane on each data entry popup (true by default)
+
 - `playlist_display_option` - what to show in the plays table? Either "dv_codes" (scouted codes) or "commentary" (a plain-language interpretation of the touches)
-- `shortcuts` - a named list that defines the keyboard shortcuts used in the app
 
-Preferences controlling the scouting conventions can similarly be set via the `ov_scouting_options()` function or the "Preferences" button. These include:
+- `click_shortcuts` - a named list that defines the keyboard shortcuts used in the app when in click-scouting mode
 
-- `end_convention` determines whether you are treating the end coordinate of an attack or serve as the **actual** end location (i.e. where the ball contacted the floor or out of bounds area), or the **intended** end location. The actual might differ from the intended if there is a block touch or the ball hit the net. If 'actual', and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing).
+- `type_shortcuts` - a named list that defines the keyboard shortcuts used in the app when in type-scouting mode
+
+- `playstable_shortcuts` - a named list that defines the keyboard shortcuts used in the playstable, in both click-scouting and type-scouting mode
+
+## Click-scouting conventions
+
+There are a few ways in which you can tailor the click-scouting to your requirements. These can set via the `ov_scouting_options()` function or the "Click-scouting conventions" pane in the preferences. They include:
+
+- `end_convention` determines whether you are treating the end coordinate of an attack or serve as the **actual** end location (i.e. where the ball contacted the floor or out of bounds area), or the **intended** end location. The actual might differ from the intended if there is a block touch or the ball hit the net. If "actual", and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing).
+
+- `nblockers` and `default_nblockers`. If `nblockers` is `TRUE` then the data entry will include a section to enter the number of blockers on each attack. This is recommended and set to `TRUE` by default. The `default_nblockers` value can be used to set the number of blockers that will be pre-selected on each attack. Having a default value might speed up the data entry process very slightly but it is not recommended because it's easy to forget to update it on each attack and then your data will include default-valued entries that you can't easily distinguish from genuine ones that you actually entered.
+
 - `transition_sets`. If `FALSE`, then sets in transition are not scouted. After entering an attack end location (and play continues) the next click will be for the counterattack start location, with no set scouted in between.
 
+- `attacks_by` allows attacks to be recorded by combination code ("X5", "V5", etc) or just by tempo (high, medium, quick)
+
+- `set_quality`. If `FALSE` (which is the default), set actions are not graded, although set errors and over-sets (a set that goes over the net) are marked as such. If `set_quality` is `TRUE`, the data entry will include a section where each set can be graded as "excellent", "good", "OK", or "poor".
+
+- `setter_calls`. The "setter call" is where the setter instructs their middle to run. For example, a setter call of "K2" means that the middle hitter ran behind the setter (as if to hit a quick ball behind). The setter call is entered even if the setter actually set someone else. You can set this to "none" (no setter calls), "reception" (setter calls on reception-phase attacks only), or "both" (setter calls will be recorded on both reception-phase and transition-phase attacks). Note that it is usual NOT to enter a setter call on poor reception, because in that situation it's often hard to tell where the middle was running and the information is largely useless anyway.
+  Note that if you are not scouting transition sets, you can't record setter calls in transition because the setter call code is attached to the setting action. If `transition_sets` is `FALSE` and `setter_calls` is "both", it will be treated as "reception".
+
+## Type-scouting conventions
+
+There are many fewer convention settings for type-scouting, because those conventions are largely controllled by the entries that the scout makes. The only setting here is whether the scout is using zones or cones to record attack directions.
 
 # Starting a new match
 
 To scout a new match, start the app with the corresponding video file, then:
 
-1. Define the court reference via the "Court reference" button. This requires you to click on the four corners of the court in the video image, so that the app can map clicks in the video to real-world court coordinates
+1. If you are using video, define the court reference via the "Court reference" button. This requires you to click on the four corners of the court in the video image, so that the app can map clicks in the video to real-world court coordinates. This is mandatory for click-scouting and optional for type-scouting (but if you don't do it, you can't click the video in order to add precise locations to ball touches. You can click the small court diagram instead)
 
 1. Enter the match details via the "Edit match data" button (match date, venue, scout name, etc)
 
-1. Define the teams playing in the match. If you have provided a season directory (with existing .dvw or .ovs files in it) you can choose from the teams in those files. Otherwise you can enter new teams
+1. Define the teams playing in the match. If you have provided a season directory (with existing .dvw or .ovs files in it) you can choose from the teams in those files ("Select teams" button). Otherwise you can enter new teams via the "Edit teams" button
+
+1. If you are in a hurry, use the "Fast start" button in the "Edit teams" dialog. This will automatically populate players with numbers 1&ndash;99 in a team. You can do this, scout the match, and then return later to (automatically) remove players that don't actually exist and assign the correct names to the ones who do
 
 1. Enter the team lineups for set 1, including the libero(s) for each team. If two liberos are entered, then the app will assume that the first libero is on court during serve reception (i.e. the "passing" libero) and the second libero is on court while serving (the "defending" libero). If the team has two liberos but only one takes to the court per set, then just enter the libero who is actually going to play in that set
 
 # Scouting
 
-The scouting process is a guided one. Each contact is marked by clicking on the video at the time and point of contact, with the **point of contact being the point on the floor directly below the ball as it is being played**. This will often be between the player's feet as they dig or set the ball, or below them if they are jumping to spike.
-
-## Start by:
+Start by:
 
 - checking that the orientation of the court diagram (top right) matches the video. Swap it using the `r "\u21f5"` button if required
 
 - check that the correct team is serving (indicated by the white circle in the court diagram). Swap with the "Change serving team" button if required
 
+## Click-scouting
+
+The click-scouting process is a guided one. Each contact is marked by clicking on the video at the time and point of contact, with the **point of contact being the point on the floor directly below the ball as it is being played**. This will often be between the player's feet as they dig or set the ball, or below them if they are jumping to spike.
+
+
 - unpause the video. The number of the serving player and their serve type (float/jump/etc) will be shown below the video panel. You can change the serve type before the serve, if you can see that it is wrong
 
-## First contact (serve)
+### First contact (serve)
 
 - click the serve (the point on the court below the ball) as it happens. The video will continue playing
 
@@ -180,7 +214,7 @@ The scouting process is a guided one. Each contact is marked by clicking on the 
 
 If you did not click the reception location correctly, or for some other reason want to go back and try again, click "Cancel and rewind". Otherwise click "Continue" and the video will resume playing.
 
-## Second contact (set)
+### Second contact (set)
 
 - click the location of the set (or second-contact action if it was something else, such as a setter tip. Remember that this is the point on the ground directly below the ball, not the ball itself). The video will pause and a data entry dialog will pop up
 
@@ -194,7 +228,9 @@ The second contact is by default a set, by the assigned setter on court. Once yo
 
 Similarly to a reception error, in some cases it isn't immediately clear if the set is an error or not (e.g. an unhittable set, or a delayed double-contact call by the referee). Scout this as a set (by the appropriate player) and it can be converted to a set error in the next step if necessary.
 
-## Third contact (attack)
+\newpage
+
+### Third contact (attack)
 
 The third contact is most commonly an attack (but can also be a freeball over or set error, or a play by the opposition on an overpass/overset.
 
@@ -202,13 +238,13 @@ The third contact is most commonly an attack (but can also be a freeball over or
 
 If it is an attack:
 
-- enter the attacking player and either the attack combination code (if you are scouting with combo codes) or tempo
+- enter the attacking player and either the attack combination code (if you are scouting with combination codes) or tempo
 
 - optionally (but recommended) enter the number of blockers on the attack
 
 Otherwise enter the appropriate action and player.
 
-## Attack end point
+### Attack end point
 
 After an attack or freeball over, click the end point. If you are scouting with "actual" end convention (see [Preferences]) then this is the point where the ball lands, or the point on the court directly below the ball when it is played. If end convention is "intended", this is the point where the attacker intended to hit the ball.
 
@@ -216,25 +252,45 @@ Enter the appropriate details. An attack kill, dig or dig error can also involve
 
 If the attack was dug (i.e. play continues) and you do not care about scouting digs, you can shift-click the attack end point and the app will record the end point of the attack without showing a popup dialog. This is faster, but note that no dig will be scouted, and no block touch can be entered.
 
-## Transition play
+### Transition play
 
 Scouting now continues until the point ends, with attacks, digs, and other contacts being recorded. By default, *sets in transition are not scouted* (except for set errors, since a set error will end the rally). After an attack, we record the dig location and then straight to the counter-attack location, with no intervening set being scouted. You can choose to include transition sets if you wish (see [Preferences] to change this behaviour) but there is not a huge practical advantage in doing so. It does not enable much more in terms of analytics, but takes extra time to scout, so transition sets are disabled by default.
 
-## End of the point
+### End of the point
 
-The point can be ended by entering a terminal action (kill or error), or if the point ends in a way that doesn't fit nicely with the available options, you can pause the video (press "q" or the pause button) and choose "Won current rally" for the appropriate team.
+The point can be ended by entering a terminal action (kill or error), or if the point ends in a way that doesn't fit nicely with the available options, you can pause the video (press the pause shortcut key) and choose "Won current rally" for the appropriate team.
 
-## End of the set
+### End of the set
 
 When the set concludes, it will prompt you to confirm whether it is the end of the set. Confirm the end of the set and then enter the lineups for the next set ready to start scouting that one.
 
-## End of the match
+### End of the match
 
 At the end of the match, you don't need to do anything extra. Just end the final set as normal, and ignore the instruction to enter the lineups for the next set. And now you can generate a match report, if you wish!
 
-## Timeouts and substitutions
+### Timeouts and substitutions
 
-Pausing the video (press "q" or the pause button) will bring up a dialog that allows you to enter a timeout or substitution, or change the setter on court for a given team (e.g. if the team is playing a two-setter system, you will need to change the setter on court each time the setters swap).
+Pausing the video (press the pause shortcut key) will bring up a dialog that allows you to enter a timeout or substitution, or change the setter on court for a given team (e.g. if the team is playing a two-setter system, you will need to change the setter on court each time the setters swap).
+
+\newpage
+
+## Type-scouting
+
+An introduction to type-scouting is beyond the scope of this manual. You can find some information online or through (paid) courses and books. If you are not already familiar with type-scouting, it is strongly recommended that you use the click-scouting mode instead. It is designed to allow high-quality match information to be recorded but with a vastly easier learning curve.
+
+For type-scout users, be aware that there are some non-standard scouting codes that can be used in ovscout2 that might save you a few keystrokes:
+
+- starting lineups can be entered with `L` codes such as `L 4,7s,8,10,1,3,17`. You can use spaces instead of commas if you prefer. The first six numbers give the players starting in positions 1&ndash;6, with "s" being used to designate the setter. The 7th (and 8th) numbers after the `L` are optional and are the libero(s). Use `aL` for the visiting team lineup.
+
+- attack combinations can be entered without the player number. For example, if the home team made an `X5` attack kill to position/cone 3 you can enter `X53#` (use `aX5...` for the visiting team). ovscout2 will automatically infer the player number. For an `X5` attack this is the front-row outside hitter, except in P1-reception when the opposite is expected to hit from position 4. Note some limitations on this process:
+
+  - it can't assign a player number to second-ball attacks (`P2` by default) or overpass attacks (`PR`)
+
+  - it uses the attack start zone and setter position (team rotation) to infer the player number
+
+  - it assumes that the team is playing with standard player role patterns and a setter-outside-middle rotation (i.e. the close outside hitter is in position 2 when the setter is in 1)
+
+  If the team plays with some other patterns, or if these assumptions don't hold for a particular attack, provide the player number in the scout code as usual.
 
 # Frequently asked questions
 
@@ -246,7 +302,7 @@ If you have finished scouting a match and wish to use that match file in other a
 
 ## The video is black and the app says "Wait for the video media information to be loaded"
 
-`ovscout2` relies on the browser to do the actual video playback, but some videos are not compatible with web browsers. `*.MOV` files recorded with iPhones/iPads are known to suffer from this problem. Try playing the video file directly in the web browser (open a new tab and drag the video file onto it). If the video doesn't play in the new browser tab, you will need to re-encode the video into a browser-compatible format (try <https://handbrake.fr/>, for example).
+ovscout2 relies on the browser to do the actual video playback, but some videos are not compatible with web browsers. `*.MOV` files recorded with iPhones/iPads are known to suffer from this problem. Try playing the video file directly in the web browser (open a new tab and drag the video file onto it). If the video doesn't play in the new browser tab, you will need to re-encode the video into a browser-compatible format (try <https://handbrake.fr/>, for example).
 
 ## It crashed! Have I lost my work?
 

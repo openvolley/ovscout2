@@ -8,3 +8,22 @@
     break-before: avoid;
     margin-top: 1cm;
 }
+
+pre, code {
+    font-size: 9pt;
+}
+
+code {
+    background-color: #eee;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    padding-left: 0.25em;
+    padding-right: 0.25em;
+}
+
+div.sourceCode {
+    background-color: #eee;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+    border-radius:8px;
+}
