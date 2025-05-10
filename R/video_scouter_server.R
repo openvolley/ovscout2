@@ -134,6 +134,7 @@ ov_scouter_server <- function(app_data) {
         courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", video_file = if (!is_url(app_data$video_src2)) app_data$video_src2 else NULL, video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), detection_ref = detection_ref2, main_video_time_js = "vidplayer.currentTime()", styling = app_data$styling) else NULL
         detection_ref <- reactive(if (current_video_src() < 2) detection_ref1() else detection_ref2()) ## whichever is associated with the current view
         courtref_active <- reactive({
+            ## this reactive indicates if the court reference is being edited, i.e. the module's dialog is showing
             isTRUE(courtref1$active()) || (!is.null(courtref2) && isTRUE(courtref2$active()))
         })
         tsc_mod <- callModule(mod_teamscores, id = "tsc", game_state = game_state, rdata = rdata, styling = app_data$styling, visible = reactive(prefs$scoreboard))
@@ -1113,14 +1114,14 @@ ov_scouter_server <- function(app_data) {
         loop_trigger <- reactiveVal(0L)
         observeEvent(input$video_click, priority = 99, {
             ## when video clicked, get the corresponding video time and trigger the loop
-            if (!courtref_active() || is.null(detection_ref())) {
+            if (is.null(detection_ref())) {
                 ## no detection ref set up, can't process a video click
                 output$no_court_ref_ui <- renderUI({
                     dojs("setTimeout(() => { $('#no_court_ref_ui').empty() }, 3000);") ## clear it after delay
-                    tags$div(class = "alert alert-danger", "No court reference has been defined. Click the court diagram instead.")
+                    tags$div(class = "alert alert-danger", "No court reference has been defined. Either define your court reference or click the court diagram instead.")
                 })
             } else {
-                flash_screen() ## visual indicator that click has registered
+                ##flash_screen() ## visual indicator that click has registered - now done directly in js
                 ## calculate the normalized x,y coords
                 this_click <- if (length(input$video_click) > 4) list(x = input$video_click[1] / input$video_click[3], y = 1 - input$video_click[2] / input$video_click[4])
                 if (!is.null(editing$active) && editing$active %in% c(.C_coord_click_start, .C_coord_click_mid, .C_coord_click_end)) {

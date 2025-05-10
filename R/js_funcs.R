@@ -74,21 +74,22 @@ build_ovscout2_js <- function(app_data) {
                       "  }",
                       "}", sep = "\n")
     }
+    ## flash screen to indicate click
+    myjs <- paste(myjs, "function flash_screen() { $('#video_overlay_canvas').css('background-color', '#FFFF0080'); setTimeout(function() { $('#video_overlay_canvas').css('background-color', ''); }, 50); };")
     if (app_data$with_video) {
         myjs <- paste(myjs, "$(document).on('shiny:sessioninitialized', function() {",
                       resize_observer("review_player", fun = "Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());", debounce = 100, as = "string"),
                       player_constructor_js(id = "main_video", app_data = app_data),
                       if (isTRUE(app_data$live)) "vidplayer_near_end_fun();", ## if live, attach the vidplayer_near_end_fun
-                      resize_observer("main_video", fun = "$('#video_overlay').css('height', $('#main_video').innerHeight() + 'px'); document.getElementById('video_overlay_canvas').height = $('#main_video').innerHeight(); document.getElementById('video_overlay').style.width = $('#main_video').innerWidth() + 'px'; document.getElementById('video_overlay_canvas').width = $('#main_video').innerWidth(); Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); document.getElementById('video_overlay').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px'; document.getElementById('video_overlay_canvas').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px';", debounce = 100, as = "string"), ";",
+                      resize_observer("main_video", fun = "$('#video_overlay').css('height', $('#main_video').innerHeight() + 'px'); document.getElementById('video_overlay_canvas').height = $('#main_video').innerHeight(); document.getElementById('video_overlay').style.width = $('#main_video').innerWidth() + 'px'; document.getElementById('video_overlay_canvas').width = $('#main_video').innerWidth(); Shiny.setInputValue('dv_height', $('#main_video').innerHeight()); Shiny.setInputValue('dv_width', $('#main_video').innerWidth()); document.getElementById('video_overlay').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px'; document.getElementById('video_overlay_canvas').style.marginTop = '-' + $('#video_holder').innerHeight() + 'px';", debounce = 100, as = "string"),
                       "pause_main_video_on_click = false;",
-                      if (app_data$scout_mode != "type") {
-                          paste0("$('#video_overlay').on('click', () => {",
-                                 "    if (pause_main_video_on_click) {",
-                                 "        vidplayer.pause();",
-                                 "        pause_on_type = 0;",
-                                 "    }",
-                                 "});")
-                      },
+                      paste("$('#video_overlay').on('click', () => {",
+                             "    flash_screen();",
+                             if (app_data$scout_mode != "type") paste("    if (pause_main_video_on_click) {",
+                                                                      "        vidplayer.pause();",
+                                                                      "        pause_on_type = 0;",
+                                                                      "    }", sep = "\n"),
+                            "});", sep = "\n"),
                       ## add listeners to the whole window to catch changes of focus
                       "function focus_check() { Shiny.setInputValue('focus_check', { is_body: document.activeElement === document.body, id: document.activeElement.id, class: document.activeElement.classList }); };",
                       "window.addEventListener ? window.addEventListener('focus', focus_check, true) : window.attachEvent('onfocusout', focus_check);",
