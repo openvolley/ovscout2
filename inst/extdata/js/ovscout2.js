@@ -66,13 +66,13 @@ function sk_handler(e) {
         insertTextAtCursor(newchar);
         scoutin.push({ "key":newchar, "time":dloc, "video_time":vt });
         Shiny.setInputValue("scout_input_times", scoutin);
-        return false;
+        return false; // stop propagation
     }
     newchar = sk_mapshortcut(e);
     console.log(" -- maps to scout shortcut: " + newchar);
     if (newchar) {
         Shiny.setInputValue("scout_shortcut", newchar, { priority: "event" });
-        return false;
+        return false; // stop propagation
     }
     scoutin.push({ "key":e.key, "time":dloc, "video_time":vt });
     Shiny.setInputValue("scout_input_times", scoutin);
@@ -82,6 +82,16 @@ function plk_handler(e) {
     // arrow up/down 38/40 in plays table is handled in the server code
     // tab in playstable switches focus to scout input bar. Also now handled in server code. TODO make this a configurable shortcut
     if ((e.keyCode == 38 || e.keyCode == 40 || e.keyCode == 9)) { e.stopPropagation(); e.preventDefault(); }
+}
+
+var ck_shortcut_map = {}; // set from the shiny server on startup
+function ck_handler(e) {
+    var newchar = ck_shortcut_map[e.ctrlKey + "|" + e.altKey + "|" + e.shiftKey + "|" + e.metaKey + "|" + e.key];
+    console.log(" -- maps to click shortcut: " + newchar);
+    if (newchar) {
+        // click-mode shortcuts are all handled in the server.R function BUT we want to stop the key event propagating further, if it's a recognized shortcut
+        return false; // stop propagation
+    }
 }
 
 var pause_on_type = 0; // no pause
@@ -118,6 +128,8 @@ $(document).on('keydown', function (e) {
     } else if (el.id.includes("playslist-tbl-i")) {
         // send this event to the playslist input handler
         return plk_handler(e);
+    } else {
+        return ck_handler(e); // send to click-mode handler
     }
 });
 
