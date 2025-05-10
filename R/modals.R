@@ -53,14 +53,14 @@ show_change_setter_modal <- function(code, game_state, dvw) {
         ## home players on court
         ht_on <- get_players(game_state, team = "*", dvw = dvw)
         ord <- order(ht_on)
-        chc <- setNames(paste0(ht_on, "@", seq_along(ht_on)), player_nums_to(ht_on, team = "*", dvw = dvw))[ord]
+        chc <- setNames(paste0(ht_on, "@", seq_along(ht_on)), player_nums_to(ht_on, team = "*", dvw = dvw, game_state = game_state))[ord]
         ht <- TRUE
         buts <- make_fat_radio_buttons(choices = chc, selected = NA, input_var = "new_setter")
     } else {
         ## visiting players on court
         vt_on <- get_players(game_state, team = "a", dvw = dvw)
         ord <- order(vt_on)
-        chc <- setNames(paste0(vt_on, "@", seq_along(vt_on)), player_nums_to(vt_on, team = "a", dvw = dvw))[ord]
+        chc <- setNames(paste0(vt_on, "@", seq_along(vt_on)), player_nums_to(vt_on, team = "a", dvw = dvw, game_state = game_state))[ord]
         vt <- TRUE
         buts <- make_fat_radio_buttons(choices = chc, selected = NA, input_var = "new_setter")
     }
@@ -77,20 +77,20 @@ show_substitution_modal <- function(sub_code, game_state, dvw) {
     if (sub_code %eq% "*c") {
         ## home player sub buttons
         ht_on <- sort(get_players(game_state, team = "*", dvw = dvw))
-        names(ht_on) <- player_nums_to(ht_on, team = "*", dvw = dvw)
+        names(ht_on) <- player_nums_to(ht_on, team = "*", dvw = dvw, game_state = game_state)
         ht_other <- setdiff(na.omit(dvw$meta$players_h$number), ht_on)
         ht_other <- sort(setdiff(ht_other, get_liberos(game_state, team = "*", dvw = dvw)))
-        names(ht_other) <- player_nums_to(ht_other, team = "*", dvw = dvw)
+        names(ht_other) <- player_nums_to(ht_other, team = "*", dvw = dvw, game_state = game_state)
         ht_sub_out <- make_fat_radio_buttons(choices = ht_on, selected = NA, input_var = "ht_sub_out")
         ht_sub_in <- make_fat_radio_buttons(choices = ht_other, selected = NA, input_var = "ht_sub_in")
         ht_sub <- TRUE
     } else {
         ## visiting player sub buttons
         vt_on <- sort(get_players(game_state, team = "a", dvw = dvw))
-        names(vt_on) <- player_nums_to(vt_on, team = "a", dvw = dvw)
+        names(vt_on) <- player_nums_to(vt_on, team = "a", dvw = dvw, game_state = game_state)
         vt_other <- setdiff(na.omit(dvw$meta$players_v$number), vt_on)
         vt_other <- sort(setdiff(vt_other, get_liberos(game_state, team = "a", dvw = dvw)))
-        names(vt_other) <- player_nums_to(vt_other, team = "a", dvw = dvw)
+        names(vt_other) <- player_nums_to(vt_other, team = "a", dvw = dvw, game_state = game_state)
         vt_sub_out <- make_fat_radio_buttons(choices = vt_on, selected = NA, input_var = "vt_sub_out")
         vt_sub_in <- make_fat_radio_buttons(choices = vt_other, selected = NA, input_var = "vt_sub_in")
         vt_sub <- TRUE

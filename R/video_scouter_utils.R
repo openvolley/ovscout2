@@ -553,7 +553,7 @@ get_players <- function(game_state, team, dvw) {
     }
 }
 
-player_nums_to <- function(nums, team, dvw, to = "number lastname") {
+player_nums_to <- function(nums, team, dvw, game_state, to = "number lastname") {
     to <- match.arg(to, c("name", "number lastname"))
     temp_players <- if (team == "*") dvw$meta$players_h else if (team == "a") dvw$meta$players_v else stop("team should be '*' or 'a'")
     temp_players <- temp_players %>% dplyr::filter(!is.na(.data$number))
@@ -574,7 +574,17 @@ player_nums_to <- function(nums, team, dvw, to = "number lastname") {
             }
             temp$lastname <- chk
         }
-        temp$lastname[grepl("L", temp$special_role)] <- paste0(temp$lastname[grepl("L", temp$special_role)], " (L)")
+        lib_nums <- temp$number[grepl("L", temp$special_role)]
+        ## but might also have libero-per-set, or rosters not fully filled out, in which case we should also take libero from lineup in game_state
+        lib_nums <- unique(na.omit(c(lib_nums, if (team == "*") c(game_state$ht_lib1, game_state$ht_lib2) else c(game_state$vt_lib1, game_state$vt_lib2))))
+        ## and in that case, we should not be using players marked as L in the roster but who are part of the regular 6 players on court, because they could be libero-per-set or an exceptional sub into libero
+        lib_nums <- setdiff(lib_nums, if (team == "*") {
+                                          c(game_state$home_p1, game_state$home_p2, game_state$home_p3, game_state$home_p4, game_state$home_p5, game_state$home_p6)
+                                      } else {
+                                          c(game_state$visiting_p1, game_state$visiting_p2, game_state$visiting_p3, game_state$visiting_p4, game_state$visiting_p5, game_state$visiting_p6)
+                                      })
+        lib_idx <- which(temp$number %in% lib_nums)
+        temp$lastname[lib_idx] <- paste0(temp$lastname[lib_idx], " (L)") ## liberos from team rosters
         paste(temp$number, temp$lastname, sep = "<br />")
     } else {
         character()

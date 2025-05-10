@@ -1324,7 +1324,7 @@ ov_scouter_server <- function(app_data) {
                     ## passing player options
                     ## game_state$current_team here is the receiving team
                     pass_pl_opts <- guess_pass_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
-                    names(pass_pl_opts$choices) <- player_nums_to(pass_pl_opts$choices, team = game_state$current_team, dvw = rdata$dvw)
+                    names(pass_pl_opts$choices) <- player_nums_to(pass_pl_opts$choices, team = game_state$current_team, dvw = rdata$dvw, game_state = game_state)
                     pass_pl_opts$choices <- c(pass_pl_opts$choices, Unknown = "Unknown")
 
                     sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
@@ -1409,11 +1409,11 @@ ov_scouter_server <- function(app_data) {
                     ##guessed_setter <- guess_setter_options(pass_quality = passq, game_state = game_state, dvw = rdata$dvw)
                     guessed_setter <- get_setter(game_state) ## setter on court
                     sp <- c(sort(get_players(game_state, dvw = rdata$dvw)), sort(get_liberos(game_state, dvw = rdata$dvw)))
-                    names(sp) <- player_nums_to(sp, team = game_state$current_team, dvw = rdata$dvw)
+                    names(sp) <- player_nums_to(sp, team = game_state$current_team, dvw = rdata$dvw, game_state = game_state)
                     sp <- c(sp, Unknown = "Unknown")
                     setter_buttons <- make_fat_radio_buttons(choices = sp, selected = guessed_setter, input_var = "c2_player")
                     opp <- c(sort(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw)), sort(get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw)))
-                    names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
+                    names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw, game_state = game_state)
                     opp <- c(opp, Unknown = "Unknown")
                     opp_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c2_opp_player")
                     if (was_shift_click) {
@@ -1536,11 +1536,11 @@ ov_scouter_server <- function(app_data) {
                     hit_type_buttons <- make_fat_radio_buttons(choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"), input_var = "hit_type")
                     fatradio_class_uuids$hit_type <- attr(hit_type_buttons, "class")
                     ap <- sort(attack_pl_opts$choices)
-                    names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw)
+                    names(ap) <- player_nums_to(ap, team = game_state$current_team, dvw = rdata$dvw, game_state = game_state)
                     ap <- c(ap, Unknown = "Unknown")
                     ## since we have a freeball over option here, it could be done by a libero
                     libs <- sort(get_liberos(game_state, team = game_state$current_team, dvw = rdata$dvw))
-                    ap <- c(ap, setNames(libs, player_nums_to(libs, team = game_state$current_team, dvw = rdata$dvw)))
+                    ap <- c(ap, setNames(libs, player_nums_to(libs, team = game_state$current_team, dvw = rdata$dvw), game_state = game_state))
                     attacker_buttons <- make_fat_radio_buttons(choices = ap, selected = attack_pl_opts$selected, input_var = "c3_player")
                     ## do we want to support "hole" block?
                     if (isTRUE(rdata$options$nblockers)) {
@@ -1552,7 +1552,7 @@ ov_scouter_server <- function(app_data) {
                     ## attack error, blocked, replay will be scouted on next entry
                     ## TODO other special codes ?
                     opp <- c(sort(get_players(game_state, team = other(game_state$current_team), dvw = rdata$dvw)), sort(get_liberos(game_state, team = other(game_state$current_team), dvw = rdata$dvw)))
-                    names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw)
+                    names(opp) <- player_nums_to(opp, team = other(game_state$current_team), dvw = rdata$dvw, game_state = game_state)
                     opp <- c(opp, Unknown = "Unknown")
                     opp_player_buttons <- make_fat_radio_buttons(choices = opp, selected = NA, input_var = "c3_opp_player")
                     accept_fun("do_assign_c3")
@@ -1617,24 +1617,24 @@ ov_scouter_server <- function(app_data) {
                     blockp_all <- blockp
                     if (length(blockp) == 6) blockp <- blockp[2:4] ## front-row only
                     blockp <- sort(blockp)
-                    names(blockp) <- player_nums_to(blockp, team = game_state$current_team, dvw = rdata$dvw)
+                    names(blockp) <- player_nums_to(blockp, team = game_state$current_team, dvw = rdata$dvw, game_state = game_state)
                     blockp <- c(blockp, Unknown = "Unknown")
                     block_player_buttons <- make_fat_radio_buttons(choices = blockp, selected = NA, input_var = "c1_block_touch_player") ## use for block touch or kill
                     ## and another set of buttons for block fault, because this could be a backrow player
                     blockp_all <- sort(blockp_all)
-                    names(blockp_all) <- player_nums_to(blockp_all, team = game_state$current_team, dvw = rdata$dvw)
+                    names(blockp_all) <- player_nums_to(blockp_all, team = game_state$current_team, dvw = rdata$dvw, game_state = game_state)
                     blockp_all <- c(blockp_all, Unknown = "Unknown")
                     block_fault_player_buttons <- make_fat_radio_buttons(choices = blockp_all, selected = NA, input_var = "c1_block_fault_player")
                     ## identify defending players
                     dig_pl_opts <- guess_dig_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     digp <- dig_pl_opts$choices
-                    names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
+                    names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw, game_state = game_state)
                     digp <- c(digp, Unknown = "Unknown")
                     dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "c1_def_player")
                     ## covering players (attacking team)
                     cover_pl_opts <- guess_cover_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     coverp <- cover_pl_opts$choices
-                    names(coverp) <- player_nums_to(coverp, team = other(game_state$current_team), dvw = rdata$dvw)
+                    names(coverp) <- player_nums_to(coverp, team = other(game_state$current_team), dvw = rdata$dvw, game_state = game_state)
                     coverp <- c(coverp, Unknown = "Unknown", "No cover dig" = "No cover dig")
                     cover_player_buttons <- make_fat_radio_buttons(choices = coverp, selected = cover_pl_opts$selected, input_var = "c1_cover_player")
                     if (was_shift_click) {
@@ -1731,7 +1731,7 @@ ov_scouter_server <- function(app_data) {
                     ## Identify defending players
                     dig_pl_opts <- guess_freeball_dig_player_options(game_state, dvw = rdata$dvw, system = rdata$options$team_system)
                     digp <- dig_pl_opts$choices
-                    names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw)
+                    names(digp) <- player_nums_to(digp, team = game_state$current_team, dvw = rdata$dvw, game_state = game_state)
                     digp <- c(digp, Unknown = "Unknown")
                     dig_player_buttons <- make_fat_radio_buttons(choices = digp, selected = dig_pl_opts$selected, input_var = "f1_def_player")
                     accept_fun("do_assign_f1")
@@ -1903,7 +1903,12 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
-        ## for the playslist table, convert the rally codes into plays2 rows, and build plays from plays2 (rdata$dvw$plays is only used by the playslist module)
+        ## for the playslist table, convert the rally codes into plays2 rows, and build plays from plays2
+        ## rdata$dvw$plays is used by:
+        ## - the playslist module video_scouter_playslist_module.R (can be made to use just plays2)
+        ## - for player responsibility calculations in video_scouter_utils.R
+        ## - plotting in the court_inset (TODO change to plays2)
+        ## - manual entry video_scouter_manual_entry.R
         ## note that building the full plays object is slow, so take some care to minimize how often we do it
         rdp2_hash <- reactive({
             rlang::hash(rdata$dvw$plays2)
@@ -2625,7 +2630,7 @@ ov_scouter_server <- function(app_data) {
                 ## sp should be the serving player
                 ## other players that could be serving, if the rotation is somehow wrong
                 other_sp <- get_players(game_state, team = game_state$serving, dvw = rdata$dvw) ## includes sp in here too
-                names(other_sp) <- player_nums_to(other_sp, team = game_state$serving, dvw = rdata$dvw)
+                names(other_sp) <- player_nums_to(other_sp, team = game_state$serving, dvw = rdata$dvw, game_state = game_state)
                 serve_player_buttons <- make_fat_radio_buttons(choices = sort(other_sp), selected = sp, input_var = "serve_preselect_player")
                 ## default serve type is either the most common serve type by this player, or the default serve type
                 st_default <- get_player_serve_type(px2 = rdata$dvw$plays2, serving_player_num = sp, gs = game_state, opts = rdata$options)
