@@ -75,7 +75,11 @@ build_ovscout2_js <- function(app_data) {
                       "}", sep = "\n")
     }
     ## flash screen to indicate click
-    myjs <- paste(myjs, "function flash_screen() { $('#video_overlay_canvas').css('background-color', '#FFFF0080'); setTimeout(function() { $('#video_overlay_canvas').css('background-color', ''); }, 50); };")
+    myjs <- paste(myjs, "function flash_screen() { $('#video_overlay_canvas').css('background-color', '#FFFF0080'); setTimeout(function() { $('#video_overlay_canvas').css('background-color', ''); }, 50); };",
+                  ## add listeners to the whole window to catch changes of focus
+                  "function focus_check() { Shiny.setInputValue('focus_check', { is_body: document.activeElement === document.body, id: document.activeElement.id, class: document.activeElement.classList }); };",
+                  "window.addEventListener ? window.addEventListener('focus', focus_check, true) : window.attachEvent('onfocusout', focus_check);",
+                  "window.addEventListener ? window.addEventListener('blur', focus_check, true) : window.attachEvent('onblur', focus_check);", sep = "\n")
     if (app_data$with_video) {
         myjs <- paste(myjs, "$(document).on('shiny:sessioninitialized', function() {",
                       resize_observer("review_player", fun = "Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());", debounce = 100, as = "string"),
@@ -90,10 +94,6 @@ build_ovscout2_js <- function(app_data) {
                                                                       "        pause_on_type = 0;",
                                                                       "    }", sep = "\n"),
                             "});", sep = "\n"),
-                      ## add listeners to the whole window to catch changes of focus
-                      "function focus_check() { Shiny.setInputValue('focus_check', { is_body: document.activeElement === document.body, id: document.activeElement.id, class: document.activeElement.classList }); };",
-                      "window.addEventListener ? window.addEventListener('focus', focus_check, true) : window.attachEvent('onfocusout', focus_check);",
-                      "window.addEventListener ? window.addEventListener('blur', focus_check, true) : window.attachEvent('onblur', focus_check);",
                       ## vidplayer.on('loadedmetadata', () => { console.log('METADATA READY'); }); vidplayer.on('ready', () => { console.log('ONREADY') });
                       "});", sep = "\n")
     }
