@@ -48,11 +48,6 @@ function sk_mapshortcut(ev) {
 };
 
 var scoutin = [];
-var scout_in_el;
-$(document).on("shiny:sessioninitialized", function() {
-    scout_in_el = $("#scout_in");
-});
-
 function sk_handler(e) {
     var newchar = sk_mapkey(e);
     console.log(" -- maps to scout key: " + newchar);
@@ -117,8 +112,8 @@ $(document).on('keydown', function (e) {
         }
         if (e.key === "Enter") {
             // send the actual text in the box to the Shiny server
-            Shiny.setInputValue("scout_input", scout_in_el.val(), { priority: "event" });
-            scout_in_el.val(""); // clear it
+            Shiny.setInputValue("scout_input", $("#scout_in").val(), { priority: "event" });
+            $("#scout_in").val(""); // clear it
             scoutin = [];
             Shiny.setInputValue("scout_input_times", scoutin);
         } else {

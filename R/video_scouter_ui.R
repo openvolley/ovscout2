@@ -45,22 +45,18 @@ ov_scouter_ui <- function(app_data) {
                        plotOutputWithAttribs("review_overlay", width = "100%", height = "100%", click = "rv_click", hover = shiny::hoverOpts("rv_hover", delay = 50, delayType = "throttle"), onmouseup = "Shiny.setInputValue('did_rv_mouseup', new Date().getTime());", onmousedown = "Shiny.setInputValue('did_rv_mousedown', new Date().getTime());")),
               fluidRow(column(1, tags$div(id = "bsbar",
                                           if (app_data$with_video) {
-                                              introBox(## actionButton("video_rew_10", label = "Back 10s", icon = icon("step-backward"), class = "leftbut"),
-                                                       ## actionButton("video_rew_2", label = "Back 2s", icon = icon("step-backward"), class = "leftbut"),
-                                                       ## actionButton("video_ff_2", label = "Forward 2s", icon = icon("step-forward"), class = "leftbut"),
-                                                       ## actionButton("video_ff_10", label = "Forward 10s", icon = icon("step-forward"), class = "leftbut"),
-                                                       sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1), data.step = 4, data.intro = "Video controls. Also can be controlled by keyboard shortcuts.")
+                                              introBox(sliderInput("playback_rate", "Playback rate:", min = 0.1, max = 2.0, value = 1.0, step = 0.1), data.step = 4, data.intro = "Video controls. Also can be controlled by keyboard shortcuts.")
                                           },
                                           introBox(##actionButton("all_video_from_clock", label = "Open video/clock time operations menu", icon = icon("clock")),
                                               if (app_data$with_video) {
-                                              if (!is.null(app_data$video_src2)) {
-                                                  tags$div(style = "display:inline-block;",
-                                                           mod_courtref_ui(id = "courtref1", yt = isTRUE(is_youtube_url(app_data$video_src)), video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src))),
-                                                           mod_courtref_ui(id = "courtref2", yt = is_youtube_url(app_data$video_src2), video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), button_label = HTML("Court reference<br />(video 2)")),
-                                                           actionButton("v2_offset", "Video 2 time offset"), class = "leftbut")
-                                              } else {
-                                                  mod_courtref_ui(id = "courtref1", yt = isTRUE(is_youtube_url(app_data$video_src)), video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)))
-                                              }
+                                                  if (!is.null(app_data$video_src2)) {
+                                                      tags$div(style = "display:inline-block;",
+                                                               mod_courtref_ui(id = "courtref1", yt = isTRUE(is_youtube_url(app_data$video_src)), video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src))),
+                                                               mod_courtref_ui(id = "courtref2", yt = is_youtube_url(app_data$video_src2), video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), button_label = HTML("Court reference<br />(video 2)")),
+                                                               actionButton("v2_offset", "Video 2 time offset"), class = "leftbut")
+                                                  } else {
+                                                      mod_courtref_ui(id = "courtref1", yt = isTRUE(is_youtube_url(app_data$video_src)), video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)))
+                                                  }
                                               },
                                               mod_match_data_edit_ui(id = "match_data_editor"),
                                               mod_team_select_ui(id = "team_selector"),
@@ -69,14 +65,8 @@ ov_scouter_ui <- function(app_data) {
                                               if (!is.null(app_data$video_src2)) actionButton("switch_video", "Switch video", class = "leftbut"),
                                               data.step = 2, data.intro = "Click on these buttons if you want to edit the court reference, starting lineups, rosters, or match metadata. The court reference defines where the court is located in the video image."),
                                           tags$hr(),
-                                          ##if (!is.null(app_data$dvw$plays2))
                                           tags$div(downloadButton("save_rds_button", "Save file", class = "leftbut"),
-                                                   if (app_data$scout_mode == "type") {
-                                                       ## go straight to export
-                                                       downloadButton("save_dvw_button", "Export to dvw", class = "leftbut")
-                                                   } else {
-                                                       actionButton("ask_save_dvw_button", "Export to dvw", class = "leftbut")
-                                                   },
+                                                   uiOutput("save_dvw_button_ui"),
                                                    uiOutput("reports_ui")),
                                           tags$hr(),
                                           introBox(actionButton("general_help", label = "General Help", icon = icon("question"), class = "leftbut"),
@@ -86,45 +76,15 @@ ov_scouter_ui <- function(app_data) {
                                                    data.step = 7, data.intro = "Set general preferences, and see the keyboard shortcuts.")
                                           )),
                        column(9, style = "padding-right:2px;",
-                              if (app_data$scout_mode == "type") {
-                                  if (app_data$with_video) {
-                                      fluidRow(column(9, ov_video_ui_element(app_data, yt)),
-                                               column(3, introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores.")))
-                                  } else {
-                                      fluidRow(
-                                          column(2),
-                                          column(5, introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores.")),
-                                          column(3, offset = 1, introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")),
-                                          column(1))
-                                  }
-                              } else {
-                                  ## click interface
-                                  tagList(ov_video_ui_element(app_data, yt),
-                                          fluidRow(column(12, uiOutput("serve_preselect"))))
-                              },
+                              fixedRow(tags$div(id = "video_col", ov_video_ui_element(app_data, yt),
+                                                uiOutput("scout_bar_with_video")),
+                                       tags$div(id = "court1_col", uiOutput("court1_col_ui"))),
+                              fixedRow(column(12, uiOutput("serve_preselect"))),
                               tags$div(style = "height: 8px;"),
-                              if (app_data$scout_mode == "type") {
-                                  if (app_data$with_video) {
-                                      fluidRow(
-                                          column(1, actionButton("pt_home", "(*) Pt", width = "100%", class = "homebut", style = "height: 72px;") ),
-                                          column(5, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")), tags$input(id = "scout_in", type = "text", onclick = "Shiny.setInputValue('do_focus_to_scout_bar', true, { priority: 'event' })")),
-                                                 uiOutput("zones_cones")),
-                                          column(1, actionButton("pt_away", "(a) Pt", width = "100%", class = "visbut", style = "height:72px;") ),
-                                          column(1, actionButton("undoType", "Undo", width = "100%", class = "undobut", style = "height:72px;")),
-                                               column(4, introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")))
-                                  } else {
-                                      fluidRow(column(1, offset = 2, actionButton("pt_home", "(*) Pt", width = "100%", style = "background-color: #bfefff; height: 72px;") ),
-                                               column(5, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")), tags$input(id = "scout_in", type = "text")),
-                                                      uiOutput("zones_cones")),
-                                               column(1, actionButton("pt_away", "(a) Pt", width = "100%", style = "background-color: #bcee68; height:72px;") ),
-                                               column(1, actionButton("undoType", "Undo", width = "100%", style = "background-color: orange; height:72px;")))
-                                  }
-                              } else {
-                                  introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")
-                              }
+                              uiOutput("teamslist_in_click_mode")
                               ),
                        column(2, style = "padding-left:5px; padding-right:5px",
-                              if (app_data$scout_mode != "type") introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
+                              uiOutput("court2_ui"),
                               uiOutput("problem_ui"), uiOutput("no_court_ref_ui"),
                               tags$div(id = "code_edit_buttons", style = "height:34px;",
                                        actionButton("edit_code_insert", class = "cebut", label = tags$span(icon("plus")), title = "Insert new code above current"),

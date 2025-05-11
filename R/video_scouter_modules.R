@@ -3,14 +3,21 @@ mod_teamslists_ui <- function(id) {
     ns <- NS(id)
     tagList(tags$head(tags$style("#hroster {padding-left: 0px; padding-right: 0px; background-color: #bfefff; padding: 12px; border: 3px solid white; border-radius:6px;}
                                  #vroster {padding-left: 0px; padding-right: 0px; background-color: #bcee68; padding: 12px; border: 3px solid white; border-radius:6px;}")),
-            tags$div(style = "border-radius: 15px; padding: 4px",
-                     fluidRow(column(6, id = "hroster", uiOutput(ns("htroster"))),
-                              column(6, id = "vroster", uiOutput(ns("vtroster"))))
-                     )
+            tags$div(style = "border-radius: 15px; padding: 4px", uiOutput(ns("rosters")))
             )
 }
 
-mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE) {
+mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE, vertical = FALSE) {
+    ## two_cols = TRUE will put the list of players into two columns within the respective roster panels
+    ## vertical = TRUE will stack the two roster panels one above the other
+    ns <- session$ns
+    output$rosters <- renderUI({
+        if (vertical) {
+            tags$div(tags$div(id = "hroster", uiOutput(ns("htroster"))), tags$div(id = "vroster", uiOutput(ns("vtroster"))))
+        } else {
+            fluidRow(column(6, id = "hroster", uiOutput(ns("htroster"))), column(6, id = "vroster", uiOutput(ns("vtroster"))))
+        }
+    })
     output$htroster <- renderUI({
         this <- remove_players_not_played(rdata$dvw$meta$players_h, plays = rdata$dvw$plays2, home_visiting = "h", faststart_only = TRUE)
         re <- names2roster(this, join = two_cols)

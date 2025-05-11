@@ -5,6 +5,53 @@ ov_scouter_server <- function(app_data) {
         app_data$have_warned_auto_save <- FALSE
         .am_in_server <- TRUE ## for eval_in_server and getsv functions
 
+        ## some UI stuff that changes depending on whether we are in click mode or type mode
+        scout_bar <- function() {
+            fluidRow(column(2, actionButton("pt_home", "(*) Pt", width = "100%", class = "homebut", style = "height: 72px;") ),
+                     column(6, wellPanel(id = "scout_well", tags$span(tags$strong("Scout input:")),
+                                         tags$input(id = "scout_in", type = "text", onclick = "Shiny.setInputValue('do_focus_to_scout_bar', true, { priority: 'event' })")),
+                            uiOutput("zones_cones")),
+                     column(2, actionButton("pt_away", "(a) Pt", width = "100%", class = "visbut", style = "height:72px;") ),
+                     column(2, actionButton("undoType", "Undo", width = "100%", class = "undobut", style = "height:72px;")))
+        }
+        output$scout_bar_with_video <- renderUI({
+            if (app_data$scout_mode == "type" && app_data$with_video) scout_bar() else NULL
+        })
+        output$teamslist_in_click_mode <- renderUI({
+            if (app_data$scout_mode == "click") {
+                introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")
+            } else {
+                NULL
+            }
+        })
+        output$court1_col_ui <- renderUI({
+            if (app_data$scout_mode == "type") {
+                if (app_data$with_video) {
+                    dojs("$('#video_col').removeClass('col-sm-12').addClass('col-sm-9').show(); $('#court1_col').removeClass('col-sm-12').addClass('col-sm-3').show();")
+                    tagList(introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
+                            introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")) ##!! make one atop the other
+                } else {
+                    dojs("$('#video_col').hide(); $('#court1_col').removeClass('col-sm-3').addClass('col-sm-12').show();")
+                    fluidRow(column(9, fixedRow(column(7, offset = 2, introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores."))),
+                                    tags$div(style = "height: 8px;"),
+                                    scout_bar()
+                                    ),
+                             column(3, introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these."))) ##!! make these one atop the other, not side by side
+                }
+            } else {
+                ## click interface
+                dojs("$('#video_col').removeClass('col-sm-9').addClass('col-sm-12').show(); $('#court1_col').removeClass(['col-sm-12', 'col-sm-3']).hide();")
+                NULL
+            }
+        })
+        output$court2_ui <- renderUI({
+            if (app_data$scout_mode != "type") {
+                introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores.")
+            } else {
+                NULL
+            }
+        })
+
         ## the active UI element, used in typing mode to keep track of where the focus should be. Possible values "" (uninitialilzed), "scout_bar", "playslist"
         active_ui <- reactiveVal("")
         if (debug > 0) observeEvent(active_ui(), cat("active_ui:", active_ui(), "\n"))
@@ -93,7 +140,23 @@ ov_scouter_server <- function(app_data) {
         rally_state <- reactiveVal(app_data$click_to_start_msg)
         rally_codes <- reactiveVal(empty_rally_codes)
         game_state <- init_game_state(app_data)
-        if (app_data$scout_mode == "type") populate_server(game_state)
+
+        ## wait for the initial busy state (during app startup) to finish, then run some startup stuff that requires e.g. UI elements to be rendered
+        init_attempts <- 0L
+        observe({
+            busy <- session$.__enclos_env__$private$busyCount > 1 ||
+                tryCatch(session$.__enclos_env__$private$inputMessageQueue$size(), error = function(e) 1L) > 0 ||
+                tryCatch(session$.__enclos_env__$private$cycleStartActionQueue$size(), error = function(e) 1L) > 0
+            ## cat("busy:", busy, "\n")
+            if (busy) {
+                init_attempts <<- init_attempts + 1L
+                if (init_attempts < 20) invalidateLater(100) ## but only try so many times
+            } else {
+                if (app_data$scout_mode == "type") {
+                    populate_server(game_state)
+                }
+            }
+        })
 
         playslist_mod <- callModule(mod_playslist, id = "playslist", rdata = rdata,
                                     plays_cols_to_show = c("error_icon", "video_time", "set_number", "code", "Score"), ##"home_setter_position", "visiting_setter_position", "is_skill"
@@ -126,7 +189,7 @@ ov_scouter_server <- function(app_data) {
         })
         observeEvent(court_inset$substitution_visiting(), show_substitution_pane("ac"))
 
-        teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata, two_cols = app_data$scout_mode != "type")
+        teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata, two_cols = app_data$scout_mode != "type", vertical = app_data$scout_mode == "type")
         detection_ref1 <- reactiveVal({ if (!is.null(app_data$court_ref)) app_data$court_ref else NULL })
         ## for the court reference modules, pass the video file as well as the URL. Video will be shown, but the metadata can be stored/retrieved from the file
         courtref1 <- callModule(mod_courtref, id = "courtref1", video_file = if (!is_url(app_data$video_src)) app_data$video_src else NULL, video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), detection_ref = detection_ref1, main_video_time_js = "vidplayer.currentTime()", styling = app_data$styling)
@@ -687,7 +750,7 @@ ov_scouter_server <- function(app_data) {
                                           if (game_state$home_team_end == "upper") "ap" else "*p"
                                       }
                     ## add this to the end of whatever is in the scout bar (which might be empty) and process the lot
-                    dojs(paste0("Shiny.setInputValue('scout_input_leftovers', scout_in_el.val() + ' ", rally_won_code, "', { priority: 'event' });"))
+                    dojs(paste0("Shiny.setInputValue('scout_input_leftovers', $('#scout_in').val() + ' ", rally_won_code, "', { priority: 'event' });"))
                     ## and then things are handled in the observeEvent(input$scout_input_leftovers, { ... }) block below
                 } else if (input$scout_shortcut %in% c("switch_windows")) {
                     ## switch to the playslist table
@@ -708,12 +771,12 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$pt_home, {
             ## add this to the end of whatever is in the scout bar (which might be empty) and process the lot
-            dojs(paste0("Shiny.setInputValue('scout_input_leftovers', scout_in_el.val() + ' *p', { priority: 'event' });"))
+            dojs(paste0("Shiny.setInputValue('scout_input_leftovers', $('#scout_in').val() + ' *p', { priority: 'event' });"))
         })
 
         observeEvent(input$pt_away, {
             ## add this to the end of whatever is in the scout bar (which might be empty) and process the lot
-            dojs(paste0("Shiny.setInputValue('scout_input_leftovers', scout_in_el.val() + ' ap', { priority: 'event' });"))
+            dojs(paste0("Shiny.setInputValue('scout_input_leftovers', $('#scout_in').val() + ' ap', { priority: 'event' });"))
         })
 
         handle_scout_codes <- function(codes) {
@@ -951,7 +1014,7 @@ ov_scouter_server <- function(app_data) {
 
             editing$active <- NULL
             removeModal()
-            if (app_data$scout_mode == "type") focus_to_scout_bar() ## TODO check
+            if (app_data$scout_mode == "type") focus_to_scout_bar()
         })
 
         overlay_points <- reactiveVal(NULL)
@@ -3177,6 +3240,15 @@ ov_scouter_server <- function(app_data) {
                 basename(fs::path_ext_remove(app_data$video_src))
             } else {
                 "myfile"
+            }
+        })
+
+        output$save_dvw_button_ui <- renderUI({
+            if (app_data$scout_mode == "type") {
+                ## go straight to export
+                downloadButton("save_dvw_button", "Export to dvw", class = "leftbut")
+            } else {
+                actionButton("ask_save_dvw_button", "Export to dvw", class = "leftbut")
             }
         })
 
