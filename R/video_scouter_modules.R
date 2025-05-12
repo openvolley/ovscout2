@@ -1282,16 +1282,20 @@ mod_teamscores <- function(input, output, session, game_state, rdata, styling, v
     output$scoreboard <- renderUI({
         hs <- game_state$home_score_start_of_point
         vs <- game_state$visiting_score_start_of_point
+        nhto <- rdata$dvw$plays2 %>% dplyr::filter(.data$code == "*T", .data$set_number == game_state$set_number) %>% nrow
+        nvto <- rdata$dvw$plays2 %>% dplyr::filter(.data$code == "aT", .data$set_number == game_state$set_number) %>% nrow
         if (isTRUE(visible())) {
             fluidRow(class = "scoreboard",
                      column(6, style = paste0("background-color:", styling$h_court_colour),
                             fixedRow(column(9, id = "hnscore", tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"])),
                                      column(3, class = "setscorenum", if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[1]))),
-                            fixedRow(column(3, offset = 9, class = "ptscorenum", if (!is.na(hs)) tags$span(hs)))),
+                            fixedRow(column(3, class = "setscorenum", tags$span(style = "float:left;", paste0(nhto, "T"))),
+                                     column(3, offset = 6, class = "ptscorenum", if (!is.na(hs)) tags$span(hs)))),
                      column(6, style = paste0("background-color:", styling$v_court_colour),
                             fixedRow(column(3, class = "setscorenum", if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[2])),
                                      column(9, id = "vnscore", tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]))),
-                            fixedRow(column(3, class = "ptscorenum", if (!is.na(vs)) tags$span(vs)))
+                            fixedRow(column(3, class = "ptscorenum", if (!is.na(vs)) tags$span(vs)),
+                                     column(3, offset = 6, class = "setscorenum", tags$span(style = "float:right;", paste0(nvto, "T"))))
                             )
                      )
         } else {
