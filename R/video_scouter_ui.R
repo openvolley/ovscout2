@@ -73,7 +73,7 @@ ov_scouter_ui <- function(app_data) {
                                                    tags$button(class = "btn btn-default leftbut", tags$span(icon("book-open"), "User manual"), onclick = "window.open('https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html', '_blank')"),
                                                    actionButton("preferences", "Preferences", class = "leftbut"),
                                                    actionButton("show_shortcuts", tags$span(icon("keyboard"), "Keyboard", tags$br(), "shortcuts"), class = "leftbut"),
-                                                   actionButton("switch_scout_mode", label = tags$span("Change", tags$br(), "scout mode"), class = "leftbut"),
+                                                   uiOutput("switch_scout_mode_ui"),
                                                    data.step = 7, data.intro = "Set general preferences, and see the keyboard shortcuts.")
                                           )),
                        column(9, style = "padding-right:2px;",

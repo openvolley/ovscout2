@@ -24,9 +24,7 @@ ov_scouter_server <- function(app_data) {
                      column(2, actionButton("pt_away", "(a) Pt", width = "100%", class = "visbut", style = "height:72px;") ),
                      column(2, actionButton("undoType", "Undo", width = "100%", class = "undobut", style = "height:72px;")))
         }
-        output$scout_bar_with_video <- renderUI({
-            if (app_data$scout_mode_r() == "type" && app_data$with_video) scout_bar() else NULL
-        })
+        output$scout_bar_with_video <- renderUI(if (app_data$with_video) scout_bar() else NULL) ## scout bar if we are running with a video
         output$teamslist_in_click_mode <- renderUI({
             if (app_data$scout_mode_r() == "click") {
                 introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")
@@ -34,25 +32,21 @@ ov_scouter_server <- function(app_data) {
                 NULL
             }
         })
-        ## TODO not sure that switching mode will retain module functionality
+        ## TODO ensure that switching mode will retain module functionality
         output$court1_col_ui <- renderUI({
-            if (app_data$scout_mode_r() == "type") {
-                if (app_data$with_video) {
-                    dojs("$('#video_col').removeClass('col-sm-12').addClass('col-sm-9').show(); $('#court1_col').removeClass('col-sm-12').addClass('col-sm-3').show();")
+            if (app_data$with_video) {
+                if (app_data$scout_mode_r() == "type") {
                     tagList(introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
-                            introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")) ##!! make one atop the other
+                            introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these."))
                 } else {
-                    dojs("$('#video_col').hide(); $('#court1_col').removeClass('col-sm-3').addClass('col-sm-12').show();")
-                    fluidRow(column(9, fixedRow(column(7, offset = 2, introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores."))),
-                                    tags$div(style = "height: 8px;"),
-                                    scout_bar()
-                                    ),
-                             column(3, introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these."))) ##!! make these one atop the other, not side by side
+                    NULL
                 }
             } else {
-                ## click interface
-                dojs("$('#video_col').removeClass('col-sm-9').addClass('col-sm-12').show(); $('#court1_col').removeClass(['col-sm-12', 'col-sm-3']).hide();")
-                NULL
+                fluidRow(column(9, fixedRow(column(7, offset = 2, if (app_data$scout_mode_r() == "type") introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores."))),
+                                tags$div(style = "height: 8px;"),
+                                scout_bar()
+                                ),
+                         column(3, if (app_data$scout_mode_r() == "type") introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")))
             }
         })
         output$court2_ui <- renderUI({
@@ -64,6 +58,12 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## switch of scout_mode
+        output$switch_scout_mode_ui <- renderUI({
+            newmode <- setdiff(c("click", "type"), app_data$scout_mode_r())
+            if (length(newmode) != 1) newmode <- "type"
+            actionButton("switch_scout_mode", class = "leftbut",
+                         label = tags$span("Change to", newmode, tags$br(), "scout mode"))
+        })
         observeEvent(input$switch_scout_mode, {
             curmode <- app_data$scout_mode_r()
             if (!is.null(curmode) && curmode %in% c("click", "type")) {
@@ -83,19 +83,20 @@ ov_scouter_server <- function(app_data) {
             if (newmode == "type") {
                 if (app_data$with_video) {
                     dojs(paste("$('#video_col').removeClass('col-sm-12').addClass('col-sm-9').show(); $('#court1_col').removeClass('col-sm-12').addClass('col-sm-3').show();",
-                               "$('#main_video').height('60vh')"))
+                               "$('#main_video').height('60vh'); $('#scout_bar_with_video').show();"))
                 } else {
-                    dojs("$('#video_col').hide(); $('#court1_col').removeClass('col-sm-3').addClass('col-sm-12').show();")
+                    dojs("$('#video_col').hide(); $('#court1_col').removeClass('col-sm-3').addClass('col-sm-12').show(); $('#scout_bar_with_video').hide();")
                 }
-                dojs("$('#playslist-tbl-outer').height('85vh'); pause_main_video_on_click=false;")
+                dojs("$('#court1_col_ui').show(); $('#playslist-tbl-outer').height('85vh'); pause_main_video_on_click=false;")
                 app_data$shortcuts <- app_data$click_shortcuts ## this is the active set
                 rdata$dvw$meta$match$zones_or_cones <- rdata$type_mode_preferred_zones_or_cones
                 rdata$options$zones_cones <- rdata$type_mode_preferred_zones_or_cones
+                if (!isTRUE(isolate(game_state$rally_started))) populate_server(game_state)
             } else {
                 ## click interface
                 dojs(paste("$('#video_col').removeClass('col-sm-9').addClass('col-sm-12').show(); $('#court1_col').removeClass(['col-sm-12', 'col-sm-3']).hide();",
                            "$('#main_video').height('85vh')"))
-                dojs("$('#playslist-tbl-outer').height('50vh'); pause_main_video_on_click=true;")
+                dojs("$('#court1_col_ui').hide(); $('#scout_bar_with_video').hide(); $('#playslist-tbl-outer').height('50vh'); pause_main_video_on_click=true;")
                 app_data$shortcuts <- app_data$type_shortcuts ## this is the active set
                 rdata$dvw$meta$match$zones_or_cones <- "Z" ## has to be zones with click-mode
             }
@@ -204,7 +205,12 @@ ov_scouter_server <- function(app_data) {
                 init_attempts <<- init_attempts + 1L
                 if (init_attempts < 20) invalidateLater(100) ## but only try so many times
             } else {
-                if (isolate(app_data$scout_mode_r()) == "type") populate_server(game_state)
+                if (isolate(app_data$scout_mode_r()) == "type") {
+                    if (app_data$with_video) dojs("$('#scout_bar_with_video').show();") else dojs("$('#scout_bar_with_video').hide();")
+                    populate_server(game_state)
+                } else {
+                    dojs("$('#scout_bar_with_video').hide(); $('#court1_col_ui').hide();")
+                }
             }
         })
 
