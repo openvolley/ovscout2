@@ -1655,7 +1655,7 @@ ov_scouter_server <- function(app_data) {
                     ap <- c(ap, Unknown = "Unknown")
                     ## since we have a freeball over option here, it could be done by a libero
                     libs <- sort(get_liberos(game_state, team = game_state$current_team, dvw = rdata$dvw))
-                    ap <- c(ap, setNames(libs, player_nums_to(libs, team = game_state$current_team, dvw = rdata$dvw), game_state = game_state))
+                    ap <- c(ap, setNames(libs, player_nums_to(libs, team = game_state$current_team, dvw = rdata$dvw, game_state = game_state)))
                     attacker_buttons <- make_fat_radio_buttons(choices = ap, selected = attack_pl_opts$selected, input_var = "c3_player")
                     ## do we want to support "hole" block?
                     if (isTRUE(rdata$options$nblockers)) {
