@@ -302,6 +302,9 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
                 stop("existing dvw file has been scouted with cones, but scout_mode = 'click' only supports zones")
             }
         }
+    } else {
+        ## starting from an empty dvw, if we're type-scouting then apply the opts$zones_cones
+        if (scout_mode == "type") dvw$meta$match$zones_or_cones <- opts$zones_cones
     }
 
     ## same with shortcuts

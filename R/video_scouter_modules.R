@@ -7,11 +7,13 @@ mod_teamslists_ui <- function(id) {
             )
 }
 
-mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE, vertical = FALSE) {
+mod_teamslists <- function(input, output, session, rdata, scout_mode_r) {
+
     ## two_cols = TRUE will put the list of players into two columns within the respective roster panels
     ## vertical = TRUE will stack the two roster panels one above the other
     ns <- session$ns
     output$rosters <- renderUI({
+        vertical <- scout_mode_r() == "type"
         if (vertical) {
             tags$div(tags$div(id = "hroster", uiOutput(ns("htroster"))), tags$div(id = "vroster", uiOutput(ns("vtroster"))))
         } else {
@@ -19,6 +21,7 @@ mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE, verti
         }
     })
     output$htroster <- renderUI({
+        two_cols <- scout_mode_r() != "type"
         this <- remove_players_not_played(rdata$dvw$meta$players_h, plays = rdata$dvw$plays2, home_visiting = "h", faststart_only = TRUE)
         re <- names2roster(this, join = two_cols)
         htn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]
@@ -31,6 +34,7 @@ mod_teamslists <- function(input, output, session, rdata, two_cols = TRUE, verti
         }
     })
     output$vtroster <- renderUI({
+        two_cols <- scout_mode_r() != "type"
         this <- remove_players_not_played(rdata$dvw$meta$players_v, plays = rdata$dvw$plays2, home_visiting = "v", faststart_only = TRUE)
         re <- names2roster(this, join = two_cols)
         vtn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]
@@ -617,14 +621,14 @@ mod_match_data_edit <- function(input, output, session, rdata, editing, app_data
                          fluidRow(column(4, textInput(ns("match_edit_day_number"), "Day number:", value = rdata$dvw$meta$match$day_number)),
                                   column(4, textInput(ns("match_edit_match_number"), "Match number:", value = rdata$dvw$meta$match$match_number)),
                                   ##column(2, shiny::selectInput("match_edit_regulation", "Regulation:", choices = c("indoor sideout", "indoor rally point", "beach rally point"), selected = rdata$dvw$meta$match$regulation)),
-                                  column(4, if (app_data$scout_mode == "click") tags$div(tags$span(tags$strong("Zones or cones:")), tags$br(), tags$span("Scouting in 'click' mode only supports zones.")) else shiny::selectInput(ns("match_edit_zones_or_cones"), "Zones or cones:", choices = c(Cones = "C", Zones = "Z"), selected = rdata$dvw$meta$match$zones_or_cones))),
+                                  column(4, if (app_data$scout_mode_r() == "click") tags$div(tags$span(tags$strong("Zones or cones:")), tags$br(), tags$span("Scouting in 'click' mode only supports zones.")) else shiny::selectInput(ns("match_edit_zones_or_cones"), "Zones or cones:", choices = c(Cones = "C", Zones = "Z"), selected = rdata$dvw$meta$match$zones_or_cones))),
                          fluidRow(column(4, textInput(ns("more_edit_scout"), label = "Scout:", value = rdata$dvw$meta$more$scout)),
                                   column(4, textInput(ns("edit_comments1"), label = "Comments:", value = if (ncol(rdata$dvw$meta$comments) > 0) na2mt(rdata$dvw$meta$comments[[1]]) else ""),
                                          textInput(ns("edit_comments2"), label = NULL, value = if (ncol(rdata$dvw$meta$comments) > 1) na2mt(rdata$dvw$meta$comments[[2]]) else ""),
                                          textInput(ns("edit_comments3"), label = NULL, value = if (ncol(rdata$dvw$meta$comments) > 2) na2mt(rdata$dvw$meta$comments[[3]]) else ""),
                                          textInput(ns("edit_comments4"), label = NULL, value = if (ncol(rdata$dvw$meta$comments) > 3) paste(na2mt(unlist(rdata$dvw$meta$comments[4:ncol(rdata$dvw$meta$comments)])), collapse = "\n") else "")
                                          ),
-                                column(4, tags$span(style = "font-size:small", "Note: changing cones/zones here will only affect the exported dvw file. ovscout2 always uses coordinates and zones/subzones internally. Changing the setting here will not convert a dvw file recorded with zones into one recorded with cones, or vice-versa. Don't change this unless you know what you are doing!")))
+                                  column(4, if (app_data$scout_mode_r() == "type") tags$span(style = "font-size:small", "Note: changing cones/zones here will not change any data that has already been scouted for this match. You are advised to change zones/cones before starting scouting. Changing zones/cones for a partially-scouted file is likely to lead to inconsistencies that will affect your analyses.")))
                      )
             ))
     })
@@ -642,7 +646,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
     observeEvent(input$edit_lineup_button, {
         editing$active <- .C_change_starting_lineup
         ## pause video
-        dojs("vidplayer.pause();") ##dojs("document.getElementById('main_video').pause();")
+        dojs("videojs.players.main_video.pause();")
         video_state$paused <- TRUE
         htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
         vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2

@@ -5,6 +5,16 @@ ov_scouter_server <- function(app_data) {
         app_data$have_warned_auto_save <- FALSE
         .am_in_server <- TRUE ## for eval_in_server and getsv functions
 
+        app_data <- startup_app_data(app_data, session = session)
+        ## initial sizing of video element. Can't do in css else doesn't respond properly to size change with scout mode change (???)
+        if (app_data$scout_mode == "type") {
+            if (app_data$with_video) {
+                dojs("$('#main_video').height('60vh')")
+            }
+        } else {
+            ## click interface
+            dojs("$('#main_video').height('85vh')")
+        }
         ## some UI stuff that changes depending on whether we are in click mode or type mode
         scout_bar <- function() {
             fluidRow(column(2, actionButton("pt_home", "(*) Pt", width = "100%", class = "homebut", style = "height: 72px;") ),
@@ -15,17 +25,18 @@ ov_scouter_server <- function(app_data) {
                      column(2, actionButton("undoType", "Undo", width = "100%", class = "undobut", style = "height:72px;")))
         }
         output$scout_bar_with_video <- renderUI({
-            if (app_data$scout_mode == "type" && app_data$with_video) scout_bar() else NULL
+            if (app_data$scout_mode_r() == "type" && app_data$with_video) scout_bar() else NULL
         })
         output$teamslist_in_click_mode <- renderUI({
-            if (app_data$scout_mode == "click") {
+            if (app_data$scout_mode_r() == "click") {
                 introBox(mod_teamslists_ui(id = "teamslists"), data.step = 1, data.intro = "Team rosters. Click on the 'Edit teams' button to change these.")
             } else {
                 NULL
             }
         })
+        ## TODO not sure that switching mode will retain module functionality
         output$court1_col_ui <- renderUI({
-            if (app_data$scout_mode == "type") {
+            if (app_data$scout_mode_r() == "type") {
                 if (app_data$with_video) {
                     dojs("$('#video_col').removeClass('col-sm-12').addClass('col-sm-9').show(); $('#court1_col').removeClass('col-sm-12').addClass('col-sm-3').show();")
                     tagList(introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores."),
@@ -45,12 +56,52 @@ ov_scouter_server <- function(app_data) {
             }
         })
         output$court2_ui <- renderUI({
-            if (app_data$scout_mode != "type") {
+            if (app_data$scout_mode_r() != "type") {
                 introBox(mod_courtrot2_ui(id = "courtrot", styling = app_data$styling), data.step = 5, data.intro = "On-court lineups, and set and game scores.")
             } else {
                 NULL
             }
         })
+
+        ## switch of scout_mode
+        observeEvent(input$switch_scout_mode, {
+            curmode <- app_data$scout_mode_r()
+            if (!is.null(curmode) && curmode %in% c("click", "type")) {
+                newmode <- setdiff(c("click", "type"), curmode)
+                app_data <<- do_switch_scout_mode(newmode, app_data = app_data)
+            }
+        })
+
+        ## some notes on switching scout mode:
+        ## 1. if we start (in click mode) with a partially-scouted file that has been scouted with zones and switch to type mode, it should remain as zones even if the user's preference is for cones
+        ## 2. if we start from an empty dvw file in click mode, it will always start with zones
+        ## 3. if we start from an empty dvw file in type mode, it will start with whatever the user's preference is (zones or cones)
+        ## 4. if we start from an empty dvw file in click mode and switch to type mode BEFORE entering any scout data, and the user's preference is cones, should it switch to cones? Or remain as zones and the user can change it via edit match data if needed? TODO think about that
+        do_switch_scout_mode <- function(newmode, app_data) {
+            newmode <- match.arg(newmode, c("click", "type"))
+            app_data$scout_mode_r(newmode)
+            if (newmode == "type") {
+                if (app_data$with_video) {
+                    dojs(paste("$('#video_col').removeClass('col-sm-12').addClass('col-sm-9').show(); $('#court1_col').removeClass('col-sm-12').addClass('col-sm-3').show();",
+                               "$('#main_video').height('60vh')"))
+                } else {
+                    dojs("$('#video_col').hide(); $('#court1_col').removeClass('col-sm-3').addClass('col-sm-12').show();")
+                }
+                dojs("$('#playslist-tbl-outer').height('85vh'); pause_main_video_on_click=false;")
+                app_data$shortcuts <- app_data$click_shortcuts ## this is the active set
+                rdata$dvw$meta$match$zones_or_cones <- rdata$type_mode_preferred_zones_or_cones
+                rdata$options$zones_cones <- rdata$type_mode_preferred_zones_or_cones
+            } else {
+                ## click interface
+                dojs(paste("$('#video_col').removeClass('col-sm-9').addClass('col-sm-12').show(); $('#court1_col').removeClass(['col-sm-12', 'col-sm-3']).hide();",
+                           "$('#main_video').height('85vh')"))
+                dojs("$('#playslist-tbl-outer').height('50vh'); pause_main_video_on_click=true;")
+                app_data$shortcuts <- app_data$type_shortcuts ## this is the active set
+                rdata$dvw$meta$match$zones_or_cones <- "Z" ## has to be zones with click-mode
+            }
+            app_data$click_to_start_msg <- paste0(if (newmode == "click") "click or ", "unpause the video to start")
+            app_data
+        }
 
         ## the active UI element, used in typing mode to keep track of where the focus should be. Possible values "" (uninitialilzed), "scout_bar", "playslist"
         active_ui <- reactiveVal("")
@@ -79,14 +130,15 @@ ov_scouter_server <- function(app_data) {
             if (length(d)) fs::file_delete(d)
         })
 
-        app_data <- startup_app_data(app_data, session = session)
-        rdata <- reactiveValues(dvw = app_data$dvw, options = app_data$options)
+        ## zones/cones are annoying. If we switch from type-mode (with cones) to click-mode, we have to work with zones and the dvw match metadata will be set as such. But if the user switches to click mode and then back again (without adding any data) it should return to cones
+        ## TODO decide what should happen if the user switches a partially-scouted cones file in type-mode to click mode. Should we issue a warning?
+        rdata <- reactiveValues(dvw = app_data$dvw, options = app_data$options, type_mode_preferred_zones_or_cones = app_data$options$zones_cones)
         prefs <- reactiveValues(scout_name = app_data$scout_name, show_courtref = app_data$show_courtref, scoreboard = app_data$scoreboard, pause_on_type = app_data$pause_on_type, ball_path = app_data$ball_path, playlist_display_option = app_data$playlist_display_option, review_pane = app_data$review_pane)
 
         pseq <- if (app_data$is_beach) 1:2 else 1:6
 
         output$zones_cones <- renderUI({
-            if (app_data$scout_mode == "type") {
+            if (app_data$scout_mode_r() == "type") {
                 tags$div(style = "float:right; font-size:small;", "You are scouting attack directions with:", if (rdata$dvw$meta$match$zones_or_cones %eq% "C") "cones" else if (rdata$dvw$meta$match$zones_or_cones %eq% "Z") "zones" else "unknown")
             } else {
                 NULL
@@ -101,7 +153,7 @@ ov_scouter_server <- function(app_data) {
                     ## zero width or height is also invalid, except if it's a YT video
                     (current_video_src() == 1L && !is_youtube_url(app_data$video_src) && input$video_width < 1) || (current_video_src() == 2L && !is_youtube_url(app_data$video_src2) && input$video_height < 1)
                 if (chk) {
-                    dojs("Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());")
+                    dojs("Shiny.setInputValue('video_width', videojs.players.main_video.videoWidth()); Shiny.setInputValue('video_height', videojs.players.main_video.videoHeight());")
                     shiny::invalidateLater(200)
                 }
             }
@@ -152,9 +204,7 @@ ov_scouter_server <- function(app_data) {
                 init_attempts <<- init_attempts + 1L
                 if (init_attempts < 20) invalidateLater(100) ## but only try so many times
             } else {
-                if (app_data$scout_mode == "type") {
-                    populate_server(game_state)
-                }
+                if (isolate(app_data$scout_mode_r()) == "type") populate_server(game_state)
             }
         })
 
@@ -189,12 +239,12 @@ ov_scouter_server <- function(app_data) {
         })
         observeEvent(court_inset$substitution_visiting(), show_substitution_pane("ac"))
 
-        teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata, two_cols = app_data$scout_mode != "type", vertical = app_data$scout_mode == "type")
+        teamslists <- callModule(mod_teamslists, id = "teamslists", rdata = rdata, scout_mode_r = app_data$scout_mode_r)
         detection_ref1 <- reactiveVal({ if (!is.null(app_data$court_ref)) app_data$court_ref else NULL })
         ## for the court reference modules, pass the video file as well as the URL. Video will be shown, but the metadata can be stored/retrieved from the file
-        courtref1 <- callModule(mod_courtref, id = "courtref1", video_file = if (!is_url(app_data$video_src)) app_data$video_src else NULL, video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), detection_ref = detection_ref1, main_video_time_js = "vidplayer.currentTime()", styling = app_data$styling)
+        courtref1 <- callModule(mod_courtref, id = "courtref1", video_file = if (!is_url(app_data$video_src)) app_data$video_src else NULL, video_url = if (is_url(app_data$video_src)) app_data$video_src else file.path(app_data$video_server_base_url, basename(app_data$video_src)), detection_ref = detection_ref1, main_video_time_js = "videojs.players.main_video.currentTime()", styling = app_data$styling)
         detection_ref2 <- reactiveVal({ if (!is.null(app_data$court_ref2)) app_data$court_ref2 else NULL })
-        courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", video_file = if (!is_url(app_data$video_src2)) app_data$video_src2 else NULL, video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), detection_ref = detection_ref2, main_video_time_js = "vidplayer.currentTime()", styling = app_data$styling) else NULL
+        courtref2 <- if (have_second_video) callModule(mod_courtref, id = "courtref2", video_file = if (!is_url(app_data$video_src2)) app_data$video_src2 else NULL, video_url = if (is_url(app_data$video_src2)) app_data$video_src2 else file.path(app_data$video_server_base_url, basename(app_data$video_src2)), detection_ref = detection_ref2, main_video_time_js = "videojs.players.main_video.currentTime()", styling = app_data$styling) else NULL
         detection_ref <- reactive(if (current_video_src() < 2) detection_ref1() else detection_ref2()) ## whichever is associated with the current view
         courtref_active <- reactive({
             ## this reactive indicates if the court reference is being edited, i.e. the module's dialog is showing
@@ -224,7 +274,7 @@ ov_scouter_server <- function(app_data) {
         lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, video_state = video_state, styling = app_data$styling)
 
         observeEvent(input$edit_cancel, {
-            do_focus_to_playslist <- !is.null(editing$active) && editing$active %eq% .C_edit && app_data$scout_mode == "type" ## if cancelled editing a code, return to playslist
+            do_focus_to_playslist <- !is.null(editing$active) && editing$active %eq% .C_edit && app_data$scout_mode_r() == "type" ## if cancelled editing a code, return to playslist
             if (!is.null(editing$active) && editing$active %eq% .C_teams) {
                 team_edit_mod$htdata_edit(NULL)
                 team_edit_mod$vtdata_edit(NULL)
@@ -321,7 +371,7 @@ ov_scouter_server <- function(app_data) {
                                 newcode <- newcode1
                             }
                             if (!is.null(newcode)) {
-                                if (app_data$scout_mode == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
+                                if (app_data$scout_mode_r() == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
                                 crc$code <- newcode
                                 ## so we have a new code, but the (changed) information in that won't be in the other columns of crc yet
                                 temp <- parse_code_minimal(newcode)[[1]]
@@ -377,8 +427,8 @@ ov_scouter_server <- function(app_data) {
 
                         code <- if (nzchar(newcode1)) newcode1 else newcode2
                         if (grepl("^[TpczPCS]", code)) code <- paste0("*", code)
-                        cat("to process: ", code, "\n")
-                        if (app_data$scout_mode == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
+                        if (debug > 1) cat("to process: ", code, "\n")
+                        if (app_data$scout_mode_r() == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
                         if (grepl("^(\\*p|ap|\\*c|ac|\\*z|az|\\*S|aS)", code) || ## sub, setter position, assign serving team
                             grepl("^[a\\*]C[[:digit:]]+[:\\.][[:digit:]]+", code) || ## substitution ensuring it can't be an attack combo code
                             (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(gs$rally_started))) { ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
@@ -395,11 +445,9 @@ ov_scouter_server <- function(app_data) {
                             ## cat("gs:", str(gs), "\n")
                             ## cat("newrow:", str(newrow), "\n")
                             if (insert_ridx <= nrow(rdata$dvw$plays2)) {
-                                cat(nrow(rdata$dvw$plays2), "\n")
                                 rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
                                                                   newrow,
                                                                   rdata$dvw$plays2[insert_ridx:nrow(rdata$dvw$plays2), ]))
-                                cat(nrow(rdata$dvw$plays2), "\n")
                             } else {
                                 ## can't insert into rally_codes, that only holds skill rows!
                                 warning("can't insert into current rally")
@@ -414,7 +462,7 @@ ov_scouter_server <- function(app_data) {
                                 ## code can be empty if the code was invalid (empty string after interpreter applied)
                                 warning("empty code after interpretation, was '", code, "' an invalid code?")
                             } else {
-                                cat("code after interpretation:", newcode, "\n")
+                                if (debug > 1) cat("code after interpretation:", newcode, "\n")
                                 ## code can be length > 1 now, because code might have been a compound code
                                 ptemp <- parse_code_minimal(newcode) ## convert to a list of tibble row(s)
                                 ## this has to be added to plays2 OR rally codes, depending on the insertion point
@@ -448,8 +496,10 @@ ov_scouter_server <- function(app_data) {
                 } else {
                     changed <- code_make_change(editing$active, game_state = game_state, dvw = rdata$dvw, input = input,
                                                 htdata_edit = team_edit_mod$htdata_edit(), vtdata_edit = team_edit_mod$vtdata_edit(),
-                                                htdata_select = team_select_mod$htdata_select(), vtdata_select = team_select_mod$vtdata_select())
+                                                htdata_select = team_select_mod$htdata_select(), vtdata_select = team_select_mod$vtdata_select(),
+                                                type_mode_preferred_zones_or_cones = rdata$type_mode_preferred_zones_or_cones)
                     rdata$dvw <- changed$dvw
+                    rdata$type_mode_preferred_zones_or_cones <- changed$type_mode_preferred_zones_or_cones
                     if (changed$do_reparse) {
                         ## we don't need to reparse (??), but (might) need to adjust game_state, e.g. if we've changed lineups
                         temp <- as.list(tail(rdata$dvw$plays2, 1))
@@ -507,7 +557,7 @@ ov_scouter_server <- function(app_data) {
             courtref_ok <- video_media_ok <- TRUE
             if (app_data$with_video) {
                 ## check courtref
-                if (app_data$scout_mode != "type") {
+                if (app_data$scout_mode_r() != "type") {
                     ## court ref is optional in type mode
                     courtref_ok <- !is.null(detection_ref1()$court_ref)
                     if (have_second_video && courtref_ok && is.null(detection_ref2()$court_ref)) courtref_ok <- "Use the 'Video setup' button to define the court reference for video 2."
@@ -575,7 +625,7 @@ ov_scouter_server <- function(app_data) {
                     } else if (is_shortcut(k, c(app_data$playstable_shortcuts$up, app_data$playstable_shortcuts$down))) {
                         ## navigate up/down in playslist table
                         playslist_mod$select(playslist_mod$current_row() + if (is_shortcut(k, app_data$playstable_shortcuts$up)) -1L else 1L)
-                    } else if (is_shortcut(k, app_data$playstable_shortcuts$switch_windows) && app_data$scout_mode == "type") {
+                    } else if (is_shortcut(k, app_data$playstable_shortcuts$switch_windows) && app_data$scout_mode_r() == "type") {
                         focus_to_scout_bar() ## go to scout bar
                         playslist_mod$redraw_select("last") ## change redraw behaviour (keep the last row selected, including when new row added)
                         playslist_mod$select_last() ## select last row
@@ -608,16 +658,16 @@ ov_scouter_server <- function(app_data) {
                     } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% .C_preferences) {
                         editing$active <- NULL
                         removeModal()
-                        if (app_data$scout_mode == "type") focus_to_scout_bar()
+                        focus_to_scout_bar()
                     } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && !editing$active %in% c(.C_teams, .C_admin)) {
                         ## escape from editing modal or from showing shortcuts
                         do_unpause <- editing$active %eq% .C_admin && app_data$with_video
-                        do_focus_to_playslist <- !is.null(editing$active) && editing$active %in% c(.C_delete, .C_edit) && app_data$scout_mode == "type"
+                        do_focus_to_playslist <- !is.null(editing$active) && editing$active %in% c(.C_delete, .C_edit) && app_data$scout_mode_r() == "type"
                         editing$active <- NULL
                         removeModal()
                         if (do_unpause) do_video("play")
-                        if (do_focus_to_playslist) focus_to_playslist() else if (app_data$scout_mode == "type") focus_to_scout_bar()
-                    } else if (tolower(ky) %eq% "escape" && app_data$scout_mode == "type" && grepl("scout_in", k$id) && "escape" %in% tolower(app_data$shortcuts$pause)) {
+                        if (do_focus_to_playslist) focus_to_playslist() else focus_to_scout_bar()
+                    } else if (tolower(ky) %eq% "escape" && app_data$scout_mode_r() == "type" && grepl("scout_in", k$id) && "escape" %in% tolower(app_data$shortcuts$pause)) {
                         ## wackiness here if we want to use the escape key as a pause shortcut in typing mode
                         ## let the scout shortcut code handle it
                     } else if (tolower(ky) %eq% "enter") {
@@ -675,7 +725,7 @@ ov_scouter_server <- function(app_data) {
                     } else if (tolower(ky) %eq% "tab" && grepl("scout_in", k$id)) {
                         ## tab from scout bar, go to playslist table
                         ## currently handled in switch_windows shortcut below, TODO can we rationalize the handling of scout-mode shortcuts into this block of code?
-                    } else if (tolower(ky) %eq% "tab" && app_data$scout_mode == "type" && is.null(editing$active)) {
+                    } else if (tolower(ky) %eq% "tab" && app_data$scout_mode_r() == "type" && is.null(editing$active)) {
                         ## otherwise (noting that we are not in a modal and not in the playslist table here) if we are in typing mode, switch to the input bar
                         focus_to_scout_bar()
                     } else if (is.null(editing$active) && !courtref_active()) {
@@ -728,7 +778,7 @@ ov_scouter_server <- function(app_data) {
                     ## handle pause here rather than in the main keydown code, because by default we want to use the escape key as a pause shortcut
                     if (!courtref_active()) {
                         if (!is.null(editing$active) && editing$active %eq% .C_admin) {
-                            dismiss_admin_modal(editing = editing, scout_mode = app_data$scout_mode)
+                            dismiss_admin_modal(editing = editing)
                         } else {
                             if (video_state$paused) {
                                 ## we are paused
@@ -789,7 +839,7 @@ ov_scouter_server <- function(app_data) {
             for (i in seq_along(codes)) {
                 code <- codes[i]
                 if (grepl("^[TpczPC]", code)) code <- paste0("*", code)
-                cat("to process: ", code, "\n")
+                if (debug > 1) cat("to process: ", code, "\n")
                 if (grepl("^(>|\\*T|aT|\\*p|ap|\\*c|ac)", code) || ## timeout, point assignment, sub
                     grepl("^[a\\*]C[[:digit:]]+[:\\.][[:digit:]]+", code) || ## substitution ensuring it can't be an attack combo code
                     (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(game_state$rally_started))) { ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
@@ -831,7 +881,7 @@ ov_scouter_server <- function(app_data) {
                         ## code can be empty if the code was invalid (empty string after interpreter applied)
                         warning("empty code after interpretation, was '", code, "' an invalid code?")
                     } else {
-                        cat("code after interpretation:", newcode, "\n")
+                        if (debug > 1) cat("code after interpretation:", newcode, "\n")
                         ## code can be length > 1 now, because the scout might have entered a compound code
                         ptemp <- parse_code_minimal(newcode) ## convert to a list of tibble row(s)
                         this_clock_time <- time_but_utc()
@@ -941,7 +991,7 @@ ov_scouter_server <- function(app_data) {
         }
         observeEvent(input$scout_input, {
             codes <- input$scout_input
-            cat("code is: "); print(codes)
+            if (debug > 1) { cat("code is: "); print(codes) }
             if (grepl("^[a\\*]?L", codes)) {
                 ## handle these here not in handle_scout_codes because the whitespace splitting behaviour is different
                 assign_lineup_from_manual(codes, rdata = rdata, game_state = game_state, app_data = app_data)
@@ -963,10 +1013,11 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$just_cancel, {
             editing$active <- NULL
             removeModal()
-            if (app_data$scout_mode == "type") focus_to_scout_bar()
+            focus_to_scout_bar()
         })
         observeEvent(input$prefs_save, {
-            thisprefs <- list(scout_name = if (is.null(input$prefs_scout) || is.na(input$prefs_scout)) "" else input$prefs_scout,
+            thisprefs <- list(scout_mode = input$prefs_scout_mode,
+                              scout_name = if (is.null(input$prefs_scout) || is.na(input$prefs_scout)) "" else input$prefs_scout,
                               show_courtref = isTRUE(input$prefs_show_courtref),
                               scoreboard = isTRUE(input$prefs_scoreboard),
                               pause_on_type = if (is.null(input$prefs_pause_on_type) || is.na(as.integer(input$prefs_pause_on_type))) 0 else as.integer(input$prefs_pause_on_type),
@@ -1002,7 +1053,8 @@ ov_scouter_server <- function(app_data) {
             for (nm in names(thisprefs)) prefs[[nm]] <- thisprefs[[nm]]
             ## apply any that require immediate action
             if (is.null(rdata$dvw$meta$more$scout) || is.na(rdata$dvw$meta$more$scout) || !nzchar(rdata$dvw$meta$more$scout)) rdata$dvw$meta$more$scout <- prefs$scout_name
-            if (app_data$scout_mode == "type" && !is.null(prefs$pause_on_type)) {
+            ## note that changing the scout_mode preference here does not affect the current match
+            if (app_data$scout_mode_r() == "type" && !is.null(prefs$pause_on_type)) {
                 app_data$pause_on_type <- prefs$pause_on_type
                 dojs(paste0("pause_on_type = ", prefs$pause_on_type))
             }
@@ -1011,10 +1063,10 @@ ov_scouter_server <- function(app_data) {
             tryCatch({ saveRDS(this_opts, file = app_data$scouting_options_file) }, error = function(e) warning("could not save scouting convention preferences to file"))
             ## apply
             for (nm in names(this_opts)) rdata$options[[nm]] <- this_opts[[nm]]
-
+            ## note that we don't apply the zones/cones preference to the current match being scouted. If the user wants to change this they have to do it through the match data editing
             editing$active <- NULL
             removeModal()
-            if (app_data$scout_mode == "type") focus_to_scout_bar()
+            focus_to_scout_bar()
         })
 
         overlay_points <- reactiveVal(NULL)
@@ -1354,7 +1406,7 @@ ov_scouter_server <- function(app_data) {
         accept_fun <- reactiveVal(NULL) ## use this to determine what function should be run when the "Continue" button on a modal is clicked, or the enter key is used to shortcut it
         ## single click the video to register a tag location, or starting ball coordinates
         process_action <- function(was_shift_click = FALSE) {
-            if (app_data$scout_mode == "type") return(process_action_type_mode(was_shift_click = was_shift_click))
+            if (app_data$scout_mode_r() == "type") return(process_action_type_mode(was_shift_click = was_shift_click))
             if (loop_trigger() > 0 && rally_state() != .C_fix_required_info) {
                 if (rally_state() == app_data$click_to_start_msg) {
                     if (meta_is_valid()) {
@@ -2031,7 +2083,7 @@ ov_scouter_server <- function(app_data) {
             do_video("play")
             remove_scout_modal()
             set_rally_state(.C_click_serve_start)
-            if (app_data$scout_mode == "type") focus_to_scout_bar()
+            focus_to_scout_bar()
         }
         observeEvent(input$assign_serve_outcome, do_assign_serve_outcome())
 
@@ -2040,7 +2092,7 @@ ov_scouter_server <- function(app_data) {
             ## cat("focus:"); cat(str(input$focus_check), "\n")
             ## if we are focused in the scout bar or playlist or other elements with an ID, the id will be set
             ## if we are showing a modal, the class will be populated (e.g. "modal-open")
-            if (isTRUE(input$focus_check$is_body) && !nzchar(input$focus_check$id) && length(input$focus_check$class) < 1 && app_data$scout_mode == "type") {
+            if (isTRUE(input$focus_check$is_body) && !nzchar(input$focus_check$id) && length(input$focus_check$class) < 1 && app_data$scout_mode_r() == "type") {
                 ## we are focused nowhere?
                 focus_to_scout_bar()
             }
@@ -2670,7 +2722,7 @@ ov_scouter_server <- function(app_data) {
         }
 
         output$rally_state <- renderUI({
-            if (app_data$scout_mode != "type") {
+            if (app_data$scout_mode_r() != "type") {
                 tags$div(id = "rallystate", tags$strong("Rally state: "), rally_state())
             } else {
                 NULL
@@ -2688,7 +2740,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         do_serve_preselect <- function() {
-            if (app_data$scout_mode != "type") { ## don't show if using typing input
+            if (app_data$scout_mode_r() != "type") { ## don't show if using typing input
                 sp <- if (game_state$serving == "*") game_state$home_p1 else if (game_state$serving == "a") game_state$visiting_p1 else 0L
                 ## sp should be the serving player
                 ## other players that could be serving, if the rotation is somehow wrong
@@ -2708,7 +2760,7 @@ ov_scouter_server <- function(app_data) {
             }
         }
 
-        observeEvent(input$admin_dismiss, dismiss_admin_modal(editing = editing, scout_mode = app_data$scout_mode))
+        observeEvent(input$admin_dismiss, dismiss_admin_modal(editing = editing))
 
         observeEvent(input$change_setter, {
             if (!is.null(input$change_setter)) {
@@ -2891,7 +2943,7 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$undo, {
             do_undo()
-            dismiss_admin_modal(editing = editing, scout_mode = app_data$scout_mode)
+            dismiss_admin_modal(editing = editing)
         })
 
         do_undo <- function() {
@@ -3030,7 +3082,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$cancel_back_to_playslist, {
             editing$active <- NULL
             removeModal()
-            if (app_data$scout_mode == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
+            if (app_data$scout_mode_r() == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
         })
 
         observeEvent(input$delete_commit, do_delete_code())
@@ -3038,7 +3090,7 @@ ov_scouter_server <- function(app_data) {
             if (!is.null(editing$active)) {
                 if (missing(ridx)) ridx <- playslist_mod$current_row()
                 if (!is.null(ridx) && !is.na(ridx)) {
-                    if (app_data$scout_mode == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
+                    if (app_data$scout_mode_r() == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
                     if (ridx <= nrow(rdata$dvw$plays2)) {
                         rdata$dvw$plays2 <- rdata$dvw$plays2[-ridx, ]
                     } else if ((ridx - nrow(rdata$dvw$plays2)) <= nrow(rally_codes())) {
@@ -3049,7 +3101,7 @@ ov_scouter_server <- function(app_data) {
                 }
                 editing$active <- NULL
                 removeModal()
-                if (app_data$scout_mode == "type") focus_to_playslist()
+                if (app_data$scout_mode_r() == "type") focus_to_playslist()
             }
         }
 
@@ -3086,7 +3138,7 @@ ov_scouter_server <- function(app_data) {
                 if (!res$end_of_set) {
                     removeModal()
                     do_video("play")
-                    if (app_data$scout_mode == "type") focus_to_scout_bar()
+                    focus_to_scout_bar()
                 }
             }
         })
@@ -3244,7 +3296,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         output$save_dvw_button_ui <- renderUI({
-            if (app_data$scout_mode == "type") {
+            if (app_data$scout_mode_r() == "type") {
                 ## go straight to export
                 downloadButton("save_dvw_button", "Export to dvw", class = "leftbut")
             } else {
@@ -3256,9 +3308,9 @@ ov_scouter_server <- function(app_data) {
             filename = function() paste0(save_file_basename(), ".dvw"),
             content = function(file) {
                 tryCatch({
-                    dv_write2(update_meta(rp2(rdata$dvw)), file = file, convert_cones = app_data$scout_mode != "type" && isTRUE(input$dvw_save_with_cones))
+                    dv_write2(update_meta(rp2(rdata$dvw)), file = file, convert_cones = app_data$scout_mode_r() != "type" && isTRUE(input$dvw_save_with_cones))
                     removeModal()
-                    if (app_data$scout_mode == "type") focus_to_scout_bar()
+                    focus_to_scout_bar()
                 }, error = function(e) {
                     temp <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())
                     show_save_error_modal(msg = temp$error_message, ovs_ok = temp$ok, tempfile_name = temp$filename)
@@ -3287,7 +3339,7 @@ ov_scouter_server <- function(app_data) {
                     })
                     out$detection_refs <- dr
                     saveRDS(out, file)
-                    if (app_data$scout_mode == "type") focus_to_scout_bar()
+                    focus_to_scout_bar()
                 }, error = function(e) {
                     temp <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())
                     show_save_error_modal(msg = temp$error_message, ovs_ok = temp$ok, tempfile_name = temp$filename)

@@ -26,7 +26,7 @@ player_constructor_js <- function(id = "main_video", app_data, autoplay = FALSE,
     paste0("vidplayer = videojs('", id, "', ",
            ## options
            "{'techOrder': ['html5'", if (yt) ", 'youtube'", "], ",
-           "'controls': true, 'autoplay': ", tolower(isTRUE(autoplay)), ", 'preload': 'auto', 'liveui': true, 'restoreEl': true, 'inactivityTimeout': 0, ",
+           "'controls': true, 'autoplay': ", tolower(isTRUE(autoplay)), ", 'preload': 'auto', 'liveui': true, 'restoreEl': true, 'inactivityTimeout': 0, 'fill': true, ",
            if (!is.na(height)) paste0("'height':", height, ", "),
            if (!is.na(width)) paste0("'width':", width, ", "),
            if (!is.na(muted)) paste0("'muted': ", muted, ", "),
@@ -56,7 +56,7 @@ build_ovscout2_js <- function(app_data) {
                       "  var ct = vidplayer.currentTime(); var pw = vidplayer.width(); var ph = vidplayer.height(); var wasmuted = vidplayer.muted();", ## note some current settings
                       ## dispose of the player and reconstruct it. Note that this gives a flicker as the element is removed and replaced
                       "  vidplayer.dispose();",
-                      player_constructor_js(id = "main_video", app_data = app_data, autoplay = TRUE, muted = "wasmuted", height = "ph", width = "pw", ready_extra = "vidplayer.currentTime(ct); vidplayer.play();"),
+                      player_constructor_js(id = "main_video", app_data = app_data, autoplay = TRUE, muted = "wasmuted", ready_extra = "vidplayer.currentTime(ct); vidplayer.play();"), ## height = "ph", width = "pw", ## don't think we need to specify this now that we are using 'fill' mode for the player, but need to test that TODO
                       "  vidplayer.one('play', () => { vidplayer_near_end_fun(); });", ## once the player restarts playing, attach the timeupdate watcher
                       "}", sep = "\n")
         ## define the vidplayer_near_end_fun, which reinitializes the player when it nears the file end
@@ -74,8 +74,7 @@ build_ovscout2_js <- function(app_data) {
                       "  }",
                       "}", sep = "\n")
     }
-    ## flash screen to indicate click
-    myjs <- paste(myjs, "function flash_screen() { $('#video_overlay_canvas').css('background-color', '#FFFF0080'); setTimeout(function() { $('#video_overlay_canvas').css('background-color', ''); }, 50); };",
+    myjs <- paste(myjs, "function flash_screen() { $('#video_overlay_canvas').css('background-color', '#FFFF0080'); setTimeout(function() { $('#video_overlay_canvas').css('background-color', ''); }, 50); };", ## flash screen to indicate click
                   ## add listeners to the whole window to catch changes of focus
                   "function focus_check() { Shiny.setInputValue('focus_check', { is_body: document.activeElement === document.body, id: document.activeElement.id, class: document.activeElement.classList }); };",
                   "window.addEventListener ? window.addEventListener('focus', focus_check, true) : window.attachEvent('onfocusout', focus_check);",
@@ -89,10 +88,12 @@ build_ovscout2_js <- function(app_data) {
                       "pause_main_video_on_click = false;",
                       paste("$('#video_overlay').on('click', () => {",
                              "    flash_screen();",
-                             if (app_data$scout_mode != "type") paste("    if (pause_main_video_on_click) {",
-                                                                      "        vidplayer.pause();",
-                                                                      "        pause_on_type = 0;",
-                                                                      "    }", sep = "\n"),
+                            ##if (app_data$scout_mode != "type")
+                            ## TODO move this, and use videojs.getPlayer('main_video') or videojs.players.main_video
+                            paste("    if (pause_main_video_on_click) {",
+                                  "        vidplayer.pause();",
+                                  "        pause_on_type = 0;",
+                                  "    }", sep = "\n"),
                             "});", sep = "\n"),
                       ## vidplayer.on('loadedmetadata', () => { console.log('METADATA READY'); }); vidplayer.on('ready', () => { console.log('ONREADY') });
                       "});", sep = "\n")

@@ -232,8 +232,11 @@ eval_in_server <- function(expr) {
 }
 
 focus_to_scout_bar <- function(srv_code) {
-    dojs(paste0("var el = document.getElementById('scout_in'); if (el) { ", if (!missing(srv_code)) paste0("el.value = '", srv_code, "'; "), "el.selectionStart = el.selectionEnd = el.value.length; el.focus(); }"))
-    eval_in_server(expression(active_ui("scout_bar")))
+    app_data <- getsv("app_data")
+    if (isTRUE(isolate(app_data$scout_mode_r() == "type"))) {
+        dojs(paste0("var el = document.getElementById('scout_in'); if (el) { ", if (!missing(srv_code)) paste0("el.value = '", srv_code, "'; "), "el.selectionStart = el.selectionEnd = el.value.length; el.focus(); }"))
+        eval_in_server(expression(active_ui("scout_bar")))
+    }
 }
 
 focus_to_playslist <- function() {

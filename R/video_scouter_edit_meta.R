@@ -1,5 +1,5 @@
 ## match data editing
-code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit = NULL, vtdata_edit = NULL, htdata_select = NULL, vtdata_select = NULL) {
+code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit = NULL, vtdata_edit = NULL, htdata_select = NULL, vtdata_select = NULL, type_mode_preferred_zones_or_cones) {
     removeModal()
     do_reparse <- FALSE
     if (is.null(editing_active)) {
@@ -50,7 +50,14 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$match$day_number <- input[[md_ns("match_edit_day_number")]]
         dvw$meta$match$match_number <- input[[md_ns("match_edit_match_number")]]
         ## currently disabled dvw$meta$match$regulation <- input[[md_ns("match_edit_regulation")]]
-        if (!is.null(input[[md_ns("match_edit_zones_or_cones")]]) && input[[md_ns("match_edit_zones_or_cones")]] %in% c("Z", "C")) dvw$meta$match$zones_or_cones <- input[[md_ns("match_edit_zones_or_cones")]]
+        if (!is.null(input[[md_ns("match_edit_zones_or_cones")]]) && input[[md_ns("match_edit_zones_or_cones")]] %in% c("Z", "C")) {
+            dvw$meta$match$zones_or_cones <- input[[md_ns("match_edit_zones_or_cones")]]
+            app_data <- getsv("app_data")
+            if (isolate(app_data$scout_mode_r()) == "type") {
+                ## user has (possibly) modified the zones/cones for this match, so keep track of their preferred setting
+                type_mode_preferred_zones_or_cones <- input[[md_ns("match_edit_zones_or_cones")]]
+            }
+        }
         dvw$meta$more$scout <- input[[md_ns("more_edit_scout")]]
         ## comments
         null2na <- function(z) if (length(z) < 1) NA_character_ else z
@@ -117,6 +124,6 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
     } else {
         warning("I don't know what to do with editing_active: ", editing_active)
     }
-    list(dvw = dvw, do_reparse = do_reparse)
+    list(dvw = dvw, type_mode_preferred_zones_or_cones = type_mode_preferred_zones_or_cones, do_reparse = do_reparse)
 }
 

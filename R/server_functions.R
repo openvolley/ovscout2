@@ -58,20 +58,17 @@ startup_app_data <- function(app_data, session) {
     ## set up for typing mode
     ## we can modify app_data$pause_on_type here without affecting the prefs reactive, so that it can be disabled if we aren't using video in this session but still retain it as a preference
     if (!app_data$with_video) app_data$pause_on_type <- 0L
-    if (app_data$scout_mode == "type") {
         ## send shortcuts to js
-        if (length(app_data$type_shortcuts) > 0) dojs(paste0("sk_shortcut_map = ", make_js_keymap(app_data$type_shortcuts), ";"))
-        if (length(app_data$remapping) > 0) dojs(paste0("sk_key_map = ", make_js_keymap(app_data$remapping), ";"))
-        app_data$shortcuts <- app_data$type_shortcuts ## this is the active set
-    } else {
-        if (length(app_data$click_shortcuts) > 0) dojs(paste0("ck_shortcut_map = ", make_js_keymap(app_data$click_shortcuts), ";"))
-        app_data$shortcuts <- app_data$click_shortcuts ## this is the active set
-    }
+    if (length(app_data$type_shortcuts) > 0) dojs(paste0("sk_shortcut_map = ", make_js_keymap(app_data$type_shortcuts), ";"))
+    if (length(app_data$remapping) > 0) dojs(paste0("sk_key_map = ", make_js_keymap(app_data$remapping), ";"))
+    if (length(app_data$click_shortcuts) > 0) dojs(paste0("ck_shortcut_map = ", make_js_keymap(app_data$click_shortcuts), ";"))
+    app_data$shortcuts <- if (app_data$scout_mode == "type") app_data$type_shortcuts else app_data$click_shortcuts ## this is the active set
     app_data$click_to_start_msg <- paste0(if (app_data$scout_mode != "type") "click or ", "unpause the video to start") ## this is a bit unnecessary since the rally state message isn't shown in type mode
 
     ## app_data$play_overlap gives the duration (in seconds) to rewind the video after entering data. We'll scale this by the video replay speed, so keep the original setting
     app_data$play_overlap0 <- app_data$play_overlap
 
+    app_data$scout_mode_r <- reactiveVal(app_data$scout_mode) ## make a reactive copy so we can change mode from within the app (without needing to restart)
     app_data
 }
 
@@ -369,7 +366,7 @@ deal_with_pause <- function(scout_modal_active, video_state, editing, game_state
                 do_video("play")
             } else if (editing$active %eq% .C_admin) {
                 ## otherwise, and only if we have the admin modal showing, dismiss it and unpause
-                dismiss_admin_modal(editing = editing, scout_mode = app_data$scout_mode)
+                dismiss_admin_modal(editing = editing)
             }
         } else {
             ## not paused, so pause and show admin modal
@@ -480,7 +477,7 @@ do_switch_video <- function(have_second_video, current_video_src, rdata, app_dat
             offs <- rdata$dvw$video2_offset
         }
         new_src <- get_video_source_type(new_src, base_url = app_data$video_server_base_url)
-        myjs <- paste0("var ct=vidplayer.currentTime(); ct=ct", if (offs >= 0) "+", offs, "; if (ct >= 0) { vidplayer.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); vidplayer.currentTime(ct);", if (!video_state$paused) "vidplayer.play(); pause_on_type = ", app_data$pause_on_type, "; Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight()); }")
+        myjs <- paste0("var ct=videojs.players.main_video.currentTime(); ct=ct", if (offs >= 0) "+", offs, "; if (ct >= 0) { videojs.players.main_video.src(", if (new_src$type == "youtube") paste0("{ \"type\": \"video/youtube\", \"src\": \"", new_src$src, "\"}") else paste0("\"", new_src$src, "\""), "); videojs.players.main_video.currentTime(ct);", if (!video_state$paused) "videojs.players.main_video.play(); pause_on_type = ", app_data$pause_on_type, "; Shiny.setInputValue('video_width', videojs.players.main_video.videoWidth()); Shiny.setInputValue('video_height', videojs.players.main_video.videoHeight()); }")
         dojs(myjs)
     }
 }

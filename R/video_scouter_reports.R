@@ -1,6 +1,6 @@
 ov2_generate_match_report <- function(dvw, app_data) {
     temp_dvw_file <- tempfile(fileext = ".dvw")
-    dv_write2(update_meta(rp2(dvw)), file = temp_dvw_file, convert_cones = app_data$scout_mode != "type")
+    dv_write2(update_meta(rp2(dvw)), file = temp_dvw_file, convert_cones = FALSE) ## cones/zones does not matter for match report
     servable_url <- NULL
     tryCatch({
         withProgress(message = "Generating match report", value = 0, {

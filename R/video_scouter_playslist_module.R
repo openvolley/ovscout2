@@ -4,12 +4,12 @@ mod_playslist_ui <- function(id, height = "40vh", styling) {
         tags$head(tags$style(paste0(".pl2_fixhdr thead th { position: -webkit-sticky; position: sticky; top: 0; z-index: 2; background-color: #CCC;}",
                            ".pl2-tc {height:", height, "; overflow:hidden} .pl2-tc-inner { overflow-x:hidden; overflow-y:auto; height:100% }",
                            ".", ns("selected"), " {background-color:", if (!missing(styling) && !is.null(styling$playslist_highlight_colour)) styling$playslist_highlight_colour else "orange", ";}"))),
-        tags$div(class = "pl2-tc", tags$div(class = "pl2-tc-inner", id = ns("tbl"), uiOutput(ns("pl")))),
+        tags$div(id = ns("tbl-outer"), class = "pl2-tc", tags$div(class = "pl2-tc-inner", id = ns("tbl"), uiOutput(ns("pl")))),
         tags$script(HTML(paste0("document.querySelector('#", ns("tbl"), "').addEventListener('click', function(event) { Shiny.setInputValue('", ns("clicked"), "', event.target.parentNode.rowIndex, { priority: 'event' }) });"))) ## click listener
     )
 }
 
-mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, plays_cols_renames, display_option = reactiveVal("dv_codes"), height = "40vh") {
+mod_playslist <- function(input, output, session, rdata, plays_cols_to_show, plays_cols_renames, display_option = reactiveVal("dv_codes")) {
     ns <- session$ns
     jsns <- ns4js(ns)
     plays_do_rename <- function(z) names_first_to_capital(dplyr::rename(z, plays_cols_renames))

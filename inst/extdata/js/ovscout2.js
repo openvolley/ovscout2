@@ -4,8 +4,15 @@ set_vspinner = function() {
 remove_vspinner = function() {
     $('#review_player').removeClass('loading');
 };
+pause_main_video_on_click = false;
 $(document).on("shiny:sessioninitialized", function() {
     $('#video_overlay').click(function(e) {
+        flash_screen();
+        // previously this was only for if (app_data$scout_mode != "type")
+        if (pause_main_video_on_click) {
+            videojs.players.main_video.pause(); // or use videojs.getPlayer('main_video')
+            pause_on_type = 0;
+        }
         var rect = e.target.getBoundingClientRect();
         var cx = e.clientX - rect.left;
         var cy = e.clientY - rect.top;

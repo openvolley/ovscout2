@@ -1119,7 +1119,7 @@ plotOutputWithAttribs <- function(outputId, width = "100%", height = "400px", cl
 do_contact <- function() {
     ## keyboard entry indicating a contact at this time
     ## ask the browser for the current video time
-    dojs("Shiny.setInputValue('contact', [vidplayer.currentTime(), new Date().getTime()])")
+    dojs("Shiny.setInputValue('contact', [videojs.players.main_video.currentTime(), new Date().getTime()])")
 }
 
 flash_screen <- function() dojs("flash_screen();")
@@ -1298,7 +1298,7 @@ get_video_source_type <- function(src, base_url) {
 ## - for everything else: NULL
 do_video_inner <- function(what, ..., video_state, rally_state, app_data, session, id = "main_video") {
     if (!app_data$with_video) return(invisible(NULL))
-    getel <- "vidplayer"
+    getel <- "videojs.players.main_video" ## "vidplayer"
     myargs <- list(...)
     invisible({
         if (what == "pause") {

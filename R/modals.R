@@ -34,12 +34,12 @@ show_admin_modal <- function(game_state, dvw) {
                             ))
 }
 
-dismiss_admin_modal <- function(editing, scout_mode) {
+dismiss_admin_modal <- function(editing) {
     ## dismiss the admin modal and unpause the video
     editing$active <- NULL
     removeModal()
     do_video("play")
-    if (isTRUE(scout_mode == "type")) focus_to_scout_bar()
+    focus_to_scout_bar()
 }
 
 show_save_error_modal <- function(msg, ovs_ok, tempfile_name) {
@@ -138,17 +138,19 @@ show_prefcuts_modal <- function(prefs, opts) {
        tabsetPanel(id = "prefs_tabs",
                    tabPanel(tags$strong("App preferences"),
                             tags$hr(), tags$br(),
-                            fluidRow(column(3, checkboxInput("prefs_show_courtref", "Show court reference?", value = prefs$show_courtref)),
+                            fluidRow(column(3, selectInput("prefs_scout_mode", "Scouting mode", choices = c("Click mode" = "click", "Typing mode" = "type"), selected = if (is.null(prefs$scout_mode) || !prefs$scout_mode %in% c("click", "type")) "click" else prefs$scout_mode),
+                                            tags$p("Note that changing the scout mode preference here will", tags$strong("not"), "affect the current match, it sets your preference for future matches. If you want to change the current scout mode, do this via the 'Change scout mode' button in the main interface.")),
+                                     column(3, checkboxInput("prefs_show_courtref", "Show court reference?", value = prefs$show_courtref)),
                                      column(3, textInput("prefs_scout", label = "Default scout name:", placeholder = "Your name", value = prefs$scout_name)),
-                                     column(3, checkboxInput("prefs_scoreboard", "Show scoreboard in the top-right of the video pane?", value = prefs$scoreboard)),
-                                     column(3, numericInput("prefs_pause_on_type", tags$span(title = HTML("Pauses the video for this many milliseconds after each keypress in the scouting bar (typing mode only). Set to zero for no pause after keypress."), "Pause video after each keypress (milliseconds):", icon("question-circle")), value = prefs$pause_on_type, min = 0, step = 100))),
+                                     column(3, checkboxInput("prefs_scoreboard", "Show scoreboard in the top-right of the video pane?", value = prefs$scoreboard))),
                             tags$br(),
                             fluidRow(column(3, checkboxInput("prefs_ball_path", "Show the ball path on the court inset diagram?", value = prefs$ball_path)),
                                      column(3, selectInput("prefs_playlist_display_option", "Plays list style", choices = c("Scouted codes" = "dv_codes", "Commentary style" = "commentary"), selected = prefs$playlist_display_option)),
-                                     column(3, checkboxInput("prefs_review_pane", "Show review pane (video loop) in popups?", value = prefs$review_pane)))
+                                     column(3, checkboxInput("prefs_review_pane", "Show review pane (video loop) in popups?", value = prefs$review_pane)),
+                                     column(3, numericInput("prefs_pause_on_type", tags$span(title = HTML("Pauses the video for this many milliseconds after each keypress in the scouting bar (typing mode only). Set to zero for no pause after keypress."), "Pause video after each keypress (milliseconds):", icon("question-circle")), value = prefs$pause_on_type, min = 0, step = 100)))
                             ),
                    tabPanel(tags$strong("'Click' scouting conventions"),
-                            tags$hr(), tags$br(), tags$p("These conventions apply when scouting in \"click\" mode (not typing mode). Warning: changing scouting conventions once a match is already partially-scouted could lead to inconsistent files."),
+                            tags$hr(), tags$br(), tags$p("These conventions apply when scouting in \"click\" mode (not typing mode).", tags$span(style = "color:red;", "Warning: changing scouting conventions once a match is already partially-scouted could lead to inconsistent files.")),
                             tags$hr(),
                             fluidRow(column(3, selectInput("scopts_end_convention", tags$span(title = HTML("Is the end coordinate of an attack or serve the actual end location (where the ball was played or contacted the floor), or the intended one. The actual might differ from the intended if there is a block touch or the ball hit the net. If 'intended', and a block touch is recorded, then the end location of the attack will not be used for the dig location (the dig location will be missing)."), "End convention:", icon("question-circle")), choices = c(Intended = "intended", Actual = "actual"), selected = opts$end_convention)),
                                      column(3, checkboxInput("scopts_nblockers", tags$span(title = HTML("Record the number of blockers on each attack?"), "Record the number of blockers?", icon("question-circle")), value = opts$nblockers)),
@@ -168,8 +170,10 @@ show_prefcuts_modal <- function(prefs, opts) {
                             ## TODO @param compound_table tibble: the table of compound codes
                             ),
                    tabPanel(tags$strong("'Type' scouting conventions"),
-                            tags$hr(), tags$br(), tags$p("These conventions apply when scouting in \"type\" mode. Warning: changing scouting conventions once a match is already partially-scouted could lead to inconsistent files."), tags$hr(),
-                            fluidRow(column(3, selectInput("scopts_zones_cones", tags$span(title = HTML("Are attack directions being recorded as zones or cones?<br />If you want to change the current match settings without changing your preferences, you can do this via the 'Edit match data' button."), "Attack directions by zones or cones:", icon("question-circle")), choices = c(Cones = "C", Zones = "Z"), selected = opts$zones_cones)))
+                            tags$hr(), tags$br(), tags$p("These conventions apply when scouting in \"type\" mode."##, tags$span(style = "color:red;", "Warning: changing scouting conventions once a match is already partially-scouted could lead to inconsistent files.")
+                                                         ), tags$hr(),
+                            fluidRow(column(3, selectInput("scopts_zones_cones", tags$span(title = HTML("Are attack directions being recorded as zones or cones?"), "Attack directions by zones or cones:", icon("question-circle")), choices = c(Cones = "C", Zones = "Z"), selected = opts$zones_cones),
+                                            tags$p("Note that changing the zones/cones preference here will", tags$strong("not"), "affect the current match. If you want to change the current match settings, you will need to do this via the 'Edit match data' button in the main interface.")))
                             )
                    ),
        tags$br(),
@@ -257,7 +261,6 @@ show_shortcuts <- function(app_data, editing) {
 ## the modal popup used to review the rally codes before accepting them
 review_rally_modal <- function(rcodes) {
     rctxt <- codes_from_rc_rows(rcodes)
-    print(rctxt)
     showModal(vwModalDialog(title = "Review rally codes", footer = NULL, width = 100,
                             tags$p(tags$strong("Tab"), ", ", tags$strong("Shift-Tab"), "to move between code boxes.",
                                    tags$strong("Enter"), "or", tags$strong("Continue"), "to accept all and start next rally.",
@@ -300,7 +303,7 @@ show_review_pane <- function() {
     ## construct the playlist js by hand, because we need to inject the current video time
     revsrc <- get_video_source_type(if (current_video_src() == 1L) app_data$video_src else app_data$video_src2, base_url = app_data$video_server_base_url)
     pbrate <- if (!is.null(input$playback_rate) && input$playback_rate > 0) input$playback_rate * 1.4 else 1.4
-    dojs(paste0("var start_t=vidplayer.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", revsrc$src, "','start_time':start_t,'duration':4,'type':'", revsrc$type, "'}], 'review_player', '", revsrc$type, "', true); revpl.set_playback_rate(", pbrate, ");"))
+    dojs(paste0("var start_t=videojs.players.main_video.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", revsrc$src, "','start_time':start_t,'duration':4,'type':'", revsrc$type, "'}], 'review_player', '", revsrc$type, "', true); revpl.set_playback_rate(", pbrate, ");"))
     js_show2("review_pane")
     dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());")
     review_pane_active(TRUE)

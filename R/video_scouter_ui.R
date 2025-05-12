@@ -3,7 +3,7 @@ ov_video_ui_element <- function(app_data, yt) {
     tagList(fluidRow(column(4, uiOutput("rally_state"))),
             introBox(tags$div(id = "video_holder", style = "position:relative;",
                               if (app_data$scoreboard) tags$div(id = "tsc_outer", mod_teamscores_ui(id = "tsc")),
-                              tags$video(id = "main_video", style = paste0("width:100%; height:", if (app_data$scout_mode == "type") 60 else 85, "vh;"), class = "video-js vjs-has-started", crossorigin = "anonymous", tags$p(class = "vjs-no-js", "This app cannot be used without a web browser that", tags$a(href = "https://videojs.com/html5-video-support/", target = "_blank", "supports HTML5 video")))
+                              tags$video(id = "main_video", class = "video-js vjs-has-started", crossorigin = "anonymous", tags$p(class = "vjs-no-js", "This app cannot be used without a web browser that", tags$a(href = "https://videojs.com/html5-video-support/", target = "_blank", "supports HTML5 video")))
                               ),
                      tags$canvas(id = "video_overlay_canvas", style = "position:absolute;", height = "400", width = "600"), plotOutput("video_overlay"), data.step = 3, data.intro = "Video of the game to scout."),
             tags$div(style = "height:32px;")) ## this is allowing for the video control bar to be placed below the video. The control bar is sized at 3em relative to the bar font size (10px)
@@ -70,9 +70,10 @@ ov_scouter_ui <- function(app_data) {
                                                    uiOutput("reports_ui")),
                                           tags$hr(),
                                           introBox(actionButton("general_help", label = "General Help", icon = icon("question"), class = "leftbut"),
-                                                   tags$button(class = "btn btn-default leftbut", "User manual", onclick = "window.open('https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html', '_blank')"),
+                                                   tags$button(class = "btn btn-default leftbut", tags$span(icon("book-open"), "User manual"), onclick = "window.open('https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html', '_blank')"),
                                                    actionButton("preferences", "Preferences", class = "leftbut"),
-                                                   actionButton("show_shortcuts", tags$span(icon("keyboard"), HTML("Keyboard<br />shortcuts")), class = "leftbut"),
+                                                   actionButton("show_shortcuts", tags$span(icon("keyboard"), "Keyboard", tags$br(), "shortcuts"), class = "leftbut"),
+                                                   actionButton("switch_scout_mode", label = tags$span("Change", tags$br(), "scout mode"), class = "leftbut"),
                                                    data.step = 7, data.intro = "Set general preferences, and see the keyboard shortcuts.")
                                           )),
                        column(9, style = "padding-right:2px;",
@@ -92,7 +93,7 @@ ov_scouter_ui <- function(app_data) {
                                        actionButton("edit_code_edit", class = "cebut", label = tags$span(icon("pen-to-square")), title = "Edit current"),
                                        actionButton("edit_code_edit_coords", class = "cebut", label = tags$span(icon("location-dot")), title = "Edit location of current")),
                               uiOutput("code_edit_dialog"),
-                              introBox(mod_playslist_ui("playslist", height = if (app_data$scout_mode == "type") "85vh" else "35vh", styling = app_data$styling), data.step = 6, data.intro = "List of actions. New entries appear here as they are scouted.")##, uiOutput("error_message")
+                              introBox(mod_playslist_ui("playslist", height = if (app_data$scout_mode == "type") "85vh" else "50vh", styling = app_data$styling), data.step = 6, data.intro = "List of actions. New entries appear here as they are scouted.")##, uiOutput("error_message")
                               )
                        ),
               tags$link(href = "css/post.css", rel = "stylesheet"),
