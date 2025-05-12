@@ -98,8 +98,9 @@ if (!ovscout2:::ov_pandoc_ok()) warning("pandoc could not be found, some functio
 library(ovscout2)
 ## check args
 dvw <- video_file <- season_dir <- NULL
+scout_mode <- "click" ## can be overridden with parm --scout_mode type
 for (rg in na.omit(rgs[-1])) {
-    if (rg %in% "demo") {
+    if (tolower(rg) == "demo") {
         dvw <- "demo"
     } else if (tryCatch(fs::is_dir(rg), error = function(e) FALSE)) {
         ## if we've been given a directory, treat it as the season_dir parm
@@ -108,6 +109,10 @@ for (rg in na.omit(rgs[-1])) {
         dvw <- rg
     } else if (grepl("\\.(mp4|m4v|mov)$", rg, ignore.case = TRUE)) {
         video_file <- rg
+    } else if (tolower(rg) == "type") {
+        scout_mode <- "type"
+    } else if (tolower(rg) == "click") {
+        scout_mode <- "click"
     }
 }
-ov_scouter(dvw = dvw, video_file = video_file, season_dir = season_dir, launch_browser = TRUE, prompt_for_files = TRUE)
+ov_scouter(dvw = dvw, video_file = video_file, season_dir = season_dir, launch_browser = TRUE, prompt_for_files = TRUE, scout_mode = scout_mode)
