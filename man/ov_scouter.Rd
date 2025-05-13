@@ -22,7 +22,7 @@ ov_scouter(
   click_shortcuts = ov_default_click_shortcuts(),
   type_shortcuts = ov_default_type_shortcuts(),
   playstable_shortcuts = ov_default_playstable_shortcuts(),
-  key_remapping = ov_default_key_remapping(scout_mode),
+  key_remapping,
   scout_name = "",
   show_courtref = FALSE,
   dash = FALSE,
@@ -67,7 +67,7 @@ ov_scouter(
 
 \item{playstable_shortcuts}{list: named list of keyboard shortcuts that apply when in the plays table, as returned by \code{\link[=ov_default_playstable_shortcuts]{ov_default_playstable_shortcuts()}}}
 
-\item{key_remapping}{list: a named list of key remappings, with entries as per \code{\link[=ov_default_key_remapping]{ov_default_key_remapping()}}}
+\item{key_remapping}{list: a named list of key remappings, with entries as per \code{\link[=ov_default_key_remapping]{ov_default_key_remapping()}}. If not provided, it will default to \code{ov_default_key_remapping(scout_mode)} (for whatever \code{scout_mode} is being used)}
 
 \item{scout_name}{string: the name of the scout (your name)}
 

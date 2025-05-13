@@ -22,7 +22,7 @@
 #' @param click_shortcuts list: named list of keyboard shortcuts, as returned by [ov_default_click_shortcuts()]
 #' @param type_shortcuts list: named list of keyboard shortcuts, as returned by [ov_default_type_shortcuts()]
 #' @param playstable_shortcuts list: named list of keyboard shortcuts that apply when in the plays table, as returned by [ov_default_playstable_shortcuts()]
-#' @param key_remapping list: a named list of key remappings, with entries as per [ov_default_key_remapping()]
+#' @param key_remapping list: a named list of key remappings, with entries as per [ov_default_key_remapping()]. If not provided, it will default to `ov_default_key_remapping(scout_mode)` (for whatever `scout_mode` is being used)
 #' @param scouting_options list: a named list with entries as per [ov_scouting_options()]. See Details, below
 #' @param app_styling list: named list of styling options, as returned by [ov_app_styling()]
 #' @param scout_name string: the name of the scout (your name)
@@ -39,7 +39,7 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scout_mode = "click", pause_on_type = 500, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), click_shortcuts = ov_default_click_shortcuts(), type_shortcuts = ov_default_type_shortcuts(), playstable_shortcuts = ov_default_playstable_shortcuts(), key_remapping = ov_default_key_remapping(scout_mode), scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scout_mode = "click", pause_on_type = 500, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), click_shortcuts = ov_default_click_shortcuts(), type_shortcuts = ov_default_type_shortcuts(), playstable_shortcuts = ov_default_playstable_shortcuts(), key_remapping, scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     dots <- list(...)
     ## undocumented (experimental) parameters that can be passed via ... :
@@ -67,6 +67,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     })
     if (!dir.exists(file.path(user_dir, "autosave"))) dir.create(file.path(user_dir, "autosave"))
 
+    if (missing(key_remapping)) key_remapping <- NULL
+
     ## do we have any saved preferences?
     ## these are app preferences, not scouting options
     opts_file <- file.path(user_dir, "preferences.rds") ## nb changed from "options.rds" in earlier versions: options.rds just had app preferences, but preferences.rds now holds app preferences and shortcuts
@@ -90,12 +92,15 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     if (missing(scout_name) && "scout_name" %in% names(saved_opts$app_prefs)) scout_name <- saved_opts$app_prefs$scout_name
     if (missing(show_courtref) && "show_courtref" %in% names(saved_opts$app_prefs)) show_courtref <- saved_opts$app_prefs$show_courtref
     if (missing(playback_rate) && "playback_rate" %in% names(saved_opts$app_prefs)) playback_rate <- saved_opts$app_prefs$playback_rate
+    if (missing(scout_mode) && "scout_mode" %in% names(saved_opts$app_prefs)) scout_mode <- saved_opts$app_prefs$scout_mode
 
     assert_that(is.flag(launch_browser), !is.na(launch_browser))
     assert_that(is.flag(prompt_for_files), !is.na(prompt_for_files))
     assert_that(playlist_display_option %in% c("dv_codes", "commentary"))
     scout_mode <- tolower(scout_mode)
     scout_mode <- match.arg(scout_mode, c("click", "type"))
+    if (is.null(key_remapping)) key_remapping <- ov_default_key_remapping(scout_mode)
+
     port <- NA
     if (missing(host) || is.null(host)) {
         host <- getOption("shiny.host", "127.0.0.1")
