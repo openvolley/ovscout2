@@ -92,7 +92,7 @@ ov_scouter_server <- function(app_data) {
                     dojs("$('#video_col').hide(); $('#court1_col').removeClass('col-sm-3').addClass('col-sm-12').show(); $('#scout_bar_with_video').hide();")
                 }
                 dojs("$('#court1_col_ui').show(); $('#playslist-tbl-outer').height('85vh'); pause_main_video_on_click=false;")
-                app_data$shortcuts <- app_data$click_shortcuts ## this is the active set
+                app_data$shortcuts <- app_data$type_shortcuts ## this is the active set
                 rdata$dvw$meta$match$zones_or_cones <- rdata$type_mode_preferred_zones_or_cones
                 rdata$options$zones_cones <- rdata$type_mode_preferred_zones_or_cones
                 if (!isTRUE(isolate(game_state$rally_started))) populate_server(game_state)
@@ -101,7 +101,7 @@ ov_scouter_server <- function(app_data) {
                 dojs(paste("$('#video_col').removeClass('col-sm-9').addClass('col-sm-12').show(); $('#court1_col').removeClass(['col-sm-12', 'col-sm-3']).hide();",
                            "$('#main_video').height('85vh')"))
                 dojs("$('#court1_col_ui').hide(); $('#scout_bar_with_video').hide(); $('#playslist-tbl-outer').height('50vh'); pause_main_video_on_click=true;")
-                app_data$shortcuts <- app_data$type_shortcuts ## this is the active set
+                app_data$shortcuts <- app_data$click_shortcuts ## this is the active set
                 rdata$dvw$meta$match$zones_or_cones <- "Z" ## has to be zones with click-mode
             }
             app_data
