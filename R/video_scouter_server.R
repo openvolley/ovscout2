@@ -59,10 +59,14 @@ ov_scouter_server <- function(app_data) {
 
         ## switch of scout_mode
         output$switch_scout_mode_ui <- renderUI({
-            newmode <- setdiff(c("click", "type"), app_data$scout_mode_r())
-            if (length(newmode) != 1) newmode <- "type"
-            actionButton("switch_scout_mode", class = "leftbut",
-                         label = tags$span("Change to", newmode, tags$br(), "scout mode"))
+            if (app_data$with_video) {
+                newmode <- setdiff(c("click", "type"), app_data$scout_mode_r())
+                if (length(newmode) != 1) newmode <- "type"
+                actionButton("switch_scout_mode", class = "leftbut",
+                             label = tags$span("Change to", newmode, tags$br(), "scout mode"))
+            } else {
+                NULL
+            }
         })
         observeEvent(input$switch_scout_mode, {
             curmode <- app_data$scout_mode_r()
@@ -206,10 +210,18 @@ ov_scouter_server <- function(app_data) {
                 if (init_attempts < 20) invalidateLater(100) ## but only try so many times
             } else {
                 if (isolate(app_data$scout_mode_r()) == "type") {
-                    if (app_data$with_video) dojs("$('#scout_bar_with_video').show();") else dojs("$('#scout_bar_with_video').hide();")
+                    if (app_data$with_video) {
+                        dojs(paste("$('#video_col').removeClass('col-sm-12').addClass('col-sm-9').show(); $('#court1_col').removeClass('col-sm-12').addClass('col-sm-3').show();",
+                                   "$('#main_video').height('60vh'); $('#scout_bar_with_video').show();"))
+                    } else {
+                        dojs("$('#video_col').hide(); $('#court1_col').removeClass('col-sm-3').addClass('col-sm-12').show(); $('#scout_bar_with_video').hide();")
+                    }
+                    dojs("$('#court1_col_ui').show(); $('#playslist-tbl-outer').height('85vh'); pause_main_video_on_click=false;")
                     populate_server(game_state)
                 } else {
-                    dojs("$('#scout_bar_with_video').hide(); $('#court1_col_ui').hide();")
+                    dojs(paste("$('#video_col').removeClass('col-sm-9').addClass('col-sm-12').show(); $('#court1_col').removeClass(['col-sm-12', 'col-sm-3']).hide();",
+                               "$('#main_video').height('85vh')"))
+                    dojs("$('#court1_col_ui').hide(); $('#scout_bar_with_video').hide(); $('#playslist-tbl-outer').height('50vh'); pause_main_video_on_click=true;")
                 }
             }
         })
