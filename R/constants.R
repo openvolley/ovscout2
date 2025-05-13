@@ -30,4 +30,4 @@
 .C_click_third <- "click third contact"
 .C_click_attack_end <- "click attack end point"
 .C_rally_ended <- "rally ended"
-
+.C_click_to_start_msg <- "click or unpause the video to start"

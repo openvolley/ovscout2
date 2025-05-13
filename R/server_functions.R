@@ -63,7 +63,6 @@ startup_app_data <- function(app_data, session) {
     if (length(app_data$remapping) > 0) dojs(paste0("sk_key_map = ", make_js_keymap(app_data$remapping), ";"))
     if (length(app_data$click_shortcuts) > 0) dojs(paste0("ck_shortcut_map = ", make_js_keymap(app_data$click_shortcuts), ";"))
     app_data$shortcuts <- if (app_data$scout_mode == "type") app_data$type_shortcuts else app_data$click_shortcuts ## this is the active set
-    app_data$click_to_start_msg <- paste0(if (app_data$scout_mode != "type") "click or ", "unpause the video to start") ## this is a bit unnecessary since the rally state message isn't shown in type mode
 
     ## app_data$play_overlap gives the duration (in seconds) to rewind the video after entering data. We'll scale this by the video replay speed, so keep the original setting
     app_data$play_overlap0 <- app_data$play_overlap
@@ -240,7 +239,7 @@ set_rally_state <- function(what) {
     if (isTRUE(what %in% c(.C_click_serve_end, .C_click_freeball_end, .C_click_second, .C_click_third, .C_click_attack_end))) {
         dojs("pause_main_video_on_click = true;")
     } else {
-        ## .C_click_serve_start .C_fix_required info .C_confirm_end_of_set app_data$click_to_start_msg
+        ## .C_click_serve_start .C_fix_required info .C_confirm_end_of_set .C_click_to_start_msg
         dojs("pause_main_video_on_click = false;")
     }
     rally_state <- getsv("rally_state")

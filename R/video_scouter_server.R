@@ -104,7 +104,6 @@ ov_scouter_server <- function(app_data) {
                 app_data$shortcuts <- app_data$type_shortcuts ## this is the active set
                 rdata$dvw$meta$match$zones_or_cones <- "Z" ## has to be zones with click-mode
             }
-            app_data$click_to_start_msg <- paste0(if (newmode == "click") "click or ", "unpause the video to start")
             app_data
         }
 
@@ -194,7 +193,7 @@ ov_scouter_server <- function(app_data) {
         })
 
         ## initialize the game state
-        rally_state <- reactiveVal(app_data$click_to_start_msg)
+        rally_state <- reactiveVal(.C_click_to_start_msg)
         rally_codes <- reactiveVal(empty_rally_codes)
         game_state <- init_game_state(app_data)
 
@@ -606,7 +605,7 @@ ov_scouter_server <- function(app_data) {
                              tags$p("Scouting cannot start until this information has been entered.")
                              )
                 } else {
-                    if (rally_state() == .C_fix_required_info) set_rally_state(if (video_state$paused) app_data$click_to_start_msg else .C_click_serve_start)
+                    if (rally_state() == .C_fix_required_info) set_rally_state(if (video_state$paused) .C_click_to_start_msg else .C_click_serve_start)
                     NULL
                 }
             })
@@ -1288,7 +1287,7 @@ ov_scouter_server <- function(app_data) {
                         warning("invalid click time\n")
                         do_video("get_time_fid", paste0(time_uuid, "@", current_video_src())) ## make asynchronous request, noting which video is currently being shown (@)
                     }
-                    if (rally_state() != app_data$click_to_start_msg) courtxy(vid_to_crt(this_click, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data))
+                    if (rally_state() != .C_click_to_start_msg) courtxy(vid_to_crt(this_click, detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data))
                     playslist_mod$redraw_select("last")
                     loop_trigger(loop_trigger() + 1L)
                     ## 6th element of input$video_click gives status of shift key during click
@@ -1426,7 +1425,7 @@ ov_scouter_server <- function(app_data) {
         process_action <- function(was_shift_click = FALSE) {
             if (app_data$scout_mode_r() == "type") return(process_action_type_mode(was_shift_click = was_shift_click))
             if (loop_trigger() > 0 && rally_state() != .C_fix_required_info) {
-                if (rally_state() == app_data$click_to_start_msg) {
+                if (rally_state() == .C_click_to_start_msg) {
                     if (meta_is_valid()) {
                         do_video("play")
                         set_rally_state(.C_click_serve_start)
