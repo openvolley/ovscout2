@@ -91,8 +91,13 @@ function ck_handler(e) {
     var newchar = ck_shortcut_map[e.ctrlKey + "|" + e.altKey + "|" + e.shiftKey + "|" + e.metaKey + "|" + e.key];
     console.log(" -- maps to click shortcut: " + newchar);
     if (newchar) {
-        // click-mode shortcuts are all handled in the server.R function BUT we want to stop the key event propagating further, if it's a recognized shortcut
-        return false; // stop propagation
+        // click-mode shortcuts are all handled in the server.R function BUT we want to stop the key event propagating further, if it's a recognized shortcut BUT not if we are e.g. editing a code or entering players, because e.g. the "a" or "q" keys might be shortcuts in click mode but we want to be able to type with them
+        if ($("body.modal-open").length == 1) {
+            // some modal is open
+            // TODO this needs further testing
+        } else {
+            return false; // stop propagation
+        }
     }
 }
 
