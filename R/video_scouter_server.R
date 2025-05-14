@@ -291,7 +291,7 @@ ov_scouter_server <- function(app_data) {
         lineup_edit_mod <- callModule(mod_lineup_edit, id = "lineup_editor", rdata = rdata, game_state = game_state, editing = editing, video_state = video_state, styling = app_data$styling)
 
         observeEvent(input$edit_cancel, {
-            do_focus_to_playslist <- !is.null(editing$active) && editing$active %eq% .C_edit && app_data$scout_mode_r() == "type" ## if cancelled editing a code, return to playslist
+            do_focus_to_playslist <- !is.null(editing$active) && editing$active %eq% .C_edit ## if cancelled editing a code, return to playslist
             if (!is.null(editing$active) && editing$active %eq% .C_teams) {
                 team_edit_mod$htdata_edit(NULL)
                 team_edit_mod$vtdata_edit(NULL)
@@ -351,6 +351,7 @@ ov_scouter_server <- function(app_data) {
         do_edit_commit <- function(newcode1, newcode2) {
             if (!is.null(editing$active)) {
                 dismiss_modal <- TRUE
+                do_focus_to_playslist <- FALSE
                 if (editing$active %in% c(.C_edit, .C_insert_above, .C_insert_below)) {
                     ## user has changed EITHER input$code_entry or used the code_entry_guide
                     ## infer code from code_entry_guide elements
@@ -369,6 +370,7 @@ ov_scouter_server <- function(app_data) {
                     newcode2 <- sub("~+$", "", newcode2)
                     ridx <- playslist_mod$current_row()
                     if (editing$active %eq% .C_edit && !is.null(ridx) && !is.na(ridx)) {
+                        do_focus_to_playslist <- TRUE
                         crc <- get_current_rally_code(playslist_mod = playslist_mod, rdata = rdata, rally_codes = rally_codes) ## NOTE this won't have the actual scout code unless it was a non-skill code
                         if (!is.null(crc)) {
                             old_code <- if (is.null(crc$code) || is.na(crc$code)) codes_from_rc_rows(crc) else crc$code
@@ -388,7 +390,7 @@ ov_scouter_server <- function(app_data) {
                                 newcode <- newcode1
                             }
                             if (!is.null(newcode)) {
-                                if (app_data$scout_mode_r() == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
+                                focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
                                 crc$code <- newcode
                                 ## so we have a new code, but the (changed) information in that won't be in the other columns of crc yet
                                 temp <- parse_code_minimal(newcode)[[1]]
@@ -445,7 +447,7 @@ ov_scouter_server <- function(app_data) {
                         code <- if (nzchar(newcode1)) newcode1 else newcode2
                         if (grepl("^[TpczPCS]", code)) code <- paste0("*", code)
                         if (debug > 1) cat("to process: ", code, "\n")
-                        if (app_data$scout_mode_r() == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
+                        focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
                         if (grepl("^(\\*p|ap|\\*c|ac|\\*z|az|\\*S|aS)", code) || ## sub, setter position, assign serving team
                             grepl("^[a\\*]C[[:digit:]]+[:\\.][[:digit:]]+", code) || ## substitution ensuring it can't be an attack combo code
                             (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(gs$rally_started))) { ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
@@ -491,21 +493,26 @@ ov_scouter_server <- function(app_data) {
                                         code_trow(team = temp$team, pnum = temp$pnum, skill = temp$skill, tempo = temp$tempo, eval = temp$eval, combo = temp$combo, target = temp$target, sz = temp$sz, ez = temp$ez, esz = temp$esz, x_type = temp$x_type, num_p = temp$num_p, special = temp$special, custom = temp$custom, start_zone_valid = TRUE, endxy_valid = TRUE, t = insert_video_time, time = insert_clock_time, rally_state = insert_rs, game_state = gs, default_scouting_table = rdata$options$default_scouting_table)
                                     }
                                 }))
-                                ## TODO check row updating here
-                                if (insert_ridx <= nrow(rdata$dvw$plays2)) {
-                                    newrow <- make_plays2(newrc, game_state = gs, rally_ended = FALSE, dvw = rdata$dvw)
-                                    temp <- bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
-                                                      newrow,
-                                                      rdata$dvw$plays2[insert_ridx:nrow(rdata$dvw$plays2), ])
-                                    ## update surrounding rows
-                                    temp <- transfer_scout_details(from_row = newrow, to_df = temp, row_idx = insert_ridx, dvw = rdata$dvw)
-                                    rdata$dvw$plays2 <- rp2(temp)
+                                if (nrow(newrc) < 1) {
+                                    ## failed, was it an invalid code?
+                                    warning("empty code after interpretation, was '", code, "' an invalid code?")
                                 } else {
-                                    rc <- rally_codes()
-                                    rcidx <- insert_ridx - nrow(rdata$dvw$plays2)
-                                    rc <- bind_rows(rc[seq_len(rcidx - 1L), ], newrc, rc[rcidx:nrow(rc), ])
-                                    ## update surrounding rows and update rally_codes()
-                                    rally_codes(transfer_scout_details(from_row = newrc, to_df = rc, row_idx = rcidx, dvw = rdata$dvw))
+                                    ## TODO check row updating here
+                                    if (insert_ridx <= nrow(rdata$dvw$plays2)) {
+                                        newrow <- make_plays2(newrc, game_state = gs, rally_ended = FALSE, dvw = rdata$dvw)
+                                        temp <- bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
+                                                          newrow,
+                                                          rdata$dvw$plays2[insert_ridx:nrow(rdata$dvw$plays2), ])
+                                        ## update surrounding rows
+                                        temp <- transfer_scout_details(from_row = newrow, to_df = temp, row_idx = insert_ridx, dvw = rdata$dvw)
+                                        rdata$dvw$plays2 <- rp2(temp)
+                                    } else {
+                                        rc <- rally_codes()
+                                        rcidx <- insert_ridx - nrow(rdata$dvw$plays2)
+                                        rc <- bind_rows(rc[seq_len(rcidx - 1L), ], newrc, rc[rcidx:nrow(rc), ])
+                                        ## update surrounding rows and update rally_codes()
+                                        rally_codes(transfer_scout_details(from_row = newrc, to_df = rc, row_idx = rcidx, dvw = rdata$dvw))
+                                    }
                                 }
                             }
                         }
@@ -526,7 +533,10 @@ ov_scouter_server <- function(app_data) {
                     ## will happen in deal_with_pause below
                 }
                 editing$active <- NULL
-                if (dismiss_modal) removeModal()
+                if (dismiss_modal) {
+                    removeModal()
+                    if (do_focus_to_playslist) focus_to_playslist()
+                }
             }
         }
 
@@ -679,7 +689,7 @@ ov_scouter_server <- function(app_data) {
                     } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && !editing$active %in% c(.C_teams, .C_admin)) {
                         ## escape from editing modal or from showing shortcuts
                         do_unpause <- editing$active %eq% .C_admin && app_data$with_video
-                        do_focus_to_playslist <- !is.null(editing$active) && editing$active %in% c(.C_delete, .C_edit) && app_data$scout_mode_r() == "type"
+                        do_focus_to_playslist <- !is.null(editing$active) && editing$active %in% c(.C_delete, .C_edit)
                         editing$active <- NULL
                         removeModal()
                         if (do_unpause) do_video("play")
