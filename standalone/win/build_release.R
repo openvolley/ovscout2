@@ -21,9 +21,10 @@ file.copy("inst/extdata/standalone/win/ov_scouter.R", "standalone/win", overwrit
 setwd("standalone/win")
 
 ## 1. Copy R-Portable
-if (!file.exists("R-Portable/App/R-Portable/bin/Rscript.exe")) {
-    stop("Download R-Portable from https://sourceforge.net/projects/rportable/files/latest/download and extract into the ovscout2/standalone/win/R-Portable directory of this repo. There should be an ovscout2/standalone/win/R-Portable/App folder")
-}
+## 2025-05 - no longer distributing R-Portable, just have the user install R
+## if (!file.exists("R-Portable/App/R-Portable/bin/Rscript.exe")) {
+##     stop("Download R-Portable from https://sourceforge.net/projects/rportable/files/latest/download and extract into the ovscout2/standalone/win/R-Portable directory of this repo. There should be an ovscout2/standalone/win/R-Portable/App folder")
+## }
 
 ## 2. download lighttpd for windows and extract
 libdir <- "lib"
