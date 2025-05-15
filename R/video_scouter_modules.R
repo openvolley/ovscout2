@@ -963,7 +963,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling, key_i
                                                     column(3, textInput(ns("ht_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[htidx]))),
                                            fluidRow(column(12, tags$div(style = "float:right; font-size:small; margin-left:12px;", "Fast start will auto-populate players 1-99 so you can start scouting and edit the roster later."),
                                                            actionButton(ns("ht_undo_faststart_players"), label = "Undo fast start", class = "leftbut", style = "float:right;"),
-                                                           actionButton(ns("ht_faststart_players"), label = "Fast start", class = "leftbut", style = "float:right;"))),
+                                                           actionButton(ns("ht_faststart_players"), label = tags$span(icon("truck-fast"), "Fast start"), class = "leftbut", style = "float:right;"))),
                                            DT::dataTableOutput(ns("ht_edit_team")),
                                            wellPanel(
                                                fluidRow(column(1, textInput(ns("ht_new_number"), label = "Number:", placeholder = "Number")),
@@ -985,7 +985,7 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling, key_i
                                                     column(3, textInput(ns("vt_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[vtidx]))),
                                            fluidRow(column(12, tags$div(style = "float:right; font-size:small; margin-left:12px;", "Fast start will auto-populate players 1-99 so you can start scouting and edit the roster later."),
                                                            actionButton(ns("vt_undo_faststart_players"), label = "Undo fast start", class = "leftbut", style = "float:right;"),
-                                                           actionButton(ns("vt_faststart_players"), label = "Fast start", class = "leftbut", style = "float:right;"))),
+                                                           actionButton(ns("vt_faststart_players"), label = tags$span(icon("truck-fast"), "Fast start"), class = "leftbut", style = "float:right;"))),
                                            DT::dataTableOutput(ns("vt_edit_team")),
                                            wellPanel(
                                                fluidRow(column(1, textInput(ns("vt_new_number"), label = "Number:", placeholder = "Number")),
