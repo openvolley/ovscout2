@@ -24,6 +24,10 @@ base-font-size: 10pt
 default_dpi <- 175
 knitr::opts_chunk$set(eval = TRUE, echo = TRUE, message = FALSE, warning = FALSE, tidy = FALSE, cache = FALSE, include = TRUE, dpi = default_dpi, fig.width = 10, fig.height = 5, fig.align = "center", results = "asis")
 
+library(shiny)
+library(ggplot2)
+library(datavolley)
+
 ```
 
 

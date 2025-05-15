@@ -27,3 +27,17 @@ div.sourceCode {
     padding-bottom: 0.5em;
     border-radius:8px;
 }
+
+.leftbut { color:#fff;
+    background-color:#337ab7;
+    border-color:#2e6da4;
+    width:120px;
+    text-transform:uppercase;
+    font-size:9px;
+    font-weight:bold;
+}
+
+.nobreakbefore {
+    break-before: avoid;
+    margin-top:5em;
+}
