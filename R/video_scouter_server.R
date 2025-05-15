@@ -62,8 +62,19 @@ ov_scouter_server <- function(app_data) {
             if (app_data$with_video) {
                 newmode <- setdiff(c("click", "type"), app_data$scout_mode_r())
                 if (length(newmode) != 1) newmode <- "type"
+                disabled <- FALSE
+                if (app_data$scout_mode_r() == "type" && rdata$dvw$meta$match$zones_or_cones == "C") {
+                    ## we are type-scouting with cones, we can't switch to click-mode with zones
+                    ## technically this is only true if we've already entered some cones:
+                    ##    skl <- unlist(sapply(rdata$dvw$plays2$rally_codes, function(z) z$skill))
+                    ##    ez <- unlist(sapply(rdata$dvw$plays2$rally_codes, function(z) z$ez))
+                    ##    ez <- ez[which(skl == "A")]
+                    ##    if (length(ez) > 0 && !all(is.na(ez) | ez == "~")) disabled <- TRUE
+                    ## but that will cause this ui to be re-rendered every time plays2 changes
+                    disabled <- TRUE
+                }
                 actionButton("switch_scout_mode", class = "leftbut",
-                             label = tags$span("Change to", newmode, tags$br(), "scout mode"))
+                             label = tags$span(icon("repeat"), "Change to", newmode, tags$br(), "scout mode"), disabled = disabled)
             } else {
                 NULL
             }
