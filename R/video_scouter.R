@@ -241,9 +241,19 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         }
     } else {
         if (nrow(dvw$meta$video) < 1) {
-            stop("no video files specified, either in the scout file or via the video_file parameter")
+            ## old behaviour was to fail here
+            ## stop("no video files specified, either in the scout file or via the video_file parameter")
+            ## but we can continue in type-scouting mode, and if the user has "click" as their preference and is starting via the standalone script, they would not easily be able to specify type-mode
+            warning("no video files specified, either in the scout file or via the video_file parameter. Changing to \"type\" scouting mode without video for this session")
+            with_video <- FALSE
+            scout_mode <- "type"
         } else {
-            if (!is_url(dvw$meta$video$file) && !file.exists(dvw$meta$video$file)) stop("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
+            if (!is_url(dvw$meta$video$file) && !file.exists(dvw$meta$video$file)) {
+                ## stop("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
+                warning("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter? Changing to \"type\" scouting mode without video for this session")
+                with_video <- FALSE
+                scout_mode <- "type"
+            }
         }
     }
     if (!with_video && scout_mode != "type") stop("scouting in click mode requires a video")
