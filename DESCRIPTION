@@ -55,6 +55,7 @@ Suggests:
     DBI,
     dbplyr,
     duckdb,
+    fontawesome,
     knitr,
     rstudioapi,
     tcltk,

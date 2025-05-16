@@ -125,7 +125,7 @@ To scout a new match, start the app, then:
 
 1. Define the teams playing in the match. If you have provided a season directory (with existing .dvw or .ovs files in it) you can choose from the teams in those files ("Select teams" button). Otherwise you can enter new teams via the "Edit teams" button.
 
-1. If you are in a hurry, use the `r tags$button(tags$span(icon("truck-fast"), "Fast start"), class = "leftbut")` button in the "Edit teams" dialog. This will automatically populate players with numbers 1&ndash;99 in a team. You can do this, scout the match, and then return later to (automatically) remove players that don't actually exist and assign the correct names to the ones who do.
+1. If you are in a hurry, use the "`r fa_i("truck-fast")` Fast start" button in the "Edit teams" dialog. This will automatically populate players with numbers 1&ndash;99 in a team. You can do this, scout the match, and then return later to (automatically) remove players that don't actually exist and assign the correct names to the ones who do.
 
 1. Enter the team lineups for set 1, including the libero(s) for each team. If two liberos are entered, then the app will assume that the first libero is on court during serve reception (i.e. the "passing" libero) and the second libero is on court while serving (the "defending" libero). If the team has two liberos but only one takes to the court per set, then just enter the libero who is actually going to play in that set
 
@@ -183,7 +183,7 @@ There are many fewer convention settings for type-scouting, because those conven
 
 ## Shortcuts
 
-Keyboard shortcuts can be viewed by clicking the `r tags$button(tags$span(icon("keyboard"), "Keyboard", tags$br(), "shortcuts"), class = "leftbut")` button.
+Keyboard shortcuts can be viewed by clicking the "`r fa_i("keyboard")` Keyboard" button.
 
 Shortcuts can be changed from the shortcuts pane (click the shortcut in question and type the new shortcut key to use). Changes to shortcuts made within the app cannot currently be saved, but users starting from R can specify shortcuts via the `click_shortcuts`, `type_shortcuts`, and `playstable_shortcuts` parameters.
 
@@ -251,7 +251,7 @@ Otherwise enter the appropriate action and player.
 
 After an attack or freeball over, click the end point. If you are scouting with "actual" end convention (see [Preferences and keyboard shortcuts]) then this is the point where the ball lands, or the point on the court directly below the ball when it is played. If end convention is "intended", this is the point where the attacker intended to hit the ball.
 
-If the ball deflects off the block or the net, and you want the ball path to show this exactly, you can do this by entering the attack as normal, and then going back afterwards (at the end of the rally, perhaps) and editing the coordinates. Click the `r icon("location-dot")` icon underneath the court rotation diagram and you will be prompted to enter new coordinates for the attack, including a middle coordinate that can be used to show the block deflection.
+If the ball deflects off the block or the net, and you want the ball path to show this exactly, you can do this by entering the attack as normal, and then going back afterwards (at the end of the rally, perhaps) and editing the coordinates. Click the `r fa_i("location-dot")` icon underneath the court rotation diagram and you will be prompted to enter new coordinates for the attack, including a middle coordinate that can be used to show the block deflection.
 
 Enter the appropriate details. An attack kill, dig or dig error can also involve a block touch &mdash; this can be recorded (see "With block touch by player ...").
 
@@ -301,7 +301,7 @@ For type-scout users, be aware that there are some non-standard scouting codes t
 
 # Switching scout modes {.nobreakbefore}
 
-You can switch between click-scouting and type-scouting with the `r tags$button(tags$span(icon("repeat"), "Change to click", tags$br(), "scout mode"), class = "btn btn-default leftbut")` button.
+You can switch between click-scouting and type-scouting with the "`r fa_i("repeat")` Change scout mode" button.
 
 It is recommended that you don't switch modes while part-way through a match, because there is a risk that the data you collect before and after switching will be inconsistent. Switch modes before you start scouting any ball touches.
 
