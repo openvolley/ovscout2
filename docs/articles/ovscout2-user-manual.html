@@ -5,7 +5,6 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<meta name="description" content="ovscout2">
 <title>User manual - ovscout2 • ovscout2</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
@@ -14,70 +13,57 @@
 <link rel="apple-touch-icon" type="image/png" sizes="76x76" href="../apple-touch-icon-76x76.png">
 <link rel="apple-touch-icon" type="image/png" sizes="60x60" href="../apple-touch-icon-60x60.png">
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.1.3/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.1.3/bootstrap.bundle.min.js"></script><link href="../deps/Raleway-0.4.2/font.css" rel="stylesheet">
-<link href="../deps/Source_Code_Pro-0.4.2/font.css" rel="stylesheet">
-<link href="../deps/Patua_One-0.4.2/font.css" rel="stylesheet">
-<!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
-<!-- bootstrap-toc --><script src="https://cdn.rawgit.com/afeld/bootstrap-toc/v1.0.1/dist/bootstrap-toc.min.js"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="User manual - ovscout2">
-<meta property="og:description" content="ovscout2">
-<meta property="og:image" content="/logo.png">
-<!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
-<script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-<![endif]-->
+<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/Raleway-0.4.10/font.css" rel="stylesheet">
+<link href="../deps/Source_Code_Pro-0.4.10/font.css" rel="stylesheet">
+<link href="../deps/Patua_One-0.4.10/font.css" rel="stylesheet">
+<link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="User manual - ovscout2">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
-    
 
-    <nav class="navbar fixed-top navbar-dark navbar-expand-lg bg-primary"><div class="container">
-    
+
+    <nav class="navbar navbar-expand-lg fixed-top bg-primary" data-bs-theme="dark" aria-label="Site navigation"><div class="container">
+
     <a class="navbar-brand me-2" href="../index.html">ovscout2</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
 
-    
+
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item">
-  <a class="nav-link" href="../reference/index.html">Reference</a>
-</li>
+<li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
-  <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
-  <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/ovscout2-user-manual.html">User manual - ovscout2</a>
-  </div>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="../articles/ovscout2-user-manual.html">User manual - ovscout2</a></li>
+  </ul>
 </li>
       </ul>
-<form class="form-inline my-2 my-lg-0" role="search">
-        <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off">
-</form>
-
-      <ul class="navbar-nav">
-<li class="nav-item">
-  <a class="external-link nav-link" href="https://github.com/openvolley/ovscout2/" aria-label="github">
-    <span class="fab fa fab fa-github fa-lg"></span>
-     
-  </a>
-</li>
+<ul class="navbar-nav">
+<li class="nav-item"><form class="form-inline" role="search">
+ <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
+</form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/openvolley/ovscout2/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
-    
+
   </div>
 </nav><div class="container template-article">
 
 
 
-
+<link href="ovscout2-user-manual_files/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="ovscout2-user-manual_files/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <div class="row">
-  <main id="main"><div class="page-header">
+  <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>User manual - ovscout2</h1>
             
       
@@ -90,32 +76,35 @@
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p><code>ovscout2</code> is a free, open-source R/Shiny app for scouting
-volleyball matches. It provides industry-standard dvw files that can be
-used with the <a href="https://openvolley.org" class="external-link">openvolley</a> suite of R
-packages, or with any other volleyball analytics software that takes dvw
-files as inputs.</p>
-<p>The app requires that you have a video of the match <em>from a fixed
-view point</em> (i.e. the camera does not move for the duration of the
-match). Such videos are usually taken from the “scout viewpoint” —
-behind one end of the court, at a reasonable height so that the entire
-court is clearly visible and players on court do not tend to occlude
-each other.</p>
-<p>The app is writen in R, but you do not necessarily need to be an R
-user to be able to use it. We provide script files to launch the app
-from the command line — see the <a href="#standalone">Standalone</a>
-section below for installation and startup.</p>
+<p>ovscout2 is a free, open-source R/Shiny app for scouting volleyball
+matches. It provides industry-standard dvw files that can be used with
+the <a href="https://openvolley.org" class="external-link">openvolley</a> suite of R packages,
+or with any other volleyball analytics software that takes dvw files as
+inputs.</p>
+<p>The app offers two modes of scouting: using a guided point-and-click
+interface, or by typing.</p>
+<p>Click-scouting is very easy to learn but still delivers high-quality
+scout files. It requires that you have a video of the match <em>from a
+fixed view point</em> (i.e. the camera does not move for the duration of
+the match, or at the very least it only moves occasionally). Such videos
+are usually taken from the “scout viewpoint” — behind one end of the
+court, at a reasonable height so that the entire court is clearly
+visible and players on court do not tend to occlude each other.</p>
+<p>The app is writen in R, but you do not need to be an R user to be
+able to use it. We provide script files to launch the app from the
+command line — see the <a href="#standalone">Standalone</a> section
+below for installation and startup.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <p>The app can be run on Windows, Linux, or Mac systems. It is possible
-to run the app on a laptop or desktop and connect to it with a tablet or
-similar touch device to do the actual scouting. See <a href="#device-considerations">Device considerations</a> below.</p>
+to run the app on a laptop or desktop and connect to that with a tablet
+or similar touch device to do the actual scouting. See <a href="#device-considerations">Device considerations</a> below.</p>
 <p>You need to be online for installation. The app initially needs to
 download and install some additional R packages (quite a few, in fact).
 Once the app has been installed and run once, it can be used offline
-thereafter if necessary.</p>
+thereafter.</p>
 <p>Also see the “Other system utilities” section, below.</p>
 <div class="section level3">
 <h3 id="standalone">Standalone<a class="anchor" aria-label="anchor" href="#standalone"></a>
@@ -126,7 +115,10 @@ do anything in R.</p>
 <h4 id="windows">Windows<a class="anchor" aria-label="anchor" href="#windows"></a>
 </h4>
 <ol style="list-style-type: decimal">
-<li><p>Download <a href="https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-win-x64.zip" class="external-link uri">https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-win-x64.zip</a>
+<li><p>Install R, following <a href="https://cran.r-project.org/bin/windows/base/" class="external-link uri">https://cran.r-project.org/bin/windows/base/</a>. Ensure
+that the “Save version number to registry” box is ticked during
+installation.</p></li>
+<li><p>Download <a href="https://github.com/openvolley/ovscout2/releases/latest/download/ovscout2-win-x64.zip" class="external-link uri">https://github.com/openvolley/ovscout2/releases/latest/download/ovscout2-win-x64.zip</a>
 and unzip it to a convenient location.</p></li>
 <li><p>Run the <code>ov_scouter.bat</code> or
 <code>ov_scouter_demo.bat</code> file. The first run will take quite
@@ -139,10 +131,10 @@ startup, so might reinstall some packages on occasion).</p></li>
 <h4 id="linuxmac">Linux/Mac<a class="anchor" aria-label="anchor" href="#linuxmac"></a>
 </h4>
 <ol style="list-style-type: decimal">
-<li><p>Install R, following <a href="https://cran.r-project.org/" class="external-link uri">https://cran.r-project.org/</a></p></li>
-<li><p>On Mac, you will also need to install XQuartz: <a href="https://www.xquartz.org/" class="external-link uri">https://www.xquartz.org/</a></p></li>
-<li><p>Optionally install ‘Other system utilities’ (see below)</p></li>
-<li><p>Download <a href="https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-unix-x64.zip" class="external-link uri">https://github.com/openvolley/ovscout2/releases/download/v0.1.0/ovscout2-unix-x64.zip</a>
+<li><p>Install R, following <a href="https://cran.r-project.org/" class="external-link uri">https://cran.r-project.org/</a>.</p></li>
+<li><p>On Mac, you will also need to install XQuartz: <a href="https://www.xquartz.org/" class="external-link uri">https://www.xquartz.org/</a>.</p></li>
+<li><p>Optionally install “Other system utilities” (see below).</p></li>
+<li><p>Download <a href="https://github.com/openvolley/ovscout2/releases/latest/download/ovscout2-unix-x64.zip" class="external-link uri">https://github.com/openvolley/ovscout2/releases/latest/download/ovscout2-unix-x64.zip</a>
 and unzip it to a convenient location.</p></li>
 <li><p>Run the <code>ov_scouter</code> or <code>ov_scouter_demo</code>
 script. The first run will take quite some time, because it will install
@@ -157,18 +149,20 @@ packages on occasion).</p></li>
 </h3>
 <ol style="list-style-type: decimal">
 <li><p><a href="https://cran.r-project.org/" class="external-link">Install R</a> and <a href="https://www.rstudio.com/products/rstudio/download/" class="external-link">RStudio</a>.</p></li>
-<li><p>Optionally install <code>lighttpd</code> (see ‘Other system
-utilities’ below)</p></li>
-<li><p>From RStudio:</p></li>
-</ol>
+<li><p>Optionally install <code>lighttpd</code> (see “Other system
+utilities” below)</p></li>
+<li>
+<p>From RStudio:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"ovscout2"</span>, repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://openvolley.r-universe.dev"</span>,
-                                       <span class="st">"https://cloud.r-project.org"</span><span class="op">)</span><span class="op">)</span>
-
-<span class="co">## or</span>
-
-<span class="co">## install.packages("remotes") ## if needed</span>
-<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"openvolley/ovscout2"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"ovscout2"</span>, repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://openvolley.r-universe.dev"</span>,</span>
+<span>                                       <span class="st">"https://cloud.r-project.org"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>or</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span> <span class="co">## only needed once</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"openvolley/ovscout2"</span><span class="op">)</span></span></code></pre></div>
+<div style="page-break-after: always;"></div>
+</li>
+</ol>
 </div>
 <div class="section level3">
 <h3 id="other-system-utilities">Other system utilities<a class="anchor" aria-label="anchor" href="#other-system-utilities"></a>
@@ -193,7 +187,7 @@ slower and less responsive than <code>lighttpd</code>.</p></li>
 </div>
 </div>
 <div class="section level2">
-<h2 id="startup-and-usage">Startup and usage<a class="anchor" aria-label="anchor" href="#startup-and-usage"></a>
+<h2 id="startup">Startup<a class="anchor" aria-label="anchor" href="#startup"></a>
 </h2>
 <p>Some of startup options are the same regardless of whether you are
 using the standalone version or starting the app from within R:</p>
@@ -204,7 +198,8 @@ directory, you can choose teams from other matches for the new match.
 This saves having to re-enter team and player details. The season
 directory will also be used as the starting point when selecting a video
 file</p></li>
-<li><p>the video file is required</p></li>
+<li><p>the video file is required for click-scouting, and optional for
+type-scouting</p></li>
 <li><p>you can also optionally provide a .dvw or .ovs file (i.e. a
 partially-scouted file that you wish to continue scouting). If you do
 not provide a dvw file, the app creates a new, empty match
@@ -217,20 +212,21 @@ file.</p></li>
 <code>ov_scouter</code> (Linux/Mac) script. It will prompt you for a
 season directory, dvw file, and video file. The season directory and dvw
 file are optional (a new match file will be created if no dvw is
-provided) but the video is required.</p>
+provided) but the video is required for click-scouting.</p>
 <p>Options controlling the app behaviour and scouting preferences can be
-changed via the “Preferences” button in the app.</p>
+changed via the “Preferences” button in the app. You can switch from
+click-mode scouting to type-mode or vice-versa from within the app — see
+<a href="#switching-scout-modes">Switching scout modes</a> below.</p>
 </div>
 <div class="section level3">
 <h3 id="startup-from-r">Startup — from R<a class="anchor" aria-label="anchor" href="#startup-from-r"></a>
 </h3>
-<p>In each session you first need to load the <code>ovscout2</code>
-package:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/openvolley/ovscout2" class="external-link">ovscout2</a></span><span class="op">)</span></code></pre></div>
-<p>Then start the app. You can start it with no arguments:</p>
+<p>In each session you first need to load the ovscout2 package:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/openvolley/ovscout2" class="external-link">ovscout2</a></span><span class="op">)</span></span></code></pre></div>
+<p>Then start the app. You can start it with no arguments:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>… and it will prompt you (as for the standalone version) for a season
 directory, dvw file, and video file. The season directory and dvw file
 are optional (a new match file will be created if no dvw is provided)
@@ -238,100 +234,42 @@ but the video is required.</p>
 <p>You can optionally provide those arguments explicitly. To start a new
 match for a certain video file, using teams from already-scouted matches
 in your season directory, you could do:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span>video_file <span class="op">=</span> <span class="st">"/path/to/video.mp4"</span>, season_dir <span class="op">=</span> <span class="st">"/path/to/season_dir"</span><span class="op">)</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span>video_file <span class="op">=</span> <span class="st">"/path/to/video.mp4"</span>, season_dir <span class="op">=</span> <span class="st">"/path/to/season_dir"</span><span class="op">)</span></span></code></pre></div>
 <p>If you have already partially-scouted a match and saved that file,
 you can re-start scouting:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span><span class="st">"/path/to/saved_file.ovs"</span><span class="op">)</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span><span class="st">"/path/to/saved_file.ovs"</span><span class="op">)</span></span></code></pre></div>
 <p>(In this case you do not need to provide the video file path, because
 that is saved within the .ovs file.)</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="device-considerations">Device considerations<a class="anchor" aria-label="anchor" href="#device-considerations"></a>
-</h2>
-<p>The scouting process involves clicking the location of actions on
-court, and so a touch screen device (ideally with stylus) is
-recommended. It is possible to run the app on a laptop or desktop and
-connect to it with a tablet or similar touch device to do the actual
-scouting. In this case you would start the app from R on the main device
-using the <code>host</code> and <code>launch_browser</code> options:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span><span class="va">...</span>, host <span class="op">=</span> <span class="st">"192.168.1.11"</span>, launch_browser <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></code></pre></div>
-<p>where <code>192.168.1.11</code> is the IP address of the main device.
-You should see a message similar to (the port number on the end will
-vary):</p>
-<pre><code>Listening on http://192.168.1.11:5017</code></pre>
-<p>Open a browser on the tablet and enter
-<code>http://192.168.1.11:5017</code> in the address bar.</p>
-</div>
-<div class="section level2">
-<h2 id="preferences">Preferences<a class="anchor" aria-label="anchor" href="#preferences"></a>
-</h2>
-<p>There are a number of options available that alter the behaviour or
-appearance of the app. These can be set (if you are starting the app
-from within R) via parameters to the <code><a href="../reference/ov_scouter.html">ov_scouter()</a></code> function.
-Most can also be set via the “Preferences” button in the app (others
-will be added in due course):</p>
-<ul>
-<li>
-<code>auto_save_dir</code> is a directory into which the scouted
-file will be saved (in .dvw format) after each rally. You can use this
-to e.g. provide live file updates to be used by the coaching bench</li>
-<li>
-<code>scoreboard</code> - show the scoreboard in the top right-hand
-corner of the video screen (true by default)</li>
-<li>
-<code>ball_path</code> - show the ball path on the court diagram
-(false by default, because it slows the app down a little)</li>
-<li>
-<code>review_pane</code> - show the video review pane on each data
-entry popup (true by default)</li>
-<li>
-<code>playlist_display_option</code> - what to show in the plays
-table? Either “dv_codes” (scouted codes) or “commentary” (a
-plain-language interpretation of the touches)</li>
-<li>
-<code>shortcuts</code> - a named list that defines the keyboard
-shortcuts used in the app</li>
-</ul>
-<p>Preferences controlling the scouting conventions can similarly be set
-via the <code><a href="../reference/ov_scouting_options.html">ov_scouting_options()</a></code> function or the “Preferences”
-button. These include:</p>
-<ul>
-<li>
-<code>end_convention</code> determines whether you are treating the
-end coordinate of an attack or serve as the <strong>actual</strong> end
-location (i.e. where the ball contacted the floor or out of bounds
-area), or the <strong>intended</strong> end location. The actual might
-differ from the intended if there is a block touch or the ball hit the
-net. If ‘actual’, and a block touch is recorded, then the end location
-of the attack will not be used for the dig location (the dig location
-will be missing).</li>
-<li>
-<code>transition_sets</code>. If <code>FALSE</code>, then sets in
-transition are not scouted. After entering an attack end location (and
-play continues) the next click will be for the counterattack start
-location, with no set scouted in between.</li>
-</ul>
-</div>
-<div class="section level2">
 <h2 id="starting-a-new-match">Starting a new match<a class="anchor" aria-label="anchor" href="#starting-a-new-match"></a>
 </h2>
-<p>To scout a new match, start the app with the corresponding video
-file, then:</p>
+<p>To scout a new match, start the app, then:</p>
 <ol style="list-style-type: decimal">
-<li><p>Define the court reference via the “Court reference” button. This
-requires you to click on the four corners of the court in the video
-image, so that the app can map clicks in the video to real-world court
-coordinates</p></li>
+<li><p>If you are using video, define the court reference via the “Court
+reference” button. This requires you to click on the four corners of the
+court in the video image, so that the app can translate click locations
+on the video to real-world court coordinates. This is mandatory for
+click-scouting and optional for type-scouting (but if you don’t do it,
+you can’t click the video in order to add precise locations to ball
+touches. You can click the small court diagram instead).</p></li>
 <li><p>Enter the match details via the “Edit match data” button (match
-date, venue, scout name, etc)</p></li>
+date, venue, scout name, etc). You can do this later if you are in a
+hurry.</p></li>
 <li><p>Define the teams playing in the match. If you have provided a
 season directory (with existing .dvw or .ovs files in it) you can choose
-from the teams in those files. Otherwise you can enter new
-teams</p></li>
+from the teams in those files (“Select teams” button). Otherwise you can
+enter new teams via the “Edit teams” button.</p></li>
+<li><p>If you are in a hurry, use the
+“<i class="fas fa-truck-fast" role="presentation" aria-label="truck-fast icon"></i>
+Fast start” button in the “Edit teams” dialog. This will automatically
+populate players with numbers 1–99 in a team. You can do this, scout the
+match, and then return later to (automatically) remove players that
+don’t actually exist and assign the correct names to the ones who
+do.</p></li>
 <li><p>Enter the team lineups for set 1, including the libero(s) for
 each team. If two liberos are entered, then the app will assume that the
 first libero is on court during serve reception (i.e. the “passing”
@@ -340,34 +278,160 @@ libero). If the team has two liberos but only one takes to the court per
 set, then just enter the libero who is actually going to play in that
 set</p></li>
 </ol>
+<p>And before unpausing the video and starting to scout, check that:</p>
+<ul>
+<li><p>the orientation of the court diagram (top right) matches the
+video. Swap it using the ⇵ button if required</p></li>
+<li><p>check that the correct team is serving (indicated by the white
+circle in the court diagram). Swap with the “Change serving team” button
+if required</p></li>
+</ul>
+<p>The scouting process is discussed in <a href="#scouting-in-detail">Scouting in detail</a>, below.</p>
 </div>
 <div class="section level2">
-<h2 id="scouting">Scouting<a class="anchor" aria-label="anchor" href="#scouting"></a>
+<h2 id="preferences-and-keyboard-shortcuts">Preferences and keyboard shortcuts<a class="anchor" aria-label="anchor" href="#preferences-and-keyboard-shortcuts"></a>
 </h2>
-<p>The scouting process is a guided one. Each contact is marked by
+<p>There are a number of options available that alter the behaviour or
+appearance of the app. These can be set (if you are starting the app
+from within R) via parameters to the <code><a href="../reference/ov_scouter.html">ov_scouter()</a></code> function.
+Most can also be set via the “Preferences” button in the app (others
+will be added in due course):</p>
+<ul>
+<li><p><code>scout_mode</code> sets your preferred scouting mode
+(clicking or typing)</p></li>
+<li><p><code>auto_save_dir</code> is a directory into which the scouted
+file will be saved (in .dvw format) after each rally. You can use this
+to e.g. provide live file updates to be used by the coaching
+bench</p></li>
+<li><p><code>scoreboard</code> - show the scoreboard in the top
+right-hand corner of the video screen (true by default)</p></li>
+<li><p><code>ball_path</code> - show the ball path on the court diagram
+(false by default, because it slows the app down a little)</p></li>
+<li><p><code>review_pane</code> - show the video review pane on each
+data entry popup (true by default)</p></li>
+<li><p><code>playlist_display_option</code> - what to show in the plays
+table? Either “dv_codes” (scouted codes) or “commentary” (a
+plain-language interpretation of the touches)</p></li>
+<li><p><code>click_shortcuts</code> - a named list that defines the
+keyboard shortcuts used in the app when in click-scouting mode</p></li>
+<li><p><code>type_shortcuts</code> - a named list that defines the
+keyboard shortcuts used in the app when in type-scouting mode</p></li>
+<li><p><code>playstable_shortcuts</code> - a named list that defines the
+keyboard shortcuts used in the playstable, in both click-scouting and
+type-scouting mode</p></li>
+</ul>
+<div class="section level3">
+<h3 id="click-scouting-conventions">Click-scouting conventions<a class="anchor" aria-label="anchor" href="#click-scouting-conventions"></a>
+</h3>
+<p>There are a few ways in which you can tailor the click-scouting to
+your requirements. These can set via the
+<code><a href="../reference/ov_scouting_options.html">ov_scouting_options()</a></code> function or the “Click-scouting
+conventions” pane in the preferences. They include:</p>
+<ul>
+<li><p><code>end_convention</code> determines whether you are treating
+the end coordinate of an attack or serve as the <strong>actual</strong>
+end location (i.e. where the ball contacted the floor or out of bounds
+area), or the <strong>intended</strong> end location. The actual might
+differ from the intended if there is a block touch or the ball hit the
+net. If “actual”, and a block touch is recorded, then the end location
+of the attack will not be used for the dig location (the dig location
+will be missing).</p></li>
+<li><p><code>nblockers</code> and <code>default_nblockers</code>. If
+<code>nblockers</code> is <code>TRUE</code> then the data entry will
+include a section to enter the number of blockers on each attack. This
+is recommended and set to <code>TRUE</code> by default. The
+<code>default_nblockers</code> value can be used to set the number of
+blockers that will be pre-selected on each attack. Having a default
+value might speed up the data entry process very slightly but it is not
+recommended because it’s easy to forget to update it on each attack and
+then your data will include default-valued entries that you can’t easily
+distinguish from genuine ones that you actually entered.</p></li>
+<li><p><code>transition_sets</code>. If <code>FALSE</code>, then sets in
+transition are not scouted. After entering an attack end location (and
+play continues) the next click will be for the counterattack start
+location, with no set scouted in between.</p></li>
+<li><p><code>attacks_by</code> allows attacks to be recorded by
+combination code (“X5”, “V5”, etc) or just by tempo (high, medium,
+quick)</p></li>
+<li><p><code>set_quality</code>. If <code>FALSE</code> (which is the
+default), set actions are not graded, although set errors and over-sets
+(a set that goes over the net) are marked as such. If
+<code>set_quality</code> is <code>TRUE</code>, the data entry will
+include a section where each set can be graded as “excellent”, “good”,
+“OK”, or “poor”.</p></li>
+<li>
+<p><code>setter_calls</code>. The “setter call” is where the setter
+instructs their middle to run. For example, a setter call of “K2” means
+that the middle hitter ran behind the setter (as if to hit a quick ball
+behind). The setter call is entered even if the setter actually set
+someone else. You can set this to “none” (no setter calls), “reception”
+(setter calls on reception-phase attacks only), or “both” (setter calls
+will be recorded on both reception-phase and transition-phase attacks).
+Setter calls are not recorded on poor reception/dig or overpasses.</p>
+<p>Note that if you are not scouting transition sets, you can’t record
+setter calls in transition because the setter call code is attached to
+the setting action. If <code>transition_sets</code> is
+<code>FALSE</code> and <code>setter_calls</code> is “both”, it will be
+treated as “reception”.</p>
+</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="type-scouting-conventions">Type-scouting conventions<a class="anchor" aria-label="anchor" href="#type-scouting-conventions"></a>
+</h3>
+<p>There are many fewer convention settings for type-scouting, because
+those conventions are largely controllled directly by the scout and what
+they are entering when they type. The only setting here is whether the
+scout is using zones or cones to record attack directions. See the <a href="#switching-between-zones-and-cones">Switching between zones and
+cones</a> section below.</p>
+</div>
+<div class="section level3">
+<h3 id="shortcuts">Shortcuts<a class="anchor" aria-label="anchor" href="#shortcuts"></a>
+</h3>
+<p>Keyboard shortcuts can be viewed by clicking the
+“<i class="far fa-keyboard" role="presentation" aria-label="keyboard icon"></i>
+Keyboard” button.</p>
+<p>Shortcuts can be changed from the shortcuts pane (click the shortcut
+in question and type the new shortcut key to use). Changes to shortcuts
+made within the app cannot currently be saved, but users starting from R
+can specify shortcuts via the <code>click_shortcuts</code>,
+<code>type_shortcuts</code>, and <code>playstable_shortcuts</code>
+parameters.</p>
+</div>
+<div class="section level3">
+<h3 id="key-remapping">Key remapping<a class="anchor" aria-label="anchor" href="#key-remapping"></a>
+</h3>
+<p>In type-scouting mode it is possible to remap keys (so that when you
+press a particular key, it is treated as if it were a different key).
+This remapping is commmonly done by scouts so that their keyboard input
+can be faster and more efficient.</p>
+<p>The only key remapped by default is the “;” key, which is remapped to
+“a”. Key remappings can only be changed when starting from R (see the
+<code>key_remapping</code> parameter). It is not currently possible to
+change the key remappings when using the standalone startup.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="scouting-in-detail">Scouting in detail<a class="anchor" aria-label="anchor" href="#scouting-in-detail"></a>
+</h2>
+<div class="section level3">
+<h3 id="click-scouting">Click-scouting<a class="anchor" aria-label="anchor" href="#click-scouting"></a>
+</h3>
+<p>The click-scouting process is a guided one. Each contact is marked by
 clicking on the video at the time and point of contact, with the
 <strong>point of contact being the point on the floor directly below the
 ball as it is being played</strong>. This will often be between the
 player’s feet as they dig or set the ball, or below them if they are
 jumping to spike.</p>
-<div class="section level3">
-<h3 id="start-by">Start by:<a class="anchor" aria-label="anchor" href="#start-by"></a>
-</h3>
 <ul>
-<li><p>checking that the orientation of the court diagram (top right)
-matches the video. Swap it using the ⇵ button if required</p></li>
-<li><p>check that the correct team is serving (indicated by the white
-circle in the court diagram). Swap with the “Change serving team” button
-if required</p></li>
-<li><p>unpause the video. The number of the serving player and their
-serve type (float/jump/etc) will be shown below the video panel. You can
+<li>unpause the video. The number of the serving player and their serve
+type (float/jump/etc) will be shown below the video panel. You can
 change the serve type before the serve, if you can see that it is
-wrong</p></li>
+wrong</li>
 </ul>
-</div>
-<div class="section level3">
-<h3 id="first-contact-serve">First contact (serve)<a class="anchor" aria-label="anchor" href="#first-contact-serve"></a>
-</h3>
+<div class="section level4">
+<h4 id="first-contact-serve">First contact (serve)<a class="anchor" aria-label="anchor" href="#first-contact-serve"></a>
+</h4>
 <ul>
 <li><p>click the serve (the point on the court below the ball) as it
 happens. The video will continue playing</p></li>
@@ -386,9 +450,9 @@ to an “Ace” at the next step, if necessary</p></li>
 other reason want to go back and try again, click “Cancel and rewind”.
 Otherwise click “Continue” and the video will resume playing.</p>
 </div>
-<div class="section level3">
-<h3 id="second-contact-set">Second contact (set)<a class="anchor" aria-label="anchor" href="#second-contact-set"></a>
-</h3>
+<div class="section level4">
+<h4 id="second-contact-set">Second contact (set)<a class="anchor" aria-label="anchor" href="#second-contact-set"></a>
+</h4>
 <ul>
 <li><p>click the location of the set (or second-contact action if it was
 something else, such as a setter tip. Remember that this is the point on
@@ -399,6 +463,9 @@ pause and a data entry dialog will pop up</p></li>
 freeball over. If the reception turned out to be an error here (serve
 ace, with no second contact to scout) you can also select that
 here</p></li>
+<li><p>if you are including setter calls, select the appropriate one
+here. The setter call buttons will be hidden on poor passes and
+overpasses</p></li>
 <li><p>check the pass quality. It will have been automatically given a
 grade, but in some situations you might need to override the automatic
 assessment</p></li>
@@ -407,46 +474,62 @@ opposition action (dig, dig error, or overpass attack) and
 player</p></li>
 </ul>
 <p>The second contact is by default a set, by the assigned setter on
-court. Once you are comfortable with the scouting process, and you see a
-second contact set by the setter, you can hold down shift while clicking
-the second contact. This causes the app to enter a set action (by the
-setter) with the automatically-assigned pass quality, without stopping
-the video or showing the data entry dialog, which makes this part of the
-scouting faster.</p>
+court. Once you are comfortable with the scouting process, and if you
+are not including setter calls, it is possible to streamline the
+scouting process slightly: when you see a second contact set by the
+setter, you can hold down the shift key while clicking the second
+contact. This causes the app to enter a set action (by the setter) with
+the automatically-assigned pass quality, without stopping the video or
+showing the data entry dialog, which makes this part of the scouting
+faster.</p>
 <p>Similarly to a reception error, in some cases it isn’t immediately
 clear if the set is an error or not (e.g. an unhittable set, or a
 delayed double-contact call by the referee). Scout this as a set (by the
 appropriate player) and it can be converted to a set error in the next
 step if necessary.</p>
+<p>If you are including set quality, this is chosen on the next data
+entry dialog (so that you have time to see the set and evaluate it).</p>
+<div style="page-break-after: always;"></div>
 </div>
-<div class="section level3">
-<h3 id="third-contact-attack">Third contact (attack)<a class="anchor" aria-label="anchor" href="#third-contact-attack"></a>
-</h3>
+<div class="section level4">
+<h4 id="third-contact-attack">Third contact (attack)<a class="anchor" aria-label="anchor" href="#third-contact-attack"></a>
+</h4>
 <p>The third contact is most commonly an attack (but can also be a
 freeball over or set error, or a play by the opposition on an
 overpass/overset.</p>
 <ul>
-<li>click the contact location (remember that this is the point on the
-ground directly below the ball, not the ball itself). The video will
-pause and a data entry dialog will pop up</li>
+<li><p>click the contact location (remember that this is the point on
+the ground directly below the ball, not the ball itself). The video will
+pause and a data entry dialog will pop up</p></li>
+<li><p>if you are including set quality, select the appropriate
+value</p></li>
 </ul>
 <p>If it is an attack:</p>
 <ul>
 <li><p>enter the attacking player and either the attack combination code
-(if you are scouting with combo codes) or tempo</p></li>
+(if you are scouting with combination codes) or tempo</p></li>
 <li><p>optionally (but recommended) enter the number of blockers on the
 attack</p></li>
 </ul>
 <p>Otherwise enter the appropriate action and player.</p>
 </div>
-<div class="section level3">
-<h3 id="attack-end-point">Attack end point<a class="anchor" aria-label="anchor" href="#attack-end-point"></a>
-</h3>
+<div class="section level4">
+<h4 id="attack-end-point">Attack end point<a class="anchor" aria-label="anchor" href="#attack-end-point"></a>
+</h4>
 <p>After an attack or freeball over, click the end point. If you are
-scouting with “actual” end convention (see <a href="#preferences">Preferences</a>) then this is the point where the
-ball lands, or the point on the court directly below the ball when it is
-played. If end convention is “intended”, this is the point where the
-attacker intended to hit the ball.</p>
+scouting with “actual” end convention (see <a href="#preferences-and-keyboard-shortcuts">Preferences and keyboard
+shortcuts</a>) then this is the point where the ball lands, or the point
+on the court directly below the ball when it is played. If end
+convention is “intended”, this is the point where the attacker intended
+to hit the ball.</p>
+<p>If the ball deflects off the block or the net, and you want the ball
+path to show this exactly, you can do this by entering the attack as
+normal, and then going back afterwards (at the end of the rally,
+perhaps) and editing the coordinates. Click the
+<i class="fas fa-location-dot" role="presentation" aria-label="location-dot icon"></i>
+icon underneath the court rotation diagram and you will be prompted to
+enter new coordinates for the attack, including a middle coordinate that
+can be used to show the block deflection.</p>
 <p>Enter the appropriate details. An attack kill, dig or dig error can
 also involve a block touch — this can be recorded (see “With block touch
 by player …”).</p>
@@ -456,46 +539,196 @@ record the end point of the attack without showing a popup dialog. This
 is faster, but note that no dig will be scouted, and no block touch can
 be entered.</p>
 </div>
-<div class="section level3">
-<h3 id="transition-play">Transition play<a class="anchor" aria-label="anchor" href="#transition-play"></a>
-</h3>
+<div class="section level4">
+<h4 id="transition-play">Transition play<a class="anchor" aria-label="anchor" href="#transition-play"></a>
+</h4>
 <p>Scouting now continues until the point ends, with attacks, digs, and
 other contacts being recorded. By default, <em>sets in transition are
 not scouted</em> (except for set errors, since a set error will end the
 rally). After an attack, we record the dig location and then straight to
 the counter-attack location, with no intervening set being scouted. You
-can choose to include transition sets if you wish (see <a href="#preferences">Preferences</a> to change this behaviour) but there
-is not a huge practical advantage in doing so. It does not enable much
-more in terms of analytics, but takes extra time to scout, so transition
-sets are disabled by default.</p>
+can choose to include transition sets if you wish (see <a href="#preferences-and-keyboard-shortcuts">Preferences and keyboard
+shortcuts</a> to change this behaviour) but there is not a huge
+practical advantage in doing so. It does not enable much more in terms
+of analytics, but takes extra time to scout, so transition sets are
+disabled by default.</p>
 </div>
-<div class="section level3">
-<h3 id="end-of-the-point">End of the point<a class="anchor" aria-label="anchor" href="#end-of-the-point"></a>
-</h3>
+<div class="section level4">
+<h4 id="end-of-the-point">End of the point<a class="anchor" aria-label="anchor" href="#end-of-the-point"></a>
+</h4>
 <p>The point can be ended by entering a terminal action (kill or error),
 or if the point ends in a way that doesn’t fit nicely with the available
-options, you can pause the video (press “q” or the pause button) and
+options, you can pause the video (press the pause shortcut key) and
 choose “Won current rally” for the appropriate team.</p>
 </div>
-<div class="section level3">
-<h3 id="end-of-set">End of set<a class="anchor" aria-label="anchor" href="#end-of-set"></a>
-</h3>
+<div class="section level4">
+<h4 id="end-of-the-set">End of the set<a class="anchor" aria-label="anchor" href="#end-of-the-set"></a>
+</h4>
 <p>When the set concludes, it will prompt you to confirm whether it is
 the end of the set. Confirm the end of the set and then enter the
 lineups for the next set ready to start scouting that one.</p>
 </div>
-<div class="section level3">
-<h3 id="timeouts-and-substitutions">Timeouts and substitutions<a class="anchor" aria-label="anchor" href="#timeouts-and-substitutions"></a>
-</h3>
-<p>Pausing the video (press “q” or the pause button) will bring up a
+<div class="section level4">
+<h4 id="end-of-the-match">End of the match<a class="anchor" aria-label="anchor" href="#end-of-the-match"></a>
+</h4>
+<p>At the end of the match, you don’t need to do anything extra. Just
+end the final set as normal, and ignore the instruction to enter the
+lineups for the next set. And now you can generate a match report, if
+you wish!</p>
+</div>
+<div class="section level4">
+<h4 id="timeouts-and-substitutions">Timeouts and substitutions<a class="anchor" aria-label="anchor" href="#timeouts-and-substitutions"></a>
+</h4>
+<p>Pausing the video (press the pause shortcut key) will bring up a
 dialog that allows you to enter a timeout or substitution, or change the
 setter on court for a given team (e.g. if the team is playing a
 two-setter system, you will need to change the setter on court each time
 the setters swap).</p>
+<div style="page-break-after: always;"></div>
+</div>
+</div>
+<div class="section level3">
+<h3 id="type-scouting">Type-scouting<a class="anchor" aria-label="anchor" href="#type-scouting"></a>
+</h3>
+<p>An introduction to type-scouting is beyond the scope of this manual.
+You can find some information online or through (paid) courses and
+books. If you are not already familiar with type-scouting, it is
+strongly recommended that you use the click-scouting mode instead. It is
+designed to allow high-quality match information to be recorded but with
+a vastly easier learning curve.</p>
+<p>For type-scout users, be aware that there are some non-standard
+scouting codes that can be used in ovscout2 that might save you a few
+keystrokes:</p>
+<ul>
+<li><p>starting lineups can be entered with <code>L</code> codes such as
+<code>L 4,7s,8,10,1,3,17</code> (you can use spaces instead of commas if
+you prefer). The first six numbers give the players starting in
+positions 1–6, with “s” being used to designate the setter. The 7th (and
+8th) numbers after the <code>L</code> are optional and are the
+libero(s). Use <code>aL</code> for the visiting team lineup.</p></li>
+<li>
+<p>attack combinations can be entered without the player number. For
+example, if the home team made an <code>X5</code> attack kill to
+position/cone 3 you can enter <code>X53#</code> without the player’s
+jersey number (use <code>aX5...</code> for the visiting team). ovscout2
+will automatically infer the player number. For an <code>X5</code>
+attack this is the front-row outside hitter, except in P1-reception when
+the opposite is expected to hit from position 4. Note some limitations
+on this process:</p>
+<ul>
+<li><p>it can’t assign a player number to second-ball attacks
+(<code>P2</code> by default) or overpass attacks
+(<code>PR</code>);</p></li>
+<li><p>it uses the attack start zone and setter position (team rotation)
+to infer the player number;</p></li>
+<li><p>it assumes that the team is playing with standard player role
+patterns and a setter-outside-middle rotation (i.e. the close outside
+hitter is in position 2 when the setter is in 1).</p></li>
+</ul>
+<p>If the team plays with some other patterns, or if these assumptions
+don’t hold for a particular attack, provide the player number in the
+scout code as usual.</p>
+</li>
+<li><p>setter calls in reception need only be <code>Kx</code> — the set
+action will be assigned to the on-court setter of the receiving team.
+Setter calls in transition, if you wish to include them, will need the
+team identifier as well (i.e. <code>*Kx</code> or
+<code>aKx</code>),</p></li>
+</ul>
 </div>
 </div>
 <div class="section level2">
-<h2 id="frequently-asked-questions">Frequently asked questions<a class="anchor" aria-label="anchor" href="#frequently-asked-questions"></a>
+<h2 class="nobreakbefore" id="switching-scout-modes">Switching scout modes<a class="anchor" aria-label="anchor" href="#switching-scout-modes"></a>
+</h2>
+<p>You can switch between click-scouting and type-scouting with the
+“<i class="fas fa-repeat" role="presentation" aria-label="repeat icon"></i>
+Change scout mode” button.</p>
+<p>It is recommended that you don’t switch modes while part-way through
+a match, because there is a risk that the data you collect before and
+after switching will be inconsistent. Switch modes before you start
+scouting any ball touches.</p>
+<p>Click-scouting only supports zones for attack end locations. If you
+are type-scouting with cones, the “Change to click scout mode” button
+will be disabled.</p>
+</div>
+<div class="section level2">
+<h2 id="switching-between-zones-and-cones">Switching between zones and cones<a class="anchor" aria-label="anchor" href="#switching-between-zones-and-cones"></a>
+</h2>
+<p>Short summary: if you are not sure, stick with zones.</p>
+<div class="section level3">
+<h3 id="zones-and-cones-in-detail">Zones and cones in detail<a class="anchor" aria-label="anchor" href="#zones-and-cones-in-detail"></a>
+</h3>
+<p>Scouted match files allow locations of court to be recorded in
+several different ways with differing levels of accuracy:</p>
+<ul>
+<li>
+<em>zones</em> are a 3 x 3 grid of squares on each side of the court
+(so one zone is a 3m x 3m square on an indoor court) and numbered
+1–9</li>
+<li>each zone can be divided into four <em>subzones</em> A–D (each
+subzone is a 1.5m x 1.5m square on an indoor court)</li>
+<li>coordinates lie on a 100 x 101 grid that covers the entire court
+plus a margin around the outside of it, giving locations with a
+resolution of about 10cm.</li>
+</ul>
+<p><img src="ovscout2-user-manual_files/figure-html/court_plot-1.png" width="700"></p>
+<p>Zones and subzones apply to all skills. Attack end locations have an
+extra option of <em>cones</em>, which are numbered 1–7 (1–8 for middle
+attacks) and give the direction of the attack. Attack end
+locations/directions can be stored as cones <em>or</em> zones but not
+both in the same file. It is a common (but not universal) convention
+when scouting with cones that the cone gives the <em>intended</em>
+direction of attack, not the actual direction (the two might differ if
+the ball deflected off the block or the net).</p>
+<p>In conventional scouting software, zones and subzones can be entered
+through the typed-in scout codes, but coordinates must be entered by
+clicking on a court diagram. In ovscout2 in click mode, all locations
+are recorded as coordinates (from the clicks that you make on the video
+or court diagram) and are converted internally to zones and subzones.
+When you export a click-scouted match to dvw, you have the option of
+converting attack end locations to cone directions, which will be
+generated from the attack end coordinates.</p>
+<p>If you are type-scouting, you must choose between zones or cones for
+your attack end location/directions. It is not advisable to switch
+between them while scouting a match, because the existing zone end data
+will not be converted to cones (or vice-versa, if you are going the
+other way) and you will end up with inconsistent information in your
+match file. It is not possible to losslessly convert from zones to
+cones: zones don’t map uniquely to cones (and vice-versa). Coordinates
+can be converted to zones or cones, but be aware that your scouting
+conventions will matter for interpreting the end result. If you have
+click-scouted attacks with the end point being the actual end point of
+the attack (i.e. the dig location) then a cone can be assigned but it
+will be the actual direction of attack, not necessarily the intended
+direction. If you are click-scouting with intended attack end points
+then attacks with a block touch won’t have an end point recorded (and no
+cone will be assigned to those attacks when exporting to dvw with cones,
+nor a zone when exporting to dvw with zones).</p>
+<p>If you have set your type-scouting preference to cones and you start
+the app with a partially-scouted file that uses zones, the app will
+start in zone mode to be consistent with the already-entered data.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="device-considerations">Device considerations<a class="anchor" aria-label="anchor" href="#device-considerations"></a>
+</h2>
+<p>The click-scouting process involves clicking the location of actions
+on court, and so a touch screen device (ideally with stylus) is
+recommended. It is possible to run the app on a laptop or desktop and
+connect to it with a tablet or similar touch device to do the actual
+scouting. In this case you would start the app from R on the main device
+using the <code>host</code> and <code>launch_browser</code> options:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span><span class="va">...</span>, host <span class="op">=</span> <span class="st">"192.168.1.11"</span>, launch_browser <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<p>where <code>192.168.1.11</code> is the IP address of the main device.
+You should see a message similar to (the port number on the end will
+vary):</p>
+<pre><code>Listening on http://192.168.1.11:5017</code></pre>
+<p>Open a browser on the tablet and enter
+<code>http://192.168.1.11:5017</code> in the address bar.</p>
+</div>
+<div class="section level2">
+<h2 class="nobreakbefore" id="frequently-asked-questions">Frequently asked questions<a class="anchor" aria-label="anchor" href="#frequently-asked-questions"></a>
 </h2>
 <div class="section level3">
 <h3 id="whats-the-difference-between-a--ovs-file-and-a--dvw-file">What’s the difference between a .ovs file and a .dvw file?<a class="anchor" aria-label="anchor" href="#whats-the-difference-between-a--ovs-file-and-a--dvw-file"></a>
@@ -515,38 +748,46 @@ it to dvw format and use that.</p>
 <h3 id="the-video-is-black-and-the-app-says-wait-for-the-video-media-information-to-be-loaded">The video is black and the app says “Wait for the video media
 information to be loaded”<a class="anchor" aria-label="anchor" href="#the-video-is-black-and-the-app-says-wait-for-the-video-media-information-to-be-loaded"></a>
 </h3>
-<p><code>ovscout2</code> relies on the browser to do the actual video
-playback, but some videos are not compatible with web browsers.
-<code>*.MOV</code> files recorded with iPhones/iPads are known to suffer
-from this problem. Try playing the video file directly in the web
-browser (open a new tab and drag the video file onto it). If the video
-doesn’t play in the new browser tab, you will need to re-encode the
-video into a browser-compatible format (try <a href="https://handbrake.fr/" class="external-link uri">https://handbrake.fr/</a>, for
-example).</p>
+<p>ovscout2 relies on the browser to do the actual video playback, but
+some videos are not compatible with web browsers. <code>*.MOV</code>
+files recorded with iPhones/iPads are known to suffer from this problem.
+Try playing the video file directly in the web browser (open a new tab
+and drag the video file onto it). If the video doesn’t play in the new
+browser tab, you will need to re-encode the video into a
+browser-compatible format (try <a href="https://handbrake.fr/" class="external-link uri">https://handbrake.fr/</a>, for example).</p>
+</div>
+<div class="section level3">
+<h3 id="it-crashed-have-i-lost-my-work">It crashed! Have I lost my work?<a class="anchor" aria-label="anchor" href="#it-crashed-have-i-lost-my-work"></a>
+</h3>
+<p>No. When the app exits, even if it crashes, it saves your current
+file. Look for the message
+<code>working file has been saved to: /path/to/saved_file.ovs</code>.</p>
+<p>You can re-start scouting with (from R):</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span><span class="st">"/path/to/saved_file.ovs"</span><span class="op">)</span></span></code></pre></div>
+<p>or by navigating to that file in the file chooser on startup.</p>
 </div>
 </div>
-  </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
 </div>
 
 
 
     <footer><div class="pkgdown-footer-left">
-  <p></p>
-<p>Developed by Ben Raymond, Adrien Ickowicz.</p>
+  <p>Developed by Ben Raymond, Adrien Ickowicz.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
 </div>
 
     </footer>
 </div>
 
-  
 
-  
+
+
 
   </body>
 </html>
