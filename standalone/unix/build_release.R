@@ -13,6 +13,7 @@ this_release <- paste0("v", this_release)
 tmpdir <- tempfile()
 dir.create(tmpdir)
 
+## copy the bat and startup files
 file.copy("inst/extdata/standalone/unix/ov_scouter", tmpdir, overwrite = TRUE)
 file.copy("inst/extdata/standalone/unix/ov_scouter_demo", tmpdir, overwrite = TRUE)
 file.copy("inst/extdata/standalone/unix/ov_scouter-nonportable.R", tmpdir, overwrite = TRUE)

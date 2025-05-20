@@ -8,18 +8,9 @@ options(warn = 1) ## show warnings immediately
 ## rgs can contain quoted strings (e.g. the script path) which might contain spaces
 rgs <- as.character(read.csv(text = paste(rgs, collapse = " "), header = FALSE, sep = "")) ## split on [[:space:]]+, but respecting quoted strings
 mypath <- gsub("^\"+", "", gsub("\"+$", "", rgs[1]))
-## force R to use local library path
+
 Rlibpath <- file.path(mypath, "lib")
-if (DEBUG) cat("using ovscout2-specific R library path:", Rlibpath, "\n")
-if (!dir.exists(Rlibpath)) {
-    if (DEBUG) cat(Rlibpath, "does not exist, creating.\n")
-    dir.create(Rlibpath)
-}
-.libPaths(c(Rlibpath, .libPaths()))
-if (DEBUG) {
-    cat("Full R library paths:\n")
-    print(.libPaths())
-}
+if (DEBUG) cat("using ovscout2-specific R library path for pandoc, ffmpeg, lighttpd binaries:", Rlibpath, "\n")
 
 ## check that we have dependencies installed
 optsave <- getOption("repos")
