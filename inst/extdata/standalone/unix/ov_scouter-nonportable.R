@@ -18,13 +18,23 @@ mypath <- gsub("^\"+", "", gsub("\"+$", "", rgs[1]))
 optsave <- getOption("repos")
 options(repos = c(CRAN = "https://cloud.r-project.org", openvolley = "https://openvolley.r-universe.dev"))
 
+## check that a package and its dependencies are installed.
+## it is possible that a package has been installed but one or more of its dependencies has not, e.g. if during install the download of the dependency binary failed but that of the main package did not
+needs_installing <- function(pkg) {
+    ip <- rownames(installed.packages())
+    if (!pkg %in% ip) return(pkg)
+    unname(na.omit(vapply(tools::package_dependencies(pkg, recursive = TRUE)[[1]], function(dep) if (!dep %in% ip) dep else NA_character_, FUN.VALUE = "")))
+}
+
 ## dependencies required before installing ovscout2, with optional minimum version number
 depsl <- list(fs = NA, jsonlite = NA, curl = NA)
 for (pkg in names(depsl)) {
-    if (!requireNamespace(pkg, quietly = TRUE) || (!is.na(depsl[[pkg]]) && packageVersion(pkg) < depsl[[pkg]])) {
+    to_install <- needs_installing(pkg)
+    if (!pkg %in% to_install && (!is.na(depsl[[pkg]]) && packageVersion(pkg) < depsl[[pkg]])) to_install <- c(pkg, to_install)
+    if (length(to_install) > 0) {
         tryCatch({
-            cat("Installing package:", pkg, "\n")
-            install.packages(pkg)
+            cat("Installing packages:", paste(to_install, collapse = ", "), "\n")
+            install.packages(to_install)
         }, error = function(e) {
             stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
         })
@@ -39,19 +49,19 @@ online <- tryCatch(suppressWarnings(curl::has_internet()), error = function(e) F
 depsl <- c("ovscout2")
 for (pkg in depsl) {
     tryCatch({
-        do_install <- !requireNamespace(pkg, quietly = TRUE)
-        if (!do_install && do_upd && online) {
+        to_install <- needs_installing(pkg)
+        if (!pkg %in% to_install && do_upd && online) {
             ## have it, does it need to be updated?
             latest <- tryCatch(max(jsonlite::fromJSON(paste0("https://openvolley.r-universe.dev/packages/", pkg, "/"))$Version), error = function(e) NA)
             if (is.na(latest)) {
                 warning("Can't determine latest version of package:", pkg, "\n")
                 latest <- -Inf
             }
-            do_install <- packageVersion(pkg) < latest
+            if (packageVersion(pkg) < latest) to_install <- c(pkg, to_install)
         }
-        if (do_install) {
-            cat("Installing package:", pkg, "\n")
-            install.packages(pkg)
+        if (length(to_install) > 0) {
+            cat("Installing packages:", paste(to_install, collapse = ", "), "\n")
+            install.packages(to_install)
         }
     }, error = function(e) {
         if (!requireNamespace(pkg, quietly = TRUE)) {

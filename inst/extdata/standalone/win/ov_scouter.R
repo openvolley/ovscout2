@@ -9,20 +9,30 @@ options(warn = 1) ## show warnings immediately
 rgs <- as.character(read.csv(text = paste(rgs, collapse = " "), header = FALSE, sep = "")) ## split on [[:space:]]+, but respecting quoted strings
 mypath <- gsub("^\"+", "", gsub("\"+$", "", rgs[1]))
 
-Rlibpath <- file.path(mypath, "lib")
-if (DEBUG) cat("using ovscout2-specific R library path for pandoc, ffmpeg, lighttpd binaries:", Rlibpath, "\n")
+binpath <- file.path(mypath, "lib")
+if (DEBUG) cat("using ovscout2-specific R library path for pandoc, ffmpeg, lighttpd binaries:", binpath, "\n")
 
 ## check that we have dependencies installed
 optsave <- getOption("repos")
 options(repos = c(CRAN = "https://cloud.r-project.org", openvolley = "https://openvolley.r-universe.dev"))
 
+## check that a package and its dependencies are installed.
+## it is possible that a package has been installed but one or more of its dependencies has not, e.g. if during install the download of the dependency binary failed but that of the main package did not
+needs_installing <- function(pkg) {
+    ip <- rownames(installed.packages())
+    if (!pkg %in% ip) return(pkg)
+    unname(na.omit(vapply(tools::package_dependencies(pkg, recursive = TRUE)[[1]], function(dep) if (!dep %in% ip) dep else NA_character_, FUN.VALUE = "")))
+}
+
 ## dependencies required before installing ovscout2, with optional minimum version number
 depsl <- list(fs = NA, jsonlite = NA, curl = NA)
 for (pkg in names(depsl)) {
-    if (!requireNamespace(pkg, quietly = TRUE) || (!is.na(depsl[[pkg]]) && packageVersion(pkg) < depsl[[pkg]])) {
+    to_install <- needs_installing(pkg)
+    if (!pkg %in% to_install && (!is.na(depsl[[pkg]]) && packageVersion(pkg) < depsl[[pkg]])) to_install <- c(pkg, to_install)
+    if (length(to_install) > 0) {
         tryCatch({
-            cat("Installing package:", pkg, "\n")
-            install.packages(pkg)
+            cat("Installing packages:", paste(to_install, collapse = ", "), "\n")
+            install.packages(to_install)
         }, error = function(e) {
             stop("Could not install the ", pkg, " package. The error message was: ", conditionMessage(e))
         })
@@ -37,19 +47,19 @@ online <- tryCatch(suppressWarnings(curl::has_internet()), error = function(e) F
 depsl <- c("ovscout2")
 for (pkg in depsl) {
     tryCatch({
-        do_install <- !requireNamespace(pkg, quietly = TRUE)
-        if (!do_install && do_upd && online) {
+        to_install <- needs_installing(pkg)
+        if (!pkg %in% to_install && do_upd && online) {
             ## have it, does it need to be updated?
             latest <- tryCatch(max(jsonlite::fromJSON(paste0("https://openvolley.r-universe.dev/packages/", pkg, "/"))$Version), error = function(e) NA)
             if (is.na(latest)) {
                 warning("Can't determine latest version of package:", pkg, "\n")
                 latest <- -Inf
             }
-            do_install <- packageVersion(pkg) < latest
+            if (packageVersion(pkg) < latest) to_install <- c(pkg, to_install)
         }
-        if (do_install) {
-            cat("Installing package:", pkg, "\n")
-            install.packages(pkg)
+        if (length(to_install) > 0) {
+            cat("Installing packages:", paste(to_install, collapse = ", "), "\n")
+            install.packages(to_install)
         }
     }, error = function(e) {
         if (!requireNamespace(pkg, quietly = TRUE)) {
@@ -87,7 +97,7 @@ if (do_upd) {
 }
 ## add lighttpd folder to path
 ## should have locally-bundled binary
-lhpaths <- unique(c(fs::path_real(fs::path(Rlibpath, "lighttpd")), fs::path(Rlibpath, "lighttpd")))
+lhpaths <- unique(c(fs::path_real(fs::path(binpath, "lighttpd")), fs::path(binpath, "lighttpd")))
 if (DEBUG) cat("trying local lighttpd path(s):", lhpaths, "\n")
 lhok <- file.exists(sapply(lhpaths, function(pth) fs::path(pth, "lighttpd.exe")))
 if (any(lhok)) {
@@ -107,7 +117,7 @@ if (any(lhok)) {
 ## check that we have ffmpeg
 if (!ovideo::ov_ffmpeg_ok()) {
     ## try the local install
-    ffpaths <- unique(c(fs::path_real(fs::path(Rlibpath, "ffmpeg")), fs::path(Rlibpath, "ffmpeg")))
+    ffpaths <- unique(c(fs::path_real(fs::path(binpath, "ffmpeg")), fs::path(binpath, "ffmpeg")))
     if (DEBUG) cat("trying local ffmpeg path(s):", ffpaths, "\n")
     ffbin <- unlist(lapply(ffpaths, function(pth) dir(pth, recursive = TRUE, full.names = TRUE, pattern = "ffmpeg\\.exe")))
     if (length(ffbin) > 0) {
@@ -124,7 +134,7 @@ if (!ovideo::ov_ffmpeg_ok()) {
 ## check that we have pandoc
 if (!ovscout2:::ov_pandoc_ok()) {
     ## try the local install
-    pnpaths <- unique(c(fs::path_real(fs::path(Rlibpath, "pandoc")), fs::path(Rlibpath, "pandoc")))
+    pnpaths <- unique(c(fs::path_real(fs::path(binpath, "pandoc")), fs::path(binpath, "pandoc")))
     if (DEBUG) cat("trying local pandoc path(s):", pnpaths, "\n")
     pnbin <- unlist(lapply(pnpaths, function(pth) dir(pth, recursive = TRUE, full.names = TRUE, pattern = "pandoc\\.exe")))
     if (length(pnbin) > 0) {
