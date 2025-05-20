@@ -30,9 +30,9 @@ if (build_for == "win") {
     if (!dir.exists(libdir)) dir.create(libdir)
     if (!file.exists(file.path(libdir, "lighttpd/lighttpd.exe"))) {
         lhfile <- tempfile(fileext = ".zip")
-        lhurl <- "http://lighttpd.dtech.hu/lighttpd-1.4.49-1-win64-ssl.zip"
-        download.file(lhurl, destfile = lhfile)
-        unzip(lhfile, exdir = libdir)
+        lhurl <- "https://lighttpd.dtech.hu/lighttpd-1.4.49-1-win64-ssl.zip"
+        res <- curl::curl_fetch_disk(lhurl, path = lhfile, handle = curl::new_handle(noprogress = 0, ssl_verifypeer = 0))
+        if (res$status_code == 200) unzip(lhfile, exdir = libdir)
         try(unlink(lhfile), silent = TRUE)
     }
     if (!file.exists(file.path(libdir, "lighttpd/lighttpd.exe"))) {
@@ -45,8 +45,8 @@ if (build_for == "win") {
     if (length(dir(ffmpeg_dir, recursive = TRUE, pattern = "ffmpeg\\.exe")) < 1) {
         dl_url <- "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
         zipname <- file.path(ffmpeg_dir, basename(dl_url))
-        err <- utils::download.file(dl_url, destfile = zipname, mode = "wb")
-        if (!err) utils::unzip(zipname, exdir = ffmpeg_dir, files = file.path("ffmpeg-master-latest-win64-gpl", c("LICENSE.txt", "bin/ffmpeg.exe")))
+        res <- curl::curl_fetch_disk(dl_url, path = zipname, handle = curl::new_handle(noprogress = 0))
+        if (res$status_code == 200) utils::unzip(zipname, exdir = ffmpeg_dir, files = file.path("ffmpeg-master-latest-win64-gpl", c("LICENSE.txt", "bin/ffmpeg.exe")))
         unlink(file.path(ffmpeg_dir, basename(dl_url))) ## delete the zip file
     }
     if (length(dir(ffmpeg_dir, recursive = TRUE, pattern = "ffmpeg\\.exe")) < 1) stop("ffmpeg install failed")
@@ -57,8 +57,8 @@ if (build_for == "win") {
     if (length(dir(pandoc_dir, recursive = TRUE, pattern = "pandoc\\.exe")) < 1) {
         dl_url <- "https://github.com/jgm/pandoc/releases/download/2.19/pandoc-2.19-windows-x86_64.zip"
         zipname <- file.path(pandoc_dir, basename(dl_url))
-        err <- utils::download.file(dl_url, destfile = zipname, mode = "wb")
-        if (!err) utils::unzip(zipname, exdir = pandoc_dir, junkpaths = TRUE)
+        res <- curl::curl_fetch_disk(dl_url, path = zipname, handle = curl::new_handle(noprogress = 0))
+        if (res$status_code == 200) utils::unzip(zipname, exdir = pandoc_dir, junkpaths = TRUE)
         unlink(file.path(pandoc_dir, basename(dl_url))) ## delete the zip file
     }
     if (length(dir(pandoc_dir, recursive = TRUE, pattern = "pandoc\\.exe")) < 1) stop("pandoc install failed")
