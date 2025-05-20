@@ -65,7 +65,7 @@ for (pkg in depsl) {
 options(repos = optsave) ## restore
 
 ## also try and update this file (ov_scouter-nonportable.R) and ov_scouter from the potentially-reinstalled ovscout2 pkg
-if (TRUE) {
+if (do_upd) {
     do_restart <- FALSE
     f1 <- file.path(mypath, "ov_scouter-nonportable.R")
     f2 <- system.file("extdata/standalone/unix/ov_scouter-nonportable.R", package = "ovscout2")

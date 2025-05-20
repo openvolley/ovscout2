@@ -63,7 +63,7 @@ for (pkg in depsl) {
 options(repos = optsave) ## restore
 
 ## also try and update this file (ov_scouter.R) and ov_scouter.bat from the potentially-reinstalled ovscout2 pkg
-if (TRUE) {
+if (do_upd) {
     do_restart <- FALSE
     f1 <- file.path(mypath, "ov_scouter.R")
     f2 <- system.file("extdata/standalone/win/ov_scouter.R", package = "ovscout2")
