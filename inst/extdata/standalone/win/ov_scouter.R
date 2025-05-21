@@ -10,7 +10,7 @@ rgs <- as.character(read.csv(text = paste(rgs, collapse = " "), header = FALSE, 
 mypath <- gsub("^\"+", "", gsub("\"+$", "", rgs[1]))
 
 binpath <- file.path(mypath, "lib")
-if (DEBUG) cat("using ovscout2-specific R library path for pandoc, ffmpeg, lighttpd binaries:", binpath, "\n")
+if (DEBUG) cat("using ovscout2-specific path for pandoc, ffmpeg, lighttpd binaries:", binpath, "\n")
 
 ## check that we have dependencies installed
 optsave <- getOption("repos")
@@ -25,8 +25,10 @@ needs_installing <- function(pkg) {
 }
 
 ## dependencies required before installing ovscout2, with optional minimum version number
+cat("checking dependencies: ")
 depsl <- list(fs = NA, jsonlite = NA, curl = NA)
 for (pkg in names(depsl)) {
+    cat(pkg, "")
     to_install <- needs_installing(pkg)
     if (!pkg %in% to_install && (!is.na(depsl[[pkg]]) && packageVersion(pkg) < depsl[[pkg]])) to_install <- c(pkg, to_install)
     if (length(to_install) > 0) {
@@ -38,6 +40,7 @@ for (pkg in names(depsl)) {
         })
     }
 }
+cat("\n")
 
 ## openvolley packages
 ## we will always attempt to install these, so that they are always updated, except if --noupdate has been specified
@@ -46,11 +49,12 @@ online <- tryCatch(suppressWarnings(curl::has_internet()), error = function(e) F
 
 depsl <- c("ovscout2")
 for (pkg in depsl) {
+    cat("checking package:", pkg, "\n")
     tryCatch({
         to_install <- needs_installing(pkg)
         if (!pkg %in% to_install && do_upd && online) {
             ## have it, does it need to be updated?
-            latest <- tryCatch(max(jsonlite::fromJSON(paste0("https://openvolley.r-universe.dev/packages/", pkg, "/"))$Version), error = function(e) NA)
+            latest <- tryCatch(max(jsonlite::fromJSON(paste0("https://openvolley.r-universe.dev/api/packages/", pkg, "/"))$Version), error = function(e) NA)
             if (is.na(latest)) {
                 warning("Can't determine latest version of package:", pkg, "\n")
                 latest <- -Inf
@@ -100,8 +104,9 @@ if (do_upd) {
 lhpaths <- unique(c(fs::path_real(fs::path(binpath, "lighttpd")), fs::path(binpath, "lighttpd")))
 if (DEBUG) cat("trying local lighttpd path(s):", lhpaths, "\n")
 lhok <- file.exists(sapply(lhpaths, function(pth) fs::path(pth, "lighttpd.exe")))
+as_win <- function(z) gsub("/", "\\\\", z) ## windows path separators
 if (any(lhok)) {
-    lhpath <- lhpaths[lhok][1]
+    lhpath <- as_win(lhpaths[lhok][1])
     Sys.setenv(path = paste0(lhpath, ";", Sys.getenv("path")))
     if (DEBUG) cat("setting system path to include local lighttpd path:", Sys.getenv("path"), "\n")
 } else {
@@ -121,7 +126,7 @@ if (!ovideo::ov_ffmpeg_ok()) {
     if (DEBUG) cat("trying local ffmpeg path(s):", ffpaths, "\n")
     ffbin <- unlist(lapply(ffpaths, function(pth) dir(pth, recursive = TRUE, full.names = TRUE, pattern = "ffmpeg\\.exe")))
     if (length(ffbin) > 0) {
-        ffpath <- fs::path_dir(fs::path(ffbin[1]))
+        ffpath <- as_win(fs::path_dir(fs::path(ffbin[1])))
         Sys.setenv(path = paste0(ffpath, ";", Sys.getenv("path")))
         if (DEBUG) cat("setting system path to include local ffmpeg path:", Sys.getenv("path"), "\n")
     } else {
@@ -132,20 +137,20 @@ if (!ovideo::ov_ffmpeg_ok()) {
 ##if (!ovideo::ov_ffmpeg_ok()) warning("ffmpeg could not be found, some functionality will be disabled")
 
 ## check that we have pandoc
-if (!ovscout2:::ov_pandoc_ok()) {
+if (!ovscout2:::ov_pandoc_ok(warn = FALSE)) {
     ## try the local install
     pnpaths <- unique(c(fs::path_real(fs::path(binpath, "pandoc")), fs::path(binpath, "pandoc")))
     if (DEBUG) cat("trying local pandoc path(s):", pnpaths, "\n")
     pnbin <- unlist(lapply(pnpaths, function(pth) dir(pth, recursive = TRUE, full.names = TRUE, pattern = "pandoc\\.exe")))
     if (length(pnbin) > 0) {
-        pnpath <- fs::path_dir(fs::path(pnbin[1]))
+        pnpath <- as_win(fs::path_dir(fs::path(pnbin[1])))
         Sys.setenv(path = paste0(pnpath, ";", Sys.getenv("path")))
         if (DEBUG) cat("setting system path to include local pandoc path:", Sys.getenv("path"), "\n")
     } else {
         if (DEBUG) cat("could not find system or local pandoc binary\n")
     }
 }
-if (!ovscout2:::ov_pandoc_ok()) warning("pandoc could not be found, some functionality will be disabled")
+blah <- ovscout2:::ov_pandoc_ok()
 
 library(ovscout2)
 ## check args

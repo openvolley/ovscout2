@@ -52,7 +52,7 @@ for (pkg in depsl) {
         to_install <- needs_installing(pkg)
         if (!pkg %in% to_install && do_upd && online) {
             ## have it, does it need to be updated?
-            latest <- tryCatch(max(jsonlite::fromJSON(paste0("https://openvolley.r-universe.dev/packages/", pkg, "/"))$Version), error = function(e) NA)
+            latest <- tryCatch(max(jsonlite::fromJSON(paste0("https://openvolley.r-universe.dev/api/packages/", pkg, "/"))$Version), error = function(e) NA)
             if (is.na(latest)) {
                 warning("Can't determine latest version of package:", pkg, "\n")
                 latest <- -Inf

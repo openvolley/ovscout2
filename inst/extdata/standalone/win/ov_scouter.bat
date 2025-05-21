@@ -2,9 +2,6 @@
 
 echo Searching for R installation
 
-set RS_PATH=%~dp0R-Portable\App\R-Portable\bin\Rscript.exe
-if exist %RS_PATH% (goto allgood)
-
 set RS_PATH=
 where /q Rscript
 IF ERRORLEVEL 1 (
