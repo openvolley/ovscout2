@@ -20,7 +20,9 @@ The standalone installer allows you to run the app without having to do anything
 
 ### Windows
 
-1. Install R, following <https://cran.r-project.org/bin/windows/base/>. Ensure that the "Save version number to registry" box is ticked during installation.
+1. Install R, following <https://cran.r-project.org/bin/windows/base/>. **Do not run the R installer as administrator** &mdash; install it as a regular user. Ensure that the "Save version number to registry" box is ticked during installation.
+
+    If you install R as administrator, you are likely to get errors when ovscout2 tries to install additional packages (because it won't have write-access to the library directory). You can get around this by also running ovscout2 as administrator, but it is better to avoid the problem by installing R as a regular user in the first place.
 
 1. Download <https://github.com/openvolley/ovscout2/releases/latest/download/ovscout2-win-x64.zip> and unzip it to a convenient location.
 
@@ -286,6 +288,8 @@ An introduction to type-scouting is beyond the scope of this manual. You can fin
 For type-scout users, be aware that there are some non-standard scouting codes that can be used in ovscout2 that might save you a few keystrokes:
 
 - starting lineups can be entered with `L` codes such as `L 4,7s,8,10,1,3,17` (you can use spaces instead of commas if you prefer). The first six numbers give the players starting in positions 1&ndash;6, with "s" being used to designate the setter. The 7th (and 8th) numbers after the `L` are optional and are the libero(s). Use `aL` for the visiting team lineup.
+
+- at the end of the rally, the point can be assigned by entering `p` (if the home team won the rally) or `ap` (visiting team). Or you can use the shortcut keys, which by default are `Ctrl-ArrowUp` to assign the point to whichever team is at the top of the court diagram, and `Ctrl-ArrowDown` for the other team
 
 - attack combinations can be entered without the player number. For example, if the home team made an `X5` attack kill to position/cone 3 you can enter `X53#` without the player's jersey number (use `aX5...` for the visiting team). ovscout2 will automatically infer the player number. For an `X5` attack this is the front-row outside hitter, except in P1-reception when the opposite is expected to hit from position 4. Note some limitations on this process:
 
