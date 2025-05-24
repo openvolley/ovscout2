@@ -29,7 +29,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ovscout2</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -115,9 +115,17 @@ do anything in R.</p>
 <h4 id="windows">Windows<a class="anchor" aria-label="anchor" href="#windows"></a>
 </h4>
 <ol style="list-style-type: decimal">
-<li><p>Install R, following <a href="https://cran.r-project.org/bin/windows/base/" class="external-link uri">https://cran.r-project.org/bin/windows/base/</a>. Ensure
-that the “Save version number to registry” box is ticked during
-installation.</p></li>
+<li>
+<p>Install R, following <a href="https://cran.r-project.org/bin/windows/base/" class="external-link uri">https://cran.r-project.org/bin/windows/base/</a>. <strong>Do
+not run the R installer as administrator</strong> — install it as a
+regular user. Ensure that the “Save version number to registry” box is
+ticked during installation.</p>
+<p>If you install R as administrator, you are likely to get errors when
+ovscout2 tries to install additional packages (because it won’t have
+write-access to the library directory). You can get around this by also
+running ovscout2 as administrator, but it is better to avoid the problem
+by installing R as a regular user in the first place.</p>
+</li>
 <li><p>Download <a href="https://github.com/openvolley/ovscout2/releases/latest/download/ovscout2-win-x64.zip" class="external-link uri">https://github.com/openvolley/ovscout2/releases/latest/download/ovscout2-win-x64.zip</a>
 and unzip it to a convenient location.</p></li>
 <li><p>Run the <code>ov_scouter.bat</code> or
@@ -606,6 +614,12 @@ you prefer). The first six numbers give the players starting in
 positions 1–6, with “s” being used to designate the setter. The 7th (and
 8th) numbers after the <code>L</code> are optional and are the
 libero(s). Use <code>aL</code> for the visiting team lineup.</p></li>
+<li><p>at the end of the rally, the point can be assigned by entering
+<code>p</code> (if the home team won the rally) or <code>ap</code>
+(visiting team). Or you can use the shortcut keys, which by default are
+<code>Ctrl-ArrowUp</code> to assign the point to whichever team is at
+the top of the court diagram, and <code>Ctrl-ArrowDown</code> for the
+other team</p></li>
 <li>
 <p>attack combinations can be entered without the player number. For
 example, if the home team made an <code>X5</code> attack kill to
