@@ -43,11 +43,11 @@ check_lib_path <- function() {
         warning(gettextf("'lib = \"%s\"' is not writable", lib), domain = NA, immediate. = TRUE)
         userdir <- unlist(strsplit(Sys.getenv("R_LIBS_USER"), .Platform$path.sep))[1L]
         if (requireNamespace("tcltk", quietly = TRUE)) {
-            ans <- tcltk::tk_messageBox(type = "yesno", gettext("Would you like to use a personal library instead?"), default = FALSE)
+            ans <- tcltk::tk_messageBox(type = "yesno", paste0("'lib = \"", lib, "\"' is not writable\nWould you like to use a personal library instead?"))
             if (!isTRUE(ans == "yes")) stop("unable to install packages")
             lib <- userdir
             if (!file.exists(userdir)) {
-                ans <- tcltk::tk_messageBox(type = "yesno", gettextf("Would you like to create a personal library\n%s\nto install packages into?", sQuote(userdir)), default = FALSE)
+                ans <- tcltk::tk_messageBox(type = "yesno", paste0("OK to create personal library at\n", sQuote(userdir), "\nto install packages into?"))
                 if (!isTRUE(ans == "yes")) stop("unable to install packages")
                 if (!dir.create(userdir, recursive = TRUE)) stop(gettextf("unable to create %s", sQuote(userdir)), domain = NA)
                 .libPaths(c(userdir, .libPaths()))
