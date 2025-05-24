@@ -16,9 +16,51 @@ if (DEBUG) cat("using ovscout2-specific path for pandoc, ffmpeg, lighttpd binari
 optsave <- getOption("repos")
 options(repos = c(CRAN = "https://cloud.r-project.org", openvolley = "https://openvolley.r-universe.dev"))
 
+## if the library path is unwritable (e.g. the user installed R as admin on Windows and this is the first startup)
+##   install.packages() won't ask about using a user-specific R library path because it only does that in interactive sessions (interactive() isn't TRUE under Rscript)
+## so we check it here
+lib_path_checked <- FALSE
+check_lib_path <- function() {
+    ## minor adaptations from utils::install.packages, R Core Team R-core@r-project.org
+    lib <- .libPaths()[1L]
+    ok <- dir.exists(lib) & (file.access(lib, 2) == 0L)
+    if (length(lib) == 1L && .Platform$OS.type == "windows") {
+        ok <- dir.exists(lib)
+        if (ok) {
+            fn <- file.path(lib, paste0("_test_dir_", Sys.getpid()))
+            unlink(fn, recursive = TRUE)
+            res <- try(dir.create(fn, showWarnings = FALSE))
+            if (inherits(res, "try-error") || !res) {
+                ok <- FALSE
+            } else {
+                unlink(fn, recursive = TRUE)
+            }
+        }
+    }
+    if (length(lib) == 1L && !ok) {
+        warning(gettextf("'lib = \"%s\"' is not writable", lib), domain = NA, immediate. = TRUE)
+        userdir <- unlist(strsplit(Sys.getenv("R_LIBS_USER"), .Platform$path.sep))[1L]
+        if (requireNamespace("tcltk", quietly = TRUE)) {
+            ans <- tcltk::tk_messageBox(type = "yesno", gettext("Would you like to use a personal library instead?"), default = FALSE)
+            if (!isTRUE(ans == "yes")) stop("unable to install packages")
+            lib <- userdir
+            if (!file.exists(userdir)) {
+                ans <- tcltk::tk_messageBox(type = "yesno", gettextf("Would you like to create a personal library\n%s\nto install packages into?", sQuote(userdir)), default = FALSE)
+                if (!isTRUE(ans == "yes")) stop("unable to install packages")
+                if (!dir.create(userdir, recursive = TRUE)) stop(gettextf("unable to create %s", sQuote(userdir)), domain = NA)
+                .libPaths(c(userdir, .libPaths()))
+            }
+        } else {
+            stop("unable to install packages")
+        }
+    }
+    lib_path_checked <<- TRUE
+}
+
 ## check that a package and its dependencies are installed.
 ## it is possible that a package has been installed but one or more of its dependencies has not, e.g. if during install the download of the dependency binary failed but that of the main package did not
 needs_installing <- function(pkg) {
+    if (!lib_path_checked) check_lib_path()
     ip <- rownames(installed.packages())
     if (!pkg %in% ip) return(pkg)
     unname(na.omit(vapply(tools::package_dependencies(pkg, recursive = TRUE)[[1]], function(dep) if (!dep %in% ip) dep else NA_character_, FUN.VALUE = "")))

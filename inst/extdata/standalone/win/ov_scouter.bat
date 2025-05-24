@@ -28,7 +28,7 @@ set R_PATH=
 for /f "tokens=2,*" %%a in ('reg query %R_REGKEY% /v %R_REGVAL% 2^>nul') do set R_PATH=%%b
 
 rem catch failures
-if not defined R_PATH (echo Edit your path to include the R-portable bin directory & goto eof)
+if not defined R_PATH (echo Edit your path to include the R bin directory & goto eof)
 
 set RS_PATH=%R_PATH%\bin\Rscript.exe
 
