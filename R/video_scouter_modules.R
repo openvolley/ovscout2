@@ -52,7 +52,7 @@ mod_courtrot2_ui <- function(id, styling) {
     ns <- NS(id)
     jsns <- ns4js(ns)
     tagList(tags$head(tags$style(paste0("#", ns("court_inset"), " img {max-width:100%; max-height:100%; object-fit:contain;} .crbut, .crbut:hover { font-size:11px; padding:4px; } .crhbut { background-color:", styling$h_court_colour, "; margin-top:2px; } .crhbut:hover, .crhbut:active { margin-top:2px; background-color:", styling$h_court_light_colour, "; } .crvbut { background-color:", styling$v_court_colour, "; margin-top:2px; } .crvbut:hover, .crvbut:active { margin-top:2px; background-color:", styling$v_court_light_colour, "; }"))),
-            tags$div(style = "border-radius: 4px; padding: 4px;",
+            tags$div(id = ns("outer"), style = "border-radius: 4px; padding: 4px;",
                      fluidRow(
                      column(2,
                             actionButton(ns("rotate_home"), tags$span("Home", tags$br(), icon("redo")), class = "crbut crhbut", title = "Rotate"),
@@ -61,7 +61,7 @@ mod_courtrot2_ui <- function(id, styling) {
                             actionButton(ns("timeout_home"), tags$span("Home", tags$br(), icon("t")), class = "crbut crhbut", title = "Timeout"),
                             actionButton(ns("substitution_home"), tags$span("Home", tags$br(), icon("right-left")), class = "crbut crhbut", title = "Substitution")
                          ),
-                     column(7, id = ns("court_inset_holder"), plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "aspect-ratio:0.75; width:100%;")),
+                     column(7, id = ns("court_inset_holder"), plotOutputWithAttribs(ns("court_inset"), click = ns("plot_click"), style = "width:100%;")), ## previously used aspect-ratio:0.75; here, but it is not well supported on Safari
                      column(2,
                             actionButton(ns("rotate_visiting"), tags$span("Visiting", tags$br(), icon("redo")), class = "crbut crvbut", title = "Rotate"),
                             actionButton(ns("p1pt_visiting"), tags$span("Visiting", tags$br(), icon("plus")), class = "crbut crvbut", title = "+1 point"),
@@ -73,9 +73,9 @@ mod_courtrot2_ui <- function(id, styling) {
                      fluidRow(
                          column(2, offset = 2, actionButton(ns("switch_serving"), HTML("Switch<br />serving team"))),
                          column(1, offset = 4, actionButton(ns("court_inset_swap"), label = tags$span(style = "font-size:150%;", "\u21f5"), class = "iconbut", title = "Flip court diagram")) ## flip court diagram
-                     ),
                      )
-            )
+                     ),
+            tags$script(HTML(resize_observer(ns("outer"), fun = paste0("console.log('setting: ", ns("holder_width"), "'); Shiny.setInputValue('", ns("holder_width"), "', $('#", ns("court_inset_holder"), "').innerWidth());"), nsfun = jsns, debounce = 100, as = "string"))))
 }
 
 mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, current_video_src, styling, with_ball_path = function() FALSE) {
@@ -301,6 +301,11 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         })
         p + theme(plot.margin = rep(unit(0, "null"), 4))
     }, height = 950, width = 600, res = 180)
+
+    observeEvent(input$holder_width, {
+        ## set the court_inset height to 4/3 the width, which will fit the content (the image)
+        dojs(paste0("$('#", ns("court_inset"), "').height(", input$holder_width * 4 / 3, ");"))
+    })
 
     observeEvent(input$court_inset_swap, game_state$home_team_end <- other_end(game_state$home_team_end))
 
@@ -581,6 +586,11 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
             }
         })
     }, height = 800, width = 600, res = 180)
+
+    observeEvent(input$holder_width, {
+        ## set the court_inset height to 4/3 the width, which will fit the content (the image)
+        dojs(paste0("$('#", ns("court_inset"), "').height(", input$holder_width * 4 / 3, ");"))
+    })
 
     observeEvent(input$court_inset_swap, game_state$home_team_end <- other_end(game_state$home_team_end))
 
