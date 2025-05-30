@@ -69,8 +69,10 @@ needs_installing <- function(pkg) {
 }
 
 ## dependencies required before installing ovscout2, with optional minimum version number
+cat("checking dependencies: ")
 depsl <- list(fs = NA, jsonlite = NA, curl = NA)
 for (pkg in names(depsl)) {
+    cat(pkg, "")
     to_install <- needs_installing(pkg)
     if (!pkg %in% to_install && (!is.na(depsl[[pkg]]) && packageVersion(pkg) < depsl[[pkg]])) to_install <- c(pkg, to_install)
     if (length(to_install) > 0) {
@@ -82,6 +84,7 @@ for (pkg in names(depsl)) {
         })
     }
 }
+cat("\n")
 
 ## openvolley packages
 ## we will always attempt to install these, so that they are always updated, except if --noupdate has been specified
@@ -90,6 +93,7 @@ online <- tryCatch(suppressWarnings(curl::has_internet()), error = function(e) F
 
 depsl <- c("ovscout2")
 for (pkg in depsl) {
+    cat("checking package:", pkg, "\n")
     tryCatch({
         to_install <- needs_installing(pkg)
         if (!pkg %in% to_install && do_upd && online) {
@@ -145,7 +149,7 @@ if (do_upd) {
 ##if (!ovideo::ov_ffmpeg_ok()) warning("ffmpeg could not be found, some functionality will be disabled")
 
 ## check that we have pandoc
-if (!ovscout2:::ov_pandoc_ok()) warning("pandoc could not be found, some functionality will be disabled")
+blah <- ovscout2:::ov_pandoc_ok()
 
 library(ovscout2)
 ## check args
