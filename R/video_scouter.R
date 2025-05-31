@@ -482,10 +482,19 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
             onStop(function() try({ lighttpd_cleanup() }, silent = TRUE))
         } else {
             ## start servr instance serving from the video source directory
-            blah <- servr::httd(dir = fs::path_dir(fs::path(app_data$video_src)), port = video_server_port, browser = FALSE, daemon = TRUE)
+            ## use a custom handler on the response to inject an Access-Control header to avoid CORS problems
+            resfun <- function(path, res, ...) {
+                if (isTRUE(res$status >= 200 && res$status < 300)) {
+                    res$headers <- c(res$headers, list(`Access-Control-Allow-Origin` = "*"))
+                }
+                res
+            }
+            curwd <- getwd()
+            blah <- servr::httd(dir = fs::path_dir(fs::path(app_data$video_src)), port = video_server_port, browser = FALSE, daemon = TRUE, response = resfun)
             onStop(function() {
                 message("cleaning up servr")
                 servr::daemon_stop()
+                setwd(curwd)
             })
         }
         app_data$video_server_base_url <- paste0("http://", host, ":", video_server_port)
