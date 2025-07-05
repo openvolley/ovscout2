@@ -390,6 +390,7 @@ create_meta <- function(match, more, teams, players_h, players_v, video_file, at
         teams <- tibble(team_id = substr(teams, 1, 4), team = teams)
     }
     assert_that(is.data.frame(teams), nrow(teams) == 2)
+    if (any(duplicated(teams$team_id))) stop("team_ids must be unique")
     if (!"coach" %in% names(teams)) teams$coach <- ""
     if (!"assistant" %in% names(teams)) teams$assistant <- ""
     if (!"shirt_colour" %in% names(teams)) teams$shirt_colour <- c("#FF0000", "#0000FF")
@@ -408,10 +409,15 @@ create_meta <- function(match, more, teams, players_h, players_v, video_file, at
     meta$players_h <- make_players(players_h, "home")
     meta$players_v <- make_players(players_v, "visiting")
     meta$players_v$X3 <- meta$players_v$X3 + nrow(players_h)
+    ## check for duplicate player IDs (on same team)
     pids <- c(meta$players_h$player_id, meta$players_v$player_id)
-    if (any(duplicated(pids))) {
-        dup <- pids[duplicated(pids)]
-        warning("duplicated player_id(s): ", paste(dup, collapse = ", "), ". If these have been automatically generated you might need to explicitly provide them in the players_h and players_v data.frames")
+    duph <- meta$players_h$player_id[duplicated(meta$players_h$player_id)]
+    dupv <- meta$players_v$player_id[duplicated(meta$players_v$player_id)]
+    if (length(duph) > 0 || length(dupv) > 0) {
+        stop("duplicated player_id(s): ",
+             if (length(duph) > 0) paste0("home team ", paste(duph, collapse = ", "), if (length(dupv) > 0) ", "),
+             if (length(dupv) > 0) paste0("visiting team ", paste(dupv, collapse = ", ")),
+             ". If these have been automatically generated you might need to explicitly provide them in the players_h and players_v data.frames")
     }
     roles <- c("libero", "outside", "opposite", "middle", "setter", "unknown")
     if (!all(meta$players_h$role %in% roles)) {
