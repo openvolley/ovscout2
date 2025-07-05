@@ -411,7 +411,7 @@ create_meta <- function(match, more, teams, players_h, players_v, video_file, at
     pids <- c(meta$players_h$player_id, meta$players_v$player_id)
     if (any(duplicated(pids))) {
         dup <- pids[duplicated(pids)]
-        stop("duplicated player_id(s): ", paste(dup, collapse = ", "), ". If these have been automatically generated you might need to explicitly provide them in the players_h and players_v data.frames")
+        warning("duplicated player_id(s): ", paste(dup, collapse = ", "), ". If these have been automatically generated you might need to explicitly provide them in the players_h and players_v data.frames")
     }
     roles <- c("libero", "outside", "opposite", "middle", "setter", "unknown")
     if (!all(meta$players_h$role %in% roles)) {
