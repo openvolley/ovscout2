@@ -6,7 +6,7 @@
 #' If a *.ovs file (i.e. a partially-scouted file, that was previously scouted using this app) has been provided in the `dvw` argument, then it will contain the scouting options used during the previous scouting session. Those options will be re-used EXCEPT if `scouting_options` are also provided here. Any scouting options provided here via the `scouting_options` argument will override options saved in the .ovs file. Thus, it is recommended that `scouting_options` not be provided here along with a .ovs file unless absolutely necessary. If necessary, only the specific, relevant elements of the `scouting_options` list should be provided. Note that *.dvw files do not contain saved options, only .ovs files that were scouted with this app.
 #'
 #' @param dvw string or datavolley: either the path to a dvw or ovs file or a datavolley object (e.g. as returned by [dv_create()]. Passing the file name (not the datavolley object) is required if any extra arguments are passed via `...`. `dvw` can also be an object as saved by `ov_scouter()` in ovs format. If `dvw` is "demo", the app will be started with a demonstration data set
-#' @param video_file string: optionally, the path to the video file. If not supplied (or `NULL`) the video file specified in the dvw file will be used. `video_file` can also be a URL (including a YouTube URL or video ID)
+#' @param video_file string or `FALSE`: optionally, the path to the video file. If `FALSE` and `scout_mode` is "type", no video will be used (use this for e.g. live scouting). If `video_file` is not supplied or is `NULL`, the video file specified in the dvw file will be used. `video_file` can also be a URL (including a YouTube URL or video ID)
 # @param video_file2 string: optionally, the file path or URL to a second video file (e.g. video from the opposite end of the court to `video_file`). If this is a local file, it must be in the same directory as `video_file`
 #' @param court_ref data.frame or string: data.frame with the court reference (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this
 # @param court_ref2 data.frame or string: data.frame with the court reference for `video_file2` (as returned by [ovideo::ov_shiny_court_ref()]) or the path to the rds file containing the output from this. Note that `court_ref2` must be defined in the same orientation as `court_ref` - for example, the corner of the court considered to be "far left" must be the same physical court corner in both court references
@@ -192,7 +192,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     ## deal with video_file parm
     if (is.null(dvw$meta$video)) dvw$meta$video <- tibble(camera = character(), file = character())
 
-    if (!missing(video_file) && !is.null(video_file) && !is.na(video_file) && nchar(video_file)) {
+    if (!missing(video_file) && !is.null(video_file) && !is.na(video_file) && nchar(video_file) && !identical(video_file, FALSE)) {
         if (is_youtube_id(video_file)) {
             video_file <- paste0("https://www.youtube.com/watch?v=", video_file)
         }
@@ -204,27 +204,30 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
             }, error = function(e) stop("the provided video_file (", video_file, ") does not exist"))
         }
     }
-    if (nrow(dvw$meta$video) > 1) {
-        warning("multiple video files have been specified in the scout file metadata, using only the first one", immediate. = TRUE)
-        dvw$meta$video <- dvw$meta$video[1, ]
-    }
+    if (!identical(video_file, FALSE)) {
+        if (nrow(dvw$meta$video) > 1) {
+            warning("multiple video files have been specified in the scout file metadata, using only the first one", immediate. = TRUE)
+            dvw$meta$video <- dvw$meta$video[1, ]
+        }
 
-    ## if the dvw file came from somebody/somewhere else, we might have the video but the absolute path in the dvw will be wrong
-    if (length(dvw$meta$video$file) == 1 && !is_url(dvw$meta$video$file)) {
-        chk <- dvw$meta$video$file
-        if (!fs::file_exists(as.character(chk))) {
-            ## can't find the file, go looking for it
-            chk <- tryCatch(ovideo::ov_find_video_file(dvw_filename = dvw_filename, video_filename = chk), error = function(e) NA_character_)
-            if (!is.na(chk)) dvw$meta$video$file <- chk
+        ## if the dvw file came from somebody/somewhere else, we might have the video but the absolute path in the dvw will be wrong
+        if (length(dvw$meta$video$file) == 1 && !is_url(dvw$meta$video$file)) {
+            chk <- dvw$meta$video$file
+            if (!fs::file_exists(as.character(chk))) {
+                ## can't find the file, go looking for it
+                chk <- tryCatch(ovideo::ov_find_video_file(dvw_filename = dvw_filename, video_filename = chk), error = function(e) NA_character_)
+                if (!is.na(chk)) dvw$meta$video$file <- chk
+            }
         }
     }
-
     ## has any of that resulted in a video file?
     if (!(nrow(dvw$meta$video) == 1 && (file.exists(dvw$meta$video$file) || is_url(dvw$meta$video$file)))) {
-        if (prompt_for_files) {
-            ## allow file chooser to find video file
-            video_file <- fchoose(caption = "Choose video file", path = if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
-            if (length(video_file) == 1) dvw$meta$video <- tibble(camera = "Camera0", file = video_file)
+        if (!isTRUE(scout_mode == "type" && identical(video_file, FALSE))) {
+            if (prompt_for_files) {
+                ## allow file chooser to find video file
+                video_file <- fchoose(caption = "Choose video file", path = if (!missing(season_dir) && !is.null(season_dir) && dir.exists(season_dir)) season_dir else getwd())##, filters = matrix(c("dvw files (*.dvw)", "*.dvw", "All files (*.*)", "*.*"), nrow = 2, byrow = TRUE))
+                if (length(video_file) == 1) dvw$meta$video <- tibble(camera = "Camera0", file = video_file)
+            }
         }
     }
 
@@ -232,8 +235,8 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     if (scout_mode == "type") {
         ## don't necessarily need a video, we might be scouting live
         ## TODO better handling/warning
-        if (nrow(dvw$meta$video) < 1) {
-            warning("no video files specified, either in the scout file or via the video_file parameter")
+        if (nrow(dvw$meta$video) < 1 || identical(video_file, FALSE)) {
+            if (!identical(video_file, FALSE)) warning("no video files specified, either in the scout file or via the video_file parameter")
             with_video <- FALSE
         } else if (!is_url(dvw$meta$video$file) && !file.exists(dvw$meta$video$file)) {
             warning("specified video file (", dvw$meta$video$file, ") does not exist. Perhaps specify the local path via the video_file parameter?")
