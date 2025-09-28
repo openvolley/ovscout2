@@ -160,26 +160,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
         last_plot_data_digest <<- dig
     })
 
-    ss <- reactive({
-        sets_won <- c(0L, 0L) ## sets won by home, visiting teams
-        if (nrow(rdata$dvw$plays2) < 1 || !"code" %in% names(rdata$dvw$plays2)) return(c(0L, 0L))
-        set_end_rows <- grep("^\\*\\*[[:digit:]]set", rdata$dvw$plays2$code)
-        for (si in seq_along(set_end_rows)) {
-            set_plays2 <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == si)
-            temp <- do.call(rbind, stringr::str_match_all(set_plays2$code, "^[a\\*]p([[:digit:]]+):([[:digit:]]+)"))
-            scores <- c(max(as.numeric(temp[, 2]), na.rm = TRUE), max(as.numeric(temp[, 3]), na.rm = TRUE))
-            if (is_beach(rdata$dvw)) {
-                if (max(scores) >= 21 && abs(diff(scores)) >= 2) {
-                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
-                }
-            } else {
-                if ((si < 5 && max(scores) >= 25 && abs(diff(scores)) >= 2) || max(scores) >= 15 && abs(diff(scores)) >= 2) {
-                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
-                }
-            }
-        }
-        sets_won
-    })
+    ss <- reactive(calc_sets_won(rdata$dvw$plays2))
     ss_digest <- reactiveVal("")
     last_ss_digest <- "xx"
     observe({
@@ -398,26 +379,7 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
         last_plot_data_digest <<- dig
     })
 
-    ss <- reactive({
-        sets_won <- c(0L, 0L) ## sets won by home, visiting teams
-        if (nrow(rdata$dvw$plays2) < 1 || !"code" %in% names(rdata$dvw$plays2)) return(c(0L, 0L))
-        set_end_rows <- grep("^\\*\\*[[:digit:]]set", rdata$dvw$plays2$code)
-        for (si in seq_along(set_end_rows)) {
-            set_plays2 <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == si)
-            temp <- do.call(rbind, stringr::str_match_all(set_plays2$code, "^[a\\*]p([[:digit:]]+):([[:digit:]]+)"))
-            scores <- c(max(as.numeric(temp[, 2]), na.rm = TRUE), max(as.numeric(temp[, 3]), na.rm = TRUE))
-            if (is_beach(rdata$dvw)) {
-                if (max(scores) >= 21 && abs(diff(scores)) >= 2) {
-                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
-                }
-            } else {
-                if ((si < 5 && max(scores) >= 25 && abs(diff(scores)) >= 2) || max(scores) >= 15 && abs(diff(scores)) >= 2) {
-                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
-                }
-            }
-        }
-        sets_won
-    })
+    ss <- reactive(calc_sets_won(rdata$dvw$plays2))
     ss_digest <- reactiveVal("")
     last_ss_digest <- "xx"
     observe({
@@ -1267,27 +1229,7 @@ mod_teamscores_ui <- function(id) {
 
 mod_teamscores <- function(input, output, session, game_state, rdata, styling, visible = reactiveVal(TRUE)) {
     ns <- session$ns
-    ss <- reactive({
-        sets_won <- c(0L, 0L) ## sets won by home, visiting teams
-        if (nrow(rdata$dvw$plays2) < 1 || !"code" %in% names(rdata$dvw$plays2)) return(c(0L, 0L))
-        set_end_rows <- grep("^\\*\\*[[:digit:]]set", rdata$dvw$plays2$code)
-        for (si in seq_along(set_end_rows)) {
-            set_plays2 <- rdata$dvw$plays2 %>% dplyr::filter(.data$set_number == si)
-            temp <- do.call(rbind, stringr::str_match_all(set_plays2$code, "^[a\\*]p([[:digit:]]+):([[:digit:]]+)"))
-            scores <- c(max(as.numeric(temp[, 2]), na.rm = TRUE), max(as.numeric(temp[, 3]), na.rm = TRUE))
-            if (is_beach(rdata$dvw)) {
-                if (max(scores) >= 21 && abs(diff(scores)) >= 2) {
-                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
-                }
-            } else {
-                if ((si < 5 && max(scores) >= 25 && abs(diff(scores)) >= 2) || max(scores) >= 15 && abs(diff(scores)) >= 2) {
-                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
-                }
-            }
-        }
-        sets_won
-    })
-
+    ss <- reactive(calc_sets_won(rdata$dvw$plays2))
 
     output$scoreboard <- renderUI({
         hs <- game_state$home_score_start_of_point
