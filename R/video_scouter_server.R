@@ -867,6 +867,7 @@ ov_scouter_server <- function(app_data) {
             dojs(paste0("Shiny.setInputValue('scout_input_leftovers', $('#scout_in').val() + ' ap', { priority: 'event' });"))
         })
 
+        ## TODO fix: at the moment a `**set` code needs to be entered on its own, not as part of a space-separated sequence of codes
         handle_scout_codes <- function(codes) {
             ## split on spaces
             codes <- strsplit(str_trim(codes), "[[:space:]]+")[[1]]
