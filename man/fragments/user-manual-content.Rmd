@@ -287,9 +287,9 @@ An introduction to type-scouting is beyond the scope of this manual. You can fin
 
 For type-scout users, be aware that there are some non-standard scouting codes that can be used in ovscout2 that might save you a few keystrokes:
 
-- starting lineups can be entered with `L` codes such as `L 4,7s,8,10,1,3,17` (you can use spaces instead of commas if you prefer). The first six numbers give the players starting in positions 1&ndash;6, with "s" being used to designate the setter. The 7th (and 8th) numbers after the `L` are optional and are the libero(s). Use `aL` for the visiting team lineup.
+- starting lineups can be entered with `L` codes such as `L 4,7s,8,10,1,3,17` (you can use spaces instead of commas if you prefer). The first six numbers give the players starting in positions 1&ndash;6, with "s" being used to designate the setter. The 7th (and 8th) numbers after the `L` are optional and are the libero(s). Use `aL` for the visiting team lineup
 
-- at the end of the rally, the point can be assigned by entering `p` (if the home team won the rally) or `ap` (visiting team). Or you can use the shortcut keys, which by default are `Ctrl-ArrowUp` to assign the point to whichever team is at the top of the court diagram, and `Ctrl-ArrowDown` for the other team
+- at the end of the rally, the point can be assigned by entering `p` or `*p` (if the home team won the rally) or `ap` (visiting team). Or you can use the shortcut keys, which by default are `Ctrl-ArrowUp` to assign the point to whichever team is at the top of the court diagram, and `Ctrl-ArrowDown` for the other team
 
 - attack combinations can be entered without the player number. For example, if the home team made an `X5` attack kill to position/cone 3 you can enter `X53#` without the player's jersey number (use `aX5...` for the visiting team). ovscout2 will automatically infer the player number. For an `X5` attack this is the front-row outside hitter, except in P1-reception when the opposite is expected to hit from position 4. Note some limitations on this process:
 
@@ -299,9 +299,11 @@ For type-scout users, be aware that there are some non-standard scouting codes t
 
   - it assumes that the team is playing with standard player role patterns and a setter-outside-middle rotation (i.e. the close outside hitter is in position 2 when the setter is in 1).
 
-  If the team plays with some other patterns, or if these assumptions don't hold for a particular attack, provide the player number in the scout code as usual.
+  If the team plays with some other patterns, or if these assumptions don't hold for a particular attack, provide the player number in the scout code as usual
 
-- setter calls in reception need only be `Kx` &mdash; the set action will be assigned to the on-court setter of the receiving team. Setter calls in transition, if you wish to include them, will need the team identifier as well (i.e. `*Kx` or `aKx`),
+- setter calls in reception need only be `Kx` &mdash; the set action will be assigned to the on-court setter of the receiving team. Setter calls in transition, if you wish to include them, will need the team identifier as well (i.e. `*Kx` or `aKx`)
+
+- you can signal the end of the set by entering `**set`
 
 # Switching scout modes {.nobreakbefore}
 

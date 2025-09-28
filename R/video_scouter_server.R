@@ -880,7 +880,8 @@ ov_scouter_server <- function(app_data) {
                 if (debug > 1) cat("to process: ", code, "\n")
                 if (grepl("^(>|\\*T|aT|\\*p|ap|\\*c|ac)", code) || ## timeout, point assignment, sub
                     grepl("^[a\\*]C[[:digit:]]+[:\\.][[:digit:]]+", code) || ## substitution ensuring it can't be an attack combo code
-                    (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(game_state$rally_started))) { ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
+                    (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(game_state$rally_started)) || ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
+                    grepl("^\\*\\*[[:digit:]]?set", code, ignore.case = TRUE)) { ## manual end of set code
                     res <- handle_non_skill_code(code, process_rally_end = FALSE) ## FALSE so that this does not automatically handle end-of-rally ap, *p codes
                     if (code %in% c("*p", "ap")) {
                         review_rally(editing = editing, app_data = app_data, rally_codes = rally_codes)
@@ -3238,6 +3239,11 @@ ov_scouter_server <- function(app_data) {
                     } else {
                         ok <- FALSE
                     }
+                } else if (grepl("^\\*\\*[[:digit:]]?set", code, ignore.case = TRUE)) {
+                    ## this should only be called by the user if they are following non-standard match conventions (the auto-detect of end of set might not work) or they have dismissed the end-of-set confirmation modal and continued scouting
+                    ## assume that they have properly ended the rally before calling this
+                    do_end_of_set_confirm()
+                    end_of_set <- TRUE
                 }
             }
             list(ok = ok, end_of_set = end_of_set)
