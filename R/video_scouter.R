@@ -191,12 +191,11 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
 
     ## deal with video_file parm
     if (is.null(dvw$meta$video)) dvw$meta$video <- tibble(camera = character(), file = character())
-
-    if (!missing(video_file) && !is.null(video_file) && !is.na(video_file) && nchar(video_file) && !identical(video_file, FALSE)) {
+    if (missing(video_file)) video_file <- NULL
+    if (!is.null(video_file) && !is.na(video_file) && nchar(video_file) && !identical(video_file, FALSE)) {
         if (is_youtube_id(video_file)) {
             video_file <- paste0("https://www.youtube.com/watch?v=", video_file)
-        }
-        if (is_url(video_file)) {
+        } else if (is_url(video_file)) {
             dvw$meta$video <- tibble(camera = "Camera0", file = video_file)
         } else {
             tryCatch({
