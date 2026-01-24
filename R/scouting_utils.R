@@ -648,4 +648,5 @@ test_end_of_set <- function(scores, set_number, beach = FALSE) {
         isTRUE(((set_number < 3 && max(scores) >= 21) || (set_number > 2 && max(scores) >= 15)) && abs(diff(scores)) >= 2)
     } else {
         isTRUE(((set_number < 5 && max(scores) >= 25) || (set_number > 4 && max(scores) >= 15)) && abs(diff(scores)) >= 2)
+    }
 }
