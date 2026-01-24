@@ -160,16 +160,9 @@ update_meta <- function(x) {## used to have this but was only used in console te
                 set_was_completed <- TRUE
             } else {
                 ## no end-of-set marker, but we can't be sure if the set is incomplete or the marker is just missing. If scores are such that the set would be complete, assume it was
-                if (is_beach) {
-                    if (((si < 3 && max(scores) >= 21) || (si > 2 && max(scores) >= 15)) && abs(diff(scores)) >= 2) {
-                        sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
-                        set_was_completed <- TRUE
-                    }
-                } else {
-                    if (((si < 5 && max(scores) >= 25) || (si > 4 && max(scores) >= 15)) && abs(diff(scores)) >= 2) {
-                        sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
-                        set_was_completed <- TRUE
-                    }
+                if (test_end_of_set(scores, set_number = si, beach = is_beach)) {
+                    sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
+                    set_was_completed <- TRUE
                 }
             }
             ## intermediate score levels
@@ -648,4 +641,11 @@ calc_sets_won <- function(plays2) {
         sets_won[which.max(scores)] <- sets_won[which.max(scores)] + 1L
     }
     sets_won
+}
+
+test_end_of_set <- function(scores, set_number, beach = FALSE) {
+    if (isTRUE(beach)) {
+        isTRUE(((set_number < 3 && max(scores) >= 21) || (set_number > 2 && max(scores) >= 15)) && abs(diff(scores)) >= 2)
+    } else {
+        isTRUE(((set_number < 5 && max(scores) >= 25) || (set_number > 4 && max(scores) >= 15)) && abs(diff(scores)) >= 2)
 }

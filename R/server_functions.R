@@ -213,11 +213,7 @@ rally_ended <- function() {
     do_rally_end_things(game_state = game_state, app_data = app_data, rdata = rdata, rally_codes = rally_codes, rally_state = rally_state)
     ## check for end of set
     scores <- c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point)
-    end_of_set <- if (app_data$is_beach) {
-                      max(scores) >= 21 && abs(diff(scores)) >= 2
-                  } else {
-                      ((max(scores) >= 25 && game_state$set_number < 5) || (max(scores) >= 15 && game_state$set_number == 5)) && abs(diff(scores)) >= 2
-                  }
+    end_of_set <- test_end_of_set(scores, set_number = game_state$set_number, beach = app_data$is_beach)
     if (end_of_set && !have_asked_end_of_set()) {
         show_scout_modal(
                vwModalDialog(title = "End of set", footer = NULL, width = app_data$styling$scout_modal_width, modal_halign = "left",
