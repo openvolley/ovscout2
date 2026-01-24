@@ -150,21 +150,21 @@ get_current_rally_code <- function(playslist_mod, rdata, rally_codes) {
     }, error = function(e) NULL)
 }
 
-review_rally <- function(editing, app_data, rally_codes) {
+review_rally <- function(editing, rally_codes) {
     ## codes can be reviewed and edited at the end of the rally
     editing$active <- .C_rally_review
-    if (app_data$with_video) do_video("pause")
+    do_video("pause")
     review_rally_modal(rally_codes())
 }
 
-do_cancel_rally_review <- function(editing, app_data) {
+do_cancel_rally_review <- function(editing) {
     editing$active <- NULL
     removeModal()
-    if (app_data$with_video) do_video("play")
+    do_video("play")
     focus_to_scout_bar()
 }
 
-apply_rally_review <- function(editing, rally_codes, game_state, input, rdata, app_data) {
+apply_rally_review <- function(editing, rally_codes, game_state, input, rdata) {
     editing$active <- NULL
     removeModal()
     rctxt0 <- codes_from_rc_rows(rally_codes()) ## the codes before review
@@ -196,7 +196,7 @@ apply_rally_review <- function(editing, rally_codes, game_state, input, rdata, a
     ## end of point, pre-populate the scout box with the server team and number
     if (!end_of_set) {
         populate_server(game_state)
-        if (app_data$with_video) do_video("play")
+        if (!isTRUE(editing$active == .C_confirm_setter_on_court)) do_video("play")
     }
 }
 

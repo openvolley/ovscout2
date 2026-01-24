@@ -3,6 +3,7 @@
 .C_editing_shortcut <- "shortcut" ## editing a particular shortcut
 .C_editing_shortcuts <- "shortcuts" ## showing the overall shortcuts dialog
 .C_confirm_end_of_set <- "confirm end of set"
+.C_confirm_setter_on_court <- "confirm setter on court"
 .C_rally_review <- "rally_review"
 .C_admin <- "admin"
 .C_video_offset <- "video offset"

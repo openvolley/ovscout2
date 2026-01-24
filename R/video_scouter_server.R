@@ -692,7 +692,7 @@ ov_scouter_server <- function(app_data) {
                         ## if we have a scouting modal showing, treat this as cancel and rewind
                         do_cancel_rew()
                     } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% .C_rally_review) {
-                        do_cancel_rally_review(editing = editing, app_data = app_data)
+                        do_cancel_rally_review(editing = editing)
                     } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% .C_preferences) {
                         editing$active <- NULL
                         removeModal()
@@ -713,7 +713,7 @@ ov_scouter_server <- function(app_data) {
                         if (!is.null(editing$active) && editing$active %eq% .C_rally_review) {
                             ## TODO we might have another race condition here where the text input does not update in the shiny server in time TODO CHECK
                             focus_to_modal_element("redit_ok", highlight_all = FALSE)
-                            apply_rally_review(editing = editing, rally_codes = rally_codes, game_state = game_state, input = input, rdata = rdata, app_data = app_data)
+                            apply_rally_review(editing = editing, rally_codes = rally_codes, game_state = game_state, input = input, rdata = rdata)
                         } else if (!is.null(editing$active) && editing$active %eq% .C_teams) {
                             team_edit_key_in(c(k, list(blah = R.utils::System$currentTimeMillis()))) ## add timestamp to ensure every event is a unique trigger, not sure if this is actually needed?
                         } else if (!is.null(editing$active) && editing$active %eq% .C_confirm_end_of_set) {
@@ -885,7 +885,7 @@ ov_scouter_server <- function(app_data) {
                     grepl("^\\*\\*[[:digit:]]?set", code, ignore.case = TRUE)) { ## manual end of set code
                     res <- handle_non_skill_code(code, process_rally_end = FALSE) ## FALSE so that this does not automatically handle end-of-rally ap, *p codes
                     if (code %in% c("*p", "ap")) {
-                        review_rally(editing = editing, app_data = app_data, rally_codes = rally_codes)
+                        review_rally(editing = editing, rally_codes = rally_codes)
                     }
                     if (!res$ok) {
                         ## TODO something
@@ -1040,8 +1040,8 @@ ov_scouter_server <- function(app_data) {
             }
         })
 
-        observeEvent(input$redit_ok, apply_rally_review(editing = editing, rally_codes = rally_codes, game_state = game_state, input = input, rdata = rdata, app_data = app_data))
-        observeEvent(input$redit_cancel, do_cancel_rally_review(editing = editing, app_data = app_data))
+        observeEvent(input$redit_ok, apply_rally_review(editing = editing, rally_codes = rally_codes, game_state = game_state, input = input, rdata = rdata))
+        observeEvent(input$redit_cancel, do_cancel_rally_review(editing = editing))
 
         ## options
         ## TODO other prefs to add: scout_mode, season_dir, auto_save_dir
