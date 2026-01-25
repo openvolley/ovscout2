@@ -1175,15 +1175,23 @@ get_teams_from_dvw_dir <- function(season) {
     })
     out <- Filter(Negate(is.null), out)
     if (length(out) < 1) return(tibble())
-    team_list <- dplyr::select(do.call(bind_rows, lapply(out, function(z) z$teams)), "team_id", "team", "coach", "assistant", "shirt_colour") %>%
+    team_list <- do.call(bind_rows, lapply(out, function(z) z$teams))
+    if (!"setter_system" %in% names(team_list)) team_list$setter_system <- NA_character_
+    team_list <- team_list %>% dplyr::select("team_id", "team", "coach", "assistant", "shirt_colour", "setter_system") %>%
         mutate(team_id = stringr::str_to_upper(.data$team_id),
-               team = .data$team, ##stringr::str_to_title(.data$team),
-               coach = .data$coach, ##stringr::str_to_title(.data$coach),
-               assistant = .data$assistant, ##stringr::str_to_title(.data$assistant),
+               ## team = .data$team, ##stringr::str_to_title(.data$team),
+               ## coach = .data$coach, ##stringr::str_to_title(.data$coach),
+               ## assistant = .data$assistant, ##stringr::str_to_title(.data$assistant),
                shirt_colour = stringr::str_to_lower(.data$shirt_colour))
 
     csu <- function(z) paste(unique(na.omit(z)), collapse = ", ") ## comma-separated unique values
-    team_list <- team_list %>% group_by(.data$team_id) %>% dplyr::summarize(team = csu(.data$team), coach = csu(.data$coach), assistant = csu(.data$assistant), shirt_colour = most_common_value(.data$shirt_colour, na.rm = TRUE)) %>% ungroup
+
+    team_list <- team_list %>% mutate(setter_system = case_when(.data$setter_system == "Not specified" ~ NA_character_, TRUE ~ .data$setter_system)) %>%
+        group_by(.data$team_id) %>%
+        dplyr::summarize(team = csu(.data$team), coach = csu(.data$coach), assistant = csu(.data$assistant),
+                         shirt_colour = most_common_value(.data$shirt_colour, na.rm = TRUE),
+                         setter_system = single_unique_or(.data$setter_system, or = NA_character_)) %>% ungroup %>%
+        mutate(setter_system = case_when(is.na(.data$setter_system) ~ "Not specified", TRUE ~ .data$setter_system))
 
     team_list <- as_tibble(team_list)
     team_list$player_table <- list(NULL)
@@ -1209,7 +1217,11 @@ get_teams_from_dvw_dir <- function(season) {
                        firstname = .data$firstname, ##stringr::str_to_title(.data$firstname),
                        role = stringr::str_to_lower(.data$role)) %>% dplyr::distinct()
 
-        player_table_tid <- player_table_tid %>% group_by(.data$player_id, .data$lastname, .data$firstname, .data$number) %>% mutate(role = case_when(is.na(.data$role) ~ "", TRUE ~ .data$role)) %>% dplyr::summarize(role = paste(.data$role)) %>% ungroup
+        player_table_tid <- player_table_tid %>%
+            ## mutate(role = case_when(is.na(.data$role) ~ "", TRUE ~ .data$role)) %>%
+            group_by(.data$player_id, .data$lastname, .data$firstname, .data$number) %>%
+            dplyr::summarize(role = single_unique_or(.data$role, or = NA_character_)) %>% ungroup
+
         team_list$player_table[team_list$team_id == t_id] <- list(player_table_tid)
 
     }

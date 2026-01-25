@@ -13,6 +13,12 @@ most_common_value <- function(x, na.rm = FALSE) {
     ux[which.max(tabulate(match(x, ux)))]
 }
 
+single_unique_or <- function(z, or = "multiple values") {
+    if (is.na(or)) or <- as(NA, class(z))
+    tmp <- unique(na.omit(z))
+    if (length(tmp) == 1) tmp else if (length(tmp) > 1) or else as(NA, class(z))
+}
+
 ## leading zeros on numbers, e.g. jersey numbers
 ldz <- function(nn, width = 2) formatC(suppressWarnings(as.integer(nn)), flag = "0", width = width)
 ## same but forcing NAs, negative numbers, and numbers > 99 to "00"
