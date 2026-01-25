@@ -271,6 +271,8 @@ dv_write2 <- function(x, file, text_encoding = "UTF-8", convert_cones = TRUE) {
     ## ensure players are OK
     x$meta$players_h <- make_players(remove_players_not_played(roster = x$meta$players_h, plays = x$plays2, home_visiting = "h", faststart_only = TRUE))
     x$meta$players_v <- make_players(remove_players_not_played(roster = x$meta$players_v, plays = x$plays2, home_visiting = "v", faststart_only = TRUE))
+    ## drop the team setter system column
+    x$meta$teams$setter_system <- NULL
     ## write without the plays part
     dv_write(x, file = file, text_encoding = text_encoding)
     if (!is.null(x$plays2) && nrow(x$plays2) > 0) {

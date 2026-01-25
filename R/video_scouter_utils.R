@@ -542,12 +542,12 @@ get_liberos <- function(game_state, team, dvw) {
 
 get_players <- function(game_state, team, dvw) {
     pseq <- seq_len(if (is_beach(dvw)) 2L else 6L)
-    if (missing(team)) team <- game_state$current_team
-    if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
+    gs <- if (shiny::is.reactivevalues(game_state)) reactiveValuesToList(game_state) else game_state
+    if (missing(team)) team <- gs$current_team
     if (team == "*") {
-        tryCatch(as.numeric(game_state[paste0("home_p", pseq)]), error = function(e) rep(NA_integer_, length(pseq)))
+        tryCatch(as.numeric(gs[paste0("home_p", pseq)]), error = function(e) rep(NA_integer_, length(pseq)))
     } else if (team == "a") {
-        tryCatch(as.numeric(game_state[paste0("visiting_p", pseq)]), error = function(e) rep(NA_integer_, length(pseq)))
+        tryCatch(as.numeric(gs[paste0("visiting_p", pseq)]), error = function(e) rep(NA_integer_, length(pseq)))
     } else {
         rep(NA_integer_, length(pseq))
     }

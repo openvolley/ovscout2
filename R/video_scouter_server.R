@@ -283,7 +283,7 @@ ov_scouter_server <- function(app_data) {
         have_asked_end_of_set <- reactiveVal(FALSE) ## only ask once per set: if the user says no, then don't keep popping the modal up after every point (it's perhaps a drill or training scrimmage)
 
         video_state <- reactiveValues(paused = TRUE, muted = TRUE) ## starts paused and muted
-        editing <- reactiveValues(active = NULL)
+        editing <- reactiveValues(active = NULL, confirm_home_setter = FALSE, confirm_visiting_setter = FALSE)
 
         observeEvent(input$playback_rate, {
             if (!is.null(input$playback_rate)) {
@@ -316,9 +316,7 @@ ov_scouter_server <- function(app_data) {
             if (do_focus_to_playslist) focus_to_playslist()
         })
 
-        observeEvent(input$edit_commit, {
-            do_edit_commit()
-        })
+        observeEvent(input$edit_commit, do_edit_commit())
 
         ## this is a workaround to deal with input values not being updated in time if the user presses Enter quickly while editing codes (in e.g. manual code entry)
         observeEvent(input$code_entries, {
@@ -649,6 +647,13 @@ ov_scouter_server <- function(app_data) {
                 if ((k$class %eq% "modal-open" || grepl("scedit-modal", k$class)) && !is.null(editing$active) && editing$active %eq% .C_editing_shortcut) {
                     sc_newvalue(key_as_text(k))
                     if (!tolower(ky) %in% c("alt", "shift", "meta", "control")) output$scedit_out <- renderUI(tags$code(key_as_text(k)))
+                } else if (isTRUE(rally_state() == .C_confirm_end_of_set)) {
+                    ## handle the end-of-set confirmation in its own block, we can only accept enter or escape if this is showing
+                    if (tolower(ky) %eq% "escape") {
+                        do_end_of_set_cancel()
+                    } else if (tolower(ky) %eq% "enter") {
+                        do_end_of_set_confirm()
+                    }
                 } else if (is_shortcut(k, app_data$shortcuts$save_file)) {
                     dojs("$('#save_rds_button')[0].click();")
                     ## saves, but in firefox at least the download dropdown dialog is shown. Programmatically focusing back to the scout bar does not seem to get rid of it. But you can press escape to dismiss it
@@ -686,9 +691,7 @@ ov_scouter_server <- function(app_data) {
                     }
                 } else {
                     ## escape does some special things, but can also be used in shortcuts, yuck. Check all the special things first
-                    if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% .C_confirm_end_of_set) {
-                        do_end_of_set_cancel()
-                    } else if (tolower(ky) %eq% "escape" && isTRUE(scout_modal_active())) {
+                    if (tolower(ky) %eq% "escape" && isTRUE(scout_modal_active())) {
                         ## if we have a scouting modal showing, treat this as cancel and rewind
                         do_cancel_rew()
                     } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% .C_rally_review) {
@@ -697,6 +700,11 @@ ov_scouter_server <- function(app_data) {
                         editing$active <- NULL
                         removeModal()
                         focus_to_scout_bar()
+                    } else if (tolower(ky) %eq% "escape" && (editing$confirm_home_setter || editing$confirm_visiting_setter)) {
+                        editing$confirm_home_setter <- FALSE
+                        editing$confirm_visiting_setter <- FALSE
+                        removeModal()
+                        do_video("play")
                     } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && !editing$active %in% c(.C_teams, .C_admin)) {
                         ## escape from editing modal or from showing shortcuts
                         do_unpause <- editing$active %eq% .C_admin && app_data$with_video
@@ -714,10 +722,12 @@ ov_scouter_server <- function(app_data) {
                             ## TODO we might have another race condition here where the text input does not update in the shiny server in time TODO CHECK
                             focus_to_modal_element("redit_ok", highlight_all = FALSE)
                             apply_rally_review(editing = editing, rally_codes = rally_codes, game_state = game_state, input = input, rdata = rdata)
+                        } else if (editing$confirm_home_setter) {
+                            do_assign_new_setter("*P", new_setter = input$new_setter, game_state = game_state, resume = TRUE)
+                        } else if (editing$confirm_visiting_setter) {
+                            do_assign_new_setter("aP", new_setter = input$new_setter, game_state = game_state, resume = TRUE)
                         } else if (!is.null(editing$active) && editing$active %eq% .C_teams) {
                             team_edit_key_in(c(k, list(blah = R.utils::System$currentTimeMillis()))) ## add timestamp to ensure every event is a unique trigger, not sure if this is actually needed?
-                        } else if (!is.null(editing$active) && editing$active %eq% .C_confirm_end_of_set) {
-                            do_end_of_set_confirm()
                         } else if (!is.null(editing$active) && !editing$active %eq% .C_teams) {
                             ## if editing, treat as update
                             ## but not for team editing, because pressing enter in the DT fires this too
@@ -2120,10 +2130,22 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$end_of_set_cancel, do_end_of_set_cancel())
         do_end_of_set_cancel <- function() {
             editing$active <- NULL
-            do_video("play")
             remove_scout_modal()
             set_rally_state(.C_click_serve_start)
-            focus_to_scout_bar()
+            ## if the team that won the rally is using 6-2 or 4-2 we have not yet done the rotation/setter check
+            if (editing$confirm_home_setter) {
+                ## home
+                htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
+                htss <- rdata$dvw$meta$teams$setter_system[htidx]
+                show_change_setter_modal("*P", game_state, rdata$dvw, selected_pos = if (htss == "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
+            } else if (editing$confirm_visiting_setter) {
+                vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a")
+                vtss <- rdata$dvw$meta$teams$setter_system[vtidx]
+                show_change_setter_modal("aP", game_state, rdata$dvw, selected_pos = if (vtss == "6-2") 1 else 4)
+            } else {
+                do_video("play")
+                focus_to_scout_bar() ## TODO check if this also needs to happen after checking setter, above
+            }
         }
         observeEvent(input$assign_serve_outcome, do_assign_serve_outcome())
 
@@ -2191,7 +2213,7 @@ ov_scouter_server <- function(app_data) {
                     set_rally_state(.C_click_second)
                     do_video("rew", app_data$play_overlap)
                 }
-                if (rally_state() != .C_confirm_end_of_set) do_video("play")
+                if ((rally_state() != .C_confirm_end_of_set) && !editing$confirm_home_setter && !editing$confirm_visiting_setter) do_video("play")
             }
         }
 
@@ -2430,7 +2452,7 @@ ov_scouter_server <- function(app_data) {
                 }
             }
             if (rally_state() != .C_rally_ended) do_video("rew", app_data$play_overlap)
-            if (rally_state() != .C_confirm_end_of_set) {
+            if (rally_state() != .C_confirm_end_of_set && !editing$confirm_home_setter && !editing$confirm_visiting_setter) {
                 remove_scout_modal()
                 do_video("play")
             }
@@ -2490,7 +2512,7 @@ ov_scouter_server <- function(app_data) {
                 }
             }
             if (rally_state() != .C_rally_ended) do_video("rew", app_data$play_overlap)
-            if (rally_state() != .C_confirm_end_of_set) {
+            if (rally_state() != .C_confirm_end_of_set && !editing$confirm_home_setter && !editing$confirm_visiting_setter) {
                 remove_scout_modal()
                 do_video("play")
             }
@@ -2616,7 +2638,7 @@ ov_scouter_server <- function(app_data) {
                 }
             }
             if (rally_state() != .C_rally_ended) do_video("rew", app_data$play_overlap)
-            if (rally_state() != .C_confirm_end_of_set) {
+            if (rally_state() != .C_confirm_end_of_set && !editing$confirm_home_setter && !editing$confirm_visiting_setter) {
                 remove_scout_modal()
                 do_video("play")
             }
@@ -2755,7 +2777,7 @@ ov_scouter_server <- function(app_data) {
                 game_state$current_team <- other(game_state$current_team) ## next touch will be by other team
             }
             if (rally_state() != .C_rally_ended) do_video("rew", app_data$play_overlap)
-            if (rally_state() != .C_confirm_end_of_set) {
+            if (rally_state() != .C_confirm_end_of_set && !editing$confirm_home_setter && !editing$confirm_visiting_setter) {
                 remove_scout_modal()
                 do_video("play")
             }
@@ -3226,20 +3248,7 @@ ov_scouter_server <- function(app_data) {
                     }
                 } else if (code %in% c("*P", "aP")) {
                     ## setter on court
-                    ## input$new_setter will be in format player_number@position on court
-                    new_setr <- as.numeric(sub("@.*", "", input$new_setter))
-                    new_pos <- as.numeric(sub(".*@", "", input$new_setter))
-                    if (!is.na(new_setr) && !is.na(new_pos)) {
-                        if (substr(code, 1, 1) == "*") {
-                            game_state$home_setter_position <- new_pos
-                        } else {
-                            game_state$visiting_setter_position <- new_pos
-                        }
-                        ## and add the aPXX, azYY codes
-                        rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(c(paste0(substr(code, 1, 1), "P", ldz(new_setr)), paste0(substr(code, 1, 1), "z", new_pos)), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
-                    } else {
-                        ok <- FALSE
-                    }
+                    ok <- ok && do_assign_new_setter(code, new_setter = input$new_setter, game_state = game_state)
                 } else if (grepl("^\\*\\*[[:digit:]]?set", code, ignore.case = TRUE)) {
                     ## this should only be called by the user if they are following non-standard match conventions (the auto-detect of end of set might not work) or they have dismissed the end-of-set confirmation modal and continued scouting
                     ## assume that they have properly ended the rally before calling this
@@ -3249,6 +3258,7 @@ ov_scouter_server <- function(app_data) {
             }
             list(ok = ok, end_of_set = end_of_set)
         }
+
 ##        ## auto save
 ##        shinyFiles::shinyFileSave(input, id = "auto_save_file", roots = c(root = '/'))
 ##        observe({

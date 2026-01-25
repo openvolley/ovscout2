@@ -6,6 +6,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         ## not triggered from current editing activity, huh?
         warning("code_make_change entered but editing not active")
     } else if (editing_active %eq% .C_teams) {
+        if (!"setter_system" %in% names(dvw$meta$teams)) dvw$meta$teams$setter_system <- "Not specified"
         ## update from all the input$ht_edit_name/id/coach/assistant inputs
         te_ns <- function(id) paste0("team_editor-", id) ## to reference the UI elements in the team_editor module. Note the hard-coding of the 'team_editor' id
         htidx <- which(dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
@@ -13,6 +14,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$teams$team_id[htidx] <- input[[te_ns("ht_edit_id")]]
         dvw$meta$teams$coach[htidx] <- input[[te_ns("ht_edit_coach")]]
         dvw$meta$teams$assistant[htidx] <- input[[te_ns("ht_edit_assistant")]]
+        dvw$meta$teams$setter_system[htidx] <- input[[te_ns("ht_setter_system")]]
         if (!is.null(htdata_edit)) dvw$meta$players_h <- make_players(htdata_edit)
         ## and visiting team
         vtidx <- which(dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
@@ -20,9 +22,11 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$teams$team_id[vtidx] <- input[[te_ns("vt_edit_id")]]
         dvw$meta$teams$coach[vtidx] <- input[[te_ns("vt_edit_coach")]]
         dvw$meta$teams$assistant[vtidx] <- input[[te_ns("vt_edit_assistant")]]
+        dvw$meta$teams$setter_system[vtidx] <- input[[te_ns("vt_setter_system")]]
         if (!is.null(vtdata_edit)) dvw$meta$players_v <- make_players(vtdata_edit)
         do_reparse <- TRUE
     } else if (editing_active %eq% .C_select_teams) {
+        if (!"setter_system" %in% names(dvw$meta$teams)) dvw$meta$teams$setter_system <- "Not specified"
         ts_ns <- function(id) paste0("team_selector-", id) ## to reference the UI elements in the team_selector module. Note the hard-coding of the 'team_selector' id
         ## Home team
         htidx <- which(dvw$meta$teams$home_away_team %eq% "*")
@@ -30,6 +34,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$teams$team_id[htidx] <- input[[ts_ns("ht_select_id")]]
         dvw$meta$teams$coach[htidx] <- input[[ts_ns("ht_select_coach")]]
         dvw$meta$teams$assistant[htidx] <- input[[ts_ns("ht_select_assistant")]]
+        dvw$meta$teams$setter_system[htidx] <- input[[te_ns("ht_setter_system")]]
         if (!is.null(htdata_select)) dvw$meta$players_h <- make_players(htdata_select)
         ## and visiting team
         vtidx <- which(dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
@@ -37,6 +42,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$teams$team_id[vtidx] <- input[[ts_ns("vt_select_id")]]
         dvw$meta$teams$coach[vtidx] <- input[[ts_ns("vt_select_coach")]]
         dvw$meta$teams$assistant[vtidx] <- input[[ts_ns("vt_select_assistant")]]
+        dvw$meta$teams$setter_system[vtidx] <- input[[te_ns("vt_setter_system")]]
         if (!is.null(vtdata_select)) dvw$meta$players_v <- make_players(vtdata_select) %>% mutate(X3 = .data$X3 + nrow(dvw$meta$players_h))
         do_reparse <- TRUE
     } else if (editing_active %eq% .C_match_data) {

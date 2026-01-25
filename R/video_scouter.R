@@ -517,6 +517,10 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     } else {
         stop("both the plays and plays2 components of x are non-empty, so I'm not sure which to use")
     }
+
+    ## initialize the setter system column in the teams meta, if needed. This isn't a standard column in a normal dvw file
+    if (!"setter_system" %in% names(app_data$dvw$meta$teams)) app_data$dvw$meta$teams$setter_system <- "Not specified"
+
     ## styling
     def_app_styling <- ov_app_styling()
     for (nm in names(def_app_styling)) {

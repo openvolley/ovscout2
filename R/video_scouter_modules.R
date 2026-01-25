@@ -922,6 +922,11 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling, key_i
         editing$active <- .C_teams
         htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
         vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
+        if (!"setter_system" %in% names(rdata$dvw$meta$teams)) rdata$dvw$meta$teams$setter_system <- "Not specified"
+        ht_setsys <- rdata$dvw$meta$teams$setter_system[htidx]
+        ## if (is.null(ht_setsys)) ht_setsys <- NA_character_
+        vt_setsys <- rdata$dvw$meta$teams$setter_system[vtidx]
+        setsys_choices <- list("Not specified" = "Not specified", "Single setter (5-1)" = "5-1", "Back-row setter (6-2)" = "6-2", "Front-row setter (4-2)" = "4-2")
         ## NB the edit and cancel buttons are global, not namespaced by ns()
         showModal(vwModalDialog(title = "Edit teams",
                               footer = tags$div(
@@ -933,7 +938,8 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling, key_i
                                                     column(3, textInput(ns("ht_edit_id"), label = "Team ID:", value = rdata$dvw$meta$teams$team_id[htidx])),
                                                     column(3, textInput(ns("ht_edit_coach"), label = "Coach:", value = rdata$dvw$meta$teams$coach[htidx])),
                                                     column(3, textInput(ns("ht_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[htidx]))),
-                                           fluidRow(column(12, tags$div(style = "float:right; font-size:small; margin-left:12px;", "Fast start will auto-populate players 1-99 so you can start scouting and edit the roster later."),
+                                           fluidRow(column(6, selectInput(ns("ht_setter_system"), label = "Setter system:", choices = setsys_choices, selected = ht_setsys)),
+                                                    column(6, tags$div(style = "float:right; font-size:small; margin-left:12px;", "Fast start will auto-populate players 1-99 so you can start scouting and edit the roster later."),
                                                            actionButton(ns("ht_undo_faststart_players"), label = "Undo fast start", class = "leftbut", style = "float:right;"),
                                                            actionButton(ns("ht_faststart_players"), label = tags$span(icon("truck-fast"), "Fast start"), class = "leftbut", style = "float:right;"))),
                                            DT::dataTableOutput(ns("ht_edit_team")),
@@ -955,7 +961,8 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling, key_i
                                                     column(3, textInput(ns("vt_edit_id"), label = "Team ID:", value = rdata$dvw$meta$teams$team_id[vtidx])),
                                                     column(3, textInput(ns("vt_edit_coach"), label = "Coach:", value = rdata$dvw$meta$teams$coach[vtidx])),
                                                     column(3, textInput(ns("vt_edit_assistant"), label = "Assistant:", value = rdata$dvw$meta$teams$assistant[vtidx]))),
-                                           fluidRow(column(12, tags$div(style = "float:right; font-size:small; margin-left:12px;", "Fast start will auto-populate players 1-99 so you can start scouting and edit the roster later."),
+                                           fluidRow(column(6, selectInput(ns("vt_setter_system"), label = "Setter system:", choices = setsys_choices, selected = vt_setsys)),
+                                                    column(6, tags$div(style = "float:right; font-size:small; margin-left:12px;", "Fast start will auto-populate players 1-99 so you can start scouting and edit the roster later."),
                                                            actionButton(ns("vt_undo_faststart_players"), label = "Undo fast start", class = "leftbut", style = "float:right;"),
                                                            actionButton(ns("vt_faststart_players"), label = tags$span(icon("truck-fast"), "Fast start"), class = "leftbut", style = "float:right;"))),
                                            DT::dataTableOutput(ns("vt_edit_team")),

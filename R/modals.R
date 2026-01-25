@@ -47,22 +47,30 @@ show_save_error_modal <- function(msg, ovs_ok, tempfile_name) {
                           tags$div(class = "alert alert-danger", "Sorry, the save failed. The error message was:", tags$br(), tags$pre(msg), tags$br(), if (ovs_ok) paste0("The edited datavolley object has been saved to ", tempfile_name, "."))))
 }
 
-show_change_setter_modal <- function(code, game_state, dvw) {
+show_change_setter_modal <- function(code, game_state, dvw, selected_pos = NA) {
+    do_video("pause")
+    editing <- getsv("editing")
     ht <- vt <- FALSE
     if (code %eq% "*P") {
         ## home players on court
         ht_on <- get_players(game_state, team = "*", dvw = dvw)
         ord <- order(ht_on)
-        chc <- setNames(paste0(ht_on, "@", seq_along(ht_on)), player_nums_to(ht_on, team = "*", dvw = dvw, game_state = game_state))[ord]
+        chc <- paste0(ht_on, "@", seq_along(ht_on))
+        selected <- if (!is.na(selected_pos) && selected_pos %in% seq_along(chc)) chc[selected_pos] else NA
+        chc <- setNames(chc, player_nums_to(ht_on, team = "*", dvw = dvw, game_state = game_state))[ord] ## TODO also indicate position on court in the label?
         ht <- TRUE
-        buts <- make_fat_radio_buttons(choices = chc, selected = NA, input_var = "new_setter")
+        editing$confirm_home_setter <- TRUE
+        buts <- make_fat_radio_buttons(choices = chc, selected = selected, input_var = "new_setter")
     } else {
         ## visiting players on court
         vt_on <- get_players(game_state, team = "a", dvw = dvw)
         ord <- order(vt_on)
-        chc <- setNames(paste0(vt_on, "@", seq_along(vt_on)), player_nums_to(vt_on, team = "a", dvw = dvw, game_state = game_state))[ord]
+        chc <- paste0(vt_on, "@", seq_along(vt_on))
+        selected <- if (!is.na(selected_pos) && selected_pos %in% seq_along(chc)) chc[selected_pos] else NA
+        chc <- setNames(chc, player_nums_to(vt_on, team = "a", dvw = dvw, game_state = game_state))[ord]
         vt <- TRUE
-        buts <- make_fat_radio_buttons(choices = chc, selected = NA, input_var = "new_setter")
+        editing$confirm_visiting_setter <- TRUE
+        buts <- make_fat_radio_buttons(choices = chc, selected = selected, input_var = "new_setter")
     }
     showModal(vwModalDialog(title = paste0("On-court setter: ", if (ht) paste0(datavolley::home_team(dvw), " (home)") else paste0(datavolley::visiting_team(dvw), " (visiting)")), footer = NULL, width = 100,
                             tags$div(tags$p(tags$strong("New setter")), do.call(fixedRow, lapply(buts, function(but) column(2, but)))),

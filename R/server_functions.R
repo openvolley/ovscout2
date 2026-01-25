@@ -196,7 +196,7 @@ apply_rally_review <- function(editing, rally_codes, game_state, input, rdata) {
     ## end of point, pre-populate the scout box with the server team and number
     if (!end_of_set) {
         populate_server(game_state)
-        if (!isTRUE(editing$active == .C_confirm_setter_on_court)) do_video("play")
+        if (!editing$confirm_home_setter && !editing$confirm_visiting_setter) do_video("play")
     }
 }
 
@@ -208,9 +208,28 @@ rally_ended <- function() {
     app_data <- getsv("app_data")
     have_asked_end_of_set <- getsv("have_asked_end_of_set")
     rally_state <- getsv("rally_state")
+    editing <- getsv("editing")
     ## add rally codes to scout object now
     rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(rally_codes(), game_state = game_state, rally_ended = TRUE, dvw = rdata$dvw)))
-    do_rally_end_things(game_state = game_state, app_data = app_data, rdata = rdata, rally_codes = rally_codes, rally_state = rally_state)
+    did_rot <- do_rally_end_things(game_state = game_state, app_data = app_data, rdata = rdata, rally_codes = rally_codes, rally_state = rally_state)
+    ## check to see if we will need to confirm the on-court setter
+    ## set the editing$active if so, and we will check that AFTER the end-of-set confirmation if that confirmation is cancelled and play continues
+    htss <- vtss <- NA_character_
+    if (did_rot %eq% "*") {
+        htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
+        htss <- rdata$dvw$meta$teams$setter_system[htidx]
+        if (isTRUE(htss %in% c("6-2", "4-2")) && isTRUE(game_state$home_setter_position %in% c(4, 1))) {
+            ## home team rotated to pos 1 or 4
+            editing$confirm_home_setter <- TRUE
+        }
+    } else if (did_rot %eq% "a") {
+        vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a")
+        vtss <- rdata$dvw$meta$teams$setter_system[vtidx]
+        if (isTRUE(vtss %in% c("6-2", "4-2")) && isTRUE(game_state$visiting_setter_position %in% c(4, 1))) {
+            ## visiting team rotated to pos 1 or 4
+            editing$confirm_visiting_setter <- TRUE
+        }
+    }
     ## check for end of set
     scores <- c(game_state$home_score_start_of_point, game_state$visiting_score_start_of_point)
     end_of_set <- test_end_of_set(scores, set_number = game_state$set_number, beach = app_data$is_beach)
@@ -224,11 +243,42 @@ rally_ended <- function() {
                              ), with_review_pane = FALSE)
         do_video("pause")
         set_rally_state(.C_confirm_end_of_set)
-        editing <- getsv("editing")
-        editing$active <- .C_confirm_end_of_set
         have_asked_end_of_set(TRUE)
+        ## note that if the end-of-set is cancelled, we will need to do the setter system/rotation check if editing$confirm_home_setter or editing$confirm_visiting_setter. This happens in the do_end_of_set_cancel() function
+    } else if (editing$confirm_home_setter) {
+        ## if a team rotated, check the setter
+        show_change_setter_modal("*P", game_state, rdata$dvw, selected_pos = if (htss == "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
+    } else if (editing$confirm_visiting_setter) {
+        show_change_setter_modal("aP", game_state, rdata$dvw, selected_pos = if (vtss == "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
     }
     end_of_set
+}
+
+do_assign_new_setter <- function(code, new_setter, game_state, resume = FALSE) {
+    ## new_setter should be from input$new_setter, and will be in the format `player_number@position_on_court`
+    new_setr <- as.numeric(sub("@.*", "", new_setter))
+    new_pos <- as.numeric(sub(".*@", "", new_setter))
+    rdata <- getsv("rdata")
+    ok <- if (!is.na(new_setr) && !is.na(new_pos)) {
+              if (substr(code, 1, 1) == "*") {
+                  game_state$home_setter_position <- new_pos
+              } else {
+                  game_state$visiting_setter_position <- new_pos
+              }
+              ## and add the aPXX, azYY codes
+              rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(c(paste0(substr(code, 1, 1), "P", ldz(new_setr)), paste0(substr(code, 1, 1), "z", new_pos)), game_state = game_state, rally_ended = FALSE, dvw = rdata$dvw)))
+              TRUE
+          } else {
+              FALSE
+          }
+    editing <- getsv("editing")
+    editing$confirm_home_setter <- FALSE
+    editing$confirm_visiting_setter <- FALSE
+    if (resume) {
+        removeModal()
+        do_video("play")
+    }
+    ok
 }
 
 set_rally_state <- function(what) {
@@ -251,17 +301,20 @@ do_rally_end_things <- function(game_state, app_data, rdata, rally_codes, rally_
     } else {
         game_state$visiting_score_start_of_point <- game_state$visiting_score_start_of_point + 1L
     }
+    did_rot <- NA_character_
     if (do_rot) {
         if (game_state$point_won_by == "*") {
             game_state$home_setter_position <- rotpos(game_state$home_setter_position, n = length(pseq))
             temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0("home_p", pseq)]))
             for (i in pseq) game_state[[paste0("home_p", i)]] <- temp[i]
             poscode <- paste0("*z", game_state$home_setter_position)
+            did_rot <- "*"
         } else {
             game_state$visiting_setter_position <- rotpos(game_state$visiting_setter_position, n = length(pseq))
             temp <- rotvec(as.numeric(reactiveValuesToList(game_state)[paste0("visiting_p", pseq)]))
             for (i in pseq) game_state[[paste0("visiting_p", i)]] <- temp[i]
             poscode <- paste0("az", game_state$visiting_setter_position)
+            did_rot <- "a"
         }
         rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2, make_plays2(poscode, game_state = game_state, dvw = rdata$dvw)))
     }
@@ -287,6 +340,7 @@ do_rally_end_things <- function(game_state, app_data, rdata, rally_codes, rally_
         }
     }
     set_rally_state(.C_click_serve_start)
+    did_rot ## either "*" or "a" or NA_character_
 }
 
 
