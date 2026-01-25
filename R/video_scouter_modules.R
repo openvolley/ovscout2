@@ -24,26 +24,40 @@ mod_teamslists <- function(input, output, session, rdata, scout_mode_r) {
         two_cols <- scout_mode_r() != "type"
         this <- remove_players_not_played(rdata$dvw$meta$players_h, plays = rdata$dvw$plays2, home_visiting = "h", faststart_only = TRUE)
         re <- names2roster(this, join = two_cols)
-        htn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"]
+        htidx <- which(rdata$dvw$meta$teams$home_away_team == "*")
+        htn <- rdata$dvw$meta$teams$team[htidx]
+        htss <- if ("setter_system" %in% names(rdata$dvw$meta$teams) && !is.na(rdata$dvw$meta$teams$setter_system[htidx]) &&
+                    rdata$dvw$meta$teams$setter_system[htidx] != "Not specified") {
+                    paste0("(Setter system: ", rdata$dvw$meta$teams$setter_system[htidx], ")")
+                } else {
+                    ""
+                }
         if (two_cols) {
             re1 <- re[seq_len(ceiling(length(re) / 2))]
-            tags$div(tags$strong(paste("(*)", htn)), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
+            tags$div(tags$strong(paste("(*)", htn, htss)), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
                                                 do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
         } else {
-            tags$div(tags$strong(paste("(*)", htn)), tags$hr(), do.call(tags$table, c(list(style="width:100%;"), lapply(seq_len(nrow(re)), function(z) tagList(tags$tr(tags$td(re[z, 1]), tags$td(re[z, 2])))))))
+            tags$div(tags$strong(paste("(*)", htn, htss)), tags$hr(), do.call(tags$table, c(list(style="width:100%;"), lapply(seq_len(nrow(re)), function(z) tagList(tags$tr(tags$td(re[z, 1]), tags$td(re[z, 2])))))))
         }
     })
     output$vtroster <- renderUI({
         two_cols <- scout_mode_r() != "type"
         this <- remove_players_not_played(rdata$dvw$meta$players_v, plays = rdata$dvw$plays2, home_visiting = "v", faststart_only = TRUE)
         re <- names2roster(this, join = two_cols)
-        vtn <- rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]
+        vtidx <- which(rdata$dvw$meta$teams$home_away_team == "a")
+        vtn <- rdata$dvw$meta$teams$team[vtidx]
+        vtss <- if ("setter_system" %in% names(rdata$dvw$meta$teams) && !is.na(rdata$dvw$meta$teams$setter_system[vtidx]) &&
+                    rdata$dvw$meta$teams$setter_system[vtidx] != "Not specified") {
+                    paste0("(Setter system: ", rdata$dvw$meta$teams$setter_system[vtidx], ")")
+                } else {
+                    ""
+                }
         if (two_cols) {
             re1 <- re[seq_len(ceiling(length(re) / 2))]
-            tags$div(tags$strong(paste("(a)", vtn)), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
+            tags$div(tags$strong(paste("(a)", vtn, vtss)), fluidRow(do.call(column, c(list(6), lapply(re1, function(z) tagList(tags$span(z), tags$br())))),
                                                 do.call(column, c(list(6), lapply(setdiff(re, re1), function(z) tagList(tags$span(z), tags$br()))))))
         } else {
-            tags$div(tags$strong(paste("(a)", vtn)), tags$hr(), do.call(tags$table, c(list(style="width:100%;"), lapply(seq_len(nrow(re)), function(z) tagList(tags$tr(tags$td(re[z, 1]), tags$td(re[z, 2])))))))
+            tags$div(tags$strong(paste("(a)", vtn, vtss)), tags$hr(), do.call(tags$table, c(list(style="width:100%;"), lapply(seq_len(nrow(re)), function(z) tagList(tags$tr(tags$td(re[z, 1]), tags$td(re[z, 2])))))))
         }
     })
 }
