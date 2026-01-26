@@ -13,7 +13,10 @@ maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www
 
 ## About
 
-This R package provides a Shiny app for scouting volleyball data files.
+This R package provides a Shiny app for scouting volleyball matches to
+produce detailed data files. It is free and open-source, with similar
+functionality to the commercial DataVolley and VolleyStation software
+packages.
 
 ![](man/figures/ovscout2-screenshot.png)
 
@@ -48,15 +51,12 @@ by typing.
 - BUT type-scouting comes with a steep learning curve, which is why the
   click-scouting interface exists.
 
-This software is intended for scouts who do not have access to
-commercial scouting software. The click-scouting interface is for users
-who aren’t proficient with the keyboard interface. `ovscout2` is an
-alternative to the many available tablet- and phone-based scouting apps
-that also use a click interface, but `ovscout2` provides more complete
-match data that is fully dvw compatible and can be used for advanced
-statistical analysis, and yet (we hope) remains easy to use. It is
-unlikely to replace professional scouting software used by scouts who
-can already capture match data in real time.
+The click-scouting interface is for users who aren’t proficient with the
+keyboard interface. While there are many tablet- and phone-based
+scouting apps that also use a click-style interface, `ovscout2` provides
+more complete match data that is fully dvw compatible and can be used
+for advanced statistical analysis, and yet (we hope) remains easy to
+use.
 
 ## Features of click-scouting
 

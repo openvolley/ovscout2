@@ -129,6 +129,8 @@ To scout a new match, start the app, then:
 
 1. If you are in a hurry, use the "`r fa_i("truck-fast")` Fast start" button in the "Edit teams" dialog. This will automatically populate players with numbers 1&ndash;99 in a team. You can do this, scout the match, and then return later to (automatically) remove players that don't actually exist and assign the correct names to the ones who do.
 
+1. Optionally, indicate the team's setter strategy: either a single setter on court (commonly known as a "5-1 rotation"), two setters with the back-row setter being the active one ("6-2 rotation"), or two setters with the front row setter being the active one ("4-2 rotation"). If you choose "6-2" or "4-2", `ovscout2` will check each time the team rotates and automatically prompt you to change the active setter when appropriate (if you don't choose a setter strategy, you just need to remember to do this yourself). Choosing "5-1" currently has no effect.
+
 1. Enter the team lineups for set 1, including the libero(s) for each team. If two liberos are entered, then the app will assume that the first libero is on court during serve reception (i.e. the "passing" libero) and the second libero is on court while serving (the "defending" libero). If the team has two liberos but only one takes to the court per set, then just enter the libero who is actually going to play in that set
 
 And before unpausing the video and starting to scout, check that:
@@ -267,6 +269,8 @@ Scouting now continues until the point ends, with attacks, digs, and other conta
 
 The point can be ended by entering a terminal action (kill or error), or if the point ends in a way that doesn't fit nicely with the available options, you can pause the video (press the pause shortcut key) and choose "Won current rally" for the appropriate team.
 
+Before the next serve, if either team is using a two-setter strategy (i.e. back-row setter or front-row setter), remember to change the active setter when they move from front court to back court. Do this by pressing the pause shortcut key, which will bring up a dialog that allows you to change the on-court setter. You can also set the team's setter strategy via the 'Edit teams' button &mdash; doing this means that you will be automatically prompted to change the active setter at the correct times.
+
 ### End of the set
 
 When the set concludes, it will prompt you to confirm whether it is the end of the set. Confirm the end of the set and then enter the lineups for the next set ready to start scouting that one.
@@ -277,7 +281,7 @@ At the end of the match, you don't need to do anything extra. Just end the final
 
 ### Timeouts and substitutions
 
-Pausing the video (press the pause shortcut key) will bring up a dialog that allows you to enter a timeout or substitution, or change the setter on court for a given team (e.g. if the team is playing a two-setter system, you will need to change the setter on court each time the setters swap).
+Pausing the video (press the pause shortcut key) will bring up a dialog that allows you to enter a timeout or substitution, or change the setter on court for a given team as described above.
 
 \newpage
 
