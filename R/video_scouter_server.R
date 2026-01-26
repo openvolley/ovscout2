@@ -590,6 +590,9 @@ ov_scouter_server <- function(app_data) {
                 }
                 lineups_ok <- if (length(ltxt) > 0) paste(ltxt, sep = " ") else TRUE
             }
+            ## check setter systems
+            setter_systems_chk <- check_setter_systems(rdata$dvw, game_state)
+            extra_ss_msg <- "Either change the team's setter system via the 'Edit teams' button, or use 'Edit lineups' to change the lineup."
             courtref_ok <- video_media_ok <- TRUE
             if (app_data$with_video) {
                 ## check courtref
@@ -606,7 +609,7 @@ ov_scouter_server <- function(app_data) {
                         (!is.null(input$video_width) && !is.null(input$video_height) && !is.na(input$video_width) && !is.na(input$video_height) && input$video_width > 0 && input$video_height > 0))
                 ##            cat("input$dv_width:", cstr(input$dv_width), "\ninput$dv_height:", cstr(input$dv_height), "\ninput$video_width:", cstr(input$video_width), "\ninput$video_height:", cstr(input$video_height), "\ninput$dv_width:", cstr(input$dv_width), "\ninput$dv_height:", cstr(input$dv_height), "\n")
             }
-            ok <- teams_ok && isTRUE(lineups_ok) && isTRUE(rosters_ok) && isTRUE(courtref_ok) && video_media_ok
+            ok <- teams_ok && isTRUE(lineups_ok) && all(setter_systems_chk == "ok") && isTRUE(rosters_ok) && isTRUE(courtref_ok) && video_media_ok
             meta_is_valid(ok)
             output$problem_ui <- renderUI({
                 if (!ok) {
@@ -618,6 +621,8 @@ ov_scouter_server <- function(app_data) {
                                       if (!teams_ok) tags$li("Use the 'Select teams' button to choose from existing teams, or 'Edit teams' to enter new ones."),
                                       if (!isTRUE(rosters_ok)) tags$li(if (is.character(rosters_ok)) paste0(rosters_ok, " ", collapse = ", "), "Use the 'Edit teams' button to enter or adjust the team rosters."),
                                       if (!isTRUE(lineups_ok)) tags$li(if (is.character(lineups_ok)) paste0(lineups_ok, " ", collapse = ", "), paste0("Use the 'Edit lineups' to enter or adjust the starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), ".")),
+                                      if (setter_systems_chk[1] != "ok") tags$li(setter_systems_chk[1], extra_ss_msg),
+                                      if (setter_systems_chk[2] != "ok") tags$li(setter_systems_chk[2], extra_ss_msg),
                                       if (!video_media_ok) tags$li("Wait for the video media information to be loaded.")
                                   ),
                              tags$hr(),
