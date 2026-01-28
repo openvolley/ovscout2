@@ -131,6 +131,8 @@ To scout a new match, start the app, then:
 
 1. Optionally, indicate the team's setter strategy: either a single setter on court (commonly known as a "5-1 rotation"), two setters with the back-row setter being the active one ("6-2 rotation"), or two setters with the front row setter being the active one ("4-2 rotation"). If you choose "6-2" or "4-2", `ovscout2` will check each time the team rotates and automatically prompt you to change the active setter when appropriate (if you don't choose a setter strategy, you just need to remember to do this yourself). Choosing "5-1" currently has no effect.
 
+   A team's setter strategy (if assigned) will be shown next to the team name in the roster section.
+
 1. Enter the team lineups for set 1, including the libero(s) for each team. If two liberos are entered, then the app will assume that the first libero is on court during serve reception (i.e. the "passing" libero) and the second libero is on court while serving (the "defending" libero). If the team has two liberos but only one takes to the court per set, then just enter the libero who is actually going to play in that set
 
 And before unpausing the video and starting to scout, check that:
