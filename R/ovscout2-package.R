@@ -10,6 +10,7 @@
 #' @importFrom ggplot2 aes arrow coord_flip element_blank element_rect geom_label geom_path geom_point geom_polygon geom_segment geom_text ggplot scale_size_continuous scale_x_continuous scale_x_reverse scale_y_continuous scale_y_reverse theme unit xlim ylim
 #' @importFrom graphics arrows lines par points polygon rect segments text
 #' @importFrom htmltools HTML tagList tags
+#' @importFrom methods as
 #' @import R6
 #' @importFrom shiny actionButton callModule checkboxInput column downloadButton downloadHandler fixedRow fluidPage fluidRow invalidateLater isolate isTruthy modalDialog NS numericInput observeEvent observe onStop plotOutput reactive reactiveVal reactiveValues reactiveValuesToList removeModal renderPlot renderText renderUI req selectInput setProgress showModal sliderInput tabPanel tabsetPanel textInput uiOutput updateSelectInput updateSliderInput updateTextInput verbatimTextOutput wellPanel withProgress
 #' @importFrom shinyWidgets pickerInput

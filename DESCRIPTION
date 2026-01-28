@@ -1,6 +1,6 @@
 Package: ovscout2
 Title: An R Shiny App for Scouting Volleyball Match Files
-Version: 1.0.5
+Version: 1.1.0
 Authors@R: c(person(given = "Ben", family = "Raymond", role = c("aut", "cre"), email = "ben@untan.gl"),
              person(given = "Adrien", family = "Ickowicz", role = "aut"),
              person(given = "Krystian", family = "Kowalski", role = "ctb"),

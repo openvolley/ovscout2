@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="index.html">ovscout2</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,7 +70,7 @@
 <div class="section level2">
 <h2 id="about">About<a class="anchor" aria-label="anchor" href="#about"></a>
 </h2>
-<p>This R package provides a Shiny app for scouting volleyball data files.</p>
+<p>This R package provides a Shiny app for scouting volleyball matches to produce detailed data files. It is free and open-source, with similar functionality to the commercial DataVolley and VolleyStation software packages.</p>
 <p><img src="reference/figures/ovscout2-screenshot.png"></p>
 <p>Scouting can be done either with a guided point-and-click interface, or by typing.</p>
 </div>
@@ -92,7 +92,7 @@
 <li>allows fast data entry, and can be used without a video if desired (this allows live matches can be scouted in real time by a scout who is physically present at the arena, without having to muck around with live video feeds)</li>
 <li>BUT type-scouting comes with a steep learning curve, which is why the click-scouting interface exists.</li>
 </ul>
-<p>This software is intended for scouts who do not have access to commercial scouting software. The click-scouting interface is for users who aren’t proficient with the keyboard interface. <code>ovscout2</code> is an alternative to the many available tablet- and phone-based scouting apps that also use a click interface, but <code>ovscout2</code> provides more complete match data that is fully dvw compatible and can be used for advanced statistical analysis, and yet (we hope) remains easy to use. It is unlikely to replace professional scouting software used by scouts who can already capture match data in real time.</p>
+<p>The click-scouting interface is for users who aren’t proficient with the keyboard interface. While there are many tablet- and phone-based scouting apps that also use a click-style interface, <code>ovscout2</code> provides more complete match data that is fully dvw compatible and can be used for advanced statistical analysis, and yet (we hope) remains easy to use.</p>
 </div>
 <div class="section level2">
 <h2 id="features-of-click-scouting">Features of click-scouting<a class="anchor" aria-label="anchor" href="#features-of-click-scouting"></a>
@@ -132,7 +132,8 @@
 <code class="sourceCode R"><span><span class="fu">ov_scouter_demo</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>To use with your own data:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span>video_file <span class="op">=</span> <span class="st">"/path/to/video.mp4"</span>, season_dir <span class="op">=</span> <span class="st">"/path/to/existing/files"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="reference/ov_scouter.html">ov_scouter</a></span><span class="op">(</span>video_file <span class="op">=</span> <span class="st">"/path/to/video.mp4"</span>,</span>
+<span>           season_dir <span class="op">=</span> <span class="st">"/path/to/existing/files"</span><span class="op">)</span></span></code></pre></div>
 <p>If you don’t provide the video file path, it will pop up a file navigator for you to select one. The season directory (a directory containing existing .dvw or .ovs files) can also optionally be provided. If a new match is being scouted, the teams can be selected from those in the season directory. You can also provide it with a partially-scouted <code>.dvw</code> or <code>.ovs</code> file, to continue scouting where you left off.</p>
 <p>See <code><a href="reference/ov_scouter.html">help("ov_scouter")</a></code> for more options, or the <a href="https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html" class="external-link">user manual</a>.</p>
 </div>

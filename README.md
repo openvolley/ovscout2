@@ -121,7 +121,8 @@ ov_scouter_demo()
 To use with your own data:
 
 ``` r
-ov_scouter(video_file = "/path/to/video.mp4", season_dir = "/path/to/existing/files")
+ov_scouter(video_file = "/path/to/video.mp4",
+           season_dir = "/path/to/existing/files")
 ```
 
 If you don’t provide the video file path, it will pop up a file
