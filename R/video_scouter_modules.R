@@ -1,3 +1,5 @@
+setsys_choices <- list("Not specified" = "Not specified", "Single setter (5-1)" = "5-1", "Back-row setter (6-2)" = "6-2", "Front-row setter (4-2)" = "4-2")
+
 ## TODO: special_role column has been hidden, todo add a column of checkbox inputs allowing the captain to be specified?
 mod_teamslists_ui <- function(id) {
     ns <- NS(id)
@@ -846,9 +848,9 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
                                                    column(4, textInput(ns("ht_select_id"), label = "Team ID:", value = "")),
                                                    column(4, textInput(ns("ht_select_name"), label = "Team name:", value = ""))),
                                                fluidRow(
-                                                   column(4),
                                                    column(4, textInput(ns("ht_select_coach"), label = "Coach:", value = "")),
                                                    column(4, textInput(ns("ht_select_assistant"), label = "Assistant:", value = "")),
+                                                   column(4, selectInput(ns("ht_select_setter_system"), label = "Setter system:", choices = setsys_choices)),
                                                    ),
                                                fluidRow(
                                                    column(12, DT::dataTableOutput(ns("ht_select_team")))
@@ -859,9 +861,9 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
                                                    column(4, textInput(ns("vt_select_id"), label = "Team ID:", value = "")),
                                                    column(4, textInput(ns("vt_select_name"), label = "Team name:", value = ""))),
                                                fluidRow(
-                                                   column(4),
                                                    column(4, textInput(ns("vt_select_coach"), label = "Coach:", value = "")),
                                                    column(4, textInput(ns("vt_select_assistant"), label = "Assistant:", value = "")),
+                                                   column(4, selectInput(ns("vt_select_setter_system"), label = "Setter system:", choices = setsys_choices)),
                                                    ),
                                                fluidRow(
                                                    column(12, DT::dataTableOutput(ns("vt_select_team")))
@@ -880,18 +882,22 @@ mod_team_select <- function(input, output, session, rdata, editing, app_data) {
         }
     })
 
+    ## react to the home and visiting team selections separately, so that choosing one does not risk overwriting user edits that might have been made to the content of the already-chosen-other one
     observe({
         htnull <- is.null(input$home_team_select) || isTRUE(input$home_team_select == "...")
         updateTextInput(session, "ht_select_id", value = input$home_team_select)
         updateTextInput(session, "ht_select_name", value = if (htnull) "" else team_Table()$team[team_Table()$team_id %eq% input$home_team_select])
         updateTextInput(session, "ht_select_coach", value = if (htnull) "" else team_Table()$coach[team_Table()$team_id %eq% input$home_team_select])
         updateTextInput(session, "ht_select_assistant", value = if (htnull) "" else team_Table()$assistant[team_Table()$team_id %eq% input$home_team_select])
-
+        updateTextInput(session, "ht_select_setter_system", value = if (htnull) "" else team_Table()$setter_system[team_Table()$team_id %eq% input$home_team_select])
+    })
+    observe({
         vtnull <- is.null(input$visiting_team_select) || isTRUE(input$visiting_team_select == "...")
         updateTextInput(session, "vt_select_id", value = input$visiting_team_select)
         updateTextInput(session, "vt_select_name", value = if (vtnull) "" else team_Table()$team[team_Table()$team_id %eq% input$visiting_team_select])
         updateTextInput(session, "vt_select_coach", value = if (vtnull) "" else team_Table()$coach[team_Table()$team_id %eq% input$visiting_team_select])
         updateTextInput(session, "vt_select_assistant", value = if (vtnull) "" else team_Table()$assistant[team_Table()$team_id %eq% input$visiting_team_select])
+        updateTextInput(session, "vt_select_setter_system", value = if (vtnull) "" else team_Table()$setter_system[team_Table()$team_id %eq% input$visiting_team_select])
 
     })
 
@@ -940,7 +946,6 @@ mod_team_edit <- function(input, output, session, rdata, editing, styling, key_i
         ht_setsys <- rdata$dvw$meta$teams$setter_system[htidx]
         ## if (is.null(ht_setsys)) ht_setsys <- NA_character_
         vt_setsys <- rdata$dvw$meta$teams$setter_system[vtidx]
-        setsys_choices <- list("Not specified" = "Not specified", "Single setter (5-1)" = "5-1", "Back-row setter (6-2)" = "6-2", "Front-row setter (4-2)" = "4-2")
         ## NB the edit and cancel buttons are global, not namespaced by ns()
         showModal(vwModalDialog(title = "Edit teams",
                               footer = tags$div(

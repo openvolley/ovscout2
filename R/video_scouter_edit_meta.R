@@ -34,7 +34,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$teams$team_id[htidx] <- input[[ts_ns("ht_select_id")]]
         dvw$meta$teams$coach[htidx] <- input[[ts_ns("ht_select_coach")]]
         dvw$meta$teams$assistant[htidx] <- input[[ts_ns("ht_select_assistant")]]
-        dvw$meta$teams$setter_system[htidx] <- input[[te_ns("ht_setter_system")]]
+        dvw$meta$teams$setter_system[htidx] <- input[[ts_ns("ht_select_setter_system")]]
         if (!is.null(htdata_select)) dvw$meta$players_h <- make_players(htdata_select)
         ## and visiting team
         vtidx <- which(dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
@@ -42,7 +42,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
         dvw$meta$teams$team_id[vtidx] <- input[[ts_ns("vt_select_id")]]
         dvw$meta$teams$coach[vtidx] <- input[[ts_ns("vt_select_coach")]]
         dvw$meta$teams$assistant[vtidx] <- input[[ts_ns("vt_select_assistant")]]
-        dvw$meta$teams$setter_system[vtidx] <- input[[te_ns("vt_setter_system")]]
+        dvw$meta$teams$setter_system[vtidx] <- input[[ts_ns("vt_select_setter_system")]]
         if (!is.null(vtdata_select)) dvw$meta$players_v <- make_players(vtdata_select) %>% mutate(X3 = .data$X3 + nrow(dvw$meta$players_h))
         do_reparse <- TRUE
     } else if (editing_active %eq% .C_match_data) {
