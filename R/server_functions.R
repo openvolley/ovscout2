@@ -257,18 +257,18 @@ rally_ended <- function() {
 check_setter_systems <- function(dvw, game_state) {
     htidx <- which(dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
     htss <- dvw$meta$teams$setter_system[htidx]
-    ht <- if (htss == "4-2" && !game_state$home_setter_position %in% c(2, 3, 4)) {
+    ht <- if (isTRUE(htss == "4-2" && !game_state$home_setter_position %in% c(2, 3, 4))) {
               "The home team is using a front-row setter (4-2) system but the setter is not front row."
-          } else if (htss == "6-2" && !game_state$home_setter_position %in% c(1, 6, 5)) {
+          } else if (isTRUE(htss == "6-2" && !game_state$home_setter_position %in% c(1, 6, 5))) {
               "The home team is using a back-row setter (6-2) system but the setter is not back row."
           } else {
               "ok"
           }
     vtidx <- which(dvw$meta$teams$home_away_team %eq% "a") ## should always be 2
     vtss <- dvw$meta$teams$setter_system[vtidx]
-    vt <- if (vtss == "4-2" && !game_state$visiting_setter_position %in% c(2, 3, 4)) {
+    vt <- if (isTRUE(vtss == "4-2" && !game_state$visiting_setter_position %in% c(2, 3, 4))) {
               "The visiting team is using a front-row setter (4-2) system but the setter is not front row."
-          } else if (vtss == "6-2" && !game_state$visiting_setter_position %in% c(1, 6, 5)) {
+          } else if (isTRUE(vtss == "6-2" && !game_state$visiting_setter_position %in% c(1, 6, 5))) {
               "The visiting team is using a back-row setter (6-2) system but the setter is not back row."
           } else {
               "ok"

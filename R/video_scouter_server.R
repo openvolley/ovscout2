@@ -626,7 +626,7 @@ ov_scouter_server <- function(app_data) {
                                       if (!video_media_ok) tags$li("Wait for the video media information to be loaded.")
                                   ),
                              tags$hr(),
-                             tags$p("Scouting cannot start until this information has been entered.")
+                             if (app_data$scout_mode_r() != "type") tags$p("Scouting cannot start until this information has been entered.") ## if we are in type-scouting mode, it might be possible to start scouting anyway
                              )
                 } else {
                     if (rally_state() == .C_fix_required_info) set_rally_state(if (video_state$paused) .C_click_to_start_msg else .C_click_serve_start)
