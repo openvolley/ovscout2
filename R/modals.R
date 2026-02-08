@@ -37,6 +37,7 @@ show_admin_modal <- function(game_state, dvw) {
 dismiss_admin_modal <- function(editing) {
     ## dismiss the admin modal and unpause the video
     editing$active <- NULL
+    editing$confirm_home_setter <- editing$confirm_visiting_setter <- FALSE
     removeModal()
     do_video("play")
     focus_to_scout_bar()

@@ -214,7 +214,7 @@ rally_ended <- function() {
     did_rot <- do_rally_end_things(game_state = game_state, app_data = app_data, rdata = rdata, rally_codes = rally_codes, rally_state = rally_state)
     ## check to see if we will need to confirm the on-court setter
     ## set the editing$active if so, and we will check that AFTER the end-of-set confirmation if that confirmation is cancelled and play continues
-    htss <- vtss <- NA_character_
+    htss <- vtss <- ""
     if (did_rot %eq% "*") {
         htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
         htss <- rdata$dvw$meta$teams$setter_system[htidx]
@@ -247,9 +247,9 @@ rally_ended <- function() {
         ## note that if the end-of-set is cancelled, we will need to do the setter system/rotation check if editing$confirm_home_setter or editing$confirm_visiting_setter. This happens in the do_end_of_set_cancel() function
     } else if (editing$confirm_home_setter) {
         ## if a team rotated, check the setter
-        show_change_setter_modal("*P", game_state, rdata$dvw, selected_pos = if (htss == "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
+        show_change_setter_modal("*P", game_state, rdata$dvw, selected_pos = if (htss %eq% "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
     } else if (editing$confirm_visiting_setter) {
-        show_change_setter_modal("aP", game_state, rdata$dvw, selected_pos = if (vtss == "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
+        show_change_setter_modal("aP", game_state, rdata$dvw, selected_pos = if (vtss %eq% "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
     }
     end_of_set
 }
