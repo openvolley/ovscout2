@@ -247,9 +247,18 @@ rally_ended <- function() {
         ## note that if the end-of-set is cancelled, we will need to do the setter system/rotation check if editing$confirm_home_setter or editing$confirm_visiting_setter. This happens in the do_end_of_set_cancel() function
     } else if (editing$confirm_home_setter) {
         ## if a team rotated, check the setter
-        show_change_setter_modal("*P", game_state, rdata$dvw, selected_pos = if (htss %eq% "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
+        if (htss %in% c("6-2", "4-2")) {
+            show_change_setter_modal("*P", game_state, rdata$dvw, selected_pos = if (htss %eq% "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
+        } else {
+            ## just in case things have gotten out of whack and we are trying to confirm a setter when the team isn't using two setters
+            editing$confirm_home_setter <- FALSE
+        }
     } else if (editing$confirm_visiting_setter) {
-        show_change_setter_modal("aP", game_state, rdata$dvw, selected_pos = if (vtss %eq% "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
+        if (vtss %in% c("6-2", "4-2")) {
+            show_change_setter_modal("aP", game_state, rdata$dvw, selected_pos = if (vtss %eq% "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
+        } else {
+            editing$confirm_visiting_setter <- FALSE
+        }
     }
     end_of_set
 }

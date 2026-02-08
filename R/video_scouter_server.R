@@ -2142,11 +2142,19 @@ ov_scouter_server <- function(app_data) {
                 ## home
                 htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
                 htss <- rdata$dvw$meta$teams$setter_system[htidx]
-                show_change_setter_modal("*P", game_state, rdata$dvw, selected_pos = if (htss == "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
+                if (htss %in% c("6-2", "4-2")) {
+                    show_change_setter_modal("*P", game_state, rdata$dvw, selected_pos = if (htss %eq% "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
+                } else {
+                    editing$confirm_home_setter <- FALSE
+                }
             } else if (editing$confirm_visiting_setter) {
                 vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a")
                 vtss <- rdata$dvw$meta$teams$setter_system[vtidx]
-                show_change_setter_modal("aP", game_state, rdata$dvw, selected_pos = if (vtss == "6-2") 1 else 4)
+                if (vtss %in% c("6-2", "4-2")) {
+                    show_change_setter_modal("aP", game_state, rdata$dvw, selected_pos = if (vtss %eq% "6-2") 1 else 4)
+                } else {
+                    editing$confirm_visiting_setter <- FALSE
+                }
             } else {
                 do_video("play")
                 focus_to_scout_bar() ## TODO check if this also needs to happen after checking setter, above
