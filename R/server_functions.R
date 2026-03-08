@@ -306,7 +306,7 @@ do_assign_new_setter <- function(code, new_setter, game_state, resume = FALSE) {
     editing$confirm_home_setter <- FALSE
     editing$confirm_visiting_setter <- FALSE
     if (resume) {
-        removeModal()
+        remove_scout_modal()
         do_video("play")
     }
     ok
