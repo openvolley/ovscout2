@@ -189,7 +189,7 @@ ov_scouter_server <- function(app_data) {
         observeEvent(input$preview_dismiss, {
             dojs("videojs('video_preview').dispose();")
             editing$active <- NULL
-            removeModal()
+            remove_modal("preview_dismiss")
         })
 
         output$preview_header <- renderUI({
@@ -312,7 +312,7 @@ ov_scouter_server <- function(app_data) {
                 team_select_mod$vtdata_select(NULL)
             }
             editing$active <- NULL
-            removeModal()
+            remove_modal("edit_cancel")
             if (do_focus_to_playslist) focus_to_playslist()
         })
 
@@ -543,7 +543,7 @@ ov_scouter_server <- function(app_data) {
                 }
                 editing$active <- NULL
                 if (dismiss_modal) {
-                    removeModal()
+                    remove_modal("do_edit_commit")
                     if (do_focus_to_playslist) focus_to_playslist()
                 }
             }
@@ -711,14 +711,14 @@ ov_scouter_server <- function(app_data) {
                         do_cancel_rally_review(editing = editing)
                     } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% .C_preferences) {
                         editing$active <- NULL
-                        removeModal()
+                        remove_modal("esc-prefs")
                         focus_to_scout_bar()
                     } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && !editing$active %in% c(.C_teams, .C_admin)) {
                         ## escape from editing modal or from showing shortcuts
                         do_unpause <- editing$active %eq% .C_admin && app_data$with_video
                         do_focus_to_playslist <- !is.null(editing$active) && editing$active %in% c(.C_delete, .C_edit)
                         editing$active <- NULL
-                        removeModal()
+                        remove_modal("esc-editing-shortcuts")
                         if (do_unpause) do_video("play")
                         if (do_focus_to_playslist) focus_to_playslist() else focus_to_scout_bar()
                     } else if (tolower(ky) %eq% "escape" && app_data$scout_mode_r() == "type" && grepl("scout_in", k$id) && "escape" %in% tolower(app_data$shortcuts$pause)) {
@@ -1070,7 +1070,7 @@ ov_scouter_server <- function(app_data) {
         })
         observeEvent(input$just_cancel, {
             editing$active <- NULL
-            removeModal()
+            remove_modal("just_cancel")
             focus_to_scout_bar()
         })
         observeEvent(input$prefs_save, {
@@ -1123,7 +1123,7 @@ ov_scouter_server <- function(app_data) {
             for (nm in names(this_opts)) rdata$options[[nm]] <- this_opts[[nm]]
             ## note that we don't apply the zones/cones preference to the current match being scouted. If the user wants to change this they have to do it through the match data editing
             editing$active <- NULL
-            removeModal()
+            remove_modal("prefs_save")
             focus_to_scout_bar()
         })
 
@@ -3159,7 +3159,7 @@ ov_scouter_server <- function(app_data) {
         }
         observeEvent(input$cancel_back_to_playslist, {
             editing$active <- NULL
-            removeModal()
+            remove_modal("cancel_back_to_playslist")
             if (app_data$scout_mode_r() == "type") focus_to_playslist() ## focus here so that focus returns to the playslist after it is re-rendered
         })
 
@@ -3178,7 +3178,7 @@ ov_scouter_server <- function(app_data) {
                     }
                 }
                 editing$active <- NULL
-                removeModal()
+                remove_modal("do_delete_code")
                 if (app_data$scout_mode_r() == "type") focus_to_playslist()
             }
         }
@@ -3214,7 +3214,7 @@ ov_scouter_server <- function(app_data) {
             if (!editing$confirm_home_setter && !editing$confirm_visiting_setter && res$ok) {
                 editing$active <- NULL
                 if (!res$end_of_set) {
-                    removeModal()
+                    remove_scout_modal("manual_code")
                     do_video("play")
                     focus_to_scout_bar()
                 }
@@ -3380,7 +3380,7 @@ ov_scouter_server <- function(app_data) {
             content = function(file) {
                 tryCatch({
                     dv_write2(update_meta(rp2(rdata$dvw)), file = file, convert_cones = app_data$scout_mode_r() != "type" && isTRUE(input$dvw_save_with_cones))
-                    removeModal()
+                    remove_modal("save_dvw_button")
                     focus_to_scout_bar()
                 }, error = function(e) {
                     temp <- save_to_ovs(rdata = rdata, app_data = app_data, courtref1 = detection_ref1(), courtref2 = detection_ref2())

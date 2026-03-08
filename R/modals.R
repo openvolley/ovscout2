@@ -38,7 +38,7 @@ dismiss_admin_modal <- function(editing) {
     ## dismiss the admin modal and unpause the video
     editing$active <- NULL
     editing$confirm_home_setter <- editing$confirm_visiting_setter <- FALSE
-    removeModal()
+    remove_modal("dismiss_admin_modal")
     do_video("play")
     focus_to_scout_bar()
 }
@@ -293,7 +293,11 @@ show_scout_modal <- function(mui, with_review_pane = TRUE) {
     if (with_review_pane && isTRUE(prefs$review_pane)) show_review_pane() else hide_review_pane()
 }
 
-remove_scout_modal <- function() {
+remove_scout_modal <- function(...) {
+    try({
+        debug <- getsv("debug")
+        if (isTRUE(debug > 0)) cat("remove_scout_modal:", ..., "\n")
+    }, silent = TRUE)
     scout_modal_active <- getsv("scout_modal_active")
     accept_fun <- getsv("accept_fun")
     scout_modal_active(FALSE)
@@ -301,6 +305,14 @@ remove_scout_modal <- function() {
     accept_fun(NULL)
     removeModal()
     if (isTRUE(prefs$review_pane)) hide_review_pane()
+}
+
+remove_modal <- function(...) {
+    try({
+        debug <- getsv("debug")
+        if (isTRUE(debug > 0)) cat("remove_modal:", ..., "\n")
+    }, silent = TRUE)
+    removeModal()
 }
 
 show_review_pane <- function() {
