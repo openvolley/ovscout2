@@ -793,8 +793,9 @@ ov_scouter_server <- function(app_data) {
                         ## but only for the admin, lineup modal or the ones that pop up during the rally, not the editing modals for teams or rosters
                         if (is.null(editing$active) || editing$active %in% c(.C_admin, .C_change_starting_lineup)) hide_popup(review_pane_active())
                     } else if (is_shortcut(k, c(app_data$shortcuts$pause, app_data$shortcuts$pause_no_popup))) {
-                        ## only accept this if we are not doing a courtref, not editing, not confirming setter, or it's the admin modal being shown
-                        if ((is.null(editing$active) || editing$active %eq% .C_admin) && !courtref_active() && !editing$confirm_home_setter && !editing$confirm_visiting_setter) {
+                        ## only accept this if we are not doing a courtref, not editing, or it's the admin modal being shown
+                        ## previously not when confirming setter, but now allowing that so that we can assign setter there
+                        if ((is.null(editing$active) || editing$active %eq% .C_admin) && !courtref_active()) {
                             ## video pause/unpause
                             ## Q (uppercase) does just pause, with no admin modal
                             deal_with_pause(scout_modal_active = scout_modal_active, video_state = video_state, editing = editing, game_state = game_state, rdata = rdata, app_data = app_data, show_modal = !is_shortcut(k, app_data$shortcuts$pause_no_popup))
@@ -923,6 +924,7 @@ ov_scouter_server <- function(app_data) {
                     (grepl("^[a\\*]P[[:digit:]]", code) && !isTRUE(game_state$rally_started)) || ## Px can be a setter assignment or an attack combo code ("P2" is particularly ambiguous). Treat as setter assignment if the rally has not yet started
                     grepl("^\\*\\*[[:digit:]]?set", code, ignore.case = TRUE)) { ## manual end of set code
                     res <- handle_non_skill_code(code, process_rally_end = FALSE) ## FALSE so that this does not automatically handle end-of-rally ap, *p codes
+                    ## the handle_non_skill_code() should not have spawned the confirm-setter modal, that should happen after the rally review
                     if (code %in% c("*p", "ap")) {
                         review_rally(editing = editing, rally_codes = rally_codes)
                     }
