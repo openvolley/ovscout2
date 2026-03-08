@@ -19,7 +19,7 @@ ov_code_interpret <- function(c, attack_table, compound_table, default_scouting_
                             ## use all possible valid setter calls and attack combos
                             "Advanced code", "Cmb/Call", "ac_cc", 7:8, c(paste0("K", c(0:9, toupper(letters))),
                                                                          attack_table$code,
-                                                                         unlist(lapply(c("C", "I", "J", "L", "P", "V", "W", "X", "Y", "Z"), paste0, c(0:9)))), # 6
+                                                                         unlist(lapply(c("C", "G", "I", "J", "L", "P", "V", "W", "X", "Y", "Z"), paste0, c(0:9)))), # 6
                             "Advanced code", "Target attack", "ac_ta", 9, c("F", "C", "B", "P", "S"),         # 7
                             "Advanced code", "Start zone", "ac_sz", 10, as.character(c(1:9)),                 # 8
                             "Advanced code", "End zone / Cone", "ac_ez", 11, as.character(c(1:9)),            # 9
