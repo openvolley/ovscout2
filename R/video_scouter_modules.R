@@ -682,10 +682,12 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                 }
             }
         }
+        ## a modified version of shiny::textInput that allows tabindex to be specified
         text_input_with_tabindex <- function (inputId, label, value = "", width = NULL, placeholder = NULL, tabindex = -1) {
             value <- shiny::restoreInput(id = inputId, default = value)
             tags$div(class = "form-group shiny-input-container", style = htmltools::css(width = htmltools::validateCssUnit(width)),
-                     shiny:::shinyInputLabel(inputId, label), tags$input(id = inputId, type = "text", class = "form-control", value = value, placeholder = placeholder, tabindex = tabindex))
+                     tags$label(label, class = "control-label", class = if (is.null(label)) "shiny-label-null", id = paste0(inputId, "-label"), `for` = inputId),
+                     tags$input(id = inputId, type = "text", class = "form-control", value = value, placeholder = placeholder, tabindex = tabindex))
         }
         ## border helpers, make a kind-of-court diagram with the cell borders
         brd_l <- "border-left:2px solid black;"; brd_r <- "border-right:2px solid black;"; brd_t <- "border-top:2px solid black;"; brd_b <- "border-bottom:8px solid black;";
@@ -699,12 +701,13 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
             vwModalDialog(
                 title = "Edit starting line up", size = "l", footer = NULL,
                 if (!is.null(set_started_warning)) set_started_warning,
-                tags$div(style = "float:right;", uiOutput(ns("edit_lineup_commit_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", class = "cancel")),
+                tags$div(style = "float:right;", uiOutput(ns("edit_lineup_commit_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", class = "cancel", tabindex = 24)),
                 tabsetPanel(
                     tabPanel(paste0(datavolley::home_team(rdata$dvw), " (home)"),
                              tags$style(paste0("#ht_display_team {border: 2px solid ", styling$h_court_colour, ";}")),
                              wellPanel(
                                  ## ideally we should not use tabindex > 1, but I can't see a way to generate the UI in a way that renders the positions correctly (i.e. in their proper court positions) while at the same time getting the elements in the correct order in the DOM (in which case the natural tab ordering would work, and tabindex would not be needed) - BR
+                                 ## Note also that the user needs to click into one of the player boxes first before being able to tab-navigate to other player boxes. The tab headings and buttons automatically get tab priority.
                                  fluidRow(column(1, style = paste0(brd_t, brd_l), text_input_with_tabindex(ns("ht_P1"), label = "P1", value = if (!is.na(ht_def_lup[1])) ht_def_lup[1] else "", placeholder = "P1", tabindex = 1)),
                                           column(1, style = brd_t, text_input_with_tabindex(ns("ht_P6"), label = "P6", value = if (!is.na(ht_def_lup[6])) ht_def_lup[6] else "", placeholder = "P6", tabindex = 6)),
                                           column(1, style = paste0(brd_t, brd_r), text_input_with_tabindex(ns("ht_P5"), label = "P5", value = if (!is.na(ht_def_lup[5])) ht_def_lup[5] else "", placeholder = "P5", tabindex = 5)),
@@ -715,24 +718,24 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                                      column(1, style = paste0(brd_b, brd_r), text_input_with_tabindex(ns("ht_P4"), label = "P4", value = if (!is.na(ht_def_lup[4])) ht_def_lup[4] else "", placeholder = "P4", tabindex = 4)),
                                      column(1, offset = 1, text_input_with_tabindex(ns("ht_libero1"), label = "Libero 1", value = if (is.na(ht_def_lup[7]) && length(ht_libs) > 0) ht_libs[1] else if (!is.na(ht_def_lup[7]) && ht_def_lup[7] == -1) "" else if (!is.na(ht_def_lup[7])) ht_def_lup[7], placeholder = "Libero 1", tabindex = 8)),
                                      column(1, text_input_with_tabindex(ns("ht_libero2"), label = "Libero 2", value = if (is.na(ht_def_lup[8]) && length(ht_libs) > 1) ht_libs[2] else if (!is.na(ht_def_lup[8]) && ht_def_lup[8] == -1) "" else if (!is.na(ht_def_lup[8])) ht_def_lup[8], placeholder = "Libero 2", tabindex = 9)),
-                                     column(1, offset = 1, tags$br(), actionButton(ns("rot_home_fwd"), tags$span("Rotate", icon("redo"))), actionButton(ns("rot_home_back"), tags$span("Rotate back", icon("undo"))))),
+                                     column(1, offset = 1, tags$br(), actionButton(ns("rot_home_fwd"), tags$span("Rotate", icon("redo")), tabindex = 10), actionButton(ns("rot_home_back"), tags$span("Rotate back", icon("undo")), tabindex = 11))),
                                  style = paste0("border-radius:8px; background:", styling$h_court_colour)
                              ),
                              DT::dataTableOutput(ns("ht_display_team"))),
                     tabPanel(paste0(datavolley::visiting_team(rdata$dvw), " (visiting)"), id = ns("vlpan"),
                              tags$style(paste0("#vt_display_team {border: 2px solid ", styling$v_court_colour, ";}")),
                              wellPanel(
-                                 fluidRow(column(1, style = paste0(brd_t, brd_l), text_input_with_tabindex(ns("vt_P1"), label = "P1", value = if (!is.na(vt_def_lup[1])) vt_def_lup[1] else "", placeholder = "P1", tabindex = 10)),
-                                          column(1, style = brd_t, text_input_with_tabindex(ns("vt_P6"), label = "P6", value = if (!is.na(vt_def_lup[6])) vt_def_lup[6] else "", placeholder = "P6", tabindex = 15)),
-                                          column(1, style = paste0(brd_t, brd_r), text_input_with_tabindex(ns("vt_P5"), label = "P5", value = if (!is.na(vt_def_lup[5])) vt_def_lup[5] else "", placeholder = "P5", tabindex = 14)),
-                                          column(1, offset = 1, text_input_with_tabindex(ns("vt_setter"), label = "Setter", value = vt_setter, placeholder = "Setter", tabindex = 16))),
+                                 fluidRow(column(1, style = paste0(brd_t, brd_l), text_input_with_tabindex(ns("vt_P1"), label = "P1", value = if (!is.na(vt_def_lup[1])) vt_def_lup[1] else "", placeholder = "P1", tabindex = 12)),
+                                          column(1, style = brd_t, text_input_with_tabindex(ns("vt_P6"), label = "P6", value = if (!is.na(vt_def_lup[6])) vt_def_lup[6] else "", placeholder = "P6", tabindex = 17)),
+                                          column(1, style = paste0(brd_t, brd_r), text_input_with_tabindex(ns("vt_P5"), label = "P5", value = if (!is.na(vt_def_lup[5])) vt_def_lup[5] else "", placeholder = "P5", tabindex = 16)),
+                                          column(1, offset = 1, text_input_with_tabindex(ns("vt_setter"), label = "Setter", value = vt_setter, placeholder = "Setter", tabindex = 18))),
                                  fluidRow(
-                                     column(1, style = paste0(brd_b, brd_l), text_input_with_tabindex(ns("vt_P2"), label = "P2", value = if (!is.na(vt_def_lup[2])) vt_def_lup[2] else "", placeholder = "P2", tabindex = 11)),
-                                     column(1, style = brd_b, text_input_with_tabindex(ns("vt_P3"), label = "P3", value = if (!is.na(vt_def_lup[3])) vt_def_lup[3] else "", placeholder = "P3", tabindex = 12)),
-                                     column(1, style = paste0(brd_b, brd_r), text_input_with_tabindex(ns("vt_P4"), label = "P4", value = if (!is.na(vt_def_lup[4])) vt_def_lup[4] else "", placeholder = "P4", tabindex = 13)),
-                                     column(1, offset = 1, text_input_with_tabindex(ns("vt_libero1"), label = "Libero 1", value = if (is.na(vt_def_lup[7]) && length(vt_libs) > 0) vt_libs[1] else if (!is.na(vt_def_lup[7]) && vt_def_lup[7] == -1) "" else if (!is.na(vt_def_lup[7])) vt_def_lup[7], placeholder = "Libero 1", tabindex = 17)),
-                                     column(1, text_input_with_tabindex(ns("vt_libero2"), label = "Libero 2", value = if (is.na(vt_def_lup[8]) && length(vt_libs) > 1) vt_libs[2] else if (!is.na(vt_def_lup[8]) && vt_def_lup[8] == -1) "" else if (!is.na(vt_def_lup[8])) vt_def_lup[8], placeholder = "Libero 2", tabindex = 18)),
-                                     column(1, offset = 1, tags$br(), actionButton(ns("rot_visiting_fwd"), tags$span("Rotate", icon("redo"))), actionButton(ns("rot_visiting_back"), tags$span("Rotate back", icon("undo"))))),
+                                     column(1, style = paste0(brd_b, brd_l), text_input_with_tabindex(ns("vt_P2"), label = "P2", value = if (!is.na(vt_def_lup[2])) vt_def_lup[2] else "", placeholder = "P2", tabindex = 13)),
+                                     column(1, style = brd_b, text_input_with_tabindex(ns("vt_P3"), label = "P3", value = if (!is.na(vt_def_lup[3])) vt_def_lup[3] else "", placeholder = "P3", tabindex = 14)),
+                                     column(1, style = paste0(brd_b, brd_r), text_input_with_tabindex(ns("vt_P4"), label = "P4", value = if (!is.na(vt_def_lup[4])) vt_def_lup[4] else "", placeholder = "P4", tabindex = 15)),
+                                     column(1, offset = 1, text_input_with_tabindex(ns("vt_libero1"), label = "Libero 1", value = if (is.na(vt_def_lup[7]) && length(vt_libs) > 0) vt_libs[1] else if (!is.na(vt_def_lup[7]) && vt_def_lup[7] == -1) "" else if (!is.na(vt_def_lup[7])) vt_def_lup[7], placeholder = "Libero 1", tabindex = 19)),
+                                     column(1, text_input_with_tabindex(ns("vt_libero2"), label = "Libero 2", value = if (is.na(vt_def_lup[8]) && length(vt_libs) > 1) vt_libs[2] else if (!is.na(vt_def_lup[8]) && vt_def_lup[8] == -1) "" else if (!is.na(vt_def_lup[8])) vt_def_lup[8], placeholder = "Libero 2", tabindex = 20)),
+                                     column(1, offset = 1, tags$br(), actionButton(ns("rot_visiting_fwd"), tags$span("Rotate", icon("redo")), tabindex = 21), actionButton(ns("rot_visiting_back"), tags$span("Rotate back", icon("undo")), tabindex = 22))),
                                  style = paste0("border-radius:8px; background:", styling$v_court_colour)
                              ),
                              DT::dataTableOutput(ns("vt_display_team")))
@@ -800,7 +803,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
         } else {
             vtok <- vtok && length(unique(c(input$vt_P1, input$vt_P2))) == 2
         }
-        if (htok && vtok) actionButton("edit_commit", label = "Update teams lineups", class = "continue") else NULL
+        if (htok && vtok) actionButton("edit_commit", label = "Update teams lineups", class = "continue", tabindex = 23) else NULL
     })
 
     output$ht_display_team <- DT::renderDataTable({
