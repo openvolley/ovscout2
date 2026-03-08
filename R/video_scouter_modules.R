@@ -691,18 +691,18 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
         brd_l <- "border-left:2px solid black;"; brd_r <- "border-right:2px solid black;"; brd_t <- "border-top:2px solid black;"; brd_b <- "border-bottom:8px solid black;";
         ## changing the lineups after the set has started will have no effect except for liberos
         set_started_warning <- if (isTRUE(game_state$set_started)) {
-            tags$div(class = "alert alert-danger", "Changing the starting lineups after the set has started will have no effect, except that the designated libero players can be changed.")
+            tags$div(class = "alert alert-danger", "Changing the starting lineups after the set has started will have no effect, except for changes in the designated libero players.")
         } else {
             NULL
         }
         showModal(
             vwModalDialog(
-                title = "Edit starting line up", size = "l", footer = tags$div(uiOutput(ns("edit_lineup_commit_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", class = "cancel")),
+                title = "Edit starting line up", size = "l", footer = NULL,
                 if (!is.null(set_started_warning)) set_started_warning,
+                tags$div(style = "float:right;", uiOutput(ns("edit_lineup_commit_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", class = "cancel")),
                 tabsetPanel(
                     tabPanel(paste0(datavolley::home_team(rdata$dvw), " (home)"),
                              tags$style(paste0("#ht_display_team {border: 2px solid ", styling$h_court_colour, ";}")),
-                             DT::dataTableOutput(ns("ht_display_team")),
                              wellPanel(
                                  ## ideally we should not use tabindex > 1, but I can't see a way to generate the UI in a way that renders the positions correctly (i.e. in their proper court positions) while at the same time getting the elements in the correct order in the DOM (in which case the natural tab ordering would work, and tabindex would not be needed) - BR
                                  fluidRow(column(1, style = paste0(brd_t, brd_l), text_input_with_tabindex(ns("ht_P1"), label = "P1", value = if (!is.na(ht_def_lup[1])) ht_def_lup[1] else "", placeholder = "P1", tabindex = 1)),
@@ -717,10 +717,10 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                                      column(1, text_input_with_tabindex(ns("ht_libero2"), label = "Libero 2", value = if (is.na(ht_def_lup[8]) && length(ht_libs) > 1) ht_libs[2] else if (!is.na(ht_def_lup[8]) && ht_def_lup[8] == -1) "" else if (!is.na(ht_def_lup[8])) ht_def_lup[8], placeholder = "Libero 2", tabindex = 9)),
                                      column(1, offset = 1, tags$br(), actionButton(ns("rot_home_fwd"), tags$span("Rotate", icon("redo"))), actionButton(ns("rot_home_back"), tags$span("Rotate back", icon("undo"))))),
                                  style = paste0("border-radius:8px; background:", styling$h_court_colour)
-                             )),
+                             ),
+                             DT::dataTableOutput(ns("ht_display_team"))),
                     tabPanel(paste0(datavolley::visiting_team(rdata$dvw), " (visiting)"), id = ns("vlpan"),
                              tags$style(paste0("#vt_display_team {border: 2px solid ", styling$v_court_colour, ";}")),
-                             DT::dataTableOutput(ns("vt_display_team")),
                              wellPanel(
                                  fluidRow(column(1, style = paste0(brd_t, brd_l), text_input_with_tabindex(ns("vt_P1"), label = "P1", value = if (!is.na(vt_def_lup[1])) vt_def_lup[1] else "", placeholder = "P1", tabindex = 10)),
                                           column(1, style = brd_t, text_input_with_tabindex(ns("vt_P6"), label = "P6", value = if (!is.na(vt_def_lup[6])) vt_def_lup[6] else "", placeholder = "P6", tabindex = 15)),
@@ -734,7 +734,8 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                                      column(1, text_input_with_tabindex(ns("vt_libero2"), label = "Libero 2", value = if (is.na(vt_def_lup[8]) && length(vt_libs) > 1) vt_libs[2] else if (!is.na(vt_def_lup[8]) && vt_def_lup[8] == -1) "" else if (!is.na(vt_def_lup[8])) vt_def_lup[8], placeholder = "Libero 2", tabindex = 18)),
                                      column(1, offset = 1, tags$br(), actionButton(ns("rot_visiting_fwd"), tags$span("Rotate", icon("redo"))), actionButton(ns("rot_visiting_back"), tags$span("Rotate back", icon("undo"))))),
                                  style = paste0("border-radius:8px; background:", styling$v_court_colour)
-                             ))
+                             ),
+                             DT::dataTableOutput(ns("vt_display_team")))
                 )
             ))
     })
