@@ -3211,7 +3211,7 @@ ov_scouter_server <- function(app_data) {
 
         observeEvent(input$manual_code, {
             res <- handle_non_skill_code(input$manual_code)
-            if (res$ok) {
+            if (!editing$confirm_home_setter && !editing$confirm_visiting_setter && res$ok) {
                 editing$active <- NULL
                 if (!res$end_of_set) {
                     removeModal()
