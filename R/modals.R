@@ -50,6 +50,8 @@ show_save_error_modal <- function(msg, ovs_ok, tempfile_name) {
 
 show_change_setter_modal <- function(code, game_state, dvw, selected_pos = NA) {
     do_video("pause")
+    prefs <- getsv("prefs")
+    if (isTRUE(prefs$review_pane)) hide_review_pane()
     editing <- getsv("editing")
     ht <- vt <- FALSE
     if (code %eq% "*P") {
