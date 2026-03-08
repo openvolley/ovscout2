@@ -592,7 +592,12 @@ ov_scouter_server <- function(app_data) {
             }
             ## check setter systems
             setter_systems_chk <- check_setter_systems(rdata$dvw, game_state)
-            extra_ss_msg <- "Either change the team's setter system via the 'Edit teams' button, or use 'Edit lineups' to change the lineup."
+            if (!isTRUE(game_state$set_started)) {
+                extra_ss_h_msg <- extra_ss_v_msg <- "Either change the team's setter system via the 'Edit teams' button, or use 'Edit lineups' to change the lineup."
+            } else {
+                extra_ss_h_msg <- tags$div("Either change the team's setter system via the 'Edit teams' button, or ", actionButton("reassign_home_setter", "Reassign on-court-setter"))
+                extra_ss_v_msg <- tags$div("Either change the team's setter system via the 'Edit teams' button, or ", actionButton("reassign_visiting_setter", "Reassign on-court-setter"))
+            }
             courtref_ok <- video_media_ok <- TRUE
             if (app_data$with_video) {
                 ## check courtref
@@ -621,8 +626,8 @@ ov_scouter_server <- function(app_data) {
                                       if (!teams_ok) tags$li("Use the 'Select teams' button to choose from existing teams, or 'Edit teams' to enter new ones."),
                                       if (!isTRUE(rosters_ok)) tags$li(if (is.character(rosters_ok)) paste0(rosters_ok, " ", collapse = ", "), "Use the 'Edit teams' button to enter or adjust the team rosters."),
                                       if (!isTRUE(lineups_ok)) tags$li(if (is.character(lineups_ok)) paste0(lineups_ok, " ", collapse = ", "), paste0("Use the 'Edit lineups' to enter or adjust the starting lineups", if (!is.null(game_state$set_number) && !is.na(game_state$set_number)) paste0(" for set ", game_state$set_number), ".")),
-                                      if (setter_systems_chk[1] != "ok") tags$li(setter_systems_chk[1], extra_ss_msg),
-                                      if (setter_systems_chk[2] != "ok") tags$li(setter_systems_chk[2], extra_ss_msg),
+                                      if (setter_systems_chk[1] != "ok") tags$li(setter_systems_chk[1], extra_ss_h_msg),
+                                      if (setter_systems_chk[2] != "ok") tags$li(setter_systems_chk[2], extra_ss_v_msg),
                                       if (!video_media_ok) tags$li("Wait for the video media information to be loaded.")
                                   ),
                              tags$hr(),
@@ -633,6 +638,22 @@ ov_scouter_server <- function(app_data) {
                     NULL
                 }
             })
+        })
+
+        observeEvent(input$reassign_home_setter, {
+            htidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "*") ## should always be 1
+            htss <- rdata$dvw$meta$teams$setter_system[htidx]
+            if (htss %in% c("6-2", "4-2")) {
+                show_change_setter_modal("*P", game_state, rdata$dvw, selected_pos = if (htss %eq% "6-2") 1 else 4) ## pre-select the player in pos 1 for 6-2, or 4 for 4-2
+            }
+        })
+
+        observeEvent(input$reassign_visiting_setter, {
+            vtidx <- which(rdata$dvw$meta$teams$home_away_team %eq% "a")
+            vtss <- rdata$dvw$meta$teams$setter_system[vtidx]
+            if (vtss %in% c("6-2", "4-2")) {
+                show_change_setter_modal("aP", game_state, rdata$dvw, selected_pos = if (vtss %eq% "6-2") 1 else 4)
+            }
         })
 
         ## exteral video control buttons
