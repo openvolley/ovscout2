@@ -697,19 +697,22 @@ ov_scouter_server <- function(app_data) {
                 } else {
                     ## escape does some special things, but can also be used in shortcuts, yuck. Check all the special things first
                     if (tolower(ky) %eq% "escape" && isTRUE(scout_modal_active())) {
-                        ## if we have a scouting modal showing, treat this as cancel and rewind
-                        do_cancel_rew()
+                        ## if we have a setter-confirmation modal showing, dismiss it and continue
+                        if (editing$confirm_home_setter || editing$confirm_visiting_setter) {
+                            editing$confirm_home_setter <- FALSE
+                            editing$confirm_visiting_setter <- FALSE
+                            remove_scout_modal()
+                            do_video("play")
+                        } else {
+                            ## otherwise if we have a scouting modal showing, treat this as "cancel and rewind"
+                            do_cancel_rew()
+                        }
                     } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% .C_rally_review) {
                         do_cancel_rally_review(editing = editing)
                     } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && editing$active %eq% .C_preferences) {
                         editing$active <- NULL
                         removeModal()
                         focus_to_scout_bar()
-                    } else if (tolower(ky) %eq% "escape" && (editing$confirm_home_setter || editing$confirm_visiting_setter)) {
-                        editing$confirm_home_setter <- FALSE
-                        editing$confirm_visiting_setter <- FALSE
-                        removeModal()
-                        do_video("play")
                     } else if (tolower(ky) %eq% "escape" && !is.null(editing$active) && !editing$active %in% c(.C_teams, .C_admin)) {
                         ## escape from editing modal or from showing shortcuts
                         do_unpause <- editing$active %eq% .C_admin && app_data$with_video

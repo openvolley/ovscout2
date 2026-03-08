@@ -50,8 +50,6 @@ show_save_error_modal <- function(msg, ovs_ok, tempfile_name) {
 
 show_change_setter_modal <- function(code, game_state, dvw, selected_pos = NA) {
     do_video("pause")
-    prefs <- getsv("prefs")
-    if (isTRUE(prefs$review_pane)) hide_review_pane()
     editing <- getsv("editing")
     ht <- vt <- FALSE
     if (code %eq% "*P") {
@@ -75,12 +73,12 @@ show_change_setter_modal <- function(code, game_state, dvw, selected_pos = NA) {
         editing$confirm_visiting_setter <- TRUE
         buts <- make_fat_radio_buttons(choices = chc, selected = selected, input_var = "new_setter")
     }
-    showModal(vwModalDialog(title = paste0("On-court setter: ", if (ht) paste0(datavolley::home_team(dvw), " (home)") else paste0(datavolley::visiting_team(dvw), " (visiting)")), footer = NULL, width = 100,
-                            tags$div(tags$p(tags$strong("New setter")), do.call(fixedRow, lapply(buts, function(but) column(2, but)))),
-                            tags$hr(),
-                            fixedRow(column(2, offset = 8, make_fat_buttons(choices = c("Assign setter" = if (ht) "*P" else "aP"), input_var = "manual_code", class = "continue")),
-                                     column(2, actionButton("admin_dismiss", "Cancel", class = "cancel fatradio")))
-                            ))
+    show_scout_modal(vwModalDialog(title = paste0("On-court setter: ", if (ht) paste0(datavolley::home_team(dvw), " (home)") else paste0(datavolley::visiting_team(dvw), " (visiting)")), footer = NULL, width = 100,
+                                   tags$div(tags$p(tags$strong("New setter")), do.call(fixedRow, lapply(buts, function(but) column(2, but)))),
+                                   tags$hr(),
+                                   fixedRow(column(2, offset = 8, make_fat_buttons(choices = c("Assign setter" = if (ht) "*P" else "aP"), input_var = "manual_code", class = "continue")),
+                                            column(2, actionButton("admin_dismiss", "Cancel", class = "cancel fatradio")))
+                                   ), with_review_pane = FALSE)
 }
 
 show_substitution_modal <- function(sub_code, game_state, dvw) {
@@ -292,7 +290,7 @@ show_scout_modal <- function(mui, with_review_pane = TRUE) {
     prefs <- getsv("prefs")
     scout_modal_active(TRUE)
     showModal(mui)
-    if (with_review_pane && isTRUE(prefs$review_pane)) show_review_pane()
+    if (with_review_pane && isTRUE(prefs$review_pane)) show_review_pane() else hide_review_pane()
 }
 
 remove_scout_modal <- function() {
