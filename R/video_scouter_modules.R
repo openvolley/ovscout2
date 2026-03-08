@@ -689,9 +689,16 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
         }
         ## border helpers, make a kind-of-court diagram with the cell borders
         brd_l <- "border-left:2px solid black;"; brd_r <- "border-right:2px solid black;"; brd_t <- "border-top:2px solid black;"; brd_b <- "border-bottom:8px solid black;";
+        ## changing the lineups after the set has started will have no effect except for liberos
+        set_started_warning <- if (isTRUE(game_state$set_started)) {
+            tags$div(class = "alert alert-danger", "Changing the starting lineups after the set has started will have no effect, except that the designated libero players can be changed.")
+        } else {
+            NULL
+        }
         showModal(
             vwModalDialog(
                 title = "Edit starting line up", size = "l", footer = tags$div(uiOutput(ns("edit_lineup_commit_ui"), inline = TRUE), actionButton("edit_cancel", label = "Cancel", class = "cancel")),
+                if (!is.null(set_started_warning)) set_started_warning,
                 tabsetPanel(
                     tabPanel(paste0(datavolley::home_team(rdata$dvw), " (home)"),
                              tags$style(paste0("#ht_display_team {border: 2px solid ", styling$h_court_colour, ";}")),
@@ -709,7 +716,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                                      column(1, offset = 1, text_input_with_tabindex(ns("ht_libero1"), label = "Libero 1", value = if (is.na(ht_def_lup[7]) && length(ht_libs) > 0) ht_libs[1] else if (!is.na(ht_def_lup[7]) && ht_def_lup[7] == -1) "" else if (!is.na(ht_def_lup[7])) ht_def_lup[7], placeholder = "Libero 1", tabindex = 8)),
                                      column(1, text_input_with_tabindex(ns("ht_libero2"), label = "Libero 2", value = if (is.na(ht_def_lup[8]) && length(ht_libs) > 1) ht_libs[2] else if (!is.na(ht_def_lup[8]) && ht_def_lup[8] == -1) "" else if (!is.na(ht_def_lup[8])) ht_def_lup[8], placeholder = "Libero 2", tabindex = 9)),
                                      column(1, offset = 1, tags$br(), actionButton(ns("rot_home_fwd"), tags$span("Rotate", icon("redo"))), actionButton(ns("rot_home_back"), tags$span("Rotate back", icon("undo"))))),
-                                 style = paste0("background: ", styling$h_court_colour)
+                                 style = paste0("border-radius:8px; background:", styling$h_court_colour)
                              )),
                     tabPanel(paste0(datavolley::visiting_team(rdata$dvw), " (visiting)"), id = ns("vlpan"),
                              tags$style(paste0("#vt_display_team {border: 2px solid ", styling$v_court_colour, ";}")),
@@ -726,7 +733,7 @@ mod_lineup_edit <- function(input, output, session, rdata, game_state, editing, 
                                      column(1, offset = 1, text_input_with_tabindex(ns("vt_libero1"), label = "Libero 1", value = if (is.na(vt_def_lup[7]) && length(vt_libs) > 0) vt_libs[1] else if (!is.na(vt_def_lup[7]) && vt_def_lup[7] == -1) "" else if (!is.na(vt_def_lup[7])) vt_def_lup[7], placeholder = "Libero 1", tabindex = 17)),
                                      column(1, text_input_with_tabindex(ns("vt_libero2"), label = "Libero 2", value = if (is.na(vt_def_lup[8]) && length(vt_libs) > 1) vt_libs[2] else if (!is.na(vt_def_lup[8]) && vt_def_lup[8] == -1) "" else if (!is.na(vt_def_lup[8])) vt_def_lup[8], placeholder = "Libero 2", tabindex = 18)),
                                      column(1, offset = 1, tags$br(), actionButton(ns("rot_visiting_fwd"), tags$span("Rotate", icon("redo"))), actionButton(ns("rot_visiting_back"), tags$span("Rotate back", icon("undo"))))),
-                                 style = paste0("background: ", styling$v_court_colour)
+                                 style = paste0("border-radius:8px; background:", styling$v_court_colour)
                              ))
                 )
             ))

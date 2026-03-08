@@ -126,7 +126,7 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
             ## TODO, show some useful message to the user that the lineup operation failed
             do_reparse <- TRUE
         }
-        ## NOTE that if the set was in progress (set_started = TRUE) then only the game_state$Xt_libY values will be updated and the rest will be silently ignored TODO warn the user if they are editing lineups after the set has started?
+        ## NOTE that if the set was in progress (set_started = TRUE) then only the game_state$Xt_libY values will be updated and the rest will be ignored. The user will be warned if they are editing the lineups after the set has started
     } else {
         warning("I don't know what to do with editing_active: ", editing_active)
     }
