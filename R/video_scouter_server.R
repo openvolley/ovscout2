@@ -723,7 +723,7 @@ ov_scouter_server <- function(app_data) {
                             editing$confirm_home_setter <- FALSE
                             editing$confirm_visiting_setter <- FALSE
                             remove_scout_modal()
-                            do_video("play")
+                            if (meta_is_valid() || app_data$scout_mode_r() == "type") do_video("play") ## don't resume playing if meta isn't valid and we are click-scouting. TODO maybe also when type-scouting
                         } else {
                             ## otherwise if we have a scouting modal showing, treat this as "cancel and rewind"
                             do_cancel_rew()
