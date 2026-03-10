@@ -3060,10 +3060,7 @@ ov_scouter_server <- function(app_data) {
                 if (nrow(rc) < 1) {
                     ## we've undone all actions, so the rally is back to it's pre-start state. This allows us to e.g. display the serve-switch and rotate buttons in the court diagram module
                     game_state$rally_started <- FALSE
-                    if (!any(substr(rdata$dvw$plays2$code, 4, 4) %in% c("S", "R", "A", "B", "D", "E", "F"))) {
-                        ## rally_codes is now empty and there are no skill rows in plays2
-                        game_state$set_started <- FALSE
-                    }
+                    game_state$set_started <- has_set_started(rdata$dvw$plays2, set_number = game_state$set_number)
                 }
                 ## rewind the video to the time of the last action, or if we've removed all actions then the prior time of the first one
                 if (nrow(rc) > 0) do_video("set_time", tail(rc$t, 1)) else if (length(restore_t) == 1 && !is.na(restore_t)) do_video("set_time", restore_t) else do_video("rew", 3)
@@ -3133,7 +3130,7 @@ ov_scouter_server <- function(app_data) {
                         game_state$current_team <- restore_current_team
                         ## reset rally codes
                         rally_codes(new_rc)
-                        do_video("set_time", tail(new_rc$t, 1))
+                        if (nrow(new_rc) > 0) do_video("set_time", tail(new_rc$t, 1))
                     }
                 }
             }

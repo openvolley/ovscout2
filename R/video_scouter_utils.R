@@ -328,7 +328,7 @@ update_code_trow <- function(trow, team, pnum, skill, tempo, eval, combo, target
               mid_y = if (!missing(mid_y) && !is.null(mid_y) && isTRUE(game_state$midxy_valid)) mid_y else trow$mid_y,
               end_x = if (!missing(end_x) && !is.null(end_x) && isTRUE(game_state$endxy_valid)) end_x else trow$end_x,
               end_y = if (!missing(end_y) && !is.null(end_y) && isTRUE(game_state$endxy_valid)) end_y else trow$end_y,
-              time = if (!missing(time) && !is.null(time)) time else trow$time,
+              time = if (!missing(time) && !is.null(time)) time else if ("time" %in% names(trow)) trow$time else as.POSIXct(NA),
               rally_state = trow$rally_state,
               game_state = gs)
 }

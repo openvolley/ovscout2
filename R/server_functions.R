@@ -86,6 +86,7 @@ init_game_state <- function(app_data) {
     do.call(reactiveValues, temp)
 }
 
+## reset game state to start of rally
 reset_game_state <- function(gs, app_data, reset_lineups = FALSE, ...) {
     ## if reset_lineups is FALSE, the existing ones will be used if they are present; if TRUE they will be reset to NAs
     gs$rally_started <- FALSE
@@ -116,6 +117,12 @@ reset_game_state <- function(gs, app_data, reset_lineups = FALSE, ...) {
         for (nm in names(dots)) gs[[nm]] <- dots[[nm]]
     }
     gs
+}
+
+## a set has started if there is any valid ball touch
+has_set_started <- function(p2, set_number) {
+    temp <- substr(p2$code[which(p2$set_number == set_number)], 4, 4)
+    length(temp) > 0 && isTRUE(any(temp %in% c("S", "R", "A", "B", "D", "E", "F"), na.rm = TRUE))
 }
 
 ## function to populate the team character and player number of the serving player in the scout typing entry box
