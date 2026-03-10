@@ -618,7 +618,6 @@ ov_scouter_server <- function(app_data) {
             meta_is_valid(ok)
             output$problem_ui <- renderUI({
                 if (!ok) {
-                    set_rally_state(.C_fix_required_info)
                     tags$div(class = "alert alert-info",
                              tags$h2("Information needed"),
                              tags$ul(
@@ -634,7 +633,6 @@ ov_scouter_server <- function(app_data) {
                              if (app_data$scout_mode_r() != "type") tags$p("Scouting cannot start until this information has been entered.") ## if we are in type-scouting mode, it might be possible to start scouting anyway
                              )
                 } else {
-                    if (rally_state() == .C_fix_required_info) set_rally_state(if (video_state$paused) .C_click_to_start_msg else .C_click_serve_start)
                     NULL
                 }
             })
@@ -1488,7 +1486,7 @@ ov_scouter_server <- function(app_data) {
         ## single click the video to register a tag location, or starting ball coordinates
         process_action <- function(was_shift_click = FALSE) {
             if (app_data$scout_mode_r() == "type") return(process_action_type_mode(was_shift_click = was_shift_click))
-            if (loop_trigger() > 0 && rally_state() != .C_fix_required_info) {
+            if (loop_trigger() > 0 && meta_is_valid()) {
                 if (rally_state() == .C_click_to_start_msg) {
                     if (meta_is_valid()) {
                         do_video("play")
@@ -2824,7 +2822,7 @@ ov_scouter_server <- function(app_data) {
 
         output$rally_state <- renderUI({
             if (app_data$scout_mode_r() != "type") {
-                tags$div(id = "rallystate", tags$strong("Rally state: "), rally_state())
+                tags$div(id = "rallystate", tags$strong("Rally state: "), if (!meta_is_valid()) .C_fix_required_info else rally_state())
             } else {
                 NULL
             }
