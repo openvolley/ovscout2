@@ -35,10 +35,10 @@ by typing.
   video can then be converted to its corresponding court coordinates
 - each ball touch is registered by clicking its location on screen. With
   a touch-screen device, this click interface can be reasonably fast
-- to make the process faster and easier the app tries to pre-fill as
-  much information as it can at each data entry step. It will learn a
-  team’s patterns of play, so that it can suggest the most likely player
-  to have attacked, passed or dug a certain ball
+- to make the process faster and easier the app will pre-fill as much
+  information as it can at each data entry step. It will learn a team’s
+  patterns of play, so that it can suggest the most likely player to
+  have attacked, passed or dug a certain ball
 
 ## Scouting by typing
 
@@ -69,9 +69,40 @@ use.
 - experimental support for dual match video cameras (one from either end
   of the court)
 
-After you’ve scouted your match video, the data can be analyzed with the
+## Getting analysis results
+
+After you’ve scouted your match video, you can generate a match report
+directly from this app ([see an example
+here](https://raw.githubusercontent.com/openvolley/ovscout2/master/man/figures/example-match-report-POL-IRI-WL2017.png)).
+The data can be analyzed further with the
 [openvolley](https://openvolley.org) suite of R packages, or with any
 other volleyball analytics software that takes dvw files as inputs.
+
+## Why this package?
+
+Q: This seems awfully complicated! Why not just use one of the multitude
+of apps available for phones and tablets, many of which have much
+simpler (quicker) data entry methods?
+
+A: If one of those apps meets your needs, by all means use it. But the
+tradeoff with many of them is that the data being collected is limited,
+and you will quickly reach the limit of the analysis questions that you
+can answer. Some simple examples:
+
+- if the data entry only allows you to record attack kills and errors
+  (but not attack attempts that remained in play), you will not be able
+  to calculate kill rates or efficiencies. If two players both had 10
+  attack kills in a match, but one of them got their kills from 10
+  attempts and the other from 30 attempts, wouldn’t you want to know
+  that?
+- if the data entry does not include attack start and end locations, you
+  can’t generate attack direction maps (heatmaps) or setter
+  distributions
+
+The ovscout2 package is capable of collecting the same level of data
+detail as professional scouting software, but also offers a simplified
+data option that still allows a wide range of analysis questions to be
+answered.
 
 ## Installation
 

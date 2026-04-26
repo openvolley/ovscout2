@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="index.html">ovscout2</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,7 +81,7 @@
 <li>scouting is always done from video, even when scouting a live match (though this is technically a bit tricky to set up). The hope is that the scouting process is fast enough to be “nearly real time” - while the scout might lag behind the real action at times, they can catch up at the ends of rallies or other breaks in play</li>
 <li>by registering the corners of the court before scouting, we can map the court image to real-world court space. Clicking a location on the video can then be converted to its corresponding court coordinates</li>
 <li>each ball touch is registered by clicking its location on screen. With a touch-screen device, this click interface can be reasonably fast</li>
-<li>to make the process faster and easier the app tries to pre-fill as much information as it can at each data entry step. It will learn a team’s patterns of play, so that it can suggest the most likely player to have attacked, passed or dug a certain ball</li>
+<li>to make the process faster and easier the app will pre-fill as much information as it can at each data entry step. It will learn a team’s patterns of play, so that it can suggest the most likely player to have attacked, passed or dug a certain ball</li>
 </ul>
 </div>
 <div class="section level2">
@@ -103,7 +103,22 @@
 <li>all contacts are recorded with precise locations (coordinates) as well as zones and subzones</li>
 <li>experimental support for dual match video cameras (one from either end of the court)</li>
 </ul>
-<p>After you’ve scouted your match video, the data can be analyzed with the <a href="https://openvolley.org" class="external-link">openvolley</a> suite of R packages, or with any other volleyball analytics software that takes dvw files as inputs.</p>
+</div>
+<div class="section level2">
+<h2 id="getting-analysis-results">Getting analysis results<a class="anchor" aria-label="anchor" href="#getting-analysis-results"></a>
+</h2>
+<p>After you’ve scouted your match video, you can generate a match report directly from this app (<a href="https://raw.githubusercontent.com/openvolley/ovscout2/master/man/figures/example-match-report-POL-IRI-WL2017.png" class="external-link">see an example here</a>). The data can be analyzed further with the <a href="https://openvolley.org" class="external-link">openvolley</a> suite of R packages, or with any other volleyball analytics software that takes dvw files as inputs.</p>
+</div>
+<div class="section level2">
+<h2 id="why-this-package">Why this package?<a class="anchor" aria-label="anchor" href="#why-this-package"></a>
+</h2>
+<p>Q: This seems awfully complicated! Why not just use one of the multitude of apps available for phones and tablets, many of which have much simpler (quicker) data entry methods?</p>
+<p>A: If one of those apps meets your needs, by all means use it. But the tradeoff with many of them is that the data being collected is limited, and you will quickly reach the limit of the analysis questions that you can answer. Some simple examples:</p>
+<ul>
+<li>if the data entry only allows you to record attack kills and errors (but not attack attempts that remained in play), you will not be able to calculate kill rates or efficiencies. If two players both had 10 attack kills in a match, but one of them got their kills from 10 attempts and the other from 30 attempts, wouldn’t you want to know that?</li>
+<li>if the data entry does not include attack start and end locations, you can’t generate attack direction maps (heatmaps) or setter distributions</li>
+</ul>
+<p>The ovscout2 package is capable of collecting the same level of data detail as professional scouting software, but also offers a simplified data option that still allows a wide range of analysis questions to be answered.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -189,7 +204,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>
