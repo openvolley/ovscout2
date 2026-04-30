@@ -69,6 +69,31 @@ use.
 - experimental support for dual match video cameras (one from either end
   of the court)
 
+## Usage
+
+To try it on a short match video clip:
+
+``` r
+ov_scouter_demo()
+```
+
+To use with your own data:
+
+``` r
+ov_scouter(video_file = "/path/to/video.mp4",
+           season_dir = "/path/to/existing/files")
+```
+
+If you don’t provide the video file path, it will pop up a file
+navigator for you to select one. The season directory (a directory
+containing existing .dvw or .ovs files) can also optionally be provided.
+If a new match is being scouted, the teams can be selected from those in
+the season directory. You can also provide it with a partially-scouted
+`.dvw` or `.ovs` file, to continue scouting where you left off.
+
+See `help("ov_scouter")` for more options, or the [user
+manual](https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html).
+
 ## Getting analysis results
 
 After you’ve scouted your match video, you can generate a match report
@@ -77,6 +102,14 @@ here](https://raw.githubusercontent.com/openvolley/ovscout2/master/man/figures/e
 The data can be analyzed further with the
 [openvolley](https://openvolley.org) suite of R packages, or with any
 other volleyball analytics software that takes dvw files as inputs.
+
+[Science Untangled](https://untan.gl/apps.html) offers a suite of
+advanced volleyball analytics apps, most of which can be used for free
+to analyze a single match at a time. Of note is the [match file
+validator](https://apps.untan.gl/dvalidate/) which will allow you to
+check your file for errors, run some analyses, and even export the
+play-by-play data as CSV to analyze in Excel (or elsewhere) if you are
+so inclined.
 
 ## Why this package?
 
@@ -98,6 +131,8 @@ can answer. Some simple examples:
 - if the data entry does not include attack start and end locations, you
   can’t generate attack direction maps (heatmaps) or setter
   distributions
+- if the app only collects data for one team, it can’t be used to
+  identify opponent strengths and weaknesses
 
 The ovscout2 package is capable of collecting the same level of data
 detail as professional scouting software, but also offers a simplified
@@ -140,28 +175,3 @@ Two other system utilities are recommended but not required:
     If `lighttpd` is not installed, the app falls back to
     [servr](https://github.com/yihui/servr) but this is a little slower
     and less responsive than `lighttpd`.
-
-## Usage
-
-To try it on a short match video clip:
-
-``` r
-ov_scouter_demo()
-```
-
-To use with your own data:
-
-``` r
-ov_scouter(video_file = "/path/to/video.mp4",
-           season_dir = "/path/to/existing/files")
-```
-
-If you don’t provide the video file path, it will pop up a file
-navigator for you to select one. The season directory (a directory
-containing existing .dvw or .ovs files) can also optionally be provided.
-If a new match is being scouted, the teams can be selected from those in
-the season directory. You can also provide it with a partially-scouted
-`.dvw` or `.ovs` file, to continue scouting where you left off.
-
-See `help("ov_scouter")` for more options, or the [user
-manual](https://ovscout2.openvolley.org/articles/ovscout2-user-manual.html).
