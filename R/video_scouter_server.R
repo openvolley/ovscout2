@@ -2617,10 +2617,9 @@ ov_scouter_server <- function(app_data) {
                     sz <- dv_xy2zone(game_state$start_x, game_state$start_y)
                     ## although we use PP and P2 in the R code here, we can use different combo codes in the dvw, following rdata$options$setter_dump_code and rdata$options$second_ball_attack_code
                     trg <- if (input$c2 == "PP") "S" else "~"
-                    ## update target in the preceding set row, if there was one, and if it has a setter call
-                    ## BUT for click-scouting, we are not inserting a set when there is a setter dump, just the attack code (so we can't record a setter call in that case, either)
-                    ## so this will never happen (until that is changed/resolved)
-                    if (tail(rc$skill, 1) %eq% "E" && !is.na(tail(rc$combo, 1)) && !tail(rc$combo, 1) %eq% "~~") rc$target[nrow(rc)] <- trg
+                    ## update target in the preceding set row, if there was one
+                    ## BUT for click-scouting, we are not inserting a set when there is a setter dump
+                    if (tail(rc$skill, 1) %eq% "E") rc$target[nrow(rc)] <- trg
                     cmb <- if (input$c2 == "PP") rdata$options$setter_dump_code else rdata$options$second_ball_attack_code
                     rally_codes(bind_rows(rc, code_trow(team = game_state$current_team, pnum = sp, skill = "A", tempo = "O", combo = cmb, sz = sz, t = start_t, start_x = game_state$start_x, start_y = game_state$start_y, time = time_but_utc(), rally_state = rally_state(), game_state = game_state, default_scouting_table = rdata$options$default_scouting_table)))
                     set_rally_state(.C_click_attack_end)
@@ -2802,12 +2801,10 @@ ov_scouter_server <- function(app_data) {
                 if (nchar(targ) != 1 || targ %eq% "-") targ <- "~"
                 ## update target in the preceding set row, if there was one
                 if (tail(rc$skill, 1) == "E") {
-                    ## update set tempo, evaluation, and target (if setter call was used)
-                    u_rgs <- list()
-                    if (!is.na(rc$combo[nrow(rc)]) && !rc$combo[nrow(rc)] %eq% "~~" && targ != "~" && !is.na(targ)) u_rgs$target <- targ
-                    if (tempo != "~" & !is.na(tempo)) u_rgs$tempo <- tempo
+                    ## update set tempo, evaluation, and target (if attack code was used)
+                    u_rgs <- list(tempo = tempo, target = targ) ## always update these, because if we initially chose an attack code and then removed it, the target would otherwise be retained
                     if (!is.null(input$c3_sq)) u_rgs$eval <- input$c3_sq
-                    if (length(u_rgs) > 0) rc[nrow(rc), ] <- do.call(update_code_trow, c(list(rc[nrow(rc), ], game_state = game_state), u_rgs))
+                    rc[nrow(rc), ] <- do.call(update_code_trow, c(list(rc[nrow(rc), ], game_state = game_state), u_rgs))
                 }
                 nb <- input$nblockers
                 if (is.null(nb) || !nb %in% 0:3) nb <- "~"

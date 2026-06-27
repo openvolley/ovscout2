@@ -255,7 +255,7 @@ codes_from_rc_rows <- function(rc) {
 code_trow <- function(team, pnum = 0L, skill, tempo, eval, combo = "~~", target = "~", sz = "~", ez = "~", esz = "~", x_type = "~", num_p = "~", special = "~", custom = "", t = NA_real_, start_x = NA_real_, start_y = NA_real_, mid_x = NA_real_, mid_y = NA_real_, end_x = NA_real_, end_y = NA_real_, code = NA_character_, time = as.POSIXct(NA), rally_state, startxy_valid, start_zone_valid, midxy_valid, endxy_valid, game_state, default_scouting_table) {
     ## abbreviated parameter names here to make code more concise: pnum = player number, eval = evaluation code, sz = start zone, ez = end zone, esz = end subzone, x_type = extended skill type code, num_p = extended num players code, special = extended special code
     ## providing 'code' but not the other skill-related params (team, pnum, etc) is a special case
-    na2t <- function(z, width = 1) if (is.na(z)) { if (width == 1) "~" else paste0(rep("~", width), collapse = "") } else z
+    na2t <- function(z, width = 1) if (is.na(z) || !nzchar(z)) { if (width == 1) "~" else paste0(rep("~", width), collapse = "") } else z
     if (shiny::is.reactivevalues(game_state)) game_state <- reactiveValuesToList(game_state)
     if (missing(startxy_valid)) startxy_valid <- game_state$startxy_valid
     if (missing(start_zone_valid)) start_zone_valid <- game_state$startxy_valid
