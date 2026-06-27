@@ -823,7 +823,7 @@ ov_scouter_server <- function(app_data) {
                         } else if (is_shortcut(k, unlist(app_data$shortcuts[grepl("^video_(forward|rewind)", names(app_data$shortcuts))]))) {
                             if (is.null(editing$active)) {
                                 ## video forward/backward
-                                this <- as_shortcut(k, unlist(app_data$shortcuts[grepl("^video_(forward|rewind)", names(app_data$shortcuts))]))
+                                this <- as_shortcut(k, app_data$shortcuts[grep("^video_(forward|rewind)", names(app_data$shortcuts))])
                                 by <- sub("^_", "", sub("[^[:digit:]]+", "", this))
                                 by <- if (by %eq% "1_30") 1/30 else as.numeric(by)
                                 do_video(if (grepl("forward", this)) "ff" else "rew", by)

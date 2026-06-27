@@ -299,6 +299,11 @@ is_shortcut <- function(k, sc) {
 
 ## per the above, but returns the actual shortcut name(s) that match (or NULL)
 as_shortcut <- function(k, sc) {
+    ## some shortcuts can be specified as a named list with multiple char entries per entry
+    if (is.list(sc) && any(vapply(sc, length, FUN.VALUE = 1) > 1)) {
+        ## expand to a named character vector with names replicated as needed
+        sc <- unlist(lapply(seq_along(sc), function(z) setNames(sc[[z]], rep(names(sc)[z], length(sc[[z]])))))
+    }
     as_txt <- key_as_text(k)
     ## we first look for a match on the full key representation with modifiers (e.g. "Alt-ArrowRight")
     ## e.g. if sc is "Alt-ArrowRight" and we press just "ArrowRight", don't want a match
