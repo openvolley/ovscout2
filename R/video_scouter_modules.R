@@ -1275,17 +1275,18 @@ mod_teamscores <- function(input, output, session, game_state, rdata, styling, v
         nvto <- rdata$dvw$plays2 %>% dplyr::filter(.data$code == "aT", .data$set_number == game_state$set_number) %>% nrow
         if (isTRUE(visible())) {
             fluidRow(class = "scoreboard",
-                     column(6, style = paste0("background-color:", styling$h_court_colour),
-                            fixedRow(column(9, id = "hnscore", tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"])),
-                                     column(3, class = "setscorenum", if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[1]))),
-                            fixedRow(column(3, class = "setscorenum", tags$span(style = "float:left;", paste0(nhto, "T"))),
-                                     column(3, offset = 6, class = "ptscorenum", if (!is.na(hs)) tags$span(hs)))),
-                     column(6, style = paste0("background-color:", styling$v_court_colour),
-                            fixedRow(column(3, class = "setscorenum", if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[2])),
-                                     column(9, id = "vnscore", tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"]))),
-                            fixedRow(column(3, class = "ptscorenum", if (!is.na(vs)) tags$span(vs)),
-                                     column(3, offset = 6, class = "setscorenum", tags$span(style = "float:right;", paste0(nvto, "T"))))
-                            )
+                     column(12, fixedRow(style = "height:6vh;",
+                                    column(4, style = paste0("height:100%; background-color:", styling$h_court_colour), id = "hnscore", tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "*"])),
+                                    column(2, style = paste0("height:100%; background-color:", styling$h_court_colour), class = "setscorenum", if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[1])),
+                                    column(2, style = paste0("height:100%; background-color:", styling$v_court_colour), class = "setscorenum", if (length(ss()) == 2 && !any(is.na(ss()))) tags$span(ss()[2])),
+                                    column(4, style = paste0("height:100%; background-color:", styling$v_court_colour), id = "vnscore", tags$strong(rdata$dvw$meta$teams$team[rdata$dvw$meta$teams$home_away_team == "a"])))),
+                     column(12, fixedRow(style = "height:4vh;",
+                                    column(2, class = "setscorenum", style = paste0("height:100%; background-color:", styling$h_court_colour), tags$span(style = "float:left;", paste0(nhto, "T"))),
+                                    column(2, style = paste0("height:100%; background-color:", styling$h_court_colour)),
+                                    column(2, class = "ptscorenum", style = paste0("height:100%; background-color:", styling$h_court_colour), if (!is.na(hs)) tags$span(hs)),
+                                    column(2, class = "ptscorenum", style = paste0("height:100%; background-color:", styling$v_court_colour), if (!is.na(vs)) tags$span(vs)),
+                                    column(2, style = paste0("height:100%; background-color:", styling$v_court_colour)),
+                                    column(2, class = "setscorenum", style = paste0("height:100%; background-color:", styling$v_court_colour), tags$span(style = "float:right;", paste0(nvto, "T")))))
                      )
         } else {
             NULL
