@@ -1715,6 +1715,7 @@ ov_scouter_server <- function(app_data) {
                         n_ac2 <- n_ac2 + 1L
                     }
                     c3_buttons <- make_fat_radio_buttons(choices = c(ac, c("Opp. dig" = "aF", "Opp. dig error" = "aF=", "Opp. overpass attack" = "aPR")), input_var = "c3")
+                    temp_class_attrib <- attr(c3_buttons, "class") ## save this
                     ## change the id of the first button (the initially-selected attack code). If the user clicks "Set error" but then clicks a set quality, the set error needs to be de-selected and an attack code chosen. We'll default back to the initial selection in that case, so give it a known ID
                     c3_buttons[[1]]$attribs$id <- "c3_ac_default"
                     if (do_sq) {
@@ -1726,6 +1727,7 @@ ov_scouter_server <- function(app_data) {
                     }
                     ## add classes to make the button widths correct
                     c3_buttons[seq_len(n_ac)] <- lapply(c3_buttons[seq_len(n_ac)], function(b) { b$attribs$class <- paste(b$attribs$class, paste0("fill-", n_ac)); b })
+                    attr(c3_buttons, "class") <- temp_class_attrib
                     fatradio_class_uuids$c3 <- attr(c3_buttons, "class")
                     hit_type_buttons <- make_fat_radio_buttons(choices = if (app_data$is_beach) c(Power = "H", Poke = "T", Shot = "P") else c(Hit = "H", Tip = "T", "Soft/Roll" = "P"), input_var = "hit_type")
                     fatradio_class_uuids$hit_type <- attr(hit_type_buttons, "class")
