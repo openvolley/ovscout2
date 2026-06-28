@@ -1,5 +1,12 @@
 setsys_choices <- list("Not specified" = "Not specified", "Single setter (5-1)" = "5-1", "Back-row setter (6-2)" = "6-2", "Front-row setter (4-2)" = "4-2")
 
+wrapnames <- function(nms, width = 10) {
+    naidx <- which(is.na(nms))
+    out <- vapply(strwrap(gsub("-", "- ", nms, fixed = TRUE), width, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+    out[naidx] <- NA_character_
+    out
+}
+
 ## TODO: special_role column has been hidden, todo add a column of checkbox inputs allowing the captain to be specified?
 mod_teamslists_ui <- function(id) {
     ns <- NS(id)
@@ -138,10 +145,10 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
 
         htrot <- tibble(number = get_players(gs, team = "*", dvw = rdata$dvw))
         htrot <- dplyr::left_join(htrot, dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
-        htrot$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", htrot$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+        htrot$lastname_wrapped <- wrapnames(htrot$lastname)
         vtrot <- tibble(number = get_players(gs, team = "a", dvw = rdata$dvw))
         vtrot <- dplyr::left_join(vtrot, dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
-        vtrot$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", vtrot$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+        vtrot$lastname_wrapped <- wrapnames(vtrot$lastname)
         ht_setter <- get_setter(gs, team = "*")
         ht_libxy <- vt_libxy <- NULL
         libs <- setdiff(c(game_state$ht_lib1, game_state$ht_lib2), c(NA, -1))
@@ -149,7 +156,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             ht_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             ht_libxy$pos <- c(5, 7)[seq_len(nrow(ht_libxy))]
-            ht_libxy$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", ht_libxy$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+            ht_libxy$lastname_wrapped <- wrpnames(ht_libxy$lastname)
             ht_libxy <- cbind(dv_xy(ht_libxy$pos, end = "lower"), ht_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), gs$home_team_end) ~ .data$x - 1,
                                                                                                      TRUE ~ .data$x + 3))
         }
@@ -159,7 +166,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             vt_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             vt_libxy$pos <- c(1, 9)[seq_len(nrow(vt_libxy))]
-            vt_libxy$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", vt_libxy$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+            vt_libxy$lastname_wrapped <- wrapnames(vt_libxy$lastname)
             vt_libxy <- cbind(dv_xy(vt_libxy$pos, end = "upper"), vt_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), gs$home_team_end) ~ .data$x - 1,
                                                                                                      TRUE ~ .data$x + 3))
         }
@@ -358,10 +365,10 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
 
         htrot <- tibble(number = get_players(gs, team = "*", dvw = rdata$dvw))
         htrot <- dplyr::left_join(htrot, dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
-        htrot$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", htrot$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+        htrot$lastname_wrapped <- wrapnames(htrot$lastname)
         vtrot <- tibble(number = get_players(gs, team = "a", dvw = rdata$dvw))
         vtrot <- dplyr::left_join(vtrot, dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
-        vtrot$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", vtrot$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+        vtrot$lastname_wrapped <- wrapnames(vtrot$lastname)
         ht_setter <- get_setter(gs, team = "*")
         ht_libxy <- vt_libxy <- NULL
         libs <- setdiff(c(game_state$ht_lib1, game_state$ht_lib2), c(NA, -1))
@@ -369,7 +376,7 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
             ht_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             ht_libxy$pos <- c(5, 7)[seq_len(nrow(ht_libxy))]
-            ht_libxy$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", ht_libxy$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+            ht_libxy$lastname_wrapped <- wrapnames(ht_libxy$lastname)
             ht_libxy <- cbind(dv_xy(ht_libxy$pos, end = "lower"), ht_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), gs$home_team_end) ~ .data$x - 1,
                                                                                                      TRUE ~ .data$x + 3))
         }
@@ -379,7 +386,7 @@ mod_courtrot2_base <- function(input, output, session, rdata, game_state, rally_
             vt_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_v[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             vt_libxy$pos <- c(1, 9)[seq_len(nrow(vt_libxy))]
-            vt_libxy$lastname_wrapped <- vapply(strwrap(gsub("-", "- ", vt_libxy$lastname, fixed = TRUE), 10, simplify = FALSE), paste, collapse = "\n", FUN.VALUE = "", USE.NAMES = FALSE)
+            vt_libxy$lastname_wrapped <- wrapnames(vt_libxy$lastname)
             vt_libxy <- cbind(dv_xy(vt_libxy$pos, end = "upper"), vt_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), gs$home_team_end) ~ .data$x - 1,
                                                                                                      TRUE ~ .data$x + 3))
         }
