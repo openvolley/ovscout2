@@ -853,10 +853,10 @@ guess_dig_player_options <- function(game_state, dvw, system, weighted = TRUE) {
     defending_zone <- dv_xy2zone(game_state$end_x, game_state$end_y)
     libs <- get_liberos(game_state, team = defending_team, dvw = dvw)
     if (game_state$serving %eq% defending_team) libs <- rev(libs) ## rev here so that if we have two liberos, the second is preferred in breakpoint phase
-
     ## Define the prior probability of attacking given rotation, attacking zone, etc... Defined as a simple mean of beta().
     dig_responsibility <- player_responsibility_fn(system = system, skill = "Dig", setter_position = setter_rot, zone = defending_zone, libs = libs,
-                                                   home_visiting = home_visiting, opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% defending_team)
+                                                   home_visiting = home_visiting, opp_attack_start_zone = attacking_zone, serving = game_state$serving %eq% defending_team,
+                                                   n_blockers = if (tail(dvw$plays$skill, 1) %eq% "Attack") tail(dvw$plays$num_players_numeric, 1) else NA_integer_)
 
     dig_responsibility_prior <- setNames(rep(0, length(pseq) + 1L), c(paste0(home_visiting, "_p", pseq), "libero"))
     if (!is.na(dig_responsibility)) dig_responsibility_prior[dig_responsibility] <- 1
