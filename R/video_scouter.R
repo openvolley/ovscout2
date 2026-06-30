@@ -624,7 +624,7 @@ ov_app_styling <- function() {
          v_court_colour = "#BCEE68", ## darkolivegreen2
          v_court_highlight_colour = "#5D8022", ## dark highlight
          v_court_light_colour = "#DAFE8A", ## light highlight
-         court_lines_colour = "#0000CC",
+         court_lines_colour = "#0000CC", court_centre_line_colour = "#CC0000",
          continue_colour = "#10C424", continue_light_colour = "#60FC71",
          cancel_colour = "#D41024", cancel_light_colour = "#DF5463",
          undo_colour = "#EB6927", undo_light_colour = "#F9AC50",

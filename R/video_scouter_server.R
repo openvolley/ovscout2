@@ -1154,6 +1154,7 @@ ov_scouter_server <- function(app_data) {
         overlay_court_lines <- reactive({
             if (!is.null(detection_ref()$court_ref)) {
                 oxy <- ovideo::ov_overlay_data(zones = FALSE, serve_zones = FALSE, space = "image", court_ref = detection_ref()$court_ref, crop = TRUE)$courtxy
+                if (nrow(oxy) == 7) oxy$label <- c("base_near", "centre", "base_far", "left", "right", "3m_near", "3m_far")
                 dplyr::rename(oxy, image_x = "x", image_y = "y")
             } else {
                 NULL
@@ -1176,7 +1177,13 @@ ov_scouter_server <- function(app_data) {
                         oxy$xend <- ar_fix_x(oxy$xend, input = input, current_video_src = current_video_src, app_data = app_data)
                         oxy$image_y <- ar_fix_y(oxy$image_y, input = input, current_video_src = current_video_src, app_data = app_data)
                         oxy$yend <- ar_fix_y(oxy$yend, input = input, current_video_src = current_video_src, app_data = app_data)
-                        cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour, unit = "npc")
+                        if ("label" %in% names(oxy) && "court_centre_line_colour" %in% names(app_data$styling)) {
+                            cidx <- oxy$label %eq% "centre"
+                            cc$lines(x0 = oxy$image_x[cidx], y0 = oxy$image_y[cidx], x1 = oxy$xend[cidx], y1 = oxy$yend[cidx], col = app_data$styling$court_centre_line_colour, unit = "npc")
+                            cc$lines(x0 = oxy$image_x[!cidx], y0 = oxy$image_y[!cidx], x1 = oxy$xend[!cidx], y1 = oxy$yend[!cidx], col = app_data$styling$court_lines_colour, unit = "npc")
+                        } else {
+                            cc$lines(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour, unit = "npc")
+                        }
                     }
                     if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
                         ixy <- setNames(crt_to_vid(overlay_points(), detection_ref = detection_ref, input = input, current_video_src = current_video_src, app_data = app_data), c("x", "y"))
