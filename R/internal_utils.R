@@ -284,7 +284,10 @@ decode_keypress <- function(k, debug = 0) {
 
 ## takes a decoded keypress object from the preceding function
 ## note that prior to 2025-05-04 the key component was converted to lower case, but not so any more
-key_as_text <- function(k) paste0(if (k$ctrl) "Ctrl-", if (k$alt) "Alt-", if (k$shift) "Shift-", if (k$meta) "Meta-", k$key)
+## 2026-06 we seem to get e.g. "Shift-#", drop the shift in this case for shortcuts
+key_as_text <- function(k, shift = TRUE) {
+    paste0(if (k$ctrl) "Ctrl-", if (k$alt) "Alt-", if (k$shift && shift) "Shift-", if (k$meta) "Meta-", k$key)
+}
 
 ## takes a decoded keypress object from `decode_keypress` and a shortcut and returns TRUE if it matches any of the entries in sc
 is_shortcut <- function(k, sc) {

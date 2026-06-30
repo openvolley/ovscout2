@@ -197,7 +197,8 @@ ov_default_shortcuts <- function(scout_mode = "click") {
              video_forward_2 = c("l", "6", "d"),
              video_forward_10 = c(";", "^"),
              video_faster = ">",
-             video_slower = "<"
+             video_slower = "<",
+             manual_entry = "!"
              )
     } else {
         list(hide_popup = c(),

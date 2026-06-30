@@ -669,8 +669,8 @@ ov_scouter_server <- function(app_data) {
                 ## so for "#" we'd get ky == utf8ToInt("3") (which is 51) plus mycmd[3] == "true" (shift)
                 ## NOW for "#" we get ky == "#" plus mycmd[3] == "true" (shift)
                 if ((k$class %eq% "modal-open" || grepl("scedit-modal", k$class)) && !is.null(editing$active) && editing$active %eq% .C_editing_shortcut) {
-                    sc_newvalue(key_as_text(k))
-                    if (!tolower(ky) %in% c("alt", "shift", "meta", "control")) output$scedit_out <- renderUI(tags$code(key_as_text(k)))
+                    sc_newvalue(key_as_text(k, shift = FALSE))
+                    if (!tolower(ky) %in% c("alt", "shift", "meta", "control")) output$scedit_out <- renderUI(tags$code(key_as_text(k, shift = FALSE)))
                 } else if (isTRUE(rally_state() == .C_confirm_end_of_set)) {
                     ## handle the end-of-set confirmation in its own block, we can only accept enter or escape if this is showing
                     if (tolower(ky) %eq% "escape") {
@@ -786,6 +786,8 @@ ov_scouter_server <- function(app_data) {
                             if (!is.null(accept_fun())) try(get(accept_fun(), mode = "function")())
                         }
                         ## need to stop this propagating to the browser, else it risks e.g. re-firing the most recently used button - done in UI code
+                    } else if (is_shortcut(k, app_data$shortcuts$manual_entry)) {
+                        insert_data_row("below")
                     } else if (is_shortcut(k, app_data$shortcuts$hide_popup)) {
                         ## temporarily hide the modal, so the video can be seen
                         ## but only for the admin, lineup modal or the ones that pop up during the rally, not the editing modals for teams or rosters
@@ -3145,7 +3147,7 @@ ov_scouter_server <- function(app_data) {
             }
         }
 
-        ## for manual/direct code entry, this is triggered by the button on the admin modal
+        ## for manual/direct code entry, this is triggered by the button on the admin modal or the manual_entry shortcut
         observeEvent(input$enter_code, {
            insert_data_row("below")
         })
@@ -3361,8 +3363,12 @@ ov_scouter_server <- function(app_data) {
                 }
                 cat("setting app_data$", this_sclist, "$", this_sc, "[", scnum, "] to: ", sc_newvalue(), "\n", sep = "")
                 app_data[[this_sclist]][[this_sc]][scnum] <<- sc_newvalue()
+                ## and transfer these to the active app_data$shortcuts object
+                if ((isolate(app_data$scout_mode_r()) == "type" && this_sclist == "type_shortcuts") ||
+                    (isolate(app_data$scout_mode_r()) == "click" && this_sclist == "click_shortcuts")) {
+                    app_data$shortcuts <<- app_data[[this_sclist]]
+                }
             }
-            ## TODO transfer these to the active app_data$shortcuts object
             ## TODO save to prefs file
             sc_to_edit(NULL)
             sc_newvalue(NULL)
