@@ -733,10 +733,13 @@ guess_attack <- function(game_state, dvw, opts, system, weight = 2.5) {
                        if (!missing(opts) && !is.null(opts$second_ball_attack_code)) opts$second_ball_attack_code else "P2",
                        if (!missing(opts) && !is.null(opts$overpass_attack_code)) opts$overpass_attack_code else "PR",
                        NA_character_)
-    history <- dplyr::filter(dvw$plays, .data$skill == "Attack", .data[[paste0(home_visiting, "_setter_position")]] == setter_position, .data$team == game_state$current_team, !.data$attack_code %in% exclude_codes)
+    dvw$plays <- dvw$plays %>% mutate(.passq = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" & lag(.data$skill, 2) %in% c("Reception", "Dig") & .data$team == lag(.data$team) & .data$team == lag(.data$team, 2) ~ lag(.data$evaluation, 2),
+                                                               .data$skill == "Attack" & lag(.data$skill) %in% c("Reception", "Dig") & .data$team == lag(.data$team) ~ lag(.data$evaluation),
+                                                               .data$skill == "Set" & lag(.data$skill) %in% c("Reception", "Dig") & .data$team == lag(.data$team) ~ lag(.data$evaluation)))
+    history <- dvw$plays %>% dplyr::filter(.data$skill == "Attack", .data[[paste0(home_visiting, "_setter_position")]] == setter_position, .data$team == game_state$current_team, !.data$attack_code %in% exclude_codes)
     serving <- isTRUE(game_state$serving == game_state$current_team)
     history <- if (serving) dplyr::filter(history, .data$serving_team == .data$team) else dplyr::filter(history, .data$serving_team != .data$team)
-    ## TODO perhaps - filter history by pass quality as well (at least into poor/OK/good)
+    cur_passq <- tail(dvw$plays$.passq, 1)
     if (nrow(history) > 0) {
         histxy <- history[, c("start_coordinate_x", "start_coordinate_y")]
         thisxy <- c(game_state$start_x, game_state$start_y)
@@ -748,37 +751,30 @@ guess_attack <- function(game_state, dvw, opts, system, weight = 2.5) {
             thisxy <- as.numeric(dv_flip_xy(thisxy[1], thisxy[2]))
         }
         history$dist <- sqrt((thisxy[1] - histxy[, 1])^2 + (thisxy[2] - histxy[, 2])^2)
-        history$w <- exp(-weight*history$dist)
-        history <- mutate(history, skill_id = dplyr::row_number()) %>% dplyr::select("skill_id", "team", "attack_code", "player_number", paste0(home_visiting, "_p", pseq), "w") %>%
+        history$w <- exp(-weight * history$dist)
+        history <- mutate(history, skill_id = dplyr::row_number()) %>% dplyr::select("skill_id", "team", "attack_code", "player_number", paste0(home_visiting, "_p", pseq), "skill_type", ".passq", "w") %>%
                 tidyr::pivot_longer(cols = paste0(home_visiting, "_p", pseq)) %>%
             ## libero doesn't appear in _p* cols
             group_by(.data$skill_id) %>%
             mutate(lib = sum(.data$value %eq% .data$player_number) < 1)
         history <- bind_rows(history  %>% ungroup %>% dplyr::filter(!.data$lib) %>% dplyr::filter(.data$value == .data$player_number),
                              history %>% dplyr::filter(.data$lib) %>% dplyr::slice(1L) %>% mutate(name = "libero"))
+        if (!is.na(cur_passq) && grepl("Negative|Poor", cur_passq) && sum(grepl("High|Other", history$skill_type), na.rm = TRUE) >= 3) {
+            ## upweight high balls or "other" attacks on poor passes
+            history <- history %>% mutate(w = case_when(!grepl("High|Other", .data$skill_type) ~ .data$w / 3, TRUE ~ .data$w))
+        }
         history <- history %>% dplyr::group_by(.data$name, .data$attack_code) %>% dplyr::summarise(n_times = mean(.data$w) * nrow(history)) %>% dplyr::ungroup() ## take mean of w, but weight the whole lot by the number of attempts so that as the match progresses, this outweighs the prior
         prior <- prior %>% mutate(name = attack_player_prior_by_code(system = system, setter_position = setter_position, set_type = .data$set_type, attacker_position = .data$attacker_position, home_visiting = home_visiting, serving = serving),
                                   n_times_prior = exp(-weight * .data$d))
+        if (!is.na(cur_passq) && grepl("Negative|Poor", cur_passq)) {
+            ## upweight high balls or "other" attacks on poor passes
+            prior <- prior %>% mutate(n_times_prior = case_when(!.data$type %in% c("H", "O") ~ .data$n_times_prior / 3, TRUE ~ .data$n_times_prior))
+        }
         history <- dplyr::full_join(history, prior %>% dplyr::select("name", attack_code = "code", "n_times_prior"), by = c("attack_code", "name"))
         history <- history %>% mutate(n_times = if_else(is.na(.data$n_times), 0.0, .data$n_times), n_times_prior = if_else(is.na(.data$n_times_prior), 0.0, .data$n_times_prior),
                                       n_times = .data$n_times + .data$n_times_prior) %>%
             group_by(.data$attack_code) %>% dplyr::summarize(n_times = sum(.data$n_times), name = case_when(all(is.na(.data$name)) ~ NA_character_, TRUE ~ most_common_value(na.omit(.data$name)))) %>% ungroup %>%
             dplyr::arrange(desc(.data$n_times))
-        ## if the pass was poor, favour Vx over Xx
-        ## TODO this should go by attack code tempo, not "V"
-        if (identical(tail(dvw$plays$skill, 2), c("Reception", "Set")) && isTRUE(game_state$current_team %eq% tail(dvw$plays$team, 2)[1]) && isTRUE(grepl("^Negative", tail(dvw$plays$evaluation, 2)[1]))) {
-            idx <- grepl("^V", history$attack_code)
-            history$n_times[idx] <- history$n_times[idx] * 2
-            history <- history %>% dplyr::arrange(desc(.data$n_times))
-        }
-        ## swap e.g. V5 X5 so that X5 is first, if the probabilities are the same
-        ## TODO this should go by attack code tempo, not "V" and "X"
-        for (i in head(seq_len(nrow(history)), -1)) {
-            if (substr(history$attack_code[i], 2, 2) == substr(history$attack_code[i+1], 2, 2) && grepl("^V", history$attack_code[i]) && grepl("^X", history$attack_code[i+1]) &&
-                abs(history$n_times[i] - history$n_times[i+1]) < 0.01) {
-                history[c(i, i+1), ] <- history[c(i+1, i), ]
-            }
-        }
         ## now we can take the most likely player along with the most likely code
         pp <- tryCatch({
             poc <- na.omit(as.numeric(sub(".*_p", "", unique(na.omit(history$name))))) ## player pos in most likely order
@@ -795,6 +791,10 @@ guess_attack <- function(game_state, dvw, opts, system, weight = 2.5) {
         if (is.null(pp)) pp <- guess_attack_player_options(game_state = game_state, dvw = dvw, system = system)
         list(code = head(history$attack_code, 5), player = pp)
     } else {
+        if (!is.na(cur_passq) && grepl("Negative|Poor", cur_passq) && sum(prior$type %in% c("H", "O"), na.rm = TRUE) >= 3) {
+            ## only suggest high balls or "other" attacks on poor passes
+            prior <- prior %>% dplyr::filter(.data$type %in% c("H", "O"))
+        }
         list(code = head(prior$code, 5), player = guess_attack_player_options(game_state = game_state, dvw = dvw, system = system))
     }
 }
@@ -819,7 +819,6 @@ guess_attack_code_prior <- function(game_state, dvw, opts) {
         ## also back-row right side is less likely than front-row right side if setter is back row
         d[atbl$attacker_position %eq% 9] <- d[atbl$attacker_position %eq% 9] + 0.5
     }
-    ## TODO also incorporate set -> attack contact time and distance, to infer tempo
     d[is.na(d)] <- Inf
     atbl$d <- d
     ac <- atbl[order(d), ]
