@@ -64,6 +64,9 @@ code_make_change <- function(editing_active, game_state, dvw, input, htdata_edit
                 type_mode_preferred_zones_or_cones <- input[[md_ns("match_edit_zones_or_cones")]]
             }
         }
+        dvw$meta$more$city <- input[[md_ns("more_edit_city")]]
+        dvw$meta$more$arena <- input[[md_ns("more_edit_arena")]]
+        dvw$meta$more$referees <- input[[md_ns("more_edit_referees")]]
         dvw$meta$more$scout <- input[[md_ns("more_edit_scout")]]
         ## comments
         null2na <- function(z) if (length(z) < 1) NA_character_ else z
