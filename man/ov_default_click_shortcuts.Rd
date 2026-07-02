@@ -2,18 +2,40 @@
 % Please edit documentation in R/defaults.R
 \name{ov_default_click_shortcuts}
 \alias{ov_default_click_shortcuts}
+\alias{ov_shortcuts}
 \alias{ov_default_type_shortcuts}
 \alias{ov_default_playstable_shortcuts}
-\title{Default keyboard shortcuts for ov_scouter}
+\title{Keyboard shortcuts for ov_scouter}
 \usage{
 ov_default_click_shortcuts()
+
+ov_shortcuts(sc_type = "click", ...)
 
 ov_default_type_shortcuts()
 
 ov_default_playstable_shortcuts()
 }
+\arguments{
+\item{sc_type}{string: the shortcuts type, one of "click", "type", or "playstable"}
+
+\item{...}{: named values that are added to the default set of shortcuts. The name should match one of the existing entries, and its value should be the new shortcut key to use. If that shortcut key is already used elsewhere in the defaults, it will be removed from its default assignment}
+}
 \value{
 A named list
+\subsection{the default shortcuts for click-scouting}{
+
+sc <- ov_default_click_shortcuts()
+}
+
+\subsection{or equivalently}{
+
+sc <- ov_shortcuts("click")
+}
+
+\subsection{use 'z' as a pause shortcut, along with the existing defaults}{
+
+sc <- ov_shortcuts("click", pause = "z")
+}
 }
 \description{
 \code{ov_default_click_shortcuts} apply when \verb{using scout_mode = "click"}, and \code{ov_default_type_shortcuts} apply when \verb{using scout_mode = "type"}

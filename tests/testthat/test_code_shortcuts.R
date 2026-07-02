@@ -10,3 +10,15 @@ test_that("matching of key combos to shortcuts works", {
     expect_true(is_shortcut(decode_keypress("false|false|true|false|B|@@@undefined@-1@1746320851350"), "B"))
     expect_false(is_shortcut(decode_keypress("false|false|false|false|b|@@@undefined@-1@1746320851350"), "B"))
 })
+
+test_that("shortcut creation works", {
+    def <- ov_default_click_shortcuts()
+    sc <- ov_shortcuts("click")
+    expect_equal(sc, def)
+
+    ## re-assign j to pause
+    sc <- ov_shortcuts("click", pause = "j")
+    expect_equal(sc[!names(sc) %in% c("pause", "video_rewind_2")], def[!names(def) %in% c("pause", "video_rewind_2")])
+    expect_equal(sc$pause, c(def$pause, "j"))
+    expect_equal(sc$video_rewind_2, setdiff(def$video_rewind_2, "j"))
+})

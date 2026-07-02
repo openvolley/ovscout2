@@ -156,7 +156,7 @@ mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes
             ht_libxy <- tibble(number = libs) %>%
                 dplyr::left_join(dplyr::filter(rdata$dvw$meta$players_h[, c("player_id", "number", "lastname", "firstname", "name")], !is.na(.data$number)), by = "number")
             ht_libxy$pos <- c(5, 7)[seq_len(nrow(ht_libxy))]
-            ht_libxy$lastname_wrapped <- wrpnames(ht_libxy$lastname)
+            ht_libxy$lastname_wrapped <- wrapnames(ht_libxy$lastname)
             ht_libxy <- cbind(dv_xy(ht_libxy$pos, end = "lower"), ht_libxy) %>% mutate(x = case_when(need_to_flip(current_video_src(), gs$home_team_end) ~ .data$x - 1,
                                                                                                      TRUE ~ .data$x + 3))
         }

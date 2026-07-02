@@ -162,17 +162,43 @@ ov_default_scouting_table <- function() {
                    "F", FALSE, "H", "+")
 }
 
-#' Default keyboard shortcuts for ov_scouter
+
+#' Keyboard shortcuts for ov_scouter
 #'
 #' `ov_default_click_shortcuts` apply when `using scout_mode = "click"`, and `ov_default_type_shortcuts` apply when `using scout_mode = "type"`
 #'
 #' Shortcuts should be defined in terms of the printable representation of the key (e.g. "a", "$", "H", "Escape", "Enter"). See <https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values> for guidance. Shortcuts can optionally use modifier keys: "Ctrl-x" means pressing the control key and x simultaneously; similarly Alt-x, Meta-x, Shift-x.
 #' Be aware that some keys are hard-coded for specific functionality and might cause problems if you use them as shortcuts (e.g. "Enter", "Tab"), and some keys have browser-level or operating-system-level handling that cannot be overridden.
+#' @param ... : named values that are added to the default set of shortcuts. The name should match one of the existing entries, and its value should be the new shortcut key to use. If that shortcut key is already used elsewhere in the defaults, it will be removed from its default assignment
+#' @param sc_type string: the shortcuts type, one of "click", "type", or "playstable"
 #'
 #' @return A named list
 #'
+#' ## the default shortcuts for click-scouting
+#' sc <- ov_default_click_shortcuts()
+#' ## or equivalently
+#' sc <- ov_shortcuts("click")
+#'
+#' ## use 'z' as a pause shortcut, along with the existing defaults
+#' sc <- ov_shortcuts("click", pause = "z")
+#'
 #' @export
 ov_default_click_shortcuts <- function() ov_default_shortcuts(scout_mode = "click")
+
+#' @export
+#' @rdname ov_default_click_shortcuts
+ov_shortcuts <- function(sc_type = "click", ...) {
+    dots <- list(...)
+    sc_type <- tolower(sc_type)
+    stopifnot("'sc_type' should be one of 'click', 'type', or 'playstable'" = sc_type %in% c("click", "type", "playstable"))
+    out <- if (sc_type %in% c("type", "click")) ov_default_shortcuts(scout_mode = sc_type) else ov_default_playstable_shortcuts()
+    ## anything specified in dots gets added, and if it conflicts with any default that gets removed
+    for (i in seq_along(dots)) {
+        out <- setNames(lapply(out, function(z) setdiff(z, dots[[i]])), names(out))
+        out[[names(dots)[i]]] <- c(out[[names(dots)[i]]], dots[[i]])
+    }
+    out
+}
 
 #' @export
 #' @rdname ov_default_click_shortcuts
