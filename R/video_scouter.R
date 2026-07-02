@@ -39,7 +39,7 @@
 #' }
 #'
 #' @export
-ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scout_mode = "click", pause_on_type = 500, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), click_shortcuts = ov_default_click_shortcuts(), type_shortcuts = ov_default_type_shortcuts(), playstable_shortcuts = ov_default_playstable_shortcuts(), key_remapping, scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
+ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, scout_mode = "click", pause_on_type = 500, scoreboard = TRUE, ball_path = FALSE, playlist_display_option = "dv_codes", review_pane = TRUE, playback_rate = 1.0, scouting_options = ov_scouting_options(), app_styling = ov_app_styling(), click_shortcuts = ov_shortcuts("click"), type_shortcuts = ov_shortcuts("type"), playstable_shortcuts = ov_shortcuts("playstable"), key_remapping, scout_name = "", show_courtref = FALSE, dash = FALSE, host, launch_browser = TRUE, prompt_for_files = interactive(), ...) {
 
     dots <- list(...)
     ## undocumented (experimental) parameters that can be passed via ... :

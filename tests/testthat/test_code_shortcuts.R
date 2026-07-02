@@ -12,6 +12,14 @@ test_that("matching of key combos to shortcuts works", {
 })
 
 test_that("shortcut creation works", {
+    def <- ov_default_type_shortcuts()
+    sc <- ov_shortcuts("type")
+    expect_equal(sc, def)
+
+    def <- ov_default_playstable_shortcuts()
+    sc <- ov_shortcuts("playstable")
+    expect_equal(sc, def)
+
     def <- ov_default_click_shortcuts()
     sc <- ov_shortcuts("click")
     expect_equal(sc, def)
