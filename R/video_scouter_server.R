@@ -467,18 +467,22 @@ ov_scouter_server <- function(app_data) {
                             assign_lineup_from_manual(code, rdata = rdata, game_state = game_state, app_data = app_data)
                         } else if (grepl("^(>|\\*T|aT)", code)) { ## timeout, comment
                             newrow <- make_plays2(code, game_state = gs, rally_ended = FALSE, dvw = rdata$dvw)
-                            newrow$time <- insert_clock_time
-                            newrow$video_time <- insert_video_time
-                            ## check: any other details to transfer? TODO
-                            ## cat("gs:", str(gs), "\n")
-                            ## cat("newrow:", str(newrow), "\n")
-                            if (insert_ridx <= nrow(rdata$dvw$plays2)) {
-                                rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
-                                                                  newrow,
-                                                                  rdata$dvw$plays2[insert_ridx:nrow(rdata$dvw$plays2), ]))
+                            if (nrow(newrow) < 1) {
+                                warning("code '", code, "' could not be converted to data row")
                             } else {
-                                ## can't insert into rally_codes, that only holds skill rows!
-                                warning("can't insert into current rally")
+                                newrow$time <- insert_clock_time
+                                newrow$video_time <- insert_video_time
+                                ## check: any other details to transfer? TODO
+                                ## cat("gs:", str(gs), "\n")
+                                ## cat("newrow:", str(newrow), "\n")
+                                if (insert_ridx <= nrow(rdata$dvw$plays2)) {
+                                    rdata$dvw$plays2 <- rp2(bind_rows(rdata$dvw$plays2[seq_len(insert_ridx - 1L), ],
+                                                                      newrow,
+                                                                      rdata$dvw$plays2[insert_ridx:nrow(rdata$dvw$plays2), ]))
+                                } else {
+                                    ## can't insert into rally_codes, that only holds skill rows!
+                                    warning("can't insert into current rally")
+                                }
                             }
                         } else {
                             code <- augment_code_attack_details(code, game_state = game_state, opts = rdata$options) ## deal with code shorthands
