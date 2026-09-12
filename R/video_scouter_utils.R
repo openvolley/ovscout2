@@ -190,7 +190,7 @@ plays2_to_plays <- function(plays2, dvw, evaluation_decoder, starting_point_id =
         }
         return(out)
     }
-    out <- datavolley:::parse_code(plays2$code, meta = dvw$meta, evaluation_decoder = evaluation_decoder, file_type = if (is_beach(dvw)) "beach" else "indoor")$plays %>%
+    out <- datavolley:::parse_code(plays2$code, meta = dvw$meta, evaluation_decoder = evaluation_decoder, file_type = if (is_beach(dvw)) "beach" else "indoor", style = "default")$plays %>% ## TODO pass alternative `style` values to the parse_code call if we decide to support other scouting conventions
         mutate(home_setter_position = plays2$home_setter_position,
                visiting_setter_position = plays2$visiting_setter_position,
                home_team_score = plays2$home_score_start_of_point, ## TODO FIX
