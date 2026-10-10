@@ -740,6 +740,8 @@ guess_attack <- function(game_state, dvw, opts, system, weight = 2.5) {
     serving <- isTRUE(game_state$serving == game_state$current_team)
     history <- if (serving) dplyr::filter(history, .data$serving_team == .data$team) else dplyr::filter(history, .data$serving_team != .data$team)
     cur_passq <- tail(dvw$plays$.passq, 1)
+    ## drop previous attacks without start coordinates, otherwise the NA flipidx below will fail
+    history <- dplyr::filter(history, !is.na(.data$start_coordinate_x), !is.na(.data$start_coordinate_y))
     if (nrow(history) > 0) {
         histxy <- history[, c("start_coordinate_x", "start_coordinate_y")]
         thisxy <- c(game_state$start_x, game_state$start_y)
@@ -929,6 +931,12 @@ do_responsibility_posterior <- function(history, game_state, prior, home_visitin
     posterior <- prior
 ##    cat("history passed to do_responsibility_posterior:\n"); print(dplyr::glimpse(history))
 ##    cat("prior passed to do_responsibility_posterior:\n"); print(prior)
+    if (weighted && nrow(history) > 0) {
+        ## drop previous skills without coordinates, otherwise the NA flipidx below will fail
+        ## flipidx always uses the start location, so we need that even when weighting by end location
+        history <- dplyr::filter(history, !is.na(.data$start_coordinate_x), !is.na(.data$start_coordinate_y))
+        if (start_end != "start") history <- dplyr::filter(history, !is.na(.data$end_coordinate_x), !is.na(.data$end_coordinate_y))
+    }
     if (nrow(history) > 0) {
         if (!weighted) {
             history <- mutate(history, skill_id = dplyr::row_number()) %>% dplyr::select("skill_id", "team", "player_number", paste0(home_visiting, "_p", pseq)) %>%
