@@ -328,14 +328,14 @@ show_review_pane <- function() {
     pbrate <- if (!is.null(input$playback_rate) && input$playback_rate > 0) input$playback_rate * 1.4 else 1.4
     dojs(paste0("var start_t=videojs.players.main_video.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", revsrc$src, "','start_time':start_t,'duration':4,'type':'", revsrc$type, "'}], 'review_player', '", revsrc$type, "', true); revpl.set_playback_rate(", pbrate, ");"))
     js_show2("review_pane")
-    dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth());")
+    dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight()); Shiny.setInputValue('rv_width', $('#review_player').innerWidth()); var citop = $('#courtrot-court_inset').offset().top; if (citop > 100) { citop = 0; }; $('#review_pane').offset({ top: citop + $('#courtrot-court_inset').height() }); $('#courtrot-court_inset_holder').css('z-index', 9999);")
     review_pane_active(TRUE)
 }
 
 hide_review_pane <- function() {
     review_pane_active <- getsv("review_pane_active")
     js_hide2("review_pane")
-    dojs("revpl.video_stop();")
+    dojs("revpl.video_stop(); $('#courtrot-court_inset_holder').css('z-index', '');")
     review_pane_active(FALSE)
 }
 
