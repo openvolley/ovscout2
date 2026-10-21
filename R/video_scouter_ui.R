@@ -98,6 +98,6 @@ ov_scouter_ui <- function(app_data) {
                        ),
               tags$link(href = "css/post.css", rel = "stylesheet"),
               ## not used? tags$script("review_player_onerror = function(e) { $('#review_player').removeClass('loading'); try { var this_src = btoa(document.getElementById(e.target.id).getAttribute('src')); } catch(err) { var this_src = ''; }; Shiny.setInputValue('video_error', e.target.id + '@' + this_src + '@' + e.target.error.code + '@' + new Date().getTime()); }"),
-              tags$script(paste0("revpl = new dvjs_controller('review_player','", if (yt) "youtube" else "local", "',true);  revpl.video_onfinished = function() { revpl.video_controller.current=0; revpl.video_play(); }"))
+              tags$script(paste0("revpl = new dvjs_controller('review_player','", if (yt) "youtube" else "local", "',true);", if (yt) " revpl.yt_first_mute = true;", " revpl.video_onfinished = function() { revpl.video_controller.current=0; revpl.video_play(); }"))
               )
 }
