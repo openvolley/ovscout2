@@ -350,7 +350,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
     ## TODO check that the second-ball attack code and the setter dump code appear in the attacks table?
 
     ## finally the shiny app
-    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = with_video, video_src = dvw$meta$video$file, court_ref = court_ref, options = opts, options_file = opts_file, scouting_options_file = scouting_opts_file, click_shortcuts = click_scts, type_shortcuts = type_scts, playstable_shortcuts = pt_scts, remapping = key_remapping, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout_name = scout_name, show_courtref = show_courtref, scout_mode = scout_mode)
+    app_data <- list(dvw_filename = dvw_filename, dvw = dvw, dv_read_args = dv_read_args, with_video = with_video, video_src = path_safe(dvw$meta$video$file), court_ref = court_ref, options = opts, options_file = opts_file, scouting_options_file = scouting_opts_file, click_shortcuts = click_scts, type_shortcuts = type_scts, playstable_shortcuts = pt_scts, remapping = key_remapping, ui_header = tags$div(), user_dir = user_dir, run_env = run_env, auto_save_dir = auto_save_dir, scout_name = scout_name, show_courtref = show_courtref, scout_mode = scout_mode)
     if ("video_file2" %in% names(other_args)) {
         video_file2 <- other_args$video_file2
         other_args$video_file2 <- NULL
@@ -396,7 +396,7 @@ ov_scouter <- function(dvw, video_file, court_ref, season_dir, auto_save_dir, sc
         if (is_youtube_id(video_file2)) {
             video_file2 <- paste0("https://www.youtube.com/watch?v=", video_file2)
         }
-        app_data$video_src2 <- video_file2
+        app_data$video_src2 <- path_safe(video_file2)
         app_data$video2_offset <- video2_offset
         if (is.null(court_ref2)) {
             if (!is_url(video_file2)) {

@@ -1296,7 +1296,7 @@ get_video_source_type <- function(src, base_url) {
     if (is_youtube_url(src)) {
         type <- "youtube"
     } else if (!is_url(src)) {
-        src <- file.path(base_url, basename(src))
+        src <- file.path(base_url, basename(path_safe(src)))
     }
     list(src = src, type = type)
 }

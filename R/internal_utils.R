@@ -101,6 +101,15 @@ uuid <- function(n = 1L) uuid::UUIDgenerate(n = n)
 is_uuid <- function(x) is.character(x) & nchar(x) == 36 & grepl("^[[:digit:]abcdef\\-]+$", x)
 ##all(is_uuid(uuid(n = 1000)))
 
+## convert path separators to /, but not in URLs
+## because e.g. `basename("c:\\foo\\bar.txt")` does not work on linux but `basename(path_safe("c:\\foo\\bar.txt"))` does
+path_safe <- function(z) {
+    out <- z
+    noturl <- !grepl("^https?://", z, ignore.case = TRUE)
+    out[noturl] <- as.character(fs::fs_path(out[noturl]))
+    out
+}
+
 is_url <- function(z) {
     if (length(z) < 1) return(FALSE)
     grepl("^https?://", z, ignore.case = TRUE)
