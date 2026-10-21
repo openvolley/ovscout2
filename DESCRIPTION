@@ -6,6 +6,7 @@ Authors@R: c(person(given = "Ben", family = "Raymond", role = c("aut", "cre"), e
              person(given = "Krystian", family = "Kowalski", role = "ctb"),
              person(given = "Hugh", family = "Nguyen", role = "ctb"),
              person(given = "Brady", family = "Williams", role = "ctb"),
+             person(given = "Miki", family = "Fossati", role = "ctb"),
              person("openvolley.org", role = "org"))
 Description: Functions for scouting volleyball match files.
 URL: https://github.com/openvolley/ovscout2
