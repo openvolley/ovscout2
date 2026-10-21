@@ -29,7 +29,7 @@ ov_scouter_ui <- function(app_data) {
                        tags$script(src = if (running_locally) "js/video.min.js" else "//vjs.zencdn.net/8.3.0/video.min.js"),
                        if (dash) tags$script(src = if (running_locally) "js/dash.all.min.js" else "//cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.1/dash.all.min.js"),
                        if (dash) tags$script(src = if (running_locally) "js/videojs-dash.min.js" else "//cdnjs.cloudflare.com/ajax/libs/videojs-contrib-dash/5.1.1/videojs-dash.min.js"),
-                       if (yt) tags$script(src = "https://cdn.jsdelivr.net/npm/videojs-youtube@2.6.1/dist/Youtube.min.js"), ## for youtube
+                       if (yt) tags$script(src = "https://cdn.jsdelivr.net/npm/videojs-youtube@3.0.1/dist/Youtube.min.js"), ## for youtube (3.x is the version for video.js 8)
                         tags$script(src = build_ovscout2_js(app_data)),
                         tags$title("Volleyball scout and video sync")
                         ),
