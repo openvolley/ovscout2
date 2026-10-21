@@ -324,6 +324,7 @@ show_review_pane <- function() {
     ## use the current video time from the main video
     ## construct the playlist js by hand, because we need to inject the current video time
     revsrc <- get_video_source_type(if (current_video_src() == 1L) app_data$video_src else app_data$video_src2, base_url = app_data$video_server_base_url)
+    if (isTRUE(revsrc$type == "youtube")) revsrc$src <- youtube_url_to_id(revsrc$src)
     pbrate <- if (!is.null(input$playback_rate) && input$playback_rate > 0) input$playback_rate * 1.4 else 1.4
     dojs(paste0("var start_t=videojs.players.main_video.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", revsrc$src, "','start_time':start_t,'duration':4,'type':'", revsrc$type, "'}], 'review_player', '", revsrc$type, "', true); revpl.set_playback_rate(", pbrate, ");"))
     js_show2("review_pane")
