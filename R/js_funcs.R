@@ -42,7 +42,7 @@ player_constructor_js <- function(id = "main_video", app_data, autoplay = FALSE,
            " });\n", ## end options
            ## other setup
            ## "vidplayer.reloadSourceOnError({'errorInterval':5});\n",
-           paste0("vidplayer.ready(function() {\n  console.log('VIDPLAYER READY'); ",
+           paste0("vidplayer.ready(function() {\n ",
                   if (!missing(ready_extra)) sub(";+$", "; ", paste0(stringr::str_trim(ready_extra), ";")),
                   "  Shiny.setInputValue('video_width', vidplayer.videoWidth()); Shiny.setInputValue('video_height', vidplayer.videoHeight());\n});"))
 }
@@ -62,12 +62,13 @@ build_ovscout2_js <- function(app_data) {
         ## define the vidplayer_near_end_fun, which reinitializes the player when it nears the file end
         myjs <- paste(myjs, "vidplayer_near_end_fun = function() {",
                       "  if (vidplayer.currentTime() >= (vidplayer.duration() - 5)) {",
-                      "    console.log('too close to end of new video');",
+                      ## "    console.log('too close to end of new video');",
                       "    setTimeout(vidplayer_reload_fun, 3000);", ## try again in a bit
                       "  } else {",
                       "    vidplayer.on('timeupdate', function(event) {",
                       "      if (this.currentTime() >= (this.duration() - 5)) {",
-                      "        console.log('video near end'); Shiny.setInputValue('video_near_end', true, { priority: 'event' });",
+                      ## "        console.log('video near end');",
+                      "        Shiny.setInputValue('video_near_end', true, { priority: 'event' });",
                       "        vidplayer_reload_fun();",
                       "      }",
                       "    });",

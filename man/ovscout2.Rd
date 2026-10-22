@@ -29,6 +29,7 @@ Other contributors:
   \item Krystian Kowalski [contributor]
   \item Hugh Nguyen [contributor]
   \item Brady Williams [contributor]
+  \item Miki Fossati [contributor]
   \item openvolley.org [originator]
 }
 

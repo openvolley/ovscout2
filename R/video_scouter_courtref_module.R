@@ -242,8 +242,7 @@ mod_courtref <- function(input, output, session, video_file = NULL, video_url = 
                 myjs <- paste0(crplvar, " = videojs('", jsns(paste0("cr_player_", did_sr_popup())), "'); ", crplvar, ".ready(function() {",
                             "Shiny.setInputValue('", ns("cr_media_height"), "', ", crplvar, ".videoHeight());",
                             "Shiny.setInputValue('", ns("cr_media_width"), "', ", crplvar, ".videoWidth());",
-                            resize_observer(jsns(paste0("cr_player_", did_sr_popup())), fun = paste0("console.log('resizing'); ",
-                                                        "Shiny.setInputValue('", ns("cr_media_height"), "', ", crplvar, ".videoHeight());",
+                            resize_observer(jsns(paste0("cr_player_", did_sr_popup())), fun = paste0("Shiny.setInputValue('", ns("cr_media_height"), "', ", crplvar, ".videoHeight());",
                                                         "Shiny.setInputValue('", ns("cr_height"), "', ", crplvar, ".currentHeight());",
                                                         "Shiny.setInputValue('", ns("cr_media_width"), "', ", crplvar, ".videoWidth());",
                                                         "var voff = $('#", jsns(paste0("cr_player_", did_sr_popup())), "').innerHeight(); document.getElementById('", ns("srplot"), "').style.marginTop = '-' + voff + 'px';"

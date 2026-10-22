@@ -98,7 +98,7 @@ mod_courtrot2_ui <- function(id, styling) {
                          column(1, offset = 4, actionButton(ns("court_inset_swap"), label = tags$span(style = "font-size:150%;", "\u21f5"), class = "iconbut", title = "Flip court diagram")) ## flip court diagram
                      )
                      ),
-            tags$script(HTML(resize_observer(ns("outer"), fun = paste0("console.log('setting: ", ns("holder_width"), "'); Shiny.setInputValue('", ns("holder_width"), "', $('#", ns("court_inset_holder"), "').innerWidth());"), nsfun = jsns, debounce = 100, as = "string"))))
+            tags$script(HTML(resize_observer(ns("outer"), fun = paste0("Shiny.setInputValue('", ns("holder_width"), "', $('#", ns("court_inset_holder"), "').innerWidth());"), nsfun = jsns, debounce = 100, as = "string"))))
 }
 
 mod_courtrot2 <- function(input, output, session, rdata, game_state, rally_codes, current_video_src, styling, with_ball_path = function() FALSE) {
