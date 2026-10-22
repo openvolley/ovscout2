@@ -152,3 +152,5 @@ function dbnc(f, delay) {
     let timer = 0;
     return function(...args) { clearTimeout(timer); timer = setTimeout(() => f.apply(this, args), delay); }
 }
+
+$(window).on('resize', dbnc(() => { console.log('window-resize-debounce'); var ciel = $('#courtrot-court_inset'); if (ciel !== null) { var citop = ciel.offset().top; if (citop > 100) { citop = 30; } else { citop = citop + $('#courtrot-court_inset').height(); }; $('#review_pane').offset({ top: citop }) } }, 100));
